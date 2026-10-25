@@ -1,0 +1,85 @@
+---
+import StepTimeline from "~/components/StepTimeline.astro";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
+import Examples from "~/components/cli/Examples.astro";
+import Options from "~/components/cli/Options.astro";
+import Notes from "~/components/cli/Notes.astro";
+import Install from "~/components/cli/Install.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+
+import { NPM_URL, REPO_URL, sections, safety, quickSteps } from "~/components/cli/data";
+
+---
+
+<BaseLayout
+  title={`Command line — ${SITE_TITLE}`}
+  description="Install the spoolsync npm package and reconcile filament inventory exports from a terminal."
+>
+  <Container class="py-12 sm:py-16">
+    <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+      <div>
+        <Badge color="primary" style="soft" shape="pill">npm package</Badge>
+        <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">SpoolSync on the command line</h1>
+        <p class="mt-4 text-lg text-muted-foreground">
+          <code class="rounded bg-muted px-1.5 py-0.5 text-base">spoolsync</code> runs the same matching, planning, and export engine as this
+          site—built for terminals, scripts, and scheduled jobs.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <Button href={NPM_URL} target="_blank" rel="noopener noreferrer" color="primary" icon="simple-icons:npm" iconPosition="left">View on npm</Button>
+          <Button href={REPO_URL} target="_blank" rel="noopener noreferrer" variant="outline" icon="simple-icons:github" iconPosition="left">Source</Button>
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">Requires Node.js 20 or newer.</p>
+      </div>
+
+      <Install />
+    </div>
+
+    <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        safety.map((item) => (
+          <li class="flex gap-3 rounded-xl border bg-card p-4">
+            <IconAvatar icon={item.icon} color="primary" />
+            <div>
+              <h2 class="text-base font-semibold">{item.title}</h2>
+              <p class="mt-1 text-sm text-muted-foreground">{item.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <nav aria-label="On this page" class="mt-12 flex flex-wrap gap-2">
+      {
+        sections.map((section) => (
+          <a
+            href={section.href}
+            class="rounded-full border bg-card px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary/60 hover:text-primary"
+          >
+            {section.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <section class="mt-16 scroll-mt-24" id="quick-start">
+      <SectionHeader align="left" eyebrow="Quick start" title="Compare two inventories" subtitle="Export from each app, then point SpoolSync at the files." />
+      <StepTimeline steps={quickSteps} class="mt-8" />
+    </section>
+
+    <Examples />
+
+    <Options />
+
+    <Notes />
+  </Container>
+</BaseLayout>
+
+<script>
+  import "../scripts/cli-page";
+</script>
+

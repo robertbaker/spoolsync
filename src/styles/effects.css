@@ -1,0 +1,70 @@
+/* Card elevation & micro-interaction */
+.modern-card {
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s ease;
+}
+
+.modern-card:hover {
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+}
+
+/* Layered depth effects per visual-effects guide */
+.shadow-layered {
+  box-shadow:
+    0 1px 2px color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 4px 12px color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .modern-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px color-mix(in oklch, var(--foreground) 6%, transparent);
+  }
+
+  @keyframes subtle-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 0.88;
+    }
+  }
+
+  .animate-subtle-pulse {
+    animation: subtle-pulse 3s ease-in-out infinite;
+  }
+}
+
+/* High contrast preference: strengthen the border and muted-text seeds. */
+@media (prefers-contrast: more) {
+  :root {
+    --border: oklch(0.71 0.03 65);
+    --input: oklch(0.71 0.03 65);
+    --muted-foreground: oklch(0.37 0.03 60);
+  }
+
+  .dark {
+    --border: oklch(0.71 0.03 65);
+    --input: oklch(0.71 0.03 65);
+    --muted-foreground: oklch(0.87 0.02 70);
+  }
+}

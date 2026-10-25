@@ -1,0 +1,120 @@
+name: Release CLI
+
+# Two-step release of the `spoolsync` npm package, compatible with branch protection on main:
+#   1. After CI passes on main with releasable CLI changes, release-it bumps the version and
+#      changelog on a `release/spoolsync-cli` branch and opens (or updates) a release PR.
+#   2. After that PR is merged and CI passes on main again, the package.json version has no tag
+#      yet, so release-it tags it, creates the GitHub release and publishes to npm.
+# npm auth uses Trusted Publishing (OIDC), so no NPM_TOKEN secret is needed. Configure the trusted
+# publisher on npmjs.com: repository robertbaker/spoolsync, workflow `release-cli.yml`.
+# Repo setting required: Settings > Actions > General > "Allow GitHub Actions to create and approve
+# pull requests".
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-cli
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the release branch and tag, create the GitHub release
+  pull-requests: write # open and update the release PR
+  id-token: write # npm Trusted Publishing (OIDC) and provenance
+  actions: read # read the triggering CI workflow run
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only after a green CI run on main.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Decide what to do
+        id: gate
+        run: |
+          # If main moved on since CI ran, a newer CI run will trigger its own release.
+          if [ "${{ github.event_name }}" = "workflow_run" ] \
+            && [ "$(git rev-parse HEAD)" != "${{ github.event.workflow_run.head_sha }}" ]; then
+            echo "main has advanced past the commit CI validated; skipping."
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version=$(node -p "require('./packages/spoolsync-cli/package.json').version")
+          if ! git rev-parse -q --verify "refs/tags/spoolsync-cli-v$version" >/dev/null; then
+            echo "Version $version has no tag yet: publishing."
+            echo "mode=publish" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last=$(git describe --tags --abbrev=0 --match 'spoolsync-cli-v[0-9]*' 2>/dev/null || true)
+          range=${last:+$last..HEAD}
+          echo "Last release tag: ${last:-none}"
+          releasable=$(git log --format=%s $range -- packages/spoolsync-cli packages/spoolsync-core ':!*.md' \
+            | grep -Ev '^(docs|style)(\(.+\))?!?:' \
+            | grep -Ev '^chore\(spoolsync-cli\): release' || true)
+          if [ -z "$releasable" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "Only docs/style changes since the last release; skipping."
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+          else
+            printf 'Releasable commits:\n%s\n' "$releasable"
+            echo "mode=prepare" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.gate.outputs.mode != 'none'
+
+      # Node 24 ships npm >= 11.5.1, which is required for Trusted Publishing.
+      - uses: actions/setup-node@v7
+        if: steps.gate.outputs.mode != 'none'
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        if: steps.gate.outputs.mode != 'none'
+        run: bun install --frozen-lockfile
+
+      - name: Open release PR
+        if: steps.gate.outputs.mode == 'prepare'
+        working-directory: packages/spoolsync-cli
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C release/spoolsync-cli
+          bunx release-it --ci \
+            --no-npm.publish --no-github.release --no-git.tag --no-git.push --no-git.requireUpstream
+          git push --force origin release/spoolsync-cli
+
+          title=$(git log -1 --format=%s)
+          body="Automated release PR. Merging it and passing CI on main publishes the package to npm and creates the GitHub release."
+          if [ -n "$(gh pr list --head release/spoolsync-cli --state open --json number --jq '.[].number')" ]; then
+            gh pr edit release/spoolsync-cli --title "$title" --body "$body"
+          else
+            gh pr create --base main --head release/spoolsync-cli --title "$title" --body "$body"
+          fi
+
+      - name: Publish release
+        if: steps.gate.outputs.mode == 'publish'
+        working-directory: packages/spoolsync-cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bunx release-it --ci --config .release-it-publish.json

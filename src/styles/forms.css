@@ -1,0 +1,34 @@
+/* Shared form-control and surface styles for the app pages. */
+@layer components {
+  .field-input {
+    @apply border-input bg-field-surface placeholder:text-muted-foreground/70 mt-1.5 block w-full rounded-lg border px-3 py-2.5 text-sm shadow-xs transition-colors;
+  }
+
+  .field-input:hover {
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--input));
+  }
+
+  .field-input:focus-visible {
+    @apply border-primary outline-primary/40 outline-2 outline-offset-0;
+  }
+
+  .field-input[aria-invalid="true"]:user-invalid {
+    @apply border-error;
+  }
+
+  .field-label {
+    @apply text-sm font-medium;
+  }
+
+  .field-hint {
+    @apply text-muted-foreground mt-1.5 block text-xs font-normal;
+  }
+
+  .app-card {
+    @apply bg-card rounded-2xl border p-5 shadow-xs sm:p-6;
+  }
+
+  .dropzone {
+    @apply border-border bg-muted/30 text-muted-foreground hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:bg-primary/5 data-[dragging=true]:border-primary data-[dragging=true]:bg-primary/10 data-[dragging=true]:ring-primary/20 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-6 text-center text-sm transition-all duration-150 data-[dragging=true]:ring-4;
+  }
+}

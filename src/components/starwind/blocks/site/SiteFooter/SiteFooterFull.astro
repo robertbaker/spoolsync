@@ -1,0 +1,301 @@
+---
+/**
+ * SiteFooterFull — Full-featured footer with logo slot, contact, nav sections, legal links.
+ *
+ * Used by support/dev sites. For simple sites (tech/industries), use SiteFooter instead.
+ * Accepts a logo slot instead of importing SiteLogo directly.
+ *
+ * Slots: logo, description, brand-extra, bottom-extra, copyright-content.
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import SocialLinks from "../Footer/SocialLinks.astro";
+import FooterNav from "../Footer/FooterNav.astro";
+import FooterContact from "../Footer/FooterContact.astro";
+import type { FooterSection, SocialLink } from "../Footer/footerTypes.ts";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+import {
+  footerLogoClasses,
+  isUppercase,
+  type FooterLogoSize,
+  type FooterUppercase,
+} from "../Footer/index.ts";
+
+interface Props extends HTMLAttributes<"footer">, PaletteProps {
+  siteTitle: string;
+  siteDescription: string;
+  sections: readonly FooterSection[];
+  socialLinks: SocialLink;
+  phoneHref?: string | undefined;
+  phoneDisplay?: string | undefined;
+  /** Scheduling link shown instead of a phone number in the contact block. */
+  scheduleCallUrl?: string | undefined;
+  contactFormUrl?: string | undefined;
+  homeLinkAriaLabel?: string | undefined;
+  /** Free text after the year; use the copyright-content slot for links and inline markup. */
+  copyrightText?: string | undefined;
+  unstyled?: boolean | undefined;
+  /**
+   * Brand column arrangement. `stacked` (default) puts the logo above the description;
+   * `inline` puts them side by side from `sm` up and stacks them on mobile.
+   */
+  logoLayout?: "stacked" | "inline" | undefined;
+  /** Extra classes for the logo link wrapper. */
+  logoClass?: string | undefined;
+  /** Extra classes for the brand column (logo, description, contact, social). */
+  brandClass?: string | undefined;
+  /** Hide the site description paragraph (use the `description` slot to replace it instead). */
+  hideDescription?: boolean | undefined;
+  /**
+   * `plain` (default) is transparent with a filled bottom bar; `bordered` adds a top border, a
+   * muted body and a bordered muted bottom bar.
+   */
+  surface?: "plain" | "bordered" | "muted" | undefined;
+  /** Logo box size: `sm` | `md` (default) | `lg` | `xl`, or a custom height class string. */
+  logoSize?: FooterLogoSize | undefined;
+  /** Uppercase + tracked text: `true` for everything, or pick `copyright`, `headings`, `links`, `legal`. */
+  uppercase?: FooterUppercase | undefined;
+  /** Copyright row arrangement: `split` (default) or `center`. */
+  copyrightAlign?: "split" | "center" | undefined;
+  /** Label above the social icons; `false` hides it (default "Stay connected"). */
+  socialLabel?: string | false | undefined;
+  /** Link columns shown beside the brand at `lg` (2–4); default follows the section count. */
+  navColumns?: 2 | 3 | 4 | undefined;
+  /** Width/container classes for both rows (default `max-w-7xl`). */
+  containerClass?: string | undefined;
+  /** Prefix the copyright line with the site title ("© 2026 Site. All rights reserved."). */
+  copyrightBrand?: boolean | undefined;
+  /**
+   * Where the `legal` section links render. `bottom` (default) lists them under the copyright;
+   * `nav` shows the legal section as another link column (3 columns with two other sections).
+   */
+  legalPlacement?: "bottom" | "nav" | undefined;
+}
+
+const {
+  siteTitle,
+  siteDescription,
+  sections,
+  socialLinks,
+  phoneHref,
+  phoneDisplay,
+  scheduleCallUrl,
+  contactFormUrl,
+  homeLinkAriaLabel = `${siteTitle} — Home`,
+  copyrightText = "All rights reserved.",
+  unstyled = false,
+  logoLayout = "stacked",
+  logoClass,
+  brandClass,
+  hideDescription = false,
+  surface = "plain",
+  logoSize,
+  uppercase,
+  copyrightAlign = "split",
+  socialLabel = "Stay connected",
+  navColumns,
+  containerClass = "max-w-7xl",
+  copyrightBrand = false,
+  legalPlacement = "bottom",
+  class: className,
+  ...rest
+} = Astro.props;
+
+const currentYear = new Date().getFullYear();
+
+const legalLinks =
+  sections
+    .find((s) => s.id === "legal")
+    ?.links.filter((l) => l.href !== "/sitemap.xml") ?? [];
+
+const visibleFooterSections =
+  legalPlacement === "nav" ? [...sections] : sections.filter((section) => section.id !== "legal");
+const bottomLegalLinks = legalPlacement === "nav" ? [] : legalLinks;
+
+const columnCount = navColumns ?? Math.min(Math.max(visibleFooterSections.length, 2), 4);
+const gridColsClass =
+  columnCount >= 4 ? "lg:grid-cols-6" : columnCount === 3 ? "lg:grid-cols-5" : "lg:grid-cols-4";
+const logoBox = footerLogoClasses(logoSize).wrapper;
+const upperCopyright = isUppercase(uppercase, "copyright");
+const upperLegal = isUppercase(uppercase, "legal");
+---
+
+<footer
+  class:list={[
+    "text-foreground",
+    className,
+    surface === "bordered"
+      ? "border-t border-border bg-muted/50"
+      : surface === "muted"
+        ? "bg-muted"
+        : "bg-transparent",
+  ]}
+  aria-label="Site footer"
+  {...withPalette(rest)}
+>
+  <div class:list={["footer-safe-area-x mx-auto px-4 py-12 sm:px-6 sm:py-16 lg:px-8", containerClass]}>
+    <div class:list={["grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10", gridColsClass]}>
+      <div
+        class:list={[
+          "footer-brand col-span-1 flex flex-col gap-6 sm:col-span-2 lg:col-span-2",
+          brandClass,
+        ]}
+        data-logo-layout={logoLayout}
+      >
+        <a
+          href="/"
+          aria-label={homeLinkAriaLabel}
+          class:list={["footer-brand-logo inline-flex items-center gap-3 group", logoClass]}
+        >
+          <div class:list={[logoBox, "flex items-center"]}>
+            <slot name="logo" />
+          </div>
+        </a>
+        <slot name="description">
+          {
+            !hideDescription && (
+              <p class="footer-brand-description text-base text-foreground/80 lg:max-w-xl text-pretty">
+                {siteDescription}
+              </p>
+            )
+          }
+        </slot>
+        <slot name="brand-extra" />
+
+        {contactFormUrl && phoneHref && phoneDisplay && (
+          <FooterContact
+            phoneHref={phoneHref}
+            phoneDisplay={phoneDisplay}
+            contactFormUrl={contactFormUrl}
+          />
+        )}
+        {contactFormUrl && scheduleCallUrl && !(phoneHref && phoneDisplay) && (
+          <FooterContact scheduleCallUrl={scheduleCallUrl} contactFormUrl={contactFormUrl} />
+        )}
+
+        {Object.keys(socialLinks).length > 0 && (
+          <div class="flex flex-col gap-3">
+            {socialLabel !== false && (
+              <span
+                class="text-xs font-semibold uppercase tracking-wide text-foreground/80"
+              >
+                {socialLabel}
+              </span>
+            )}
+            <SocialLinks links={socialLinks} />
+          </div>
+        )}
+      </div>
+
+      <FooterNav
+        sections={visibleFooterSections}
+        unstyled={unstyled}
+        uppercaseHeadings={isUppercase(uppercase, "headings")}
+        uppercaseLinks={isUppercase(uppercase, "links")}
+      />
+    </div>
+  </div>
+
+  <div class:list={[surface === "bordered" ? "border-t border-border bg-muted" : "bg-border"]}>
+    <div class:list={["footer-safe-area-x mx-auto px-4 py-8 sm:px-6 sm:py-10 lg:px-8", containerClass]}>
+      <div
+        class:list={[
+          "flex flex-col gap-3 text-sm text-foreground lg:flex-row lg:items-center",
+          copyrightAlign === "center" ? "lg:justify-center text-center" : "lg:justify-between",
+        ]}
+      >
+        <div class:list={["flex flex-col", { "items-center": copyrightAlign === "center" }]}>
+          <p
+            class:list={[
+              "flex flex-wrap items-center gap-x-1.5 gap-y-1 leading-6",
+              upperCopyright && "text-xs uppercase tracking-[0.18em]",
+            ]}
+          >
+            <span>© {currentYear}</span>
+            <slot name="copyright-content">
+              {copyrightBrand ? `${siteTitle}. ${copyrightText}` : copyrightText}
+            </slot>
+          </p>
+
+          {
+            bottomLegalLinks.length > 0 && (
+              <nav aria-label="Footer legal links" class="mt-2">
+                <ul
+                  class:list={[
+                    "flex flex-wrap items-center gap-3 text-sm",
+                    upperLegal && "text-xs uppercase tracking-[0.12em]",
+                  ]}
+                >
+                  {bottomLegalLinks.map((link) => (
+                    <li>
+                      <a
+                        href={link.href}
+                        class="footer-link underline"
+                        aria-label={link.ariaLabel ?? link.label}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )
+          }
+        </div>
+        <slot name="bottom-extra" />
+      </div>
+    </div>
+  </div>
+  <slot />
+</footer>
+
+<style>
+  .footer-brand[data-logo-layout="inline"] {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    column-gap: 1.5rem;
+    row-gap: 1rem;
+  }
+
+  .footer-brand[data-logo-layout="inline"] > * {
+    grid-column: 1 / -1;
+  }
+
+  @media (min-width: 640px) {
+    .footer-brand[data-logo-layout="inline"] {
+      grid-template-columns: auto 1fr;
+    }
+
+    .footer-brand[data-logo-layout="inline"] > .footer-brand-logo {
+      grid-row: 1;
+      grid-column: 1;
+    }
+
+    .footer-brand[data-logo-layout="inline"] > .footer-brand-description {
+      grid-row: 1;
+      grid-column: 2;
+      margin: 0;
+    }
+  }
+
+  .footer-safe-area-x {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  @media (min-width: 640px) {
+    .footer-safe-area-x {
+      padding-left: max(1.5rem, env(safe-area-inset-left));
+      padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .footer-safe-area-x {
+      padding-left: max(2rem, env(safe-area-inset-left));
+      padding-right: max(2rem, env(safe-area-inset-right));
+    }
+  }
+</style>

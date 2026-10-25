@@ -1,0 +1,183 @@
+---
+import { Icon } from "astro-icon/components";
+import { getImage } from "astro:assets";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import { BlogPostCard, PostHero, PostTopics } from "~/components/starwind/blocks/blog";
+import ReadingProgress from "~/components/starwind/controls/ReadingProgress/ReadingProgress.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import OptimizedImage from "~/components/starwind/controls/OptimizedImage/OptimizedImage.astro";
+import { mdxComponents } from "~/components/mdx";
+import { render, type CollectionEntry } from "astro:content";
+import { formatDate, formatReadingTime, getReadingTime } from "~/components/starwind/lib/format";
+import { slugify } from "~/components/starwind/lib/string";
+import BaseLayout from "./BaseLayout.astro";
+import { postMetadata } from "~/lib/blog/post-metadata";
+
+interface Props {
+  post: CollectionEntry<"blog">;
+  relatedPosts: CollectionEntry<"blog">[];
+  ctaHeading: string;
+  ctaDescription: string;
+  ctaButtonText: string;
+  ctaArchiveText?: string;
+  ctaButtonHref?: string;
+  ctaSecondaryText?: string;
+  ctaSecondaryHref?: string;
+}
+
+const {
+  post,
+  relatedPosts,
+  ctaHeading,
+  ctaDescription,
+  ctaButtonText,
+  ctaArchiveText = "Prefer to browse by topic? Every post is tagged so related notes stay easy to find.",
+  ctaButtonHref = "/connections",
+  ctaSecondaryText = "Browse related topics",
+  ctaSecondaryHref = "/resources#articles",
+} = Astro.props;
+const { Content } = await render(post);
+
+const readingMinutes = getReadingTime(post.body ?? "");
+const structuredCoverImage = await getImage({
+  src: post.data.coverImage,
+  format: "avif",
+  quality: 80,
+  width: 1200,
+  height: 630,
+  fit: "cover",
+});
+const { articleStructuredData, publishDateIso, postTopics } = postMetadata(post, structuredCoverImage.src);
+const ctaTopics = postTopics.slice(0, 5);
+
+
+---
+
+<BaseLayout title={post.data.title} description={post.data.description} post={post}>
+  <ReadingProgress />
+
+  <Fragment slot="head">
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(articleStructuredData).replace(/</g, "\\u003c")} />
+  </Fragment>
+
+  <article class="relative bg-background pb-20 text-foreground">
+    <div id="top-sentinel" class="pointer-events-none absolute top-0 h-96 w-full" aria-hidden="true"></div>
+    <PostHero
+      title={post.data.title}
+      description={post.data.description}
+      breadcrumbs={[
+        { label: "Home", href: "/" },
+        { label: "Resources", href: "/resources" },
+        { label: post.data.title },
+      ]}
+      publishedDate={formatDate(post.data.pubDate, "long")}
+      publishedDateIso={publishDateIso}
+      readingTime={formatReadingTime(readingMinutes)}
+      author={post.data.author}
+      topics={postTopics.slice(0, 3)}
+    />
+
+    <section class="relative mx-auto -mt-6 grid max-w-5xl gap-10 px-4 sm:-mt-8 lg:px-8">
+      <figure class="aspect-16/9 overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
+        <OptimizedImage
+          src={post.data.coverImage}
+          alt={post.data.coverAlt}
+          width={1200}
+          height={675}
+          widths={[480, 640, 768, 960, 1200, 1440, 1920, 2400, 2880]}
+          sizes="(min-width: 1088px) 1024px, calc(100vw - 2rem)"
+          quality={80}
+          class="h-full w-full object-cover"
+          priority
+          fetchpriority="high"
+        />
+      </figure>
+
+      <div class="rounded-3xl border border-border bg-card p-8 shadow-xl lg:p-12">
+        <div class="prose prose-lg max-w-none dark:prose-invert">
+          <Content components={mdxComponents} />
+        </div>
+
+        <PostTopics topics={postTopics} />
+      </div>
+
+      <div class="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-primary-text">Thanks for reading</p>
+        <h2 class="text-2xl font-bold text-foreground">{ctaHeading}</h2>
+        <p class="mt-3 text-base text-muted-foreground">{ctaDescription}</p>
+        {
+          ctaTopics.length > 0 && (
+            <nav class="mt-5 flex flex-wrap gap-2" aria-label="Continue browsing post topics">
+              {ctaTopics.map((tag: string) => (
+                <Badge
+                  href={`/resources/tag/${slugify(tag)}`}
+                  ariaLabel={`Browse more articles tagged ${tag}`}
+                  style="outline"
+                  class="border-border bg-card text-card-foreground shadow-xs"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </nav>
+          )
+        }
+        <div class="mt-6 flex flex-wrap gap-3">
+          <Button href={ctaButtonHref} variant="solid" color="primary">{ctaButtonText}</Button>
+          <Button href={ctaSecondaryHref} variant="outline">
+            {ctaSecondaryText}
+          </Button>
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">{ctaArchiveText}</p>
+      </div>
+    </section>
+
+    {
+      relatedPosts.length > 0 && (
+        <section class="mx-auto mt-16 max-w-6xl px-4 lg:px-8 defer-render">
+          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-primary-text">Related reading</p>
+          <h2 class="mt-3 text-3xl font-extrabold text-foreground">More resources</h2>
+          <p class="mt-3 max-w-3xl text-base text-muted-foreground">
+            Other posts on similar topics.
+          </p>
+          <div class="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            {relatedPosts.map((relatedPost, index) => (
+              <BlogPostCard
+                title={relatedPost.data.title}
+                description={relatedPost.data.description}
+                id={relatedPost.id}
+                coverImage={relatedPost.data.coverImage}
+                coverAlt={relatedPost.data.coverAlt}
+                pubDate={new Date(relatedPost.data.pubDate)}
+                author={relatedPost.data.author}
+                tags={relatedPost.data.tags ?? []}
+                readingMinutes={getReadingTime(relatedPost.body ?? "")}
+                index={index}
+              />
+            ))}
+          </div>
+        </section>
+      )
+    }
+    <a
+      href="#main-content"
+      id="back-to-top"
+      class="back-to-top-btn fixed bottom-6 right-6 z-40 inline-flex size-11 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-primary hover:text-primary-text focus-visible:outline-2 focus-visible:outline-primary/70"
+      aria-label="Back to top"
+    >
+      <Icon name="material-symbols:arrow-upward" class="size-5" aria-hidden="true" />
+    </a>
+  </article>
+
+  <script>
+    const sentinel = document.getElementById("top-sentinel");
+    if (sentinel && "IntersectionObserver" in window) {
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry) {
+          document.documentElement.classList.toggle("scrolled-down", !entry.isIntersecting);
+        }
+      });
+      observer.observe(sentinel);
+    }
+  </script>
+</BaseLayout>

@@ -1,0 +1,298 @@
+---
+/**
+ * Button Component
+ *
+ * Comprehensive button component with R5 styling and accessibility.
+ * Supports both button and link (a tag) rendering for maximum flexibility.
+ *
+ * Features:
+ * - 5 R5 variants: primary, secondary, outline, ghost, danger
+ * - 5 sizes: xs, sm, md, lg, xl
+ * - Button and link (href) modes
+ * - Disabled state support
+ * - Full-width option
+ * - External link handling with rel="noopener noreferrer"
+ * - Accessible ARIA labels
+ * - Dark mode compatible
+ *
+ * @component
+ * @example
+ * import { Button } from '~/components/ui';
+ *
+ * <!-- Button mode -->
+ * <Button variant="primary" size="md" type="submit">
+ *   Submit Form
+ * </Button>
+ *
+ * <!-- Link mode -->
+ * <Button variant="outline" href="/contact" size="lg">
+ *   Contact Us
+ * </Button>
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import {
+  type ButtonVariant,
+  type ButtonColor,
+  type ButtonSize,
+  type ButtonShape,
+  getButtonClasses,
+  getLinkProps,
+} from "./buttonVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette.ts";
+import { partClasses, type ClassesProps } from "../../lib/classes.ts";
+
+type Part =
+  /** Loading spinner shown while `loading` is true. */
+  | "spinner"
+  | "icon"
+  /** Wrapper around `loadingText` while loading. */
+  | "label";
+
+type ButtonIconPosition = "left" | "right";
+type ButtonIconSize = "auto" | "sm" | "md" | "lg";
+
+interface Props extends HTMLAttributes<"button">, PaletteProps, ClassesProps<Part> {
+  /**
+   * The visual style variant of the button.
+   * @default 'solid'
+   */
+  variant?: ButtonVariant;
+  /**
+   * The color theme of the button.
+   * @default 'primary'
+   */
+  color?: ButtonColor;
+  /**
+   * The size of the button.
+   * @default 'md'
+   */
+  size?: ButtonSize;
+  /**
+   * The HTML button type. Only applies when href is undefined.
+   * @default 'button'
+   */
+  type?: "button" | "submit" | "reset";
+  /**
+   * Whether the button is disabled. Disables user interaction and applies disabled styling.
+   * @default false
+   */
+  disabled?: boolean | "disabled" | null;
+  /**
+   * Whether the button should span the full width of its container.
+   * @default false
+   */
+  fullWidth?: boolean;
+  /**
+   * Renders the button as a block element.
+   * @default false
+   */
+  block?: boolean;
+  /**
+   * Renders the button with extra horizontal padding.
+   * @default false
+   */
+  wide?: boolean;
+  /**
+   * Renders the button as a square.
+   * @default false
+   */
+  square?: boolean;
+  /**
+   * Renders the button as a circle.
+   * @default false
+   */
+  circle?: boolean;
+  /**
+   * If provided, renders as an anchor (`<a>`) tag links to this URL.
+   */
+  href?: string | undefined;
+  /**
+   * Whether the link opens in a new tab/window. Only applies when href is provided.
+   * Adds `target="_blank"` and `rel="noopener noreferrer"`.
+   * @default false
+   */
+  external?: boolean | undefined;
+  /**
+   * Descriptive label for screen readers. Recommended for icon-only buttons.
+   */
+  ariaLabel?: string | undefined;
+  /**
+   * Invoker commands API target element ID.
+   */
+  commandfor?: string | undefined;
+  /**
+   * Invoker command action (built-in like "show-modal", "close", or custom starting with "--").
+   */
+  command?: string | undefined;
+  /**
+   * Popover API target element ID.
+   */
+  popovertarget?: string | undefined;
+  /**
+   * Popover target action.
+   */
+  popovertargetaction?: "toggle" | "show" | "hide" | undefined;
+  /**
+   * Additional CSS classes to apply to the button.
+   */
+  class?: string;
+  /**
+   * Shared visual recipe layered on top of the R5 variant/color classes.
+   * @default 'default'
+   */
+  /**
+   * Unique ID for the button element.
+   */
+  id?: string;
+  /**
+   * Polymorphic tag to render the button as.
+   * @default 'button' (or 'a' if href is provided)
+   */
+  as?: string;
+  /**
+   * Anchor target when rendering in link mode (`href` provided).
+   */
+  target?: string | undefined;
+  /**
+   * Anchor rel when rendering in link mode (`href` provided).
+   */
+  rel?: string | undefined;
+  /**
+   * Whether the button is in a loading state. showed a spinner and disables interaction.
+   * @default false
+   */
+  loading?: boolean;
+  /**
+   * Alternate label rendered while loading.
+   * Falls back to the default slot when omitted.
+   */
+  loadingText?: string;
+  /**
+   * Optional icon rendered by the button.
+   */
+  icon?: string | undefined;
+  /**
+   * Position of the icon relative to the label.
+   * @default 'left'
+   */
+  iconPosition?: ButtonIconPosition | undefined;
+  /**
+   * Explicit icon size override.
+   * @default 'auto'
+   */
+  iconSize?: ButtonIconSize;
+  /**
+   * Disables click animation.
+   * @default false
+   */
+  noAnimation?: boolean;
+}
+
+const {
+  variant = "solid",
+  color,
+  size = "md",
+  type = "button",
+  disabled = false,
+  fullWidth = false,
+  block = false,
+  wide = false,
+  square = false,
+  circle = false,
+  href,
+  external = false,
+  loading = false,
+  loadingText,
+  icon,
+  iconPosition = "left",
+  iconSize = "auto",
+  noAnimation = false,
+  ariaLabel,
+  class: className,
+  id,
+  as,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+
+const shapes: ButtonShape[] = [
+  block ? "block" : undefined,
+  wide ? "wide" : undefined,
+  square ? "square" : undefined,
+  circle ? "circle" : undefined,
+].filter(Boolean) as ButtonShape[];
+
+const effectiveColor = color ?? "primary";
+
+const buttonClasses = getButtonClasses(
+  variant,
+  effectiveColor,
+  size,
+  shapes,
+  fullWidth,
+  className,
+  noAnimation,
+);
+const isUnavailable = disabled || loading;
+const effectiveHref = isUnavailable ? undefined : href;
+const linkProps = getLinkProps(effectiveHref, external);
+const iconSizeMap: Record<Exclude<ButtonIconSize, "auto">, string> = {
+  sm: "size-4",
+  md: "size-5",
+  lg: "size-6",
+};
+const autoIconSizeMap: Record<ButtonSize, string> = {
+  xs: "size-4",
+  sm: "size-4",
+  md: "size-5",
+  lg: "size-5",
+  xl: "size-6",
+};
+const resolvedIconSize = iconSize === "auto" ? autoIconSizeMap[size] : iconSizeMap[iconSize];
+const renderedLabel = loading && loadingText ? loadingText : undefined;
+
+// Render as link or button
+const Tag = (as || (href ? "a" : "button")) as "a" | "button" | "span" | "div";
+---
+
+<Tag
+  id={id}
+  data-slot="button"
+  data-variant={variant}
+  data-color={effectiveColor}
+  data-size={size}
+  class={buttonClasses}
+  type={Tag === "button" ? type : undefined}
+  disabled={Tag === "button" ? isUnavailable : undefined}
+  aria-label={ariaLabel ?? (rest["aria-label"] as string | undefined)}
+  aria-busy={loading ? "true" : undefined}
+  aria-disabled={Tag !== "button" && isUnavailable ? "true" : undefined}
+  tabindex={Tag !== "button" && isUnavailable ? "-1" : undefined}
+  {...linkProps}
+  {...withPalette(rest)}
+>
+  {
+    loading && (
+      <span
+        class={cls("spinner", "size-4 animate-spin rounded-full border-2 border-current border-r-transparent")}
+        aria-hidden="true"
+      />
+    )
+  }
+  {icon && iconPosition === "left" && !loading && (
+    <Icon name={icon} class={cls("icon", resolvedIconSize)} aria-hidden="true" />
+  )}
+  {
+    renderedLabel ? (
+      <span class={cls("label")}>{renderedLabel}</span>
+    ) : (
+      <slot />
+    )
+  }
+  {icon && iconPosition === "right" && !loading && (
+    <Icon name={icon} class={cls("icon", resolvedIconSize)} aria-hidden="true" />
+  )}
+</Tag>

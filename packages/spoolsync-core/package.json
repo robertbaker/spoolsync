@@ -1,0 +1,31 @@
+{
+  "name": "@spoolsync/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./workflow": "./src/workflow.ts",
+    "./planner": "./src/planner.ts",
+    "./apply": "./src/apply.ts",
+    "./core/*": "./src/core/*.ts",
+    "./adapters/*": "./src/adapters/*/index.ts",
+    "./adapters/spoolman/*": "./src/adapters/spoolman/*.ts",
+    "./adapters/tigertag/*": "./src/adapters/tigertag/*.ts",
+    "./adapters/shared/*": "./src/adapters/shared/*.ts",
+    "./adapters/spoolstock/*": "./src/adapters/spoolstock/*.ts",
+    "./adapters/spoolio/*": "./src/adapters/spoolio/*.ts",
+    "./adapters/threeDfp/*": "./src/adapters/threeDfp/*.ts",
+    "./adapters/bambuddy/*": "./src/adapters/bambuddy/*.ts",
+    "./adapters/filameter/*": "./src/adapters/filameter/*.ts",
+    "./adapters/filadex/*": "./src/adapters/filadex/*.ts",
+    "./adapters/filamentdb/*": "./src/adapters/filamentdb/*.ts"
+  },
+  "scripts": {
+    "test": "bun test ./src/"
+  },
+  "dependencies": {
+    "papaparse": "^5.7.0",
+    "zod": "^4.6.7"
+  }
+}

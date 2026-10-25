@@ -1,0 +1,38 @@
+---
+import CommandBlock from "~/components/CommandBlock.astro";
+import { installTabs, sampleOutput } from "./data";
+---
+
+      <div class="min-w-0 space-y-4" id="install">
+        <div role="tablist" aria-label="Package manager" class="flex gap-1 rounded-xl border bg-muted p-1">
+          {
+            installTabs.map((tab, index) => (
+              <button
+                type="button"
+                role="tab"
+                id={`install-tab-${tab.id}`}
+                aria-controls={`install-panel-${tab.id}`}
+                aria-selected={index === 0 ? "true" : "false"}
+                tabindex={index === 0 ? 0 : -1}
+                data-install-tab={tab.id}
+                class="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
+              >
+                {tab.label}
+              </button>
+            ))
+          }
+        </div>
+        {
+          installTabs.map((tab, index) => (
+            <div role="tabpanel" id={`install-panel-${tab.id}`} aria-labelledby={`install-tab-${tab.id}`} data-install-panel={tab.id} hidden={index !== 0}>
+              <CommandBlock code={tab.code} title="Install" />
+            </div>
+          ))
+        }
+        <CommandBlock code="spoolsync --help" title="Check it works" />
+        <div>
+          <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Example output</p>
+          <CommandBlock code={sampleOutput} prompt={false} />
+        </div>
+      </div>
+

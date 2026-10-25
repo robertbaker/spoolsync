@@ -1,0 +1,30 @@
+# Service Worker & Manifest - Critical to NEVER cache these
+# This ensures users always find out about new versions immediately
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/manifest.webmanifest
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Astro/Vite Assets - Aggressively cache these
+# These files have hashes in their names (e.g., index.a1b2c3.js), so they are "cache-busted" by definition.
+# When you deploy, the file names transform, so we can cache the old ones forever without risk.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+# Default Cache Rule - For everything else (like HTML pages)
+# Forces the browser to check with Cloudflare if there's a new version
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), local-network-access=(self)
+  # CSP: connect-src allows http: and https: because Spoolman runs on the user's LAN, usually over http.
+  # No upgrade-insecure-requests: it would rewrite those http fetches to https.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; script-src-elem 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; style-src-elem 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' http: https:; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'

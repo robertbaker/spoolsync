@@ -1,0 +1,120 @@
+---
+import type { ImageMetadata } from "astro";
+import type { CollectionEntry } from "astro:content";
+import { Icon } from "astro-icon/components";
+import SiteBaseLayout from "~/components/starwind/layouts/SiteBaseLayout.astro";
+import {
+  SITE_URL,
+  TWITTER_HANDLE,
+  SITE_DESCRIPTION,
+  SITE_CONFIG,
+  SITE_BRAND_NAME,
+  SOCIAL_LINKS,
+  navLinks,
+} from "~/config";
+import {
+  DEFAULT_SOCIAL_IMAGE,
+  DEFAULT_SOCIAL_IMAGE_ALT,
+  NOINDEX_ROBOTS,
+  normalizeSeoPath,
+  shouldNoindexPath,
+} from "~/config/seo";
+import globalStylesheetHref from "~/styles/global.css?url";
+
+interface Props {
+  title: string;
+  description?: string;
+  post?: CollectionEntry<"blog">;
+  image?: ImageMetadata | string;
+  imageAlt?: string;
+  robots?: string;
+  hideHeader?: boolean;
+  hideFooter?: boolean;
+}
+
+const { title, description, post, image, imageAlt, robots, hideHeader, hideFooter } = Astro.props;
+const normalizedPath = normalizeSeoPath(Astro.url.pathname);
+const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_ROBOTS : undefined);
+---
+
+<SiteBaseLayout
+  title={title}
+  {...(description ? { description } : {})}
+  {...(post ? { post } : {})}
+  siteTitle={SITE_BRAND_NAME}
+  siteDescription={SITE_DESCRIPTION}
+  siteUrl={SITE_URL}
+  image={image ?? DEFAULT_SOCIAL_IMAGE}
+  imageAlt={imageAlt ?? DEFAULT_SOCIAL_IMAGE_ALT}
+  twitterHandle={TWITTER_HANDLE}
+  socialLinks={SOCIAL_LINKS}
+  navLinks={navLinks}
+  config={SITE_CONFIG}
+  {...(resolvedRobots ? { robots: resolvedRobots } : {})}
+  {...(hideHeader ? { hideHeader } : {})}
+  {...(hideFooter ? { hideFooter } : {})}
+  scrollSmooth
+  mainId="main-content"
+  mainClass="pb-24 lg:pb-8 flex-1 min-w-0"
+  skipLinkClass="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-100 focus-visible:rounded-lg focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-foreground focus-visible:border focus-visible:border-primary focus-visible:shadow-layered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+>
+  <span slot="header-logo" class="group flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
+    <img src="/logo-mark.svg" alt="" class="size-9 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-6" width="36" height="36" />
+    <span>Spool<span class="text-primary">Sync</span></span>
+  </span>
+  <a
+    slot="header-actions"
+    href="https://ko-fi.com/spool_sync"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex size-9 items-center justify-center rounded-full bg-[#ff5e5b] text-white transition-all hover:scale-105 hover:bg-[#e94d4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    aria-label="Support SpoolSync on Ko-fi"
+    title="Support SpoolSync on Ko-fi"
+  >
+    <Icon name="simple-icons:kofi" class="size-5" aria-hidden="true" />
+  </a>
+  <span slot="footer-logo" class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground">
+    <img src="/logo-mark.svg" alt="" class="size-10" width="40" height="40" loading="lazy" />
+    <span>Spool<span class="text-primary">Sync</span></span>
+  </span>
+  <Fragment slot="copyright-content">
+    <span>© </span>
+    <a class="footer-link underline" href="https://robertbaker.dev">Robert Baker</a>
+    <span> and the </span>
+    <a class="footer-link underline" href="https://github.com/robertbaker/spoolsync">contributors of SpoolSync</a>
+    <span> · Open source under </span>
+    <a class="footer-link underline" href="https://github.com/robertbaker/spoolsync/blob/main/LICENSE">AGPL-3.0</a>
+    <span> · </span>
+    <a class="footer-link underline" href="https://ko-fi.com/spool_sync" target="_blank" rel="noopener noreferrer">
+      Support us on Ko-fi
+    </a>
+    <span class="mt-2 block text-xs opacity-80">
+      SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.
+    </span>
+  </Fragment>
+  <Fragment slot="head">
+    <meta name="color-scheme" content="light dark" />
+    <link rel="preload" href="/fonts/inter-latin-variable-wghtOnly-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href={globalStylesheetHref} />
+    <slot name="head" />
+  </Fragment>
+  <slot />
+</SiteBaseLayout>
+
+<script>
+  import "~/scripts/tour";
+
+  // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
+  const syncAria = (el: Element | null) => {
+    if (el && "matches" in el && typeof el.matches === "function") {
+      if (el.matches("input, textarea, select")) {
+        el.setAttribute("aria-invalid", el.matches(":user-invalid") ? "true" : "false");
+      }
+    }
+  };
+  document.addEventListener("blur", (e) => syncAria(e.target as Element), true);
+  document.addEventListener("input", (e) => {
+    const target = e.target as Element;
+    if (target?.hasAttribute("aria-invalid")) syncAria(target);
+  });
+</script>

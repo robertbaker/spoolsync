@@ -1,0 +1,186 @@
+---
+/**
+ * Section Header Component
+ *
+ * Reusable header for page sections with badge, title, and subtitle.
+ * Provides consistent styling across all sections.
+ *
+ * Features:
+ * - Optional icon badge
+ * - Large title with custom typography
+ * - Optional subtitle/description
+ * - Center alignment
+ * - Responsive sizing
+ * - Accessibility compliant
+ *
+ * @component
+ * @example
+ * <SectionHeader
+ *   badge="Our Services"
+ *   icon="material-symbols:star"
+ *   title="What We Offer"
+ *   subtitle="Comprehensive tech support solutions"
+ * />
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { ColorVariant } from "../../lib/colors.ts";
+import {
+  getSectionHeaderAccentClasses,
+  getSectionHeaderAlignmentClasses,
+  getSectionHeaderBadgeClasses,
+  getSectionHeaderVariantClasses,
+  normalizeHeadingLevel,
+  titleAccentClasses,
+  type SectionHeaderBadgeStyle,
+  type SectionHeaderTitleAccent,
+  type SectionHeaderVariant,
+} from "./sectionHeaderVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette.ts";
+import { partClasses, type ClassesProps } from "../../lib/classes.ts";
+
+type Part =
+  | "eyebrow"
+  | "badge"
+  | "badgeIcon"
+  | "badgeText"
+  | "title"
+  /** Decorative rule drawn under the title by some variants. */
+  | "accent"
+  | "subtitle";
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, ClassesProps<Part> {
+  /**
+   * Section title
+   */
+  title: string;
+
+  /**
+   * Badge text (optional)
+   */
+  badge?: string | undefined;
+
+  /**
+   * Small uppercase eyebrow shown above the badge/title.
+   */
+  eyebrow?: string | undefined;
+
+  /**
+   * Icon name for badge (optional)
+   */
+  icon?: string | undefined;
+
+  /**
+   * Subtitle or description (optional)
+   */
+  subtitle?: string | undefined;
+
+  /**
+   * HTML Heading level (h1-h6)
+   * @default 2
+   */
+  level?: number;
+
+  /**
+   * Content alignment
+   * @default "center"
+   */
+  align?: "left" | "center" | "right";
+
+
+  /**
+   * R5-inspired presentation variant.
+   * @default "default"
+   */
+  variant?: SectionHeaderVariant;
+
+  /**
+   * Badge treatment style.
+   * @default "solid"
+   */
+  badgeStyle?: SectionHeaderBadgeStyle;
+
+  /**
+   * Accent color for the badge and decorative treatments.
+   * @default "primary"
+   */
+  color?: ColorVariant;
+
+  /**
+   * Decorative treatment applied to the title text: none, underline, highlight, or marker.
+   * @default "none"
+   */
+  titleAccent?: SectionHeaderTitleAccent;
+}
+const {
+  badge,
+  eyebrow,
+  icon,
+  title,
+  subtitle,
+  class: className,
+  level = 2,
+  align = "center",
+  variant = "default",
+  badgeStyle = "solid",
+  color = "primary",
+  titleAccent = "none",
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const hasEyebrowSlot = Astro.slots.has("eyebrow");
+const hasBadgeSlot = Astro.slots.has("badge");
+const hasSubtitleSlot = Astro.slots.has("subtitle");
+
+const alignClasses = getSectionHeaderAlignmentClasses(align);
+const accentClasses = getSectionHeaderAccentClasses(color);
+const variantClasses = getSectionHeaderVariantClasses(variant, color);
+const badgeClasses = getSectionHeaderBadgeClasses(badgeStyle, color);
+const headingLevel = normalizeHeadingLevel(level);
+const HeadingTag = `h${headingLevel}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+---
+
+<div
+  class={`${alignClasses.root} ${variantClasses.root} ${className || ""}`.trim()}
+  data-section-header-variant={variant}
+  data-section-header-color={color}
+  {...withPalette(rest)}
+>
+  {
+    (eyebrow || hasEyebrowSlot) && (
+      <p class={cls("eyebrow", "mb-3 text-xs font-semibold uppercase tracking-[0.24em]", accentClasses.eyebrow)}>
+        <slot name="eyebrow">{eyebrow}</slot>
+      </p>
+    )
+  }
+  {
+    (badge || hasBadgeSlot) && (
+      <div class={cls("badge", badgeClasses, "mb-4")}>
+        {icon && <Icon name={icon} class={cls("badgeIcon", "size-4")} aria-hidden="true" />}
+        <span class={cls("badgeText") || undefined}>
+          <slot name="badge">{badge}</slot>
+        </span>
+      </div>
+    )
+  }
+  <HeadingTag class={cls("title", variantClasses.title)}>
+    <span class={titleAccentClasses[titleAccent]}>
+      <slot name="title">{title}</slot>
+    </span>
+  </HeadingTag>
+  {
+    variantClasses.accent ? (
+      <div class={cls("accent", variantClasses.accent, alignClasses.accent)} aria-hidden="true" />
+    ) : null
+  }
+  {
+    (subtitle || hasSubtitleSlot) && (
+      <p class={cls("subtitle", variantClasses.subtitle, alignClasses.subtitle)}>
+        <slot name="subtitle">{subtitle}</slot>
+      </p>
+    )
+  }
+  <slot />
+</div>

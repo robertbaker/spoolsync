@@ -1,0 +1,90 @@
+---
+import OptimizedImage from "../OptimizedImage/OptimizedImage.astro";
+import type { ImageMetadata } from "astro";
+import { Icon } from "astro-icon/components";
+interface Props {
+  src?: string | ImageMetadata | undefined;
+  alt?: string | undefined;
+  icon?: string | undefined;
+  class?: string | undefined;
+  fallbackText?: string | undefined;
+  srOnlyText?: string | undefined;
+  fallbackClass?: string | undefined;
+  transparent?: boolean | undefined;
+  filled?: boolean | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  loading?: "eager" | "lazy" | undefined;
+  fetchpriority?: "high" | "low" | "auto" | undefined;
+}
+
+const {
+  src,
+  alt,
+  icon,
+  class: className,
+  fallbackText,
+  srOnlyText,
+  fallbackClass = "text-xl font-bold text-foreground",
+  transparent,
+  filled = false,
+  width,
+  height,
+  loading = "eager",
+  fetchpriority,
+} = Astro.props as Props;
+
+const shouldFill = transparent === undefined ? filled : !transparent;
+---
+
+<slot>
+{
+  src ? (
+    <>
+      <span
+        class:list={[
+          "inline-flex items-center site-logo-inline",
+          { "site-logo-filled": shouldFill },
+        ]}
+      >
+        <OptimizedImage
+          src={src}
+          alt={alt !== undefined ? alt : (srOnlyText ? "" : fallbackText || "")}
+          {...(!alt && (srOnlyText || !fallbackText) ? { "aria-hidden": "true" } : {})}
+          class={className}
+          loading={loading}
+          decoding="async"
+          {...(width ? { width } : {})}
+          {...(height ? { height } : {})}
+          {...(fetchpriority ? { fetchpriority } : {})} />
+      </span>
+      {srOnlyText && <span class="sr-only">{srOnlyText}</span>}
+    </>
+  ) : icon ? (
+    <>
+      <span
+        class:list={[
+          "inline-flex items-center site-logo-inline",
+          { "site-logo-filled": shouldFill },
+        ]}
+      >
+        <Icon
+          name={icon}
+          class={className}
+          {...(srOnlyText || !fallbackText ? { "aria-hidden": "true" } : {})}
+        />
+      </span>
+      {srOnlyText && <span class="sr-only">{srOnlyText}</span>}
+    </>
+  ) : (
+    fallbackText && <span class={fallbackClass}>{fallbackText}</span>
+  )
+}
+</slot>
+
+<style>
+  .site-logo-inline img {
+    display: block;
+    max-width: 100%;
+  }
+</style>

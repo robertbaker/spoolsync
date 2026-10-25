@@ -1,0 +1,28 @@
+---
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+---
+
+<BaseLayout title={`Page not found — ${SITE_TITLE}`} description="The requested page could not be found.">
+  <Container class="py-20 text-center sm:py-28">
+    <div class="mx-auto flex max-w-2xl flex-col items-center">
+      <div class="animate-subtle-pulse">
+        <IconAvatar icon="material-symbols:link-off" color="primary" containerSize="xl" size="xl" rounded="full" />
+      </div>
+      <Badge color="primary" style="soft" shape="pill" class="mt-6 uppercase tracking-wider">Error 404</Badge>
+      <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">Page not found</h1>
+      <p class="mt-4 text-lg text-muted-foreground">This page does not exist or has moved. Try one of these instead:</p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <Button href="/" color="primary" size="lg" icon="material-symbols:home-outline" iconPosition="left">Return home</Button>
+        <Button href="/connections" variant="outline" size="lg">Connections</Button>
+        <Button href="/load" variant="outline" size="lg">Load</Button>
+        <Button href="/sync" variant="outline" size="lg">Sync</Button>
+        <Button href="/cli" variant="outline" size="lg">CLI</Button>
+      </div>
+    </div>
+  </Container>
+</BaseLayout>

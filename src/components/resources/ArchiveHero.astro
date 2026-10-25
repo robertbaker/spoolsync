@@ -1,0 +1,81 @@
+---
+import { Icon } from "astro-icon/components";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import { slugify } from "~/components/starwind/lib/string";
+interface Props { meta: { eyebrow: string; heading: string; subheading: string }; page: { total: number; lastPage: number }; allTags: string[]; heroTags: string[]; currentPageLabel: string; }
+const { meta: BLOG_META, page, allTags, heroTags, currentPageLabel } = Astro.props;
+---
+
+  <section class="relative overflow-hidden border-b border-border/60 bg-background">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/60 to-transparent" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -top-24 -left-32 size-72 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute top-10 -right-20 size-56 rounded-full bg-accent/20 blur-3xl" aria-hidden="true"></div>
+
+    <div class="relative mx-auto grid max-w-6xl gap-10 px-4 py-14 md:py-18 lg:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
+      <div class="min-w-0">
+        <Badge style="outline" class="border-primary/20 bg-background/70 text-primary-text shadow-sm">
+          <Icon name="material-symbols:menu-book-outline" class="size-4" aria-hidden="true" />
+          {BLOG_META.eyebrow}
+        </Badge>
+        <h1 class="font-display mt-6 max-w-3xl text-4xl leading-tight font-black tracking-tight text-balance text-foreground sm:text-5xl lg:text-[3.4rem]">
+          {BLOG_META.heading}
+        </h1>
+        <p class="mt-5 max-w-2xl text-base leading-7 text-foreground/75 text-pretty sm:text-lg sm:leading-8">
+          {BLOG_META.subheading}
+        </p>
+        <dl class="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-border/60 pt-5">
+          <div>
+            <dt class="sr-only">Archive size</dt>
+            <dd class="text-sm font-semibold text-foreground/80">
+              <span class="text-2xl font-black text-foreground">{page.total}</span>
+              {page.total === 1 ? "article" : "articles"}
+            </dd>
+          </div>
+          <div>
+            <dt class="sr-only">Topic coverage</dt>
+            <dd class="text-sm font-semibold text-foreground/80">
+              <span class="text-2xl font-black text-foreground">{allTags.length}</span>
+              {allTags.length === 1 ? "topic" : "topics"}
+            </dd>
+          </div>
+          {
+            page.lastPage > 1 && (
+              <div>
+                <dt class="sr-only">Current page</dt>
+                <dd class="text-sm font-semibold text-foreground/80" aria-label={currentPageLabel}>
+                  {currentPageLabel}
+                </dd>
+              </div>
+            )
+          }
+        </dl>
+      </div>
+
+      {
+        heroTags.length > 0 && (
+          <div class="rounded-[1.75rem] border border-border/60 bg-card/90 p-5 shadow-xl shadow-primary/8 sm:p-6">
+            <p class="text-xs font-semibold tracking-[0.22em] text-primary-text/80 uppercase">Browse by topic</p>
+            <p id="blog-topic-help" class="mt-2 text-sm text-muted-foreground">
+              Jump straight to guides, releases, and integrations.
+            </p>
+            <nav
+              class="mt-4 flex flex-wrap gap-2"
+              aria-label="Filter articles by topic"
+              aria-describedby="blog-topic-help"
+            >
+              {heroTags.map((tag) => (
+                <Badge
+                  href={`/resources/tag/${slugify(tag)}`}
+                  ariaLabel={`Browse articles tagged ${tag}`}
+                  style="outline"
+                  class="border-border bg-background text-foreground hover:border-primary/40 hover:text-primary-text"
+                >
+                  {tag}
+                </Badge>
+              ))}
+            </nav>
+          </div>
+        )
+      }
+    </div>
+  </section>

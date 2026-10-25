@@ -1,0 +1,125 @@
+---
+/**
+ * FAB Menu Component
+ *
+ * Floating action button with speed-dial menu for mobile navigation.
+ * Uses details/summary for native dropdown behavior with swap icon animation.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { FabMenu } from '~/components/ui/SiteHeader';
+ * ---
+ * <FabMenu items={[
+ *   { href: "/", text: "Home", icon: "material-symbols:home" },
+ *   { href: "/contact", text: "Contact", icon: "material-symbols:mail" },
+ * ]} />
+ * ```
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../../types/index.ts";
+import Button from "../../../../controls/Button/Button.astro";
+import {
+  type ColorVariant,
+  getMobileMenuColorClasses,
+  getNavHoverColors,
+} from "../../../../lib/colors.ts";
+
+interface Props extends HTMLAttributes<"div"> {
+  items: NavLink[];
+  glass?: boolean;
+  accentColor?: ColorVariant;
+}
+
+const { items, glass = false, accentColor = "primary", ...rest } = Astro.props;
+---
+
+<div class="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-[calc(1.5rem+env(safe-area-inset-left,0px))] z-50 lg:hidden font-sans" {...rest}>
+  <details class="group relative inline-flex" data-fab-menu>
+    {/* Trigger Button */}
+    <Button
+      as="summary"
+      variant="solid"
+      color={accentColor}
+      size="lg"
+      class="rounded-full shadow-xl z-50 transition-all duration-300 touch-manipulation active:scale-95"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="fab-menu-items"
+      data-fab-menu-trigger
+    >
+      <div class="relative inline-grid place-items-center transition-transform group-open:rotate-180">
+        <Icon name="material-symbols:menu" class="block size-8 group-open:hidden" aria-hidden="true" />
+        <Icon name="material-symbols:close" class="hidden size-8 group-open:block" aria-hidden="true" />
+      </div>
+    </Button>
+
+    {/* Dropdown Content (Speed Dial Items) */}
+    <ul
+      id="fab-menu-items"
+      aria-hidden="true"
+      inert
+      class:list={[
+        "absolute bottom-full start-0 z-10 mb-4 flex flex-col gap-2 rounded-2xl border border-border bg-popover/95 backdrop-blur-xl p-2 text-popover-foreground shadow-xl overscroll-contain",
+      ]}
+    >
+      {
+        items.map((item, _index) => {
+          const itemColor = item.color ?? accentColor;
+          const mobileColors = getMobileMenuColorClasses(itemColor);
+
+          return (
+            <li class="flex items-center gap-2">
+              <a
+                href={item.href}
+                class:list={[
+                  "flex items-center gap-2.5 group/item rounded-xl p-1 text-foreground transition-all duration-150 touch-manipulation active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2",
+                  getNavHoverColors(itemColor),
+                  mobileColors.focusOutline,
+                ]}
+                {...(item.external
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+                aria-label={item.ariaLabel}
+              >
+                <Button
+                  as="div"
+                  size="sm"
+                  variant={glass ? "ghost" : "solid"}
+                  color={itemColor}
+                  class:list={[
+                    "rounded-full shadow-md min-h-[44px] min-w-[44px] flex items-center justify-center",
+                    glass && "bg-background/50 backdrop-blur",
+                  ]}
+                >
+                  <Icon
+                    name={item.icon || "material-symbols:link"}
+                    class="size-5"
+                    aria-hidden="true"
+                  />
+                </Button>
+                <span
+                  class:list={[
+                    "text-sm font-medium py-1.5 px-3 rounded-xl shadow-md opacity-0 translate-x-2 group-hover/item:opacity-100 group-hover/item:translate-x-0 group-focus-within/item:opacity-100 group-focus-within/item:translate-x-0 transition-all duration-200 block whitespace-nowrap",
+                    glass
+                      ? "bg-background/60 backdrop-blur"
+                      : "bg-background",
+                  ]}
+                >
+                  {item.text}
+                </span>
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </details>
+</div>
+
+<script>
+  import { bootstrapNavigationDisclosures } from "../../NavMenu/index.ts";
+  bootstrapNavigationDisclosures();
+</script>

@@ -1,0 +1,80 @@
+---
+/**
+ * ReadingProgress Component
+ *
+ * Sticky top scroll-progress bar using native CSS scroll-driven animations
+ * when supported, falling back to an event listener in older browsers.
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import { withPalette, type PaletteProps } from "../../lib/palette";
+import { partClasses, type ClassesProps } from "../../lib/classes";
+
+type Part = "bar";
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, ClassesProps<Part> {
+  heightClass?: string;
+  gradientClass?: string;
+}
+
+const {
+  heightClass = "h-1",
+  gradientClass = "bg-linear-to-r from-primary via-accent to-secondary",
+  class: className,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+---
+
+<div
+  class:list={[
+    "pointer-events-none fixed left-0 right-0 top-0 z-50 bg-transparent",
+    heightClass,
+    className,
+  ]}
+  aria-hidden="true"
+  {...withPalette(rest)}
+>
+  <div
+    class={cls("bar", "h-full origin-left scale-x-0 reading-progress-bar", gradientClass)}
+  >
+  </div>
+</div>
+
+<style>
+  @keyframes growProgress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .reading-progress-bar {
+      transform-origin: left;
+      animation: growProgress auto linear;
+      animation-timeline: scroll(root block);
+    }
+  }
+</style>
+
+<script>
+  if (!CSS.supports("animation-timeline", "scroll()")) {
+    const bar = document.querySelector<HTMLElement>(".reading-progress-bar");
+    if (bar) {
+      const updateProgress = () => {
+        const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress =
+          totalHeight > 0 ? Math.min(Math.max(window.scrollY / totalHeight, 0), 1) : 0;
+        bar.style.transform = `scaleX(${progress})`;
+      };
+      window.addEventListener("scroll", updateProgress, { passive: true });
+      updateProgress();
+    }
+  }
+</script>

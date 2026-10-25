@@ -1,0 +1,53 @@
+/* Modern Responsive Table Styles */
+.spool-table-wrapper {
+  overflow-x: auto;
+  max-inline-size: 100%;
+  max-block-size: min(640px, 75vh);
+  container-type: inline-size;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background-color: var(--card);
+}
+
+.spool-table-wrapper table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+}
+
+.spool-table-wrapper thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 10;
+  background-color: color-mix(in oklch, var(--card) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.spool-table-wrapper thead th {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.spool-table-wrapper tbody tr {
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  transition: background-color 0.15s ease;
+}
+
+.spool-table-wrapper tbody tr:hover {
+  background-color: color-mix(in oklch, var(--primary) 4%, transparent);
+}
+
+.spool-table-wrapper tbody td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}

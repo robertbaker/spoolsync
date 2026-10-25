@@ -1,0 +1,133 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes.ts";
+
+type Part = "container" | "title" | "channel" | "icon" | "link";
+
+export interface Labels {
+  title?: string;
+  scheduleCallLabel?: string;
+  contactFormLabel?: string;
+  scheduleCallAriaLabel?: string;
+  contactFormAriaLabel?: string;
+}
+
+/**
+ * The first channel is a phone number or a scheduling link — a site offers one or the other.
+ */
+type PrimaryChannel =
+  | { phoneHref: string; phoneDisplay: string; scheduleCallUrl?: never }
+  | { scheduleCallUrl: string; phoneHref?: never; phoneDisplay?: never };
+
+type Props = (HTMLAttributes<"div"> &
+  PrimaryChannel &
+  ClassesProps<Part> &
+  LabelsProps<Labels> & {
+    contactFormUrl: string;
+    /** Named in the phone link's accessible name: "Call {organization} at …". */
+    organization?: string;
+    /** Section title displayed above contact methods. */
+    title?: string;
+    /** Text for the schedule call link. */
+    scheduleCallLabel?: string;
+    /** Text for the contact form link. */
+    contactFormLabel?: string;
+    /** Accessible name for the schedule call link. */
+    scheduleCallAriaLabel?: string;
+    /** Accessible name for the contact form link. */
+    contactFormAriaLabel?: string;
+  }) & PaletteProps;
+
+let {
+  phoneHref,
+  phoneDisplay,
+  scheduleCallUrl,
+  contactFormUrl,
+  organization = "us",
+  title = "Contact",
+  scheduleCallLabel = "Schedule a Call",
+  contactFormLabel = "Contact Form",
+  scheduleCallAriaLabel = "Schedule a call",
+  contactFormAriaLabel = "Contact form",
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels({
+  title,
+  scheduleCallLabel,
+  contactFormLabel,
+  scheduleCallAriaLabel,
+  contactFormAriaLabel,
+}, labelOverrides);
+
+title = labels.title ?? title;
+scheduleCallLabel = labels.scheduleCallLabel ?? scheduleCallLabel;
+contactFormLabel = labels.contactFormLabel ?? contactFormLabel;
+scheduleCallAriaLabel = labels.scheduleCallAriaLabel ?? scheduleCallAriaLabel;
+contactFormAriaLabel = labels.contactFormAriaLabel ?? contactFormAriaLabel;
+---
+
+<div class={cls("container", "flex flex-col gap-3 text-sm text-foreground/80")} {...withPalette(rest)}>
+  <slot name="title">
+    <span class={cls("title", "text-xs font-semibold uppercase tracking-wide text-foreground/80")}
+      >{title}</span
+    >
+  </slot>
+  <div class="flex flex-wrap items-center gap-4">
+    <slot name="primary-channel">
+      <span class="inline-flex items-center gap-2">
+        <slot name="call-icon">
+          <Icon
+            name="material-symbols:call"
+            class="h-5 w-5 text-primary-text"
+            aria-hidden="true"
+          />
+        </slot>
+        {
+          scheduleCallUrl ? (
+            <a href={scheduleCallUrl} class="footer-link font-medium" aria-label={scheduleCallAriaLabel}>
+              {scheduleCallLabel}
+            </a>
+          ) : (
+            <a
+              href={phoneHref}
+              class="footer-link font-medium"
+              aria-label={`Call ${organization} at ${phoneDisplay}`}
+            >
+              {phoneDisplay}
+            </a>
+          )
+        }
+      </span>
+    </slot>
+    <slot name="contact-form">
+      <span class="inline-flex items-center gap-2">
+        <slot name="mail-icon">
+          <Icon
+            name="material-symbols:mail"
+            class="h-5 w-5 text-primary-text"
+            aria-hidden="true"
+          />
+        </slot>
+        <a
+          href={contactFormUrl}
+          class="footer-link font-medium"
+          aria-label={contactFormAriaLabel}
+        >
+          {contactFormLabel}
+        </a>
+      </span>
+    </slot>
+  </div>
+  <slot />
+</div>

@@ -1,0 +1,106 @@
+---
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { resolveLogoPath } from "../../lib/logo-utils.ts";
+
+interface Props {
+  logoName?: string | undefined;
+  class?: string | undefined;
+  fallbackText?: string | undefined;
+  srOnlyText?: string | undefined;
+  fallbackClass?: string | undefined;
+  transparent?: boolean | undefined;
+  filled?: boolean | undefined;
+}
+
+const {
+  logoName,
+  class: className,
+  fallbackText,
+  srOnlyText,
+  fallbackClass = "text-xl font-bold text-foreground",
+  transparent,
+  filled = false,
+} = Astro.props as Props;
+
+const shouldFill = transparent === undefined ? filled : !transparent;
+
+const cwd = process.cwd();
+const siteLogoRoots = (() => {
+  const sitesRoot = join(cwd, "sites");
+  if (!existsSync(sitesRoot)) return [] as string[];
+
+  return readdirSync(sitesRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => [
+      join(sitesRoot, entry.name, "src/assets/brand"),
+      join(sitesRoot, entry.name, "src/assets/logos"),
+    ])
+    .filter((assetPath) => existsSync(assetPath));
+})();
+
+const logoRoots = [
+  join(cwd, "src/assets/brand"),
+  join(cwd, "src/assets/logos"),
+  ...siteLogoRoots,
+];
+
+const addSvgClass = (svg: string, classValue: string): string => {
+  return svg.replace(/<svg\b([^>]*)>/i, (_match, attrs) => {
+    if (/class\s*=/.test(attrs)) {
+      return `<svg${attrs.replace(
+        /class=(["'])(.*?)\1/i,
+        (_classMatch: string, quote: string, existing: string) =>
+          `class=${quote}${existing} ${classValue}${quote}`,
+      )}>`;
+    }
+    return `<svg class="${classValue}"${attrs}>`;
+  });
+};
+
+const stripThemeVariableDefaults = (svg: string): string => {
+  return svg.replace(/<style\b([^>]*)>([\s\S]*?)<\/style>/gi, (_match, attrs, css) => {
+    const normalizedCss = css
+      .replace(/--tt-fill\s*:\s*[^;]+;/g, "")
+      .replace(/--tt-color\s*:\s*[^;]+;/g, "")
+      .replace(/--tt-grad-start\s*:\s*[^;]+;/g, "")
+      .replace(/--tt-grad-end\s*:\s*[^;]+;/g, "")
+      .replace(/--tt-gradient-start\s*:\s*[^;]+;/g, "")
+      .replace(/--tt-gradient-end\s*:\s*[^;]+;/g, "")
+      .trim();
+
+    if (!normalizedCss) return "";
+    return `<style${attrs}>${normalizedCss}</style>`;
+  });
+};
+
+let logoSvg: string | undefined;
+const resolved = logoName ? resolveLogoPath(logoName, logoRoots) : undefined;
+if (resolved) {
+  const raw = readFileSync(resolved.path, "utf-8")
+    .replace(/^\uFEFF/, "")
+    .trim();
+  const svgStartIndex = raw.indexOf("<svg");
+  if (svgStartIndex !== -1) {
+    const svg = stripThemeVariableDefaults(raw.slice(svgStartIndex));
+    logoSvg = className ? addSvgClass(svg, className) : svg;
+  }
+}
+---
+
+{
+  logoSvg ? (
+    <>
+      <span
+        class:list={[
+          "inline-flex items-center site-logo-inline",
+          { "site-logo-filled": shouldFill },
+        ]}
+        set:html={logoSvg}
+      />
+      {srOnlyText && <span class="sr-only">{srOnlyText}</span>}
+    </>
+  ) : (
+    fallbackText && <span class={fallbackClass}>{fallbackText}</span>
+  )
+}

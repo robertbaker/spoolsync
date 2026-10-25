@@ -1,0 +1,95 @@
+---
+/**
+ * Terminal-style command block. The copy button appears on hover or keyboard focus (always on
+ * touch screens) and copies the command text without the decorative `$` prompts.
+ */
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  code: string;
+  /** Shown in a window title bar; omit for a bare block. */
+  title?: string;
+  /** Prefix commands with a `$` prompt. Lines starting with `#` and continuations are left bare. */
+  prompt?: boolean;
+  class?: string;
+}
+
+const { code, title, prompt = true, class: className } = Astro.props;
+
+const lines = code.split("\n").map((text, index, all) => ({
+  text,
+  prompt: prompt && !text.trimStart().startsWith("#") && !(index > 0 && all[index - 1]!.trimEnd().endsWith("\\")),
+}));
+---
+
+<div class:list={["command-block group relative min-w-0 overflow-hidden rounded-xl border border-foreground/15 bg-neutral text-neutral-foreground", className]}>
+  {
+    title && (
+      <div class="flex items-center gap-2 border-b border-neutral-foreground/10 px-4 py-2">
+        <span class="size-2.5 rounded-full bg-error/80" aria-hidden="true" />
+        <span class="size-2.5 rounded-full bg-warning/80" aria-hidden="true" />
+        <span class="size-2.5 rounded-full bg-success/80" aria-hidden="true" />
+        <span class="ml-2 truncate font-mono text-xs text-neutral-foreground/60">{title}</span>
+      </div>
+    )
+  }
+  <pre class="p-4 pr-14 font-mono text-[13px] leading-6 sm:text-sm"><code>{lines.map((line) => (<span class="block whitespace-pre-wrap break-words pl-0 [overflow-wrap:anywhere]">{line.prompt && <span class="select-none text-primary" aria-hidden="true">$ </span>}{line.text || " "}</span>))}</code></pre>
+  <button
+    type="button"
+    data-copy-code={code}
+    class="absolute right-2 flex size-9 items-center justify-center rounded-lg border border-neutral-foreground/15 bg-neutral/90 text-neutral-foreground/80 opacity-0 backdrop-blur transition hover:bg-neutral-foreground/10 hover:text-neutral-foreground focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
+    class:list={[title ? "top-12" : "top-2"]}
+    aria-label="Copy command to clipboard"
+  >
+    <Icon name="material-symbols:content-copy-outline-rounded" class="size-[18px] copy-idle" aria-hidden="true" />
+    <Icon name="material-symbols:check-rounded" class="hidden size-[18px] copy-done" aria-hidden="true" />
+  </button>
+</div>
+
+<script>
+  const FEEDBACK_MS = 1600;
+  let live: HTMLElement | null = null;
+
+  const announce = (message: string) => {
+    if (!live) {
+      live = document.createElement("div");
+      live.setAttribute("role", "status");
+      live.className = "sr-only";
+      document.body.append(live);
+    }
+    live.textContent = message;
+  };
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.cssText = "position:fixed;opacity:0";
+      document.body.append(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      return ok;
+    }
+  };
+
+  document.addEventListener("click", async (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>("[data-copy-code]");
+    if (!button) return;
+    const ok = await copyText(button.dataset["copyCode"] ?? "");
+    button.dataset["copied"] = String(ok);
+    button.setAttribute("aria-label", ok ? "Copied" : "Copy failed");
+    button.querySelector(".copy-idle")?.classList.toggle("hidden", ok);
+    button.querySelector(".copy-done")?.classList.toggle("hidden", !ok);
+    announce(ok ? "Copied to clipboard" : "Could not copy");
+    window.setTimeout(() => {
+      delete button.dataset["copied"];
+      button.setAttribute("aria-label", "Copy command to clipboard");
+      button.querySelector(".copy-idle")?.classList.remove("hidden");
+      button.querySelector(".copy-done")?.classList.add("hidden");
+    }, FEEDBACK_MS);
+  });
+</script>

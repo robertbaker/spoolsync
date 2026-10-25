@@ -1,0 +1,22 @@
+---
+import { Icon } from "astro-icon/components";
+import Card from "~/components/starwind/controls/Card/Card.astro";
+
+const listClasses =
+  "px-6 pb-6 text-sm leading-relaxed [&_li]:mt-2 [&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-5 [&_li]:pl-1";
+---
+
+<div class="not-prose my-6 grid gap-4 md:grid-cols-2">
+  <Card variant="default" color="success">
+    <span slot="title" class="flex items-center gap-2">
+      <Icon name="tabler:circle-check" class="size-5 text-success" />Pros
+    </span>
+    <div class={listClasses}><slot name="pros" /></div>
+  </Card>
+  <Card variant="default" color="error">
+    <span slot="title" class="flex items-center gap-2">
+      <Icon name="tabler:circle-x" class="size-5 text-error" />Cons
+    </span>
+    <div class={listClasses}><slot name="cons" /></div>
+  </Card>
+</div>

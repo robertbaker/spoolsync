@@ -1,0 +1,10 @@
+[install]
+saveTextLockfile = true
+linkWorkspacePackages = true
+
+[test]
+preload = ["./tests/setup.ts"]
+ignore = ["e2e/**", "node_modules/**", "ref/**"]
+pathIgnorePatterns = ["e2e/**", "ref/**"]
+onlyFailures = true
+

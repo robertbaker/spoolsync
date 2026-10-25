@@ -1,0 +1,66 @@
+---
+import { newestFirst } from "~/lib/blog/order";
+import BlogPostCard from "~/components/starwind/blocks/blog/PostCard/BlogPostCard.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { getReadingTime } from "~/components/starwind/lib/format";
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  const authors = Array.from(new Set(posts.map((post: BlogEntry) => post.data.author))).filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
+
+  return authors.map((author) => {
+    const filtered = posts
+      .filter((post: BlogEntry) => post.data.author === author)
+      .sort(newestFirst);
+
+    return {
+      params: { id: author.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") },
+      props: { author, posts: filtered },
+      cacheKey: `${author}:${filtered.map((post: BlogEntry) => post.digest).join(",")}`,
+    };
+  });
+}
+
+const { author, posts } = Astro.props as { author: string; posts: BlogEntry[] };
+const authorArchiveDescription = `${posts.length} post${posts.length === 1 ? "" : "s"} by ${author}.`;
+---
+
+<BaseLayout
+  title={`Posts by ${author} — Blog`}
+  description={authorArchiveDescription}
+  {...(posts[0] ? { image: posts[0].data.coverImage, imageAlt: posts[0].data.coverAlt } : {})}
+>
+  <section class="bg-background py-16">
+    <div class="mx-auto max-w-6xl px-4 lg:px-8">
+      <h1 class="text-4xl font-black text-foreground">Posts by {author}</h1>
+      <p class="mt-3 text-muted-foreground">{posts.length} article{posts.length === 1 ? "" : "s"}</p>
+      <div class="mt-10 grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+        {
+          posts.map((post, index) => (
+            <BlogPostCard
+              title={post.data.title}
+              description={post.data.description}
+              id={post.id}
+              coverImage={post.data.coverImage}
+              coverAlt={post.data.coverAlt}
+              pubDate={new Date(post.data.pubDate)}
+              author={post.data.author}
+              tags={post.data.tags ?? []}
+              index={index}
+              readingMinutes={getReadingTime(post.body ?? "")}
+            />
+          ))
+        }
+      </div>
+      <div class="mt-12">
+        <Button href="/resources" variant="outline">Back to all posts</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

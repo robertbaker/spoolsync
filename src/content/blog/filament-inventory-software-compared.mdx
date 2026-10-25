@@ -1,0 +1,262 @@
+---
+title: "Filament inventory software compared: which one should you use?"
+description: A comparison of Spoolman, Bambuddy, FilaMeter, Spoolstock, Spoolio, TigerTag and 3DFilamentProfiles, with pros, cons, and who each one fits.
+pubDate: "2026-10-27"
+author: SpoolSync
+coverImage: ../../assets/images/blog/filament-inventory-comparison.png
+coverAlt: "Filament inventory software, compared: Spoolman, Bambuddy, FilaMeter, Spoolstock, Spoolio, TigerTag and 3DFilamentProfiles shown as colored spools."
+tags:
+  - Guides
+  - Integrations
+---
+
+Filament trackers differ mostly in where your data lives and what they do with it. Some run on your home server and talk to your printer. Some run on your phone. One is mainly a database of filaments other people have measured.
+
+This post covers the seven services [SpoolSync](/connections) can read from: what each does well, where it falls short, and who it suits. It is based on each project's own documentation and on the export formats we handle in SpoolSync's adapters. Features change, so check a project's site before committing to it.
+
+## Spoolman
+
+[Spoolman](https://github.com/Donkie/Spoolman) is a free, open-source web service that stores filaments, manufacturers, and individual spools. It exposes them through a REST API with live updates over WebSockets, and it is the inventory most self-hosted setups build on.
+
+You run it yourself. The [recommended install](https://github.com/Donkie/Spoolman/wiki/Installation) is Docker, and there is also a [standalone install](https://github.com/Donkie/Spoolman/wiki/Installation#standalone-install) for Linux that runs as a systemd service. There is no Spoolman cloud, so your data stays on your own hardware.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- Free and open source, with no subscription, account, or cloud. Your inventory stays yours.
+- Integrates with Moonraker and the common Klipper front-ends (Fluidd, Mainsail, KlipperScreen), so usage is [tracked automatically](https://github.com/Donkie/Spoolman/wiki/Automatic-Filament-Usage-Tracking) as you print. One Spoolman can serve several printers.
+- Third-party integrations exist for OctoPrint and Home Assistant, plus an MCP server for AI assistants.
+- The Snapmaker U1 can report to Spoolman through Paxx12's custom firmware.
+- Includes a label designer for QR-code labels, custom fields, and a community filament database (SpoolmanDB).
+- Runs on SQLite, PostgreSQL, MySQL, or CockroachDB, and handles several printers updating at once.
+- It is widely used in the 3D printing community, so guides, forum threads, and people who can help are easy to find.
+- Forks such as Spoolman-NG add more features if the original is missing something you need.
+
+</Fragment>
+<Fragment slot="cons">
+
+- It takes more technical skill than an app. You need to be comfortable with Docker (or a Linux command line) to install, update, and back it up.
+- You have to host it yourself, on a Raspberry Pi, NAS, or home server that stays on.
+- It lives on your home network. Reaching it away from home means setting up a VPN such as WireGuard or Tailscale, or a Cloudflare Tunnel.
+- It is a spare-time project, so releases are irregular.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You run Klipper (or a Snapmaker U1 on Paxx12 firmware), are comfortable with Docker, and want a free, private inventory that other tools can read and write through an API.
+
+</Callout>
+
+## Bambuddy
+
+[Bambuddy](https://github.com/maziggy/bambuddy) is a self-hosted, AGPL-3.0 control panel for Bambu Lab printers. It installs with Docker, a Windows installer, or manually on Linux and macOS. Spool inventory is one feature alongside a print archive, monitoring, scheduling, a file library, and notifications.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- Spool inventory is tied to AMS slots. Consumption is tracked from slicer estimates, with the AMS remaining percentage as a fallback.
+- Per-spool cost tracking, low-stock alerts, storage locations, bulk edit, and printable labels.
+- Syncs with Spoolman, so you do not have to choose between them.
+
+</Fragment>
+<Fragment slot="cons">
+
+- It targets Bambu printers. Without one, most of it is of little use.
+- Printers must be in LAN Only mode with Developer Mode on, and reachable on your local network.
+- It is a full platform, which is a lot to run if you only want a spool list.
+- Its CSV importer only creates spools, so updating existing ones means using the API.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You run one or more Bambu printers and want inventory that follows the AMS automatically.
+
+</Callout>
+
+## FilaMeter
+
+[FilaMeter](https://filameter.com) is an open-source, local-first inventory. It stores data in the browser using PouchDB and needs no account or cloud sync.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- No ads, subscription, or login. Use it at filameter.com or self-host it.
+- Tracks spools by type, weight, material, and location, with consumption inputs.
+- Import and export for backups and migration, plus QR-code label support.
+
+</Fragment>
+<Fragment slot="cons">
+
+- Data lives on that device unless you export it, so backups are your job.
+- It does not connect to your printer, so usage is entered by hand.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You want a simple, private tracker for a handful of spools and no server to run.
+
+</Callout>
+
+## Spoolstock
+
+[Spoolstock](https://www.spoolstock.com) is a filament and print management app for phones and tablets, available on the App Store and Google Play, with a web beta at app.spoolstock.com. Creating a print deducts the filament from your spools.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- Mobile-first, so checking or updating a spool at the shelf is quick.
+- Keeps filaments, spools, prints, and projects together.
+- Optional NFC: stick a tag on a spool, record its details, and scan it later to find it or add it to a print. Its FAQ names NTAG215 as the most common choice and says any NDEF tag should work.
+- Works with most computer-connected label printers that can print PDFs.
+
+</Fragment>
+<Fragment slot="cons">
+
+- Paid beyond the free tier. Per its FAQ, the first 20 filaments, spools, and prints are free, then it costs $1.99 a month or $19.99 a year.
+- The web version is still labeled beta.
+- SpoolSync can only read from it. You can export a CSV, but Spoolstock has no import, so changes made elsewhere cannot be pushed back.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You do most of your tracking from your phone and do not need a server.
+
+</Callout>
+
+## Spoolio
+
+[Spoolio](https://spoolio.net) is a hosted, installable web app (a PWA) for hobbyists. It needs no server and works on phone, tablet, and desktop. It is free for up to 50 spools and 2 printers.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- An AI label scanner reads the brand, material, color, and recommended temperatures from a photo of a spool, and it reads barcodes and UPCs.
+- Tracks moisture exposure and drying profiles, low-stock alerts, multi-color spools, and warnings for abrasive filaments.
+- Pro adds Slicer-Link, a Python post-processing script that sends each job from PrusaSlicer, OrcaSlicer, Bambu Studio, SuperSlicer, or Cura to your dashboard. You then only pick the spool you used when the print finishes.
+- Pro also adds usage analytics and cost-per-print charts.
+- Full JSON export on every plan, and it can import a Spoolman database file or JSON export.
+
+</Fragment>
+<Fragment slot="cons">
+
+- It is a hosted service, so your inventory lives in their cloud. The export protects you from lock-in, but you have to run it.
+- The free tier is capped. Unlimited spools and printers, analytics, and Slicer-Link need Pro: $1.99 a month, or $29.99 once at the early-adopter rate. The site says that rate is limited to the first 500 members and rises to $2.99 a month or $49.99 after that.
+- Usage comes from your slicer's estimate rather than from the printer, so it is only as accurate as the slice.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You want a no-server tracker with label scanning and are fine paying for the extras.
+
+</Callout>
+
+## TigerTag
+
+[TigerTag](https://tigersystem.io) started as an open RFID format and has grown into a small system around it. Filament data (brand, material, color, remaining grams) is written to a standard NTAG213 sticker (NTAG215 and 216 also work), so a reader or NFC phone can identify a spool without an account or internet connection. Spools from brands such as Rosa3D, eSun, Sunlu, Nanovia, and Filforme ship with chips already in them.
+
+The pieces around the format are:
+
+- **[TigerTag Studio Manager](https://github.com/TigerTag-Project/TigerTag-Studio-Manager)** (Tiger Studio) is a free, MIT-licensed desktop app for Windows, macOS, and Linux, with a browser version at studio.tigersystem.io. It handles inventory, racks, a searchable catalogue, chip reading and writing, and live printer telemetry for Bambu Lab, Creality, Elegoo, FlashForge, Snapmaker, Anycubic, and Prusa, plus Klipper and OctoPrint. Cloud sync needs a TigerTag account.
+- **Digital-only spools.** TigerData and TigerData+ track a spool in the app with no chip at all, and you can add a chip later.
+- **DIY hardware.** TigerScale is an open-source ESP32 filament scale that reports what is left on a spool to the gram. TigerPOD is a 3D-printable stand for NFC readers, and TD1S is a color and transmission-density sensor. None of it is required.
+- **Other apps.** [SimplyPrint](https://simplyprint.io/features/filament-management/nfc/tigertag), a cloud print-farm suite with a filament manager, reads and writes TigerTag alongside OpenPrintTag and OpenSpool. It prints QR and barcode labels and deducts usage automatically, and it has a free plan for 2 printers. Filament tools come with Pro ($9.99 a month) and above, or as a standalone Filament Manager plan at $5.99 a month.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- The data travels with the spool, so it survives switching apps.
+- Open format and cheap tags. The software is free, and an inexpensive USB reader (an ACR122U) or your phone is enough to start.
+- Works across brands, and the Snapmaker U1 can read tags natively on community firmware.
+- Weighing is solved if you build the scale: remaining filament is measured, not estimated.
+- TigerTag+ chips add proof of origin, so you can check a spool is genuine.
+
+</Fragment>
+<Fragment slot="cons">
+
+- You need hardware: tags, and a reader or NFC-capable phone. The scale is a build project.
+- Untagged spools are invisible to the chip side of it, so it is only as complete as your tagging.
+- Several printer connections in Studio Manager are still beta (Prusa, Klipper, OctoPrint), and the Windows build is not code-signed yet.
+- Studio Manager reads only TigerTag chips. Support for other RFID vendors is planned, not shipped.
+- Cloud features run on Firebase and need an account, so it is not fully offline.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You want spools that identify themselves and are willing to tag your collection.
+
+</Callout>
+
+## 3DFilamentProfiles
+
+[3DFilamentProfiles](https://3dfilamentprofiles.com) began as a searchable database for comparing filaments and has added a personal inventory (My Spools). [Fabbaloo reported](https://www.fabbaloo.com/news/a-long-needed-database-for-filament-management) almost 24,000 filament options from over 900 providers.
+
+<ProsCons>
+<Fragment slot="pros">
+
+- Add spools straight from the database, or import them from a Bambu Lab order invoice PDF, its own CSV, Spoolman, Bambuddy, or a spreadsheet.
+- A wish list for filament you want, which you can convert to a spool when you buy it.
+- Generates QR labels and read-only share links to your spool list, with a chosen set of columns and an expiry from a day to a year.
+- Exports Bambu Studio and OrcaSlicer presets from a spool, using your own tuned temperatures and flow ratio instead of community values.
+- Exports CSV, JSON, or HueForge CSV/JSON, plus a change log and all labels as a PDF.
+- A new [API](https://3dfilamentprofiles.com/blog/2026-10-api-launch) lets scripts look up filaments and barcodes, download slicer profiles, and list, add, and update your spools, including deducting used weight after a print.
+
+</Fragment>
+<Fragment slot="cons">
+
+- Usage tracking is manual: update weights after each print, or log prints on its My Print page.
+- API access is paid. It is included with higher Patreon tiers or available by subscription.
+- It is a database first and an inventory second, so day-to-day tracking is lighter than in dedicated tools.
+
+</Fragment>
+</ProsCons>
+
+<Callout variant="success" title="Choose it if">
+
+You want to research colors and specs, keep tuned slicer profiles per spool, or work with HueForge, and you are fine updating weights yourself or through the API.
+
+</Callout>
+
+## Which one should you choose?
+
+| If you...                                       | Start with                          |
+| ----------------------------------------------- | ----------------------------------- |
+| Run Klipper and want automatic usage tracking   | Spoolman                            |
+| Have Bambu printers and AMS                     | Bambuddy (optionally with Spoolman) |
+| Want zero setup and full privacy                | FilaMeter                           |
+| Track mostly from your phone                    | Spoolstock                          |
+| Want no server and AI label scanning            | Spoolio                             |
+| Want spools that identify themselves            | TigerTag                            |
+| Want to research colors and specs before buying | 3DFilamentProfiles                  |
+
+A few rules of thumb:
+
+<CardGrid cols={3}>
+  <InfoCard title="Pick one source of truth" color="primary">
+    Two inventories that are both "right" will drift apart.
+  </InfoCard>
+  <InfoCard title="Let automation do the counting" color="primary">
+    If your printer or slicer can report usage, use a tool that listens, such as Spoolman or
+    Bambuddy. Manual weights drift.
+  </InfoCard>
+  <InfoCard title="Prefer exportable data" color="primary">
+    Make sure you can get your spools out as JSON or CSV, so moving later is easy.
+  </InfoCard>
+</CardGrid>
+
+## When one tool is not enough
+
+Many people end up with several: Spoolman at home, a phone app for the shelf, a TigerTag chip on the spool, 3DFilamentProfiles for shopping. That is where the lists drift apart.
+
+[SpoolSync](/) is built for that case. It loads inventories from any of these services, matches spools across them using the IDs they already stamp on each other, shows the fields that disagree, and writes the result back to every service that accepts changes. It runs in your browser, or [on the command line](/cli) if you prefer to script it.

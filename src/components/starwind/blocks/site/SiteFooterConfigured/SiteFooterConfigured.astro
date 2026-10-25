@@ -1,0 +1,200 @@
+---
+/**
+ * SiteFooterConfigured — the config-driven footer used by `SiteBaseLayout`, usable on its own.
+ *
+ * Reads sections, logo, copyright, phone / scheduling link and contact form from a
+ * `SimpleSiteConfig`, picks the image or inline logo, and forwards every `SiteFooterFull`
+ * layout option and slot, so custom layouts get the same footer with props and slots.
+ *
+ * Slots: `logo` (replaces the config logo), `description`, `brand-extra`, `bottom-extra`,
+ * `copyright-content`. A slot that is passed but renders nothing (for example a wrapper layout
+ * forwarding its own optional slot) falls back to the config-driven default.
+ *
+ * @example
+ * ```astro
+ * <SiteFooterConfigured config={SITE_CONFIG} siteTitle="Acme" siteDescription="…" socialLinks={SOCIALS}
+ *   surface="bordered" legalPlacement="nav" copyrightBrand>
+ *   <p slot="brand-extra">Licensed &amp; insured</p>
+ * </SiteFooterConfigured>
+ * ```
+ *
+ * @component
+ */
+import SiteFooterFull from "../SiteFooter/SiteFooterFull.astro";
+import SiteLogoImage from "../../../controls/SiteLogoImage/SiteLogoImage.astro";
+import SiteLogoInline from "../../../controls/SiteLogoInline/SiteLogoInline.astro";
+import {
+  footerLogoClasses,
+  stripHeightClasses,
+  type FooterLogoSize,
+  type FooterUppercase,
+} from "../Footer/index.ts";
+import type { SimpleSiteConfig } from "../../../types/index.ts";
+import type { FooterSection } from "../Footer/footerTypes.ts";
+
+interface Props {
+  config: SimpleSiteConfig;
+  siteTitle: string;
+  siteDescription: string;
+  socialLinks: Record<string, string>;
+  /** Override `config.ui.footer.sections` */
+  sections?: readonly FooterSection[] | undefined;
+  /** Override `config.ui.footer.copyrightText` */
+  copyrightText?: string | undefined;
+  /** Brand column arrangement: `stacked` (default) or `inline` */
+  logoLayout?: "stacked" | "inline" | undefined;
+  /** Extra classes for the brand column */
+  brandClass?: string | undefined;
+  /** Extra classes for the logo link */
+  logoClass?: string | undefined;
+  /** Hide the description paragraph */
+  hideDescription?: boolean | undefined;
+  /** `plain` (default), `bordered` or `muted` */
+  surface?: "plain" | "bordered" | "muted" | undefined;
+  /** Logo size: `sm` | `md` | `lg` | `xl` or a custom height class; beats the configured logo class height */
+  logoSize?: FooterLogoSize | undefined;
+  /** Uppercase + tracked text: `true`, or `copyright` / `headings` / `links` / `legal` */
+  uppercase?: FooterUppercase | undefined;
+  /** Copyright row: `split` (default) or `center` */
+  copyrightAlign?: "split" | "center" | undefined;
+  /** Label above social icons; `false` hides it */
+  socialLabel?: string | false | undefined;
+  /** Link columns beside the brand at `lg` (2–4) */
+  navColumns?: 2 | 3 | 4 | undefined;
+  /** Container width classes (default `max-w-7xl`) */
+  containerClass?: string | undefined;
+  /** Legal links under the copyright (`bottom`, default) or as a link column (`nav`) */
+  legalPlacement?: "bottom" | "nav" | undefined;
+  /** Prefix the copyright with the site title */
+  copyrightBrand?: boolean | undefined;
+  /** Extra classes on the <footer> */
+  class?: string | undefined;
+  /** Inline style on the <footer> */
+  style?: string | undefined;
+  /** Override `config.ui.footer.unstyled` */
+  unstyled?: boolean | undefined;
+}
+
+const {
+  config,
+  siteTitle,
+  siteDescription,
+  socialLinks,
+  sections,
+  copyrightText,
+  logoLayout,
+  brandClass,
+  logoClass,
+  hideDescription = false,
+  surface,
+  logoSize,
+  uppercase,
+  copyrightAlign,
+  socialLabel,
+  navColumns,
+  containerClass,
+  legalPlacement,
+  copyrightBrand = false,
+  class: className,
+  style,
+  unstyled,
+} = Astro.props;
+
+const footer = config.ui.footer;
+const logo = footer.logo;
+const logoImgClass = logoSize
+  ? [footerLogoClasses(logoSize).image, stripHeightClasses(logo?.class)].filter(Boolean).join(" ")
+  : ["h-10 w-auto", logo?.class].filter(Boolean).join(" ");
+const srOnlyText = logo?.src || logo?.icon ? siteTitle : undefined;
+const resolvedCopyright = copyrightText ?? footer.copyrightText;
+
+// Rendered slot HTML is trusted markup from the calling page, not user input.
+const slotHtml = async (name: string) =>
+  Astro.slots.has(name) ? (await Astro.slots.render(name)).trim() : "";
+const logoHtml = await slotHtml("logo");
+const descriptionHtml = await slotHtml("description");
+const copyrightHtml = await slotHtml("copyright-content");
+---
+
+<SiteFooterFull
+  siteTitle={siteTitle}
+  siteDescription={siteDescription}
+  sections={sections ?? footer.sections}
+  {socialLinks}
+  {...(config.contact.phone
+    ? { phoneHref: config.contact.phone.href, phoneDisplay: config.contact.phone.display }
+    : {})}
+  {...(config.contact.scheduleCallUrl ? { scheduleCallUrl: config.contact.scheduleCallUrl } : {})}
+  contactFormUrl={config.contact.formUrl}
+  homeLinkAriaLabel={footer.homeLinkAriaLabel}
+  copyrightText={resolvedCopyright}
+  unstyled={unstyled ?? footer.unstyled ?? false}
+  {...(logoLayout ? { logoLayout } : {})}
+  brandClass={brandClass}
+  logoClass={logoClass}
+  hideDescription={hideDescription}
+  {...(surface ? { surface } : {})}
+  {...(legalPlacement ? { legalPlacement } : {})}
+  {...(logoSize ? { logoSize } : {})}
+  {...(uppercase !== undefined ? { uppercase } : {})}
+  {...(copyrightAlign ? { copyrightAlign } : {})}
+  {...(socialLabel !== undefined ? { socialLabel } : {})}
+  {...(navColumns ? { navColumns } : {})}
+  {...(containerClass ? { containerClass } : {})}
+  copyrightBrand={copyrightBrand}
+  class={className}
+  style={style}
+>
+  <span slot="logo">
+    {
+      logoHtml ? (
+        <Fragment set:html={logoHtml} />
+      ) : logo?.src ? (
+        <SiteLogoImage
+          src={logo.src}
+          width={logo.width}
+          height={logo.height}
+          class={logoImgClass}
+          fallbackText={siteTitle}
+          srOnlyText={srOnlyText}
+          transparent={logo.transparent}
+          loading="lazy"
+        />
+      ) : (
+        <SiteLogoInline
+          logoName={logo?.icon}
+          class={logoImgClass}
+          fallbackText={siteTitle}
+          srOnlyText={srOnlyText}
+          transparent={logo?.transparent}
+        />
+      )
+    }
+  </span>
+  <Fragment slot="description">
+    {
+      descriptionHtml ? (
+        <Fragment set:html={descriptionHtml} />
+      ) : (
+        !hideDescription && (
+          <p class="footer-brand-description text-base text-foreground/80 lg:max-w-xl text-pretty">
+            {siteDescription}
+          </p>
+        )
+      )
+    }
+  </Fragment>
+  <Fragment slot="brand-extra"><slot name="brand-extra" /></Fragment>
+  <Fragment slot="bottom-extra"><slot name="bottom-extra" /></Fragment>
+  <Fragment slot="copyright-content">
+    {
+      copyrightHtml ? (
+        <Fragment set:html={copyrightHtml} />
+      ) : copyrightBrand ? (
+        `${siteTitle}. ${resolvedCopyright}`
+      ) : (
+        resolvedCopyright
+      )
+    }
+  </Fragment>
+</SiteFooterFull>

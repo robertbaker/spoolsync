@@ -1,0 +1,39 @@
+/* Code blocks in posts (Shiki dual-theme output). */
+.prose pre.astro-code {
+  @apply border-border my-6 overflow-x-auto rounded-xl border p-4 text-sm leading-relaxed;
+  background-color: var(--shiki-light-bg);
+  color: var(--shiki-light);
+  tab-size: 2;
+}
+
+.prose pre.astro-code code {
+  @apply bg-transparent p-0 text-[inherit];
+}
+
+.prose pre.astro-code code::before,
+.prose pre.astro-code code::after {
+  content: none;
+}
+
+.prose pre.astro-code span {
+  color: var(--shiki-light);
+}
+
+.dark .prose pre.astro-code {
+  background-color: var(--shiki-dark-bg);
+  color: var(--shiki-dark);
+}
+
+.dark .prose pre.astro-code span {
+  color: var(--shiki-dark);
+}
+
+/* Inline code. */
+.prose :not(pre) > code {
+  @apply border-border bg-muted rounded-md border px-1.5 py-0.5 text-[0.875em] font-medium;
+}
+
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}

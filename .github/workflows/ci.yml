@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+      cli: ${{ steps.filter.outputs.cli }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            app:
+              - 'src/**'
+              - 'public/**'
+              - 'tests/**'
+              - 'e2e/**'
+              - 'tools/**'
+              - 'packages/**'
+              - 'astro.config.mjs'
+              - 'wrangler.jsonc'
+              - 'tsconfig.json'
+              - 'oxlint.json'
+              - '.oxlintignore'
+              - 'bunfig.toml'
+              - 'playwright.config.ts'
+              - 'starwind.config.json'
+              - 'package.json'
+              - 'bun.lock'
+              - '.github/workflows/ci.yml'
+            e2e:
+              - 'src/**'
+              - 'public/**'
+              - 'e2e/**'
+              - 'packages/spoolsync-core/**'
+              - 'astro.config.mjs'
+              - 'wrangler.jsonc'
+              - 'tsconfig.json'
+              - 'playwright.config.ts'
+              - 'starwind.config.json'
+              - 'package.json'
+              - 'bun.lock'
+              - '.github/workflows/ci.yml'
+            cli:
+              - 'packages/spoolsync-cli/**'
+              - 'packages/spoolsync-core/**'
+              - 'bun.lock'
+              - '.github/workflows/ci.yml'
+
+  check:
+    name: Lint, type check, unit tests
+    timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run check
+      - run: bun run test
+
+      - name: Cancel workflow on failure
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            try {
+              await github.rest.actions.cancelWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+              });
+            } catch (error) {
+              core.warning(`Failed to cancel workflow: ${error.message}`);
+            }
+
+  e2e:
+    name: E2E
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      # Runs even on a cache hit: the cache holds browsers only, not the apt system deps.
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run build
+      - run: bun run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Cancel workflow on failure
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            try {
+              await github.rest.actions.cancelWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+              });
+            } catch (error) {
+              core.warning(`Failed to cancel workflow: ${error.message}`);
+            }
+
+  cli:
+    name: CLI build and smoke test
+    timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter spoolsync build
+      - name: Smoke test built CLI
+        working-directory: packages/spoolsync-cli
+        run: |
+          node dist/cli.js --help
+          node dist/cli.js --version --json
+      - name: Check package contents
+        working-directory: packages/spoolsync-cli
+        run: npm pack --dry-run
+
+      - name: Cancel workflow on failure
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            try {
+              await github.rest.actions.cancelWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+              });
+            } catch (error) {
+              core.warning(`Failed to cancel workflow: ${error.message}`);
+            }

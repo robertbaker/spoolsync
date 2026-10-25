@@ -1,0 +1,300 @@
+---
+/**
+ * Blog Post Card Component
+ *
+ * @description Standard blog post card for grid layouts with image, metadata, title, description, tags, and CTA.
+ * Follows established card component patterns with consistent styling and accessibility.
+ *
+ * @features
+ * - Responsive image with hover scale effect
+ * - Publication date and author metadata
+ * - Tag list with configurable display limit
+ * - Hover animations and transitions
+ * - Semantic HTML with proper ARIA labels
+ *
+ * @performance
+ * - Optimized images with proper sizing hints
+ * - CSS-based animations for 60fps performance
+ * - Lazy loading for offscreen images
+ *
+ * @accessibility
+ * - Semantic HTML structure (article element)
+ * - Descriptive image alt text
+ * - Proper heading hierarchy
+ * - Focus visible indicators
+ * - Time elements with machine-readable datetime
+ *
+ * @example
+ * ```astro
+ * <BlogPostCard
+ *   title="Getting Started with Astro"
+ *   description="Learn how to build fast websites with Astro"
+ *   id="getting-started"
+ *   coverImage={coverImage}
+ *   coverAlt="Astro logo"
+ *   pubDate={new Date()}
+ *   author="John Doe"
+ *   tags={["astro", "tutorial"]}
+ *   index={0}
+ * />
+ * ```
+ */
+
+import { Icon } from "astro-icon/components";
+import Badge from "../../../controls/Badge/Badge.astro";
+import Button from "../../../controls/Button/Button.astro";
+import Card from "../../../controls/Card/Card.astro";
+import OptimizedImage from "../../../controls/OptimizedImage/OptimizedImage.astro";
+import OverlayBadge from "../../../controls/OverlayBadge/OverlayBadge.astro";
+import { formatDate } from "../../../lib/format";
+import { slugify } from "../../../lib/string";
+import type { ImageMetadata } from "astro";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes";
+
+type Part =
+  /** The card's figure region wrapping the cover image, overlay, and badge. */
+  | "figure"
+  | "imageLink"
+  | "image"
+  | "overlay"
+  | "badge"
+  | "body"
+  | "meta"
+  | "metaItem"
+  | "metaIcon"
+  | "title"
+  | "titleLink"
+  | "description"
+  | "tagList"
+  | "tag"
+  | "footer"
+  | "button"
+  | "buttonIcon"
+  /** The "New"/"Guide" pill beside the button. */
+  | "kicker";
+
+interface Labels {
+  /** Reading-time text, e.g. "5 min read". */
+  readingTime: (minutes: number) => string;
+  /** Visible text of the continue-reading button. */
+  continueReading: string;
+  /** Accessible name of the continue-reading button. */
+  continueReadingAria: (title: string) => string;
+  /** Accessible name of each tag link. */
+  tagAria: (tag: string) => string;
+  /** Pill text for the first three cards. */
+  kickerNew: string;
+  /** Pill text for the remaining cards. */
+  kickerGuide: string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  readingTime: (minutes) => `${minutes} min read`,
+  continueReading: "Continue reading",
+  continueReadingAria: (title) => `Continue reading: ${title}`,
+  tagAria: (tag) => `Browse articles tagged ${tag}`,
+  kickerNew: "New",
+  kickerGuide: "Guide",
+};
+
+interface Props extends ClassesProps<Part>, LabelsProps<Labels> {
+  title: string;
+  description: string;
+  id: string;
+  coverImage?: ImageMetadata | undefined;
+  coverAlt?: string | undefined;
+  icon?: string | undefined;
+  pubDate: Date;
+  author: string;
+  tags?: string[];
+  index?: number;
+  priority?: boolean;
+  maxTags?: number;
+  badge?: string;
+  readingMinutes?: number;
+}
+
+const {
+  title,
+  description,
+  id,
+  coverImage,
+  coverAlt,
+  icon,
+  pubDate,
+  author,
+  tags = [],
+  index = 0,
+  priority = false,
+  maxTags = 3,
+  badge = "Studio Note",
+  readingMinutes,
+  classes,
+  labels: labelOverrides,
+} = Astro.props;
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+const hasReadingTime = typeof readingMinutes === "number" && Number.isFinite(readingMinutes);
+---
+
+<Card
+  as="article"
+  class="h-full group relative rounded-3xl"
+  variant="bordered"
+  interactive
+>
+  <div slot="figure" class={cls("figure", "relative overflow-hidden")}>
+    <slot name="media">
+      {
+        coverImage ? (
+          <a
+            href={`/resources/${id}`}
+            class={cls(
+              "imageLink",
+              "block overflow-hidden focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2",
+            )}
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <OptimizedImage
+              src={coverImage}
+              alt={coverAlt ?? ""}
+              class={cls(
+                "image",
+                "h-52 w-full object-cover motion-safe:transition-transform motion-safe:duration-700 motion-safe:group-hover:scale-105",
+              )}
+              priority={priority}
+              widths={[360, 540, 720, 960, 1200]}
+              sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+            />
+          </a>
+        ) : (
+          <div class={cls("image", "flex h-52 w-full items-center justify-center bg-muted text-muted-foreground")}>
+            <Icon name={icon ?? "material-symbols:image-outline"} class="size-16" aria-hidden="true" />
+          </div>
+        )
+      }
+    </slot>
+    <div
+      class={cls(
+        "overlay",
+        "pointer-events-none absolute inset-0 bg-linear-to-t from-neutral/60 via-transparent to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90",
+      )}
+      aria-hidden="true"
+    >
+    </div>
+    <OverlayBadge
+      position="top-left"
+      variant="glass"
+      tracking="wider"
+      icon="material-symbols:check-circle"
+      class={cls("badge")}
+    >
+      <slot name="badge">{badge}</slot>
+    </OverlayBadge>
+  </div>
+
+  <div class={cls("body", "flex flex-1 flex-col gap-5")}>
+    <div class={cls("meta", "flex flex-wrap items-center gap-4 text-xs text-muted-foreground")}>
+      <span class={cls("metaItem", "inline-flex items-center gap-1.5")}>
+        <Icon
+          name="material-symbols:schedule"
+          class={cls("metaIcon", "size-4")}
+          aria-hidden="true"
+        />
+        <time datetime={pubDate.toISOString()}>
+          {formatDate(pubDate, "medium", "UTC")}
+        </time>
+      </span>
+      <span class={cls("metaItem", "inline-flex items-center gap-1.5")}>
+        <Icon
+          name="material-symbols:person"
+          class={cls("metaIcon", "size-4")}
+          aria-hidden="true"
+        />
+        {author}
+      </span>
+      {
+        hasReadingTime && (
+          <span class={cls("metaItem", "inline-flex items-center gap-1.5")}>
+            <Icon
+              name="material-symbols:hourglass"
+              class={cls("metaIcon", "size-4")}
+              aria-hidden="true"
+            />
+            {labels.readingTime(readingMinutes)}
+          </span>
+        )
+      }
+    </div>
+
+    <h3 class={cls("title", "text-xl font-display font-bold leading-snug text-foreground text-balance")}>
+      <a
+        href={`/resources/${id}`}
+        class={cls(
+          "titleLink",
+          "transition-colors hover:text-link dark:hover:text-link-dark focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2",
+        )}
+      >
+        <slot name="title">{title}</slot>
+      </a>
+    </h3>
+
+    <p class={cls("description", "line-clamp-2 text-sm text-foreground/85 sm:line-clamp-3 text-pretty")}>
+      <slot name="description">{description}</slot>
+    </p>
+
+    {
+      tags.length > 0 && (
+        <div class={cls("tagList", "mt-auto flex flex-wrap justify-center gap-2")}>
+          {tags.slice(0, maxTags).map((tag: string) => (
+            <Badge
+              href={`/resources/tag/${slugify(tag)}`}
+              ariaLabel={labels.tagAria(tag)}
+              color="neutral"
+              style="outline"
+              size="sm"
+              shape="pill"
+              class={cls("tag", "border-foreground/20 hover:bg-muted/40 transition-colors")}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )
+    }
+
+    <slot />
+
+    <div class={cls("footer", "mt-auto flex flex-wrap items-center justify-between gap-2 pt-4")}>
+      <slot name="actions">
+        <Button
+          href={`/resources/${id}`}
+          ariaLabel={labels.continueReadingAria(title)}
+          variant="glass"
+          class={cls("button", "gap-2 text-primary-text transition-all hover:gap-3")}
+        >
+          <span>{labels.continueReading}</span>
+          <Icon
+            name="material-symbols:arrow-forward"
+            class={cls("buttonIcon", "size-4")}
+            aria-hidden="true"
+          />
+        </Button>
+      </slot>
+      <div
+        class={cls(
+          "kicker",
+          "flex shrink-0 items-center gap-2 rounded-full border border-foreground/10 bg-muted/60 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/85",
+        )}
+      >
+        {index < 3 ? labels.kickerNew : labels.kickerGuide}
+      </div>
+    </div>
+  </div>
+</Card>

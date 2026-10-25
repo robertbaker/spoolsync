@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "astro": {
+      "description": "Astro MCP documentation",
+      "type": "http",
+      "url": "https://mcp.docs.astro.build/mcp"
+    },
+    "chrome-devtools": {
+      "args": ["chrome-devtools-mcp@latest"],
+      "command": "bunx",
+      "description": "Chrome DevTools protocol access for debugging and profiling",
+      "type": "stdio"
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "description": "Context7 semantic memory and embeddings",
+      "env": {
+        "API_KEY": "${CONTEXT7_API_KEY}"
+      },
+      "type": "http"
+    },
+    "flyonui": {
+      "args": ["flyonui-mcp"],
+      "command": "bunx",
+      "env": {
+        "API_KEY": "${FLYONUI_API_KEY}"
+      },
+      "type": "stdio"
+    },
+    "playwright": {
+      "args": ["@playwright/mcp", "--browser", "chrome", "--headless", "--isolated"],
+      "command": "bunx",
+      "description": "Browser automation and testing for Astro web app and API integration",
+      "type": "stdio"
+    },
+    "starwind-ui": {
+      "args": ["--bun", "@starwind-ui/mcp@latest"],
+      "command": "bunx",
+      "description": "Starwind UI component docs, installation and theming",
+      "type": "stdio"
+    },
+    "tailwindcss-server": {
+      "args": ["tailwindcss-mcp"],
+      "command": "bunx",
+      "description": "Tailwind CSS documentation and class generation assistant",
+      "type": "stdio"
+    }
+  }
+}

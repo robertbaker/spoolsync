@@ -1,0 +1,37 @@
+---
+/** Numbered steps: a vertical timeline on small screens, a horizontal stepper from `lg` up. */
+import Timeline from "~/components/starwind/controls/Timeline/Timeline.astro";
+import TimelineItem from "~/components/starwind/controls/Timeline/TimelineItem.astro";
+
+interface Props {
+  steps: readonly { title: string; body: string; href?: string | undefined }[];
+  class?: string;
+}
+
+const { steps, class: className } = Astro.props;
+---
+
+<Timeline
+  responsive
+  class:list={[
+    "[&_hr]:!bg-primary/50 lg:[&_hr]:![grid-row:middle] [&>li]:[--timeline-row-end:1.25rem] [&>li]:[--timeline-row-start:1.25rem] lg:[&>li]:flex-1 lg:[&>li]:!grid-cols-[1fr_auto_1fr]",
+    className,
+  ]}
+>
+  {
+    steps.map((step, index) => (
+      <TimelineItem classes={{ end: "timeline-end lg:!col-[1/4] lg:self-stretch lg:justify-self-stretch lg:px-2" }}>
+        <span
+          slot="middle"
+          class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+        >
+          {index + 1}
+        </span>
+        <div class="modern-card ml-4 rounded-xl border bg-card p-4 transition-all hover:border-primary/60 hover:shadow-md lg:ml-0 lg:mt-1 lg:h-full lg:text-center">
+          <h3 class="text-lg font-semibold">{step.href ? <a class="hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded" href={step.href}>{step.title}</a> : step.title}</h3>
+          <p class="mt-1 text-sm text-muted-foreground">{step.body}</p>
+        </div>
+      </TimelineItem>
+    ))
+  }
+</Timeline>

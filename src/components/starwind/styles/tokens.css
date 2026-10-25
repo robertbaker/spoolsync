@@ -1,0 +1,310 @@
+/**
+ * The semantic token contract copied from Starwind UI.
+ *
+ * Tokens come in two kinds, and the difference is what a site has to set:
+ *
+ *   seed      A colour a site chooses: `--primary`, `--background`, `--error`, `--radius`.
+ *   derived   Computed from the seeds: every `*-foreground` on a solid fill, the `*-accent`
+ *             shades, `--ring`, `--outline` and the sidebar surface.
+ *
+ * So a brand is usually one line. Override a seed and everything derived from it follows —
+ * including the text colour on top of it, which `contrast-color()` picks per fill:
+ *
+ *   @import "./tokens.css";
+ *
+ *   :root { --primary: oklch(0.55 0.2 285); }
+ *
+ * A derived token can still be pinned by hand (`:root { --primary-foreground: … }` after this
+ * import); it then stops following its seed.
+ *
+ * Scoped palettes. A custom property that references another is resolved on the element that
+ * DECLARES it, so `--primary-foreground` computed on `:root` would not notice a `--primary`
+ * overridden further down. The derived block is therefore declared on `[data-palette]` as well:
+ * any subtree carrying that attribute re-derives from its own seeds. That is what a block's
+ * `palette` prop and the `<Palette>` wrapper emit — or write it by hand:
+ *
+ *   <section data-palette style="--primary: oklch(0.62 0.19 150)">…</section>
+ *
+ * Dark mode keys off `.dark` on a root element, matching the Starwind theme toggle, and sets
+ * `color-scheme` so native controls and scrollbars follow.
+ */
+
+/* ───────────────────────────── Seeds ───────────────────────────── */
+
+:root {
+  color-scheme: light;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.006 285.9);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.006 285.9);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.006 285.9);
+
+  --primary: oklch(0.55 0.16 252);
+  --secondary: oklch(0.967 0.002 286.4);
+  --accent: oklch(0.967 0.002 286.4);
+  /* An inverse surface: dark in light mode, for banners, footers and "dark card" sections. */
+  --neutral: oklch(0.274 0.006 286);
+
+  --muted: oklch(0.967 0.002 286.4);
+  --muted-foreground: oklch(0.5 0.014 285.9);
+
+  --error: oklch(0.58 0.22 27);
+  --info: oklch(0.62 0.14 240);
+  --success: oklch(0.59 0.13 155);
+  --warning: oklch(0.77 0.16 70);
+
+  --border: oklch(0.92 0.004 286.3);
+  --input: oklch(0.92 0.004 286.3);
+
+  /* Strength of tinted status surfaces (`bg-success/(--tint-fill)`); stronger on dark. */
+  --tint-border: 25%;
+  --tint-fill: 5%;
+
+  /* Behind modal dialogs and sheets, at /50–/80. */
+  --scrim: oklch(0 0 0);
+
+  --radius: 0.5rem;
+
+  /* Static values for the derived tokens, used only where `contrast-color()` / relative colour
+     syntax are missing (see the @supports blocks below). They match the defaults above, not a
+     site's overrides. */
+  --primary-foreground: oklch(0.98 0.005 252);
+  --primary-accent: oklch(0.49 0.17 252);
+  /* Text for content sitting on hero gradients/images. Those overlays are always built from
+     `--primary` at a pinned, non-theme-flipping lightness (see `--hero-surface` below), so this
+     stays legible in both themes — unlike `--primary-foreground`, whose on-color flips to dark
+     in dark mode to stay readable against a *solid* `--primary` button fill. Static fallback for
+     browsers without `contrast-color()` / relative colour syntax; see the `@supports` blocks. */
+  --hero-foreground: oklch(0.98 0.005 252);
+  --hero-surface: var(--primary);
+  --warning-text: var(--warning);
+  --primary-text: var(--primary);
+  --error-text: var(--error);
+  --success-text: var(--success);
+  --info-text: var(--info);
+  --secondary-foreground: oklch(0.21 0.006 285.9);
+  --secondary-accent: oklch(0.87 0.004 286.4);
+  --accent-foreground: oklch(0.21 0.006 285.9);
+  --neutral-foreground: oklch(0.985 0 0);
+  --error-foreground: oklch(0.98 0.005 27);
+  --info-foreground: oklch(0.98 0.005 240);
+  --success-foreground: oklch(0.98 0.005 155);
+  --warning-foreground: oklch(0.24 0.05 70);
+  /* Text and glass highlights on `--scrim` overlays (image captions, hero overlays). */
+  --scrim-foreground: oklch(1 0 0);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.141 0.005 285.8);
+  --foreground: oklch(0.985 0 0);
+
+  --card: oklch(0.21 0.006 285.9);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.21 0.006 285.9);
+  --popover-foreground: oklch(0.985 0 0);
+
+  --primary: oklch(0.65 0.16 252);
+  --secondary: oklch(0.274 0.006 286);
+  --accent: oklch(0.274 0.006 286);
+  --neutral: oklch(0.32 0.006 286);
+
+  --muted: oklch(0.274 0.006 286);
+  --muted-foreground: oklch(0.705 0.015 286);
+
+  --error: oklch(0.66 0.19 27);
+  --info: oklch(0.7 0.13 240);
+  --success: oklch(0.7 0.13 155);
+  --warning: oklch(0.83 0.15 82);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+
+  --tint-border: 40%;
+  --tint-fill: 12%;
+
+  --primary-foreground: oklch(0.15 0.02 252);
+  --primary-accent: oklch(0.71 0.15 252);
+  --secondary-foreground: oklch(0.985 0 0);
+  --secondary-accent: oklch(0.37 0.006 286);
+  --accent-foreground: oklch(0.985 0 0);
+  --neutral-foreground: oklch(0.985 0 0);
+  --error-foreground: oklch(0.15 0.03 27);
+  --info-foreground: oklch(0.15 0.03 240);
+  --success-foreground: oklch(0.15 0.03 155);
+  --warning-foreground: oklch(0.2 0.04 82);
+}
+
+/* ──────────────────────────── Derived ──────────────────────────── */
+
+/* Plain references — supported everywhere, so no fallback is needed. */
+:root,
+.dark,
+[data-palette] {
+  --ring: var(--primary);
+  --outline: var(--primary);
+
+  /* Form control surfaces: clear (or solid) in light, a faint input wash in dark. */
+  --field: light-dark(transparent, color-mix(in oklab, var(--input) 30%, transparent));
+  --field-surface: light-dark(
+    var(--background),
+    color-mix(in oklab, var(--input) 30%, transparent)
+  );
+  --field-hover: light-dark(var(--muted), color-mix(in oklab, var(--input) 50%, transparent));
+
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--card-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-outline: var(--outline);
+}
+
+/*
+ * Every `*-foreground` on a solid fill is `contrast-color()` of that fill: the browser picks
+ * whichever of black and white reads better, so re-theming a fill never needs a matching text
+ * colour. It sits behind `@supports` because a custom property accepts any value — in a browser
+ * without `contrast-color()` the declaration would not fall back, it would resolve to nothing and
+ * take the text colour with it. Those browsers keep the static values declared with the seeds.
+ */
+@supports (color: contrast-color(red)) {
+  :root,
+  .dark,
+  [data-palette] {
+    --primary-foreground: contrast-color(var(--primary));
+    --secondary-foreground: contrast-color(var(--secondary));
+    --accent-foreground: contrast-color(var(--accent));
+    --neutral-foreground: contrast-color(var(--neutral));
+    --error-foreground: contrast-color(var(--error));
+    --info-foreground: contrast-color(var(--info));
+    --success-foreground: contrast-color(var(--success));
+    --warning-foreground: contrast-color(var(--warning));
+    --scrim-foreground: contrast-color(var(--scrim));
+  }
+}
+
+/*
+ * A status colour is a fill, and a brand may choose one too light (or too dark) to read as text on
+ * `--background`. Each `--*-text` keeps its hue and chroma but clamps lightness to a readable band:
+ * no lighter than 0.45 on the light theme, no darker than 0.75 on the dark one (about 4.5:1 on a tinted chip). Amber is the usual
+ * offender, which is why `--warning-text` exists at all.
+ */
+@supports (color: oklch(from red min(l, 0.45) c h)) {
+  :root,
+  [data-palette] {
+    --primary-text: oklch(from var(--primary) min(l, 0.45) c h);
+    --error-text: oklch(from var(--error) min(l, 0.45) c h);
+    --success-text: oklch(from var(--success) min(l, 0.45) c h);
+    --info-text: oklch(from var(--info) min(l, 0.45) c h);
+    --warning-text: oklch(from var(--warning) min(l, 0.45) c h);
+  }
+
+  .dark,
+  .dark [data-palette] {
+    --primary-text: oklch(from var(--primary) max(l, 0.75) c h);
+    --error-text: oklch(from var(--error) max(l, 0.75) c h);
+    --success-text: oklch(from var(--success) max(l, 0.75) c h);
+    --info-text: oklch(from var(--info) max(l, 0.75) c h);
+    --warning-text: oklch(from var(--warning) max(l, 0.75) c h);
+  }
+}
+
+/*
+ * The `*-accent` shades step lightness away from the background — darker in light mode, lighter
+ * in dark — with relative colour syntax, behind `@supports` for the same reason.
+ */
+@supports (color: oklch(from red l c h)) {
+  :root,
+  .dark,
+  [data-palette] {
+    --_shade: -0.06;
+    --primary-accent: oklch(from var(--primary) calc(l + var(--_shade)) c h);
+    --secondary-accent: oklch(from var(--secondary) calc(l + var(--_shade) * 1.6) c h);
+
+    /* Pin lightness to the light-theme `--primary` value, keeping hue/chroma so a custom brand
+       colour still carries through. Hero overlays always render this dark regardless of theme —
+       only the solid button fill actually needs `--primary` to lighten for dark-mode contrast. */
+    --hero-surface: oklch(from var(--primary) 0.55 c h);
+  }
+
+  .dark,
+  .dark [data-palette] {
+    --_shade: 0.06;
+  }
+}
+
+@supports (color: contrast-color(red)) and (color: oklch(from red l c h)) {
+  :root,
+  .dark,
+  [data-palette] {
+    --hero-foreground: contrast-color(var(--hero-surface));
+  }
+}
+
+/* ─────────────────────────── Tailwind ─────────────────────────── */
+
+/* Dark mode keys off `.dark`, so `dark:` utilities must too, not the OS colour scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* `active-tab:` styles a tab-like control in its selected state: ARIA, Starwind's `data-state`, or a plain `.active`. */
+@custom-variant active-tab (&:is([aria-selected="true"], [data-state="active"], .active));
+
+/* Expose every token to Tailwind so `bg-primary`, `text-muted-foreground` etc. resolve. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-accent: var(--primary-accent);
+  --color-hero-surface: var(--hero-surface);
+  --color-warning-text: var(--warning-text);
+  --color-primary-text: var(--primary-text);
+  --color-error-text: var(--error-text);
+  --color-success-text: var(--success-text);
+  --color-info-text: var(--info-text);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-accent: var(--secondary-accent);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-scrim: var(--scrim);
+  --color-scrim-foreground: var(--scrim-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-outline: var(--outline);
+  --color-field: var(--field);
+  --color-field-surface: var(--field-surface);
+  --color-field-hover: var(--field-hover);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-outline: var(--sidebar-outline);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+}

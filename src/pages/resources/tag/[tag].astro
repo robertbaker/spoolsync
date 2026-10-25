@@ -1,0 +1,148 @@
+---
+import { newestFirst } from "~/lib/blog/order";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import BlogPostCard from "~/components/starwind/blocks/blog/PostCard/BlogPostCard.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import { getCollection, type CollectionEntry } from "astro:content";
+import { getReadingTime } from "~/components/starwind/lib/format";
+import { slugify } from "~/components/starwind/lib/string";
+import BaseLayout from "@layouts/BaseLayout.astro";
+
+type BlogEntry = CollectionEntry<"blog">;
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  const uniqueTags = Array.from(
+    new Set(posts.flatMap((post: BlogEntry) => post.data.tags ?? [])),
+  ).filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  return uniqueTags.map((tag) => {
+    const filtered = posts
+      .filter((post: BlogEntry) => (post.data.tags ?? []).includes(tag))
+      .sort(newestFirst);
+
+    return {
+      params: { tag: slugify(tag) },
+      props: { tag, posts: filtered },
+      cacheKey: `${tag}:${filtered.map((post: BlogEntry) => post.digest).join(",")}`,
+    };
+  });
+}
+
+const { tag, posts } = Astro.props as { tag: string; posts: BlogEntry[] };
+const articleCountLabel = `${posts.length} article${posts.length === 1 ? "" : "s"}`;
+const tagArchiveDescription = `${articleCountLabel} tagged ${tag} on SpoolSync.`;
+---
+
+<BaseLayout
+  title={`Topic: ${tag} — Blog`}
+  description={tagArchiveDescription}
+  {...(posts[0] ? { image: posts[0].data.coverImage, imageAlt: posts[0].data.coverAlt } : {})}
+>
+  <section class="bg-background py-16">
+    <div class="mx-auto max-w-6xl px-4 lg:px-8">
+      <nav aria-label="Breadcrumb" class="mb-6">
+        <ol class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <li>
+            <a
+              href="/resources"
+              class="font-medium transition-colors hover:text-primary-text focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2"
+            >
+              Blog
+            </a>
+          </li>
+          <li aria-hidden="true" class="text-muted-foreground">/</li>
+          <li aria-current="page" class="font-semibold text-foreground">Topic: {tag}</li>
+        </ol>
+      </nav>
+
+      <div class="rounded-3xl border border-primary/15 bg-muted/50 p-6 shadow-sm md:p-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-primary-text">Topic archive</p>
+        <div class="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div class="max-w-3xl">
+            <h1 class="text-4xl font-black text-foreground md:text-5xl">
+              Articles tagged {tag}
+            </h1>
+            <p class="mt-4 text-base text-muted-foreground md:text-lg">
+              Showing {articleCountLabel} tagged {tag}.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <Badge
+              color="primary"
+              style="soft"
+              size="lg"
+              ariaLabel={`Active topic filter: ${tag}`}
+            >
+              {tag}
+            </Badge>
+            <span class="inline-flex items-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-muted-foreground shadow-xs">
+              {articleCountLabel}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {
+        posts.length > 0 ? (
+          <section aria-labelledby="tagged-articles-heading" class="mt-10">
+            <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2
+                  id="tagged-articles-heading"
+                  class="text-2xl font-bold text-foreground md:text-3xl"
+                >
+                  Tagged articles
+                </h2>
+                <p class="mt-2 text-muted-foreground">
+                  Newest to oldest.
+                </p>
+              </div>
+              <p class="text-sm font-medium text-muted-foreground">{articleCountLabel}</p>
+            </div>
+            <div class="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+              {
+                posts.map((post, index) => (
+                  <BlogPostCard
+                    title={post.data.title}
+                    description={post.data.description}
+                    id={post.id}
+                    coverImage={post.data.coverImage}
+                    coverAlt={post.data.coverAlt}
+                    pubDate={new Date(post.data.pubDate)}
+                    author={post.data.author}
+                    tags={post.data.tags ?? []}
+                    index={index}
+                    readingMinutes={getReadingTime(post.body ?? "")}
+                  />
+                ))
+              }
+            </div>
+          </section>
+        ) : (
+          <div class="mt-10 rounded-3xl border border-dashed border-foreground/20 bg-muted/40 p-8 text-center">
+            <h2 class="text-2xl font-semibold text-foreground">
+              No articles found for this topic
+            </h2>
+            <p class="mt-2 text-muted-foreground">
+              Try the full resource archive to browse other topics.
+            </p>
+          </div>
+        )
+      }
+
+      <div class="mt-12 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-muted-foreground">
+          Return to the full resource archive.
+        </p>
+        <Button
+          href="/resources#articles"
+          variant="outline"
+          ariaLabel={`Clear the ${tag} topic filter and return to all posts`}
+        >
+          Back to all posts
+        </Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

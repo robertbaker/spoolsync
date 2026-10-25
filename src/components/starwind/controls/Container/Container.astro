@@ -1,0 +1,69 @@
+---
+/**
+ * Container Component
+ *
+ * A responsive container wrapper with consistent max-width constraints and centering.
+ * Provides horizontal padding that adapts to screen size for optimal content display.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { Container } from '~/components/ui';
+ * ---
+ *
+ * <!-- Default (large) container -->
+ * <Container>
+ *   <h1>Content goes here</h1>
+ * </Container>
+ *
+ * <!-- Medium container with custom class -->
+ * <Container size="md" class="py-20">
+ *   <p>Narrower content</p>
+ * </Container>
+ *
+ * <!-- Extra large container without centering -->
+ * <Container size="xl" centered={false}>
+ *   <div>Full-width aligned content</div>
+ * </Container>
+ * ```
+ *
+ * @param {"sm"|"md"|"lg"|"xl"|"full"} [size="lg"] - Container max-width size
+ * @param {boolean} [centered=true] - Whether to center the container horizontally
+ * @param {string} [class] - Additional CSS classes for customization
+ * @param {string} [id] - Unique ID for the container
+ */
+import type { HTMLAttributes } from "astro/types";
+import { type ContainerSize, getContainerClasses } from "./containerVariants";
+
+interface Props extends HTMLAttributes<"div"> {
+  /**
+   * Container max-width size preset
+   * - sm: max-w-3xl (768px)
+   * - md: max-w-5xl (1024px)
+   * - lg: max-w-7xl (1280px) [default]
+   * - xl: max-w-2xl screen (1536px)
+   * - full: w-full (100%)
+   *
+   * @default "lg"
+   */
+  size?: ContainerSize;
+
+  /**
+   * Whether to center the container horizontally
+   *
+   * @default true
+   */
+  centered?: boolean;
+
+
+}
+
+const { size = "lg", centered = true, class: className, id, ...rest } = Astro.props;
+
+const containerClasses = getContainerClasses(size, centered, className ?? undefined);
+---
+
+<div class={containerClasses} id={id} {...rest}>
+  <slot />
+</div>

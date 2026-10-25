@@ -1,0 +1,113 @@
+---
+/**
+ * Overlay Menu Component
+ *
+ * Full-screen overlay navigation for mobile with staggered animation.
+ * Controlled by the HeaderManager toggle via JS class toggling.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { OverlayMenu } from '~/components/ui/SiteHeader';
+ * ---
+ * <OverlayMenu items={[
+ *   { href: "/", text: "Home" },
+ *   { href: "/about", text: "About" },
+ *   { href: "/contact", text: "Contact" },
+ * ]} />
+ * ```
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../../types/index.ts";
+import {
+  type ColorVariant,
+  getMobileMenuColorClasses,
+  getNavHoverColors,
+} from "../../../../lib/colors.ts";
+
+interface Props extends HTMLAttributes<"div"> {
+  items: NavLink[];
+  glass?: boolean;
+  accentColor?: ColorVariant;
+}
+
+const { items, id = "mobile-menu-overlay", glass = false, accentColor = "primary", ...rest } = Astro.props;
+const accentColors = getMobileMenuColorClasses(accentColor);
+
+const baseClasses =
+  "fixed inset-0 z-[80] hidden scale-95 opacity-0 transition-all duration-300 overscroll-contain";
+const glassClasses = "bg-background/85 backdrop-blur-2xl";
+const solidClasses = "bg-background";
+---
+
+<div
+  id={id}
+  class:list={[baseClasses, glass ? glassClasses : solidClasses]}
+  role="dialog"
+  aria-modal="true"
+  aria-hidden="true"
+  aria-label="Mobile navigation menu"
+  {...rest}
+>
+  <div class="flex flex-col h-full relative pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] px-6">
+    <slot name="header">
+      <button
+        type="button"
+        class:list={[
+          "inline-flex items-center justify-center size-12 rounded-full text-foreground/80 outline-none transition-all focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-foreground/5 hover:bg-foreground/10 hover:text-foreground active:scale-95 absolute top-[calc(1rem+env(safe-area-inset-top,0px))] right-6 focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation",
+          getNavHoverColors(accentColor),
+          accentColors.focusOutline,
+        ]}
+        data-close-menu
+        aria-label="Close navigation menu"
+      >
+        <Icon name="material-symbols:close" class="size-6" aria-hidden="true" />
+      </button>
+    </slot>
+
+    {/* Links Container */}
+    <div class="flex-1 flex items-center justify-center p-4">
+      <nav class="flex flex-col gap-5 text-center w-full max-w-sm" aria-label="Mobile navigation">
+        {
+          items.map((item, index) => {
+            const itemColor = item.color ?? accentColor;
+            const mobileColors = getMobileMenuColorClasses(itemColor);
+
+            return (
+              <slot name="item">
+                <a
+                  href={item.href}
+                  class:list={[
+                    "inline-flex items-center justify-center min-h-[3rem] py-2 px-4 rounded-xl text-2xl sm:text-3xl font-bold text-foreground transition-all duration-200 select-none touch-manipulation hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2",
+                    getNavHoverColors(itemColor),
+                    mobileColors.focusOutline,
+                  ]}
+                  style={`animation-delay: ${index * 100}ms`}
+                  {...(item.external
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : {})}
+                  aria-label={item.ariaLabel}
+                >
+                  {item.text}
+                </a>
+              </slot>
+            );
+          })
+        }
+      </nav>
+    </div>
+    <slot name="footer" />
+  </div>
+  <slot />
+</div>
+
+<style is:global>
+  /* Open state classes applied by JS */
+  .menu-open #mobile-menu-overlay {
+    display: block;
+    opacity: 1;
+    transform: scale(1);
+  }
+</style>

@@ -1,0 +1,43 @@
+---
+import { Icon } from "astro-icon/components";
+import TimelineStyles from "../../lib/styles/TimelineStyles.astro";
+import type { HTMLAttributes } from "astro/types";
+import { withPalette, type PaletteProps } from "../../lib/palette.ts";
+import { partClasses, type ClassesProps } from "../../lib/classes.ts";
+
+type Part =
+  /** Both `<hr>` rules that draw the line between items. */
+  | "connector"
+  | "start"
+  /** Center cell holding the marker icon. */
+  | "middle"
+  | "icon"
+  | "end";
+
+interface Props extends HTMLAttributes<"li">, PaletteProps, ClassesProps<Part> {
+  [key: string]: unknown;
+}
+
+const { class: className, classes, ...rest } = Astro.props;
+const cls = partClasses<Part>(classes as Props["classes"]);
+---
+
+<TimelineStyles />
+
+<li class={className} {...withPalette(rest)}>
+  <hr class={cls("connector") || undefined} />
+  <div class={cls("start", "timeline-start")}>
+    <slot name="start" />
+  </div>
+  <div class={cls("middle", "timeline-middle")}>
+    <slot name="middle">
+      <Icon name="material-symbols:check-circle-rounded" class={cls("icon", "w-5 h-5")} aria-hidden="true" />
+    </slot>
+  </div>
+  <div class={cls("end", "timeline-end")}>
+    <slot name="end" />
+    <slot />
+    {/* Default slot content goes to end if not specified? Or Box? */}
+  </div>
+  <hr class={cls("connector") || undefined} />
+</li>

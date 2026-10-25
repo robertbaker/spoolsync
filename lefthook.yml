@@ -1,0 +1,18 @@
+# lefthook.yml
+# Docs: https://github.com/evilmartians/lefthook
+pre-commit:
+  parallel: true
+  commands:
+    # 1. Format code with oxfmt via Bun
+    # Supports JS/TS, JSON variants, Styles, Markup, Data/Config, GraphQL, Ember/Handlebars
+    format-oxfmt:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts,vue,svelte,html,css,scss,less,pcss,postcss,md,mdx,graphql,gql,graphqls,yaml,yml,toml,json,jsonc,json5,hbs}"
+      run: bunx oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+
+    # 2. Lint and auto-fix with oxlint via Bun
+    # Supports JS/TS variants and component SFC script/frontmatter blocks
+    lint-oxlint:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs,mts,cts,vue,svelte,astro}"
+      run: bunx oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true

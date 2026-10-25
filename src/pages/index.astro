@@ -1,0 +1,162 @@
+---
+import { Icon } from "astro-icon/components";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
+import StepTimeline from "~/components/StepTimeline.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
+
+import { steps, highlights, services } from "~/components/home/data";
+
+---
+
+<BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+  <Container class="py-12 sm:py-16">
+    <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_25rem]">
+    <div class="max-w-3xl" id="tour-overview">
+      <div class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary-text">
+        <span class="relative flex size-2">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75"></span>
+          <span class="relative inline-flex size-2 rounded-full bg-success"></span>
+        </span>
+        Runs in your browser
+      </div>
+
+      <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+        Compare every spool list
+      </h1>
+      <p class="mt-4 text-lg sm:text-xl text-muted-foreground leading-relaxed">{SITE_DESCRIPTION}</p>
+      <p class="mt-3 text-muted-foreground leading-relaxed">
+        SpoolSync connects directly to Spoolman on your local network and reads export files right in your browser. There is no server and no account.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-3">
+        <Button href="/connections" color="primary" size="lg" icon="material-symbols:arrow-forward" iconPosition="right" class="shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30">
+          Connect Spoolman
+        </Button>
+        <Button href="/load" variant="outline" size="lg" icon="material-symbols:upload-file-outline-rounded" iconPosition="left">
+          Load inventories
+        </Button>
+        <Button href="/cli" variant="ghost" size="lg" icon="material-symbols:terminal" iconPosition="left" class="text-muted-foreground hover:text-foreground">
+          CLI docs
+        </Button>
+      </div>
+
+      <div class="mt-8 flex flex-wrap items-center gap-2 pt-2 border-t text-xs text-muted-foreground">
+        <span class="font-medium text-foreground">Supported tools:</span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="vendor/spoolman" class="size-3.5" aria-hidden="true" /> Spoolman
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="vendor/spoolstock" class="size-3.5" aria-hidden="true" /> Spoolstock
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="vendor/spoolio" class="size-3.5" aria-hidden="true" /> Spoolio
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="vendor/tigertag" class="size-3.5" aria-hidden="true" /> TigerTag
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="material-symbols:database-outline" class="size-3.5" aria-hidden="true" /> 3DFilamentProfiles
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <img src={bambuddyLogo.src} alt="" class="size-3.5 object-contain" /> Bambuddy
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+          <Icon name="vendor/filameter" class="size-3.5" aria-hidden="true" /> FilaMeter
+        </span>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border bg-card p-5 shadow-xs sm:p-6" aria-hidden="true">
+      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your services</p>
+      <div class="mt-3 grid grid-cols-2 gap-2.5">
+        {
+          services.map((service) => (
+            <div class="flex items-center gap-2 rounded-xl border bg-background/60 px-3 py-2.5 text-sm font-medium">
+              {service.image ? (
+                <img src={service.image} alt="" class="size-5 shrink-0 object-contain" />
+              ) : (
+                <Icon name={service.icon} class="size-5 shrink-0" />
+              )}
+              <span class="truncate">{service.name.split(" / ")[0]}</span>
+            </div>
+          ))
+        }
+      </div>
+      <div class="my-3 flex items-center justify-center gap-2 text-primary-text">
+        <Icon name="material-symbols:arrow-downward-rounded" class="size-6" />
+        <Icon name="material-symbols:arrow-upward-rounded" class="size-6" />
+      </div>
+      <div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
+        <img src="/logo-mark.svg" alt="" class="size-11" width="44" height="44" />
+        <div>
+          <p class="text-lg font-extrabold leading-tight">Spool<span class="text-primary-text">Sync</span></p>
+          <p class="text-xs text-muted-foreground">Matches, compares, applies. In your browser.</p>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <ul class="mt-14 grid gap-4 sm:grid-cols-3">
+      {
+        highlights.map((item) => (
+          <li class="modern-card flex gap-3.5 rounded-xl border bg-card p-5 shadow-sm">
+            <IconAvatar icon={item.icon} color="primary" class="shrink-0" />
+            <div>
+              <h3 class="font-semibold text-base">{item.title}</h3>
+              <p class="mt-1 text-sm text-muted-foreground">{item.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+
+    <section class="mt-20 scroll-mt-20">
+      <SectionHeader align="left" eyebrow="Five steps" title="How a sync works" subtitle="From connecting your tools to writing updates, you choose every change." />
+      <StepTimeline steps={steps} class="mt-8" />
+    </section>
+
+    <section class="mt-20 scroll-mt-20">
+      <SectionHeader align="left" eyebrow="Supported tools" title="Services" subtitle="What SpoolSync reads from and writes to across your filament tools." />
+      <ul class="mt-8 grid gap-5 md:grid-cols-2">
+        {
+          services.map((service) => (
+            <li class="modern-card flex flex-col justify-between gap-4 rounded-xl border bg-card p-5 shadow-sm">
+              <div class="flex items-start gap-3.5">
+                <IconAvatar icon={service.icon} color="primary" class="shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-lg font-bold">{service.name}</h3>
+                  <p class="mt-1 text-sm text-muted-foreground">{service.how}</p>
+                </div>
+              </div>
+              <dl class="grid grid-cols-2 gap-3 border-t pt-4 text-sm">
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Read</dt>
+                  <dd class="mt-1">
+                    <Badge color="info" style="soft" size="sm">{service.read}</Badge>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Write</dt>
+                  <dd class="mt-1">
+                    <Badge color={service.write === "Not supported (read-only)" ? "neutral" : "success"} style="soft" size="sm">{service.write}</Badge>
+                  </dd>
+                </div>
+              </dl>
+              <div class="pt-1">
+                <a href={service.actionHref} class="inline-flex items-center text-xs font-semibold text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded">
+                  {service.actionText}
+                </a>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </Container>
+</BaseLayout>

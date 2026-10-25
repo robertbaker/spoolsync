@@ -1,0 +1,166 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { SocialLink } from "./footerTypes";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes.ts";
+
+type Part = "container" | "link" | "icon";
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, ClassesProps<Part>, LabelsProps<Record<string, string>> {
+  links: SocialLink;
+}
+
+const { links, classes, labels: labelOverrides, ...rest } = Astro.props;
+
+const cls = partClasses<Part>(classes);
+
+const socialIconMap = {
+  facebook: "simple-icons:facebook",
+  twitter: "simple-icons:x",
+  x: "simple-icons:x",
+  github: "simple-icons:github",
+  linkedin: "simple-icons:linkedin",
+  youtube: "simple-icons:youtube",
+  instagram: "simple-icons:instagram",
+  tiktok: "simple-icons:tiktok",
+  yelp: "simple-icons:yelp",
+  trustpilot: "simple-icons:trustpilot",
+  tripadvisor: "simple-icons:tripadvisor",
+  google: "simple-icons:google",
+  googlemaps: "simple-icons:googlemaps",
+  applemaps: "simple-icons:apple",
+  apple: "simple-icons:apple",
+  glassdoor: "simple-icons:glassdoor",
+  threads: "simple-icons:threads",
+  bluesky: "simple-icons:bluesky",
+  pinterest: "simple-icons:pinterest",
+  reddit: "simple-icons:reddit",
+  discord: "simple-icons:discord",
+  slack: "simple-icons:slack",
+  mastodon: "simple-icons:mastodon",
+  dribbble: "simple-icons:dribbble",
+  behance: "simple-icons:behance",
+  medium: "simple-icons:medium",
+  whatsapp: "simple-icons:whatsapp",
+  telegram: "simple-icons:telegram",
+} as const;
+
+const socialLabelMap = {
+  facebook: "Facebook",
+  twitter: "X (Twitter)",
+  x: "X",
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  youtube: "YouTube",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  yelp: "Yelp",
+  trustpilot: "Trustpilot",
+  tripadvisor: "Tripadvisor",
+  google: "Google",
+  googlemaps: "Google Maps",
+  applemaps: "Apple Maps",
+  apple: "Apple",
+  glassdoor: "Glassdoor",
+  threads: "Threads",
+  bluesky: "Bluesky",
+  pinterest: "Pinterest",
+  reddit: "Reddit",
+  discord: "Discord",
+  slack: "Slack",
+  mastodon: "Mastodon",
+  dribbble: "Dribbble",
+  behance: "Behance",
+  medium: "Medium",
+  whatsapp: "WhatsApp",
+  telegram: "Telegram",
+} satisfies Record<keyof typeof socialIconMap, string>;
+
+const SOCIAL_PLATFORM_COLORS = {
+  facebook: { color: "#1877F2" },
+  twitter: { color: "#000000" },
+  x: { color: "#000000" },
+  github: { color: "#181717" },
+  linkedin: { color: "#0A66C2" },
+  youtube: { color: "#FF0000" },
+  instagram: { color: "#E1306C" },
+  tiktok: { color: "#000000" },
+  yelp: { color: "#D32323" },
+  trustpilot: { color: "#00B67A" },
+  tripadvisor: { color: "#34E0A1" },
+  google: { color: "#4285F4" },
+  googlemaps: { color: "#EA4335" },
+  applemaps: { color: "#000000" },
+  apple: { color: "#000000" },
+  glassdoor: { color: "#0CAA41" },
+  threads: { color: "#000000" },
+  bluesky: { color: "#0285FF" },
+  pinterest: { color: "#BD081C" },
+  reddit: { color: "#FF4500" },
+  discord: { color: "#5865F2" },
+  slack: { color: "#4A154B" },
+  mastodon: { color: "#6364FF" },
+  dribbble: { color: "#EA4C89" },
+  behance: { color: "#1769FF" },
+  medium: { color: "#000000" },
+  whatsapp: { color: "#25D366" },
+  telegram: { color: "#26A5E4" },
+} satisfies Record<keyof typeof socialIconMap, { color: string }>;
+
+const resolvedLabels = withLabels(socialLabelMap, labelOverrides);
+
+const socialPlatforms = (
+  Object.keys(socialIconMap) as Array<keyof typeof socialIconMap>
+)
+  .map((key) => {
+    const href = links[key];
+    const style = SOCIAL_PLATFORM_COLORS[key];
+    return href
+      ? {
+          key,
+          icon: socialIconMap[key],
+          href,
+          label: (resolvedLabels as Record<string, string>)[key] ?? socialLabelMap[key],
+          color: style.color,
+        }
+      : null;
+  })
+  .filter(Boolean) as Array<{
+  key: keyof typeof socialIconMap;
+  icon: string;
+  href: string;
+  label: string;
+  color: string;
+}>;
+---
+
+<div class={cls("container", "flex flex-wrap items-center gap-3 text-base")} {...withPalette(rest)}>
+  {
+    socialPlatforms.map((platform) => (
+      <slot name="link">
+        <a
+          href={platform.href}
+          class={cls(
+            "link",
+            "social-icon-link inline-flex size-9 items-center justify-center rounded-full bg-foreground/8 text-foreground/70 transition-colors hover:bg-(--social-color) hover:text-[contrast-color(var(--social-color))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          )}
+          style={`--social-color: ${platform.color}`}
+          aria-label={platform.label}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <slot name="icon">
+            <Icon name={platform.icon} class={cls("icon", "size-4")} aria-hidden="true" />
+          </slot>
+        </a>
+      </slot>
+    ))
+  }
+  <slot />
+</div>

@@ -1,0 +1,96 @@
+---
+/**
+ * PostTopics Component
+ *
+ * Displays a list of post topics/tags as outline badge links.
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import Badge from "../../../controls/Badge/Badge.astro";
+import type { BadgeStyle } from "../../../controls/Badge/badgeVariants";
+import type { TopicItem } from "../blogTypes";
+import { slugify } from "../../../lib/string";
+import { withPalette, type PaletteProps } from "../../../lib/palette";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes";
+
+export type { TopicItem };
+
+type Part = "title" | "nav" | "badge";
+
+interface Labels {
+  /** Accessible name of each topic link. */
+  topicAria: (topic: string) => string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  topicAria: (topic) => `Browse articles tagged ${topic}`,
+};
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, ClassesProps<Part>, LabelsProps<Labels> {
+  title?: string;
+  topics: readonly (string | TopicItem)[];
+  hrefPrefix?: string;
+  ariaLabel?: string;
+  badgeStyle?: BadgeStyle;
+  badgeClass?: string;
+}
+
+const {
+  title = "Topics covered",
+  topics,
+  hrefPrefix = "/resources/tag/",
+  ariaLabel = "Post topics",
+  badgeStyle = "outline",
+  badgeClass = "border-primary/30 bg-primary/10 text-primary-text",
+  class: className,
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+const hasTitleSlot = Astro.slots.has("title");
+
+
+const normalizedTopics: TopicItem[] = topics.map((t) => {
+  if (typeof t === "string") {
+    return {
+      label: t,
+      href: `${hrefPrefix}${slugify(t)}`,
+    };
+  }
+  return t;
+});
+---
+
+{
+  normalizedTopics.length > 0 && (
+    <div class:list={["border-t border-border pt-8", className]} {...withPalette(rest)}>
+      {(title || hasTitleSlot) && (
+        <p class={cls("title", "text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground")}>
+          <slot name="title">{title}</slot>
+        </p>
+      )}
+      <nav class={cls("nav", "mt-4 flex flex-wrap gap-2")} aria-label={ariaLabel}>
+        {normalizedTopics.map((topic) => (
+          <Badge
+            href={topic.href}
+            ariaLabel={labels.topicAria(topic.label)}
+            style={badgeStyle}
+            class={cls("badge", badgeClass)}
+          >
+            {topic.label}
+          </Badge>
+        ))}
+      </nav>
+      <slot />
+    </div>
+  )
+}

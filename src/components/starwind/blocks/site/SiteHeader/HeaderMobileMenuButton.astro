@@ -1,0 +1,322 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+interface Props extends HTMLAttributes<"button">, PaletteProps {
+  target?: string | undefined;
+  accentColor?: string | undefined;
+  handedness?: "left" | "right" | undefined;
+  menuStyle?: "morph" | "path" | "spin" | undefined;
+}
+
+type MobileMenuButtonStyle = "morph" | "path" | "spin";
+const MENU_STYLES = ["morph", "path", "spin"] as const;
+
+function isMobileMenuButtonStyle(value: string | undefined): value is MobileMenuButtonStyle {
+  return value !== undefined && MENU_STYLES.includes(value as MobileMenuButtonStyle);
+}
+
+const {
+  class: className,
+  id = "mobile-menu-btn",
+  target = "#navbar-menu",
+  accentColor = "primary",
+  handedness = "right",
+  menuStyle = "morph",
+  ...rest
+} = Astro.props as Props;
+
+const MENU_COLORS: Record<string, { hover: string; outline: string }> = {
+  primary: { hover: "hover:text-primary-text", outline: "focus-visible:outline-primary/70" },
+  success: { hover: "hover:text-success-text", outline: "focus-visible:outline-success/70" },
+  info: { hover: "hover:text-info-text", outline: "focus-visible:outline-info/70" },
+  warning: { hover: "hover:text-warning-text", outline: "focus-visible:outline-warning/70" },
+  error: { hover: "hover:text-error-text", outline: "focus-visible:outline-error/70" },
+  accent: { hover: "hover:text-foreground", outline: "focus-visible:outline-accent/70" },
+  secondary: { hover: "hover:text-foreground", outline: "focus-visible:outline-secondary/70" },
+  neutral: { hover: "hover:text-foreground", outline: "focus-visible:outline-foreground/70" },
+};
+
+const colors = MENU_COLORS[accentColor] || MENU_COLORS['primary']!;
+const ariaControls = (target.startsWith("#") ? target.slice(1) : target) || "navbar-menu";
+const normalizedMenuStyle = isMobileMenuButtonStyle(menuStyle) ? menuStyle : "morph";
+---
+
+<button
+  type="button"
+  id={id}
+  class:list={[
+    "mobile-menu-button p-2 text-foreground transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2",
+    `mobile-menu-button--${normalizedMenuStyle}`,
+    colors.hover,
+    colors.outline,
+    className,
+  ]}
+  data-target={target}
+  data-handed={handedness}
+  data-menu-style={normalizedMenuStyle}
+  aria-controls={ariaControls}
+  aria-expanded="false"
+  aria-label="Toggle navigation menu"
+  {...withPalette(rest)}
+>
+  {
+    normalizedMenuStyle === "morph" ? (
+      <svg viewBox="0 0 64 48" aria-hidden="true">
+        <path d="M19,15 L45,15 C70,15 58,-2 49.0177126,7 L19,37" />
+        <path d="M19,24 L45,24 C61.2371586,24 57,49 41,33 L32,24" />
+        <path d="M45,33 L19,33 C-8,33 6,-2 22,14 L45,37" />
+      </svg>
+    ) : normalizedMenuStyle === "path" ? (
+      <span class="mobile-menu-path-icon" aria-hidden="true">
+        <span class="mobile-menu-path-bars">
+          <span></span>
+          <span></span>
+        </span>
+        <svg class="mobile-menu-path-ring" viewBox="0 0 44 44" aria-hidden="true">
+          <path d="M22,22 L2,22 C2,11 11,2 22,2 C33,2 42,11 42,22" />
+        </svg>
+        <svg
+          class="mobile-menu-path-ring mobile-menu-path-ring--rotated"
+          viewBox="0 0 44 44"
+          aria-hidden="true"
+        >
+          <path d="M22,22 L2,22 C2,11 11,2 22,2 C33,2 42,11 42,22" />
+        </svg>
+      </span>
+    ) : (
+      <span class="mobile-menu-spin-icon" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    )
+  }
+</button>
+
+<style>
+  .mobile-menu-button {
+    --color: currentColor;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .mobile-menu-button--morph svg {
+    width: 64px;
+    height: 48px;
+    top: -2px;
+    left: -10px;
+    stroke: var(--color);
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    display: block;
+    position: absolute;
+  }
+
+  .mobile-menu-button--morph path {
+    transition:
+      stroke-dasharray var(--duration, 0.85s) var(--easing, ease) var(--delay, 0s),
+      stroke-dashoffset var(--duration, 0.85s) var(--easing, ease) var(--delay, 0s);
+    stroke-dasharray: var(--array-1, 26px) var(--array-2, 100px);
+    stroke-dashoffset: var(--offset, 126px);
+    transform: translateZ(0);
+  }
+
+  .mobile-menu-button--morph path:nth-child(2) {
+    --duration: 0.7s;
+    --easing: ease-in;
+    --offset: 100px;
+    --array-2: 74px;
+  }
+
+  .mobile-menu-button--morph path:nth-child(3) {
+    --offset: 133px;
+    --array-2: 107px;
+  }
+
+  .mobile-menu-button--morph.is-open path {
+    --offset: 57px;
+  }
+
+  .mobile-menu-button--morph.is-open path:nth-child(1),
+  .mobile-menu-button--morph.is-open path:nth-child(3) {
+    --delay: 0.15s;
+    --easing: cubic-bezier(0.2, 0.4, 0.2, 1.1);
+  }
+
+  .mobile-menu-button--morph.is-open path:nth-child(2) {
+    --duration: 0.4s;
+    --offset: 2px;
+    --array-1: 1px;
+  }
+
+  .mobile-menu-button--morph.is-open path:nth-child(3) {
+    --offset: 58px;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 44px;
+    height: 44px;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars {
+    width: 20px;
+    height: 14px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.5s ease;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span {
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span:first-child {
+    top: 0;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span:last-child {
+    bottom: 0;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span::before,
+  .mobile-menu-button--path .mobile-menu-path-bars > span::after {
+    content: "";
+    display: block;
+    width: 47%;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    position: absolute;
+    backface-visibility: hidden;
+    transition:
+      transform 0.5s ease,
+      border-radius 0.3s ease,
+      background 0.4s ease;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span::before {
+    left: 0;
+    transform-origin: 0 50%;
+    transform: translate(1px, 0) scaleX(1.1);
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-bars > span::after {
+    right: 0;
+    transform-origin: 100% 50%;
+    transform: translate(-1px, 0) scaleX(1.1);
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-ring {
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2px;
+    width: 44px;
+    height: 44px;
+    stroke-linecap: round;
+    position: absolute;
+    inset: 0;
+    stroke-dasharray: 0 82.801 8 82.801;
+    stroke-dashoffset: 82.801;
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+    transform: rotate(0deg);
+    transition:
+      stroke-dashoffset 0.5s ease,
+      stroke-dasharray 0.6s ease,
+      transform 0.5s ease,
+      stroke 0.4s ease;
+  }
+
+  .mobile-menu-button--path .mobile-menu-path-ring--rotated {
+    transform: rotate(180deg);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-bars {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-bars > span:first-child::before {
+    transform: rotate(45deg) translate(2.2px, -3px) scaleX(1.05);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-bars > span:first-child::after {
+    transform: rotate(-45deg) translate(-2.2px, -3px) scaleX(1.05);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-bars > span:last-child::before {
+    transform: rotate(-45deg) translate(2.2px, 3px) scaleX(1.05);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-bars > span:last-child::after {
+    transform: rotate(45deg) translate(-2.2px, 3px) scaleX(1.05);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-ring {
+    stroke-dashoffset: 62;
+    stroke-dasharray: 0 82.801 62 82.801;
+    transform: rotate(90deg);
+  }
+
+  .mobile-menu-button--path.is-open .mobile-menu-path-ring--rotated {
+    transform: rotate(270deg);
+  }
+
+  .mobile-menu-button--spin .mobile-menu-spin-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 20px;
+    height: 14px;
+  }
+
+  .mobile-menu-button--spin .mobile-menu-spin-icon > span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    transition:
+      transform 0.35s ease,
+      opacity 0.25s ease;
+    transform-origin: 50% 50%;
+  }
+
+  .mobile-menu-button--spin .mobile-menu-spin-icon > span:nth-child(1) {
+    top: 0;
+  }
+
+  .mobile-menu-button--spin .mobile-menu-spin-icon > span:nth-child(2) {
+    top: 6px;
+  }
+
+  .mobile-menu-button--spin .mobile-menu-spin-icon > span:nth-child(3) {
+    top: 12px;
+  }
+
+  .mobile-menu-button--spin.is-open .mobile-menu-spin-icon > span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .mobile-menu-button--spin.is-open .mobile-menu-spin-icon > span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0.1);
+  }
+
+  .mobile-menu-button--spin.is-open .mobile-menu-spin-icon > span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+</style>

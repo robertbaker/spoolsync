@@ -1,0 +1,54 @@
+---
+import { Icon } from "astro-icon/components";
+import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
+import { optionGroups } from "./data";
+---
+
+    <section class="mt-20 scroll-mt-24" id="options">
+      <div class="flex flex-wrap items-baseline justify-between gap-4">
+        <SectionHeader align="left" eyebrow="Reference" title="Options" subtitle="Every flag the CLI accepts." />
+        <div class="w-full sm:w-auto">
+          <input
+            id="options-search"
+            type="search"
+            placeholder="Search flags... (/)"
+            class="field-input mt-0 py-1.5 text-xs w-full sm:w-60"
+            aria-label="Filter CLI options"
+          />
+        </div>
+      </div>
+      <div id="no-options-match" class="mt-6 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground" hidden>
+        No options match your search.
+      </div>
+      <div class="mt-8 space-y-8" id="option-groups-container">
+        {
+          optionGroups.map((group) => (
+            <div data-option-group>
+              <div class="flex flex-wrap items-baseline gap-x-3">
+                <h3 class="text-lg">{group.title}</h3>
+                <p class="text-sm text-muted-foreground">{group.note}</p>
+              </div>
+              <dl class="mt-3 divide-y overflow-hidden rounded-xl border bg-card">
+                {group.rows.map((row) => (
+                  <div data-option-row class="group grid gap-1 px-4 py-3 transition-colors hover:bg-muted/50 sm:grid-cols-[17rem_1fr] sm:gap-4">
+                    <dt class="flex min-w-0 items-center gap-1">
+                      <code class="min-w-0 break-words font-mono text-sm font-semibold text-primary">{row.flag}</code>
+                      <button
+                        type="button"
+                        data-copy-code={row.copy}
+                        aria-label={`Copy ${row.copy}`}
+                        class="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
+                      >
+                        <Icon name="material-symbols:content-copy-outline-rounded" class="copy-idle size-4" aria-hidden="true" />
+                        <Icon name="material-symbols:check-rounded" class="copy-done hidden size-4" aria-hidden="true" />
+                      </button>
+                    </dt>
+                    <dd class="text-sm text-muted-foreground">{row.desc}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))
+        }
+      </div>
+    </section>

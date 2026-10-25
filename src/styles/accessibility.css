@@ -1,0 +1,34 @@
+/* Modern Web Guidance: Prevent underlying page scroll chaining when modal dialog is open */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Modern Web Guidance: Forced Colors Mode & Essential Swatches */
+.filament-swatch {
+  forced-color-adjust: none;
+}
+
+@media (forced-colors: active) {
+  .filament-swatch {
+    outline: 1px solid ButtonBorder;
+  }
+
+  .spoolsync-tour-highlight {
+    outline-color: Highlight;
+  }
+
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+}

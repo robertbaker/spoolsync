@@ -1,0 +1,215 @@
+---
+/**
+ * Bottom Navigation Component
+ *
+ * Fixed bottom navigation bar for mobile devices (iOS-style).
+ * Shows max 4 primary items plus an optional "More" dropup menu.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { BottomNav } from '~/components/ui/SiteHeader';
+ * ---
+ * <BottomNav items={[
+ *   { href: "/", text: "Home", icon: "material-symbols:home" },
+ *   { href: "/services", text: "Services", icon: "material-symbols:home-repair-service" },
+ * ]} />
+ * ```
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../../types/index.ts";
+import Button from "../../../../controls/Button/Button.astro";
+import OptimizedImage from "../../../../controls/OptimizedImage/OptimizedImage.astro";
+import {
+  type ColorVariant,
+  getMobileMenuColorClasses,
+  getNavHoverColors,
+} from "../../../../lib/colors.ts";
+
+interface Props extends HTMLAttributes<"div"> {
+  items: NavLink[];
+  glass?: boolean;
+  accentColor?: ColorVariant;
+  moreLabel?: string;
+}
+
+const { items, glass = false, accentColor = "primary", moreLabel = "More", ...rest } = Astro.props;
+
+// Logic to show max 4 items and put rest in "More"
+const MAX_VISIBLE = 5;
+const fitsAll = items.length <= MAX_VISIBLE;
+const primaryItems = fitsAll ? items : items.slice(0, MAX_VISIBLE - 1);
+const secondaryItems = fitsAll ? [] : items.slice(MAX_VISIBLE - 1);
+const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
+const isCurrent = (href: string) => (href.replace(/\/$/, "") || "/") === currentPath;
+const hasMore = secondaryItems.length > 0;
+const moreButtonColors = getMobileMenuColorClasses(accentColor);
+
+const baseClasses =
+  "fixed inset-x-3 bottom-3 z-[60] rounded-2xl border lg:hidden shadow-xl shadow-foreground/15 transition-colors duration-300 pb-[env(safe-area-inset-bottom)]";
+const glassClasses = "bg-background/85 backdrop-blur-xl border-foreground/15";
+const solidClasses = "bg-background border-border";
+---
+
+<div class:list={[baseClasses, glass ? glassClasses : solidClasses]} {...rest}>
+  <nav class="flex justify-around items-center h-16 gap-1 px-1.5" aria-label="Primary">
+    {
+      primaryItems.map((item) => {
+        const itemColor = item.color ?? accentColor;
+        const mobileColors = getMobileMenuColorClasses(itemColor);
+
+        return (
+          <slot name="item">
+            <a
+              href={item.href}
+              class:list={[
+                "flex flex-col items-center justify-center w-full h-12 min-h-[44px] rounded-xl text-xs gap-0.5 text-foreground/70 transition-all duration-150 touch-manipulation select-none active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 aria-[current=page]:bg-primary/15 aria-[current=page]:text-primary-text",
+                getNavHoverColors(itemColor),
+                mobileColors.activeText,
+                mobileColors.focusOutline,
+              ]}
+              {...(item.external
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              aria-label={item.ariaLabel}
+              aria-current={isCurrent(item.href) ? "page" : undefined}
+            >
+              {item.image ? (
+                <OptimizedImage src={item.image} class="size-6 rounded-full object-cover transition-transform group-active:scale-90" alt={item.imageAlt ?? item.text} />
+              ) : item.icon ? (
+                <Icon name={item.icon} class="size-6 transition-transform group-active:scale-90" aria-hidden="true" />
+              ) : (
+                <Icon
+                  name="material-symbols:radio-button-unchecked"
+                  class="size-6"
+                  aria-hidden="true"
+                  inert
+                />
+              )}
+              <span class="font-medium truncate max-w-full text-[11px] leading-tight">{item.text}</span>
+            </a>
+          </slot>
+        );
+      })
+    }
+
+    {/* More Button */}
+    {
+      hasMore && (
+        <div class="relative group">
+          <slot name="more">
+            <Button
+              variant="ghost"
+              class:list={[
+                "flex flex-col items-center justify-center w-full h-full min-h-[44px] text-xs gap-1 text-foreground/70 transition-all duration-150 touch-manipulation active:scale-95 px-4 py-2 focus-visible:outline-2 focus-visible:outline-offset-2",
+                getNavHoverColors(accentColor),
+                moreButtonColors.activeText,
+                moreButtonColors.focusOutline,
+              ]}
+              id="bottom-nav-more-btn"
+              aria-expanded="false"
+              aria-controls="bottom-nav-more-menu"
+              aria-label="Toggle more navigation links"
+            >
+              <slot name="more-button">
+                <Icon name="material-symbols:more-horiz" class="size-6" aria-hidden="true" />
+                <span class="font-medium">{moreLabel}</span>
+              </slot>
+            </Button>
+
+            {/* Dropup Menu */}
+            <div
+              id="bottom-nav-more-menu"
+              aria-hidden="true"
+              inert
+              class:list={[
+                "absolute bottom-full right-2 mb-2 w-52 rounded-2xl shadow-xl border origin-bottom-right transform scale-0 invisible transition-all duration-200 overscroll-contain p-1.5",
+                glass
+                  ? "bg-background/95 backdrop-blur-2xl border-foreground/10"
+                  : "bg-background border-muted",
+              ]}
+            >
+              <ul class="flex flex-col gap-0.5 text-sm w-full">
+                {secondaryItems.map((item) => {
+                  const itemColor = item.color ?? accentColor;
+                  const mobileColors = getMobileMenuColorClasses(itemColor);
+
+                  return (
+                    <li>
+                      <a
+                        href={item.href}
+                        class:list={[
+                          "flex items-center gap-2.5 min-h-[44px] px-3 py-2 rounded-xl text-foreground font-medium transition-colors duration-150 touch-manipulation active:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-2",
+                          getNavHoverColors(itemColor),
+                          mobileColors.focusOutline,
+                        ]}
+                        {...(item.external
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
+                        aria-label={item.ariaLabel}
+                      >
+                        {item.image ? (
+                          <OptimizedImage src={item.image} class="size-5 shrink-0 rounded-full object-cover" alt={item.imageAlt ?? item.text} />
+                        ) : item.icon ? (
+                          <Icon name={item.icon} class="size-5 shrink-0 opacity-70" aria-hidden="true" />
+                        ) : null}
+                        <span>{item.text}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </slot>
+        </div>
+      )
+    }
+  </nav>
+  <slot />
+</div>
+
+<script>
+  import { initOnDomReadyAndAstroPageLoad } from "../../../../lib/initOnAstroPageLoad.ts";
+
+  let cleanup: (() => void) | undefined;
+  initOnDomReadyAndAstroPageLoad(() => {
+    cleanup?.();
+    const moreBtn = document.getElementById("bottom-nav-more-btn");
+    const moreMenu = document.getElementById("bottom-nav-more-menu");
+    if (!moreBtn || !moreMenu) return;
+    const controller = new AbortController();
+    const options = { signal: controller.signal };
+    const toggleMenu = (show: boolean) => {
+      moreBtn.setAttribute("aria-expanded", String(show));
+      moreMenu.setAttribute("aria-hidden", String(!show));
+      moreMenu.toggleAttribute("inert", !show);
+      moreMenu.classList.toggle("scale-0", !show);
+      moreMenu.classList.toggle("invisible", !show);
+      moreMenu.classList.toggle("scale-100", show);
+      if (!show && moreMenu.contains(document.activeElement)) moreBtn.focus();
+    };
+    moreBtn.addEventListener("click", () => toggleMenu(moreBtn.getAttribute("aria-expanded") !== "true"), options);
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if ((!moreMenu.contains(target) && !moreBtn.contains(target)) || (target instanceof Element && moreMenu.contains(target) && target.closest("a[href]"))) toggleMenu(false);
+    }, options);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && moreBtn.getAttribute("aria-expanded") === "true") {
+        event.preventDefault();
+        toggleMenu(false);
+      }
+    }, options);
+    cleanup = () => { controller.abort(); };
+    document.addEventListener("astro:before-swap", cleanup, { once: true, signal: controller.signal });
+  });
+</script>
+
+<style>
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(4rem + env(safe-area-inset-bottom));
+  }
+</style>

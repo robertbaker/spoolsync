@@ -1,0 +1,19 @@
+---
+import Card from "~/components/starwind/controls/Card/Card.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  href?: string;
+  badge?: string;
+  color?: "base" | "primary" | "secondary" | "accent" | "info" | "success" | "warning" | "error";
+}
+
+const { title, description, href, badge, color = "base" } = Astro.props;
+---
+
+<div class="not-prose my-6">
+  <Card variant="bordered" title={title} description={description} href={href} badge={badge} color={color}>
+    {Astro.slots.has("default") && <div class="px-6 pb-6 text-sm text-muted-foreground"><slot /></div>}
+  </Card>
+</div>

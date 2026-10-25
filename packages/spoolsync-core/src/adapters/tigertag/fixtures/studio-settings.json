@@ -1,0 +1,154 @@
+{
+  "TigerData_2816981665": {
+    "data3": 240,
+    "measure": 1000,
+    "online_color": "#6C47B2FF",
+    "measure_gr": 1000,
+    "color_r": 108,
+    "sku": "CA19010",
+    "catalogSyncedAt": 1792393586873,
+    "timestamp": 845708786,
+    "data1": 56,
+    "data6": 25,
+    "container_id": "polymaker_panchroma_cardboard",
+    "message": "",
+    "id_material": 38219,
+    "id_brand": 50604,
+    "name": "Purple",
+    "series": "Panchroma™ Basic PLA",
+    "deleted_at": null,
+    "productKey": "1y4bt3zyx57",
+    "id_unit": 21,
+    "TD": null,
+    "barcode": "6938936716877",
+    "data2": 190,
+    "data7": 60,
+    "protocol": "TigerData+",
+    "online_color_type": "mono",
+    "weight_available": 1000,
+    "catalogProduct": {
+      "info1": false,
+      "RFID_Data": {
+        "data3": 240,
+        "measure": 1000,
+        "color_r": 108,
+        "data1": 56,
+        "data6": 25,
+        "data5": 6,
+        "color_b": 178,
+        "data4": 55,
+        "id_aspect1": 104,
+        "id_brand": 50604,
+        "id_aspect2": null,
+        "id_unit": 21,
+        "data2": 190,
+        "color_a": 255,
+        "data7": 60,
+        "id_material": 38219,
+        "color_g": 71,
+        "id_type": 142
+      },
+      "bed": {
+        "temp_min": 25,
+        "temp_max": 60
+      },
+      "filament": {
+        "measure_unit": "g",
+        "measure_value": 1000,
+        "fill_percent": null,
+        "color_info": {
+          "colors": ["#6C47B2FF"],
+          "ral": null,
+          "type": "mono"
+        },
+        "color": "#6C47B2FF",
+        "shore": null,
+        "diameter": "1.75",
+        "refill": false,
+        "aspect1": "Basic",
+        "grams": 1000,
+        "aspect2": null,
+        "transmission_dist": null,
+        "material": "PLA",
+        "recycled": false,
+        "filled": false
+      },
+      "fan": {
+        "speed_min": 100,
+        "speed_max": 100
+      },
+      "dryer": {
+        "temp": 55,
+        "time": 6
+      },
+      "images": {
+        "main_src": "https://cdn.tigertag.io/img?id=2896780252&v=1"
+      },
+      "color": "#6C47B2FF",
+      "brand_url": "https://www.polymaker.com",
+      "product_type": "Filament",
+      "name": "Purple",
+      "color_info": {
+        "colors": ["#6C47B2FF"],
+        "type": "mono"
+      },
+      "created_at": "2026-07-28T13:01:29+00:00",
+      "links": {
+        "food": null,
+        "reach": "https://cdn.tigertag.io/files/45670/Statement_On_Compliance_With_REACH_1.6_1_de0eeee1-3a63-4fd7-ab3c-236531d22a2e%20(2).pdf",
+        "tips": null,
+        "rohs": "https://cdn.tigertag.io/files/45670/Statement_On_Compliance_With_RoHS_1.4%20(2).pdf",
+        "youtube": null,
+        "msds": "https://cdn.tigertag.io/files/45670/Panchroma_PLA_Basic_Colors-USA-SDS-1.0%20(1).pdf",
+        "en71": null,
+        "tds": "https://cdn.tigertag.io/files/45670/TDS_PANCHROMA_V2%20(3).pdf"
+      },
+      "sku": "CA19010",
+      "img_src": "https://cdn.tigertag.io/img?id=2896780252&v=1",
+      "barcode": "6938936716877",
+      "material": "PLA",
+      "metadata": {
+        "crealityPressureAdvance": "",
+        "crealityLabel": "Generic PLA",
+        "crealityID": "00001",
+        "bambuID": "GFL00",
+        "bambuLabel": "PolyLite PLA"
+      },
+      "nozzle": {
+        "temp_min": 190,
+        "temp_max": 240
+      },
+      "title": "Panchroma™ Basic PLA - Purple",
+      "info2": false,
+      "measure": "1000 g",
+      "id": 2896780252,
+      "updated_at": "2026-09-01T23:43:33+00:00",
+      "brand": "Polymaker",
+      "info3": false,
+      "active": true,
+      "series": "Panchroma™ Basic PLA"
+    },
+    "deleted": null,
+    "online_color_list": ["#6C47B2FF"],
+    "updatedAt": {
+      "seconds": 1792393610,
+      "nanoseconds": 920000000
+    },
+    "data5": 6,
+    "color_b": 178,
+    "data4": 55,
+    "LinkTDS": "https://cdn.tigertag.io/files/45670/TDS_PANCHROMA_V2%20(3).pdf",
+    "url_img": "https://cdn.tigertag.io/img?id=2896780252&v=1",
+    "id_aspect2": 255,
+    "uid": "TigerData_2816981665",
+    "container_weight": 145,
+    "LinkREACH": "https://cdn.tigertag.io/files/45670/Statement_On_Compliance_With_REACH_1.6_1_de0eeee1-3a63-4fd7-ab3c-236531d22a2e%20(2).pdf",
+    "id_aspect1": 104,
+    "LinkMSDS": "https://cdn.tigertag.io/files/45670/Panchroma_PLA_Basic_Colors-USA-SDS-1.0%20(1).pdf",
+    "LinkROHS": "https://cdn.tigertag.io/files/45670/Statement_On_Compliance_With_RoHS_1.4%20(2).pdf",
+    "color_a": 255,
+    "id_product": 2896780252,
+    "color_g": 71,
+    "id_type": 142
+  }
+}

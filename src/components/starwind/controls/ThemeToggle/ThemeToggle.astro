@@ -1,0 +1,177 @@
+---
+/**
+ * Theme Toggle Component (Starwind UI v3 styled component)
+ *
+ * Accessible button to switch between dark and light themes using system preference as fallback.
+ * Follows Starwind UI v3 component contracts with data-sw-* anatomy, sync groups, and custom slots.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { ThemeToggle } from '~/components/ui';
+ * ---
+ * <ThemeToggle ariaLabel="Toggle theme" />
+ * ```
+ *
+ * @features
+ * - Starwind UI v3 theme controller alignment
+ * - Persists theme preference to localStorage
+ * - Respects system prefers-color-scheme setting
+ * - Shows sun icon in dark mode (to switch to light)
+ * - Shows moon icon in light mode (to switch to dark)
+ * - Accessible keyboard focus states and ARIA labels
+ * - Custom icon slots support (`light-icon`, `dark-icon`)
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import { HEADER_ICON_BUTTON_RESET_CLASSES } from "../../blocks/site/SiteHeader/index.ts";
+import type { ThemeToggleSize, ThemeToggleVariant } from "./themeToggleVariants";
+import { partClasses, type ClassesProps } from "../../lib/classes.ts";
+
+type Part =
+  /** Span wrapping both icons inside the button. */
+  | "iconWrapper"
+  /** Moon icon, shown in light mode. */
+  | "darkIcon"
+  /** Sun icon, shown in dark mode. */
+  | "lightIcon";
+
+interface Props extends HTMLAttributes<"button">, ClassesProps<Part> {
+  /** Accessible label for screen readers */
+  ariaLabel?: string | undefined;
+  /** Component visual variant */
+  variant?: ThemeToggleVariant | undefined;
+  /** Component visual size */
+  size?: ThemeToggleSize | undefined;
+  /** Sync group name for aligning multiple toggle instances */
+  syncGroup?: string | undefined;
+  /** Additional CSS classes */
+  class?: string | undefined;
+  /** Unstyled mode */
+  unstyled?: boolean | undefined;
+}
+
+const {
+  ariaLabel = "Toggle theme",
+  variant = "ghost",
+  size = "md",
+  syncGroup = "starwind-theme",
+  class: className = "",
+  unstyled = false,
+  id,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+
+const hasLightIconSlot = Astro.slots.has("light-icon");
+const hasDarkIconSlot = Astro.slots.has("dark-icon");
+
+const sizeClasses: Record<ThemeToggleSize, string> = {
+  sm: "!size-8 !min-w-8 !min-h-8",
+  md: "!size-10 !min-w-10 !min-h-10",
+  lg: "!size-12 !min-w-12 !min-h-12",
+};
+
+const iconSizes: Record<ThemeToggleSize, string> = {
+  sm: "size-5",
+  md: "size-6",
+  lg: "size-7",
+};
+
+const variantClasses: Record<ThemeToggleVariant, string> = {
+  ghost: HEADER_ICON_BUTTON_RESET_CLASSES,
+  default: "bg-primary text-primary-foreground hover:bg-primary/90",
+  outline: "border border-border bg-background text-foreground hover:bg-muted",
+};
+---
+
+<button
+  type="button"
+  id={id}
+  data-slot="theme-toggle"
+  data-sw-theme-control
+  data-sw-theme-toggle
+  data-sw-toggle
+  data-sync-group={syncGroup}
+  data-theme-off="light"
+  data-theme-on="dark"
+  data-testid="theme-toggle-button"
+  data-theme-toggle
+  data-theme-toggle-styled={!unstyled ? "" : undefined}
+  class:list={[
+    "group",
+    !unstyled && "inline-flex cursor-pointer items-center justify-center rounded-full !p-0 !leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-outline disabled:pointer-events-none disabled:opacity-50",
+    !unstyled && sizeClasses[size],
+    !unstyled && variantClasses[variant],
+    className,
+  ]}
+  aria-label={ariaLabel}
+  {...rest}
+>
+  <span
+    class={cls("iconWrapper", "relative inline-flex items-center justify-center size-full")}
+    data-theme-icon-wrapper
+  >
+    <!-- Moon icon - shown in light mode (click to switch to dark) -->
+    {
+      hasDarkIconSlot ? (
+        <slot name="dark-icon" />
+      ) : (
+        <Icon
+          data-testid="theme-toggle-dark-icon"
+          data-theme-dark-icon
+          data-theme-icon="true"
+          name="material-symbols:dark-mode"
+          class={cls("darkIcon", iconSizes[size], "text-foreground/80 hover:text-primary-text transition-colors")}
+          aria-hidden="true"
+        />
+      )
+    }
+
+    <!-- Sun icon - shown in dark mode (click to switch to light) -->
+    {
+      hasLightIconSlot ? (
+        <slot name="light-icon" />
+      ) : (
+        <Icon
+          data-testid="theme-toggle-light-icon"
+          data-theme-light-icon
+          data-theme-icon="true"
+          name="material-symbols:light-mode"
+          class={cls(
+            "lightIcon",
+            iconSizes[size],
+            "hidden text-foreground/80 hover:text-primary-text transition-colors",
+          )}
+          aria-hidden="true"
+        />
+      )
+    }
+  </span>
+</button>
+
+<script>
+  import { initThemeToggle } from "./themeToggleVariants";
+
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initThemeToggle, { once: true });
+    } else {
+      initThemeToggle();
+    }
+
+    document.addEventListener("astro:page-load", initThemeToggle);
+  }
+</script>
+
+<style>
+  [data-theme-toggle-styled] [data-theme-dark-icon] { display: inline-flex; }
+  [data-theme-toggle-styled] [data-theme-light-icon] { display: none; }
+  :global(:root.dark) [data-theme-toggle-styled] [data-theme-dark-icon],
+  :global(:root[data-theme="dark"]) [data-theme-toggle-styled] [data-theme-dark-icon] { display: none; }
+  :global(:root.dark) [data-theme-toggle-styled] [data-theme-light-icon],
+  :global(:root[data-theme="dark"]) [data-theme-toggle-styled] [data-theme-light-icon] { display: inline-flex; }
+</style>

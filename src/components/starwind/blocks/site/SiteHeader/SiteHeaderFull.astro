@@ -1,0 +1,316 @@
+---
+/**
+ * SiteHeaderFull — Full-featured responsive header with glassmorphism, sticky variants, and mobile menu support.
+ *
+ * Accepts logo and theme-toggle slots so site wrappers can preserve brand-specific details
+ * without forking the shell.
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import NavMenu from "../NavMenu/NavMenu.astro";
+import ThemeToggle from "../../../controls/ThemeToggle/ThemeToggle.astro";
+import type { NavLink } from "../../../types/index.ts";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+
+interface Props extends HTMLAttributes<"header">, PaletteProps {
+  navLinks: NavLink[];
+  homeLinkAriaLabel?: string | undefined;
+  sticky?: "fixed" | "scroll-up" | "none" | undefined;
+  variant?: "default" | "thin" | "mega" | undefined;
+  glass?: boolean | undefined;
+  mobileVariant?: "collapse" | "overlay" | "grid" | "bottom-nav" | "fab" | undefined;
+  showThemeToggle?: boolean | undefined;
+  mobileMenuHandedness?: "left" | "right" | undefined;
+  windowKey?: string | undefined;
+  accentColor?: string | undefined;
+  unstyled?: boolean | undefined;
+  /**
+   * Desktop nav placement. `end` (default) sits the nav after the logo group, beside the actions;
+   * `center` balances the logo and actions groups so the nav is centered in the bar.
+   */
+  navAlign?: "end" | "center" | undefined;
+  /** Where the `banner` slot renders inside the (sticky) header: above or below the navbar. */
+  bannerPosition?: "above" | "below" | undefined;
+}
+
+const {
+  navLinks,
+  homeLinkAriaLabel = "Home",
+  sticky = "fixed",
+  variant = "default",
+  glass = true,
+  mobileVariant = "collapse",
+  showThemeToggle = true,
+  mobileMenuHandedness = "right",
+  windowKey = "__headerManager",
+  class: className,
+  unstyled = false,
+  navAlign = "end",
+  bannerPosition = "above",
+  ...rest
+} = Astro.props;
+
+const hasBanner = Astro.slots.has("banner");
+const hasDesktopNavSlot = Astro.slots.has("desktop-nav");
+const hasMobileThemeToggleSlot = Astro.slots.has("theme-toggle-mobile");
+const hasDesktopThemeToggleSlot = Astro.slots.has("theme-toggle-desktop");
+---
+
+<header
+  data-site-header-styled={!unstyled || undefined}
+  id="main-header"
+  class:list={[
+    "top-0 z-70 border-b border-foreground/12 shadow-sm shadow-foreground/8 motion-preset-fade motion-duration-300 transition-all duration-300 transform",
+    {
+      "sticky top-0": sticky === "fixed",
+      "fixed w-full inset-x-0 top-0": sticky === "scroll-up",
+      "bg-background/95 backdrop-blur-xl": glass,
+      "bg-background": !glass,
+    },
+    className,
+  ]}
+  data-sticky={sticky}
+  data-mobile-variant={mobileVariant}
+  data-window-key={windowKey}
+  {...withPalette(rest)}
+>
+  {hasBanner && bannerPosition === "above" && <slot name="banner" />}
+  <div
+    class:list={[
+      "flex min-h-16 items-center",
+      {
+        "py-2.5": variant === "thin",
+        "py-3.5": variant === "default",
+        "py-5": variant === "mega",
+      },
+    ]}
+  >
+  <div class="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8 lg:relative">
+    <!-- Top row: logo, hamburger, theme toggle -->
+    <div class="flex h-full items-center justify-between gap-4 max-lg:w-full max-lg:min-w-0 lg:flex-1">
+      {/* Logo */}
+      <a
+        href="/"
+        id="logo-link"
+        class="flex h-full min-w-0 flex-1 items-center overflow-hidden"
+        aria-label={homeLinkAriaLabel}
+      >
+        <div class="box-border w-full min-w-0 max-w-[calc(100vw-6.75rem)] pr-2 sm:max-w-[calc(100vw-8rem)] md:max-w-full" data-hero-logo-navbar>
+          <slot name="logo" />
+        </div>
+      </a>
+
+      {/* Mobile Toggle */}
+      <div class="relative z-70 flex shrink-0 items-center gap-2 lg:hidden">
+        <slot name="actions" />
+        {showThemeToggle && (
+          <div class:list={["mr-1", mobileMenuHandedness === "left" ? "order-2" : "order-1"]}>
+            {hasMobileThemeToggleSlot ? (
+              <slot name="theme-toggle-mobile" />
+            ) : (
+              <ThemeToggle />
+            )}
+          </div>
+        )}
+        {mobileVariant !== "bottom-nav" && mobileVariant !== "fab" && <slot name="mobile-button" />}
+      </div>
+    </div>
+
+    <div class="lg:flex lg:flex-none lg:items-center">
+      {
+        hasDesktopNavSlot ? (
+          <slot name="desktop-nav" />
+        ) : (
+          <nav class="max-lg:hidden" aria-label="Primary navigation">
+            <NavMenu items={navLinks} unstyled={unstyled} />
+          </nav>
+        )
+      }
+    </div>
+
+    <div
+      class:list={[
+        "ml-auto flex items-center gap-2 max-lg:hidden",
+        { "lg:flex-1 lg:justify-end": navAlign === "center" },
+      ]}
+    >
+      <slot name="actions" />
+      <!-- Theme Controller -->
+      {
+        showThemeToggle && (
+          hasDesktopThemeToggleSlot ? (
+            <slot name="theme-toggle-desktop" />
+          ) : (
+            <ThemeToggle />
+          )
+        )
+      }
+    </div>
+
+    <!-- Mobile navigation menu (Collapse mode only - others rendered in Layout) -->
+    {
+      mobileVariant === "collapse" && (
+        <div
+          id="navbar-menu"
+          class="hidden grow overflow-hidden duration-300 lg:flex lg:grow-0 lg:basis-auto lg:items-center lg:justify-end"
+        >
+          <NavMenu items={navLinks} mode="mobile" unstyled={unstyled} />
+          <hr class="my-0 border-border lg:hidden" />
+        </div>
+      )
+    }
+  </div>
+  </div>
+  {hasBanner && bannerPosition === "below" && <slot name="banner" />}
+  <slot />
+
+  <script>
+    import { HeaderCoreManager } from "./header-core-manager";
+
+    const getMobileVariant = () =>
+      document.getElementById("main-header")?.dataset["mobileVariant"];
+
+    const initHeaderManager = () => {
+      const header = document.getElementById("main-header");
+      const windowKey = header?.dataset["windowKey"] || "__headerManager";
+      const w = window as unknown as Record<string, unknown>;
+
+      const existing = w[windowKey];
+      if (
+        existing &&
+        typeof (existing as { cleanup?: () => void }).cleanup === "function"
+      ) {
+        (existing as { cleanup: () => void }).cleanup();
+      }
+
+      const headerManager = new HeaderCoreManager();
+      headerManager.init();
+
+      let mobileManager: { cleanup: () => void } | null = null;
+      let mobileManagerPromise: Promise<{ cleanup: () => void } | null> | null = null;
+      let bootstrappingMobileManager = false;
+      let disposed = false;
+      const menuButton = document.getElementById("mobile-menu-btn");
+
+      const teardownBootstrapListeners = () => {
+        menuButton?.removeEventListener("pointerdown", preloadMobileManager);
+        menuButton?.removeEventListener("focus", preloadMobileManager);
+        menuButton?.removeEventListener("keydown", preloadMobileManager);
+        menuButton?.removeEventListener("click", handleMenuActivationCapture, true);
+      };
+
+      const loadMobileManager = async () => {
+        if (disposed || mobileManager || !menuButton) {
+          return mobileManager;
+        }
+
+        if (!mobileManagerPromise) {
+          mobileManagerPromise = import("./header-mobile-manager")
+            .then(({ HeaderMobileManager }) => {
+              if (disposed) {
+                return null;
+              }
+
+              const nextManager = new HeaderMobileManager();
+              nextManager.init(getMobileVariant());
+              mobileManager = nextManager;
+              teardownBootstrapListeners();
+              return nextManager;
+            })
+            .catch((error) => {
+              mobileManagerPromise = null;
+              console.error("Failed to load header mobile interactions.", error);
+              return null;
+            });
+        }
+
+        return mobileManagerPromise;
+      };
+
+      const preloadMobileManager = () => {
+        void loadMobileManager();
+      };
+
+      const handleMenuActivationCapture = (event: MouseEvent) => {
+        if (mobileManager || !menuButton) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        if (bootstrappingMobileManager) {
+          return;
+        }
+
+        bootstrappingMobileManager = true;
+        void loadMobileManager().then((manager) => {
+          bootstrappingMobileManager = false;
+          if (!manager || disposed) {
+            return;
+          }
+
+          menuButton.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        });
+      };
+
+      menuButton?.addEventListener("pointerdown", preloadMobileManager, { passive: true });
+      menuButton?.addEventListener("focus", preloadMobileManager);
+      menuButton?.addEventListener("keydown", preloadMobileManager);
+      menuButton?.addEventListener("click", handleMenuActivationCapture, true);
+
+      const cleanup = () => {
+          disposed = true;
+          teardownBootstrapListeners();
+          mobileManager?.cleanup();
+          headerManager.cleanup();
+          document.removeEventListener("astro:before-swap", cleanup);
+      };
+      w[windowKey] = { cleanup };
+      document.addEventListener("astro:before-swap", cleanup, { once: true });
+    };
+
+    let scheduledHeaderInitFrame: number | null = null;
+
+    const scheduleHeaderManagerInit = () => {
+      if (scheduledHeaderInitFrame !== null) {
+        cancelAnimationFrame(scheduledHeaderInitFrame);
+      }
+
+      scheduledHeaderInitFrame = requestAnimationFrame(() => {
+        scheduledHeaderInitFrame = null;
+        initHeaderManager();
+      });
+    };
+
+    scheduleHeaderManagerInit();
+    document.addEventListener("astro:page-load", scheduleHeaderManagerInit);
+  </script>
+</header>
+
+<style>
+  [data-site-header-styled] :global(.site-header-logo) {
+    max-width: 100%;
+    width: auto;
+  }
+  [data-site-header-styled] [data-hero-logo-navbar] {
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+  }
+  [data-site-header-styled] :global(.hero-logo-navbar--hidden) {
+    opacity: 0;
+    transform: scale(0.85);
+    pointer-events: none;
+  }
+  [data-site-header-styled] :global(.hero-logo-navbar--visible) {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+  [data-site-header-styled] :global(.hero-logo-navbar--no-motion [data-hero-logo-navbar]),
+  [data-site-header-styled] :global(.hero-logo-navbar--no-motion.hero-logo-navbar--hidden),
+  [data-site-header-styled] :global(.hero-logo-navbar--no-motion.hero-logo-navbar--visible) {
+    transition: none;
+  }
+</style>

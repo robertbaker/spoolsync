@@ -1,0 +1,15 @@
+---
+import Alert from "~/components/starwind/controls/Alert/Alert.astro";
+
+interface Props {
+  variant?: "info" | "success" | "warning" | "error";
+  style?: "default" | "outline" | "soft";
+  title?: string;
+}
+
+const { variant = "info", style = "soft", title } = Astro.props;
+---
+
+<div class="not-prose my-6">
+  <Alert variant={variant} style={style} title={title}><slot /></Alert>
+</div>

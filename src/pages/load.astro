@@ -1,0 +1,169 @@
+---
+import FlowSteps from "~/components/FlowSteps.astro";
+import PageHeader from "~/components/PageHeader.astro";
+import { Icon } from "astro-icon/components";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+
+const fileSources = [
+  {
+    id: "spoolstock",
+    label: "Spoolstock",
+    kind: "CSV",
+    icon: "vendor/spoolstock",
+    accept: ".csv,text/csv",
+    how: "Spoolstock is export-only. In the app, open Inventory and tap the CSV export icon, then choose or drop the file here. SpoolSync compares its values against other services, though Spoolstock itself does not accept imports.",
+  },
+  {
+    id: "spoolio",
+    label: "Spoolio",
+    kind: "JSON",
+    icon: "vendor/spoolio",
+    accept: ".json,application/json",
+    how: "On spoolio.net, open Settings and export your data, then choose or drop the JSON file here.",
+  },
+  {
+    id: "tigertag",
+    label: "TigerTag",
+    kind: ".ttag or JSON",
+    icon: "vendor/tigertag",
+    accept: ".ttag,.json,application/json",
+    how: "Use Export in Tiger Studio Manager's inventory toolbar for a .ttag file, or Settings → Data → Download JSON. When importing the updated file back into Studio, choose Restore to preserve remaining weights.",
+    cloud: true,
+  },
+  { id: "threeDfp", label: "3DFilamentProfiles", kind: "CSV or JSON", icon: "material-symbols:database-outline", accept: ".csv,.json,text/csv,application/json", how: "Export your My Spools list as CSV or JSON from 3DFilamentProfiles, then choose or drop the file here." },
+  { id: "bambuddy", label: "Bambuddy", kind: "CSV or JSON", icon: "material-symbols:inventory-2-outline", image: bambuddyLogo.src, accept: ".csv,.json,text/csv,application/json", how: "Fetch directly with your Bambuddy API key, load a saved inventory API response as JSON, or export an inventory CSV. Bambuddy's CSV importer only adds new entries, so review the download before importing.", api: true },
+  { id: "filameter", label: "FilaMeter", kind: "JSON or CSV", icon: "vendor/filameter", accept: ".json,.csv,application/json,text/csv", how: "Open Settings → Import/Export to download a JSON backup or export your filament CSV, then choose or drop it here." },
+  { id: "filadex", label: "Filadex", kind: "JSON or CSV", icon: "material-symbols:inventory-2-outline", accept: ".json,.csv,application/json,text/csv", how: "Download JSON or CSV from Filadex's export menu (or GET /api/filaments?export=json), then choose or drop the file here." },
+  { id: "filamentdb", label: "FilamentDB", kind: "JSON", icon: "material-symbols:database-outline", accept: ".json,application/json", how: "Save the response of GET /api/spools from FilamentDB, or a single spool file from its data/spools folder. Extract ZIP exports first, or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token." },
+];
+---
+
+<BaseLayout title={`Load — ${SITE_TITLE}`} description="Load spool inventories from each service.">
+  <Container class="py-10 sm:py-14">
+    <FlowSteps current="load" class="mb-6" />
+    <PageHeader
+      eyebrow="Step 2"
+      title="Load inventories"
+      description="Load each service you want to compare. Nothing is modified yet, and loaded inventories clear when you close this tab."
+    />
+
+    <div class="mt-10 grid gap-6 md:grid-cols-2">
+      <section id="tour-load" class="app-card flex flex-col" aria-labelledby="load-spoolman-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/spoolman" color="primary" />
+          <h2 id="load-spoolman-heading" class="text-xl">Spoolman</h2>
+          <span id="spoolman-status" class="ml-auto"></span>
+        </div>
+        <p id="spoolman-target" class="mt-3 break-all text-sm text-muted-foreground"></p>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <Button type="button" color="primary" id="spoolman-load">Fetch spools</Button>
+          <Button href="/connections" variant="outline">Connection settings</Button>
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">
+          Or load a file instead: a Spoolman export (Settings → Export, JSON or CSV), the API export from
+          <code>/api/v1/export/spools?fmt=json</code>, or a raw JSON list of spools from the API.
+        </p>
+        <label
+          id="spoolman-drop"
+          for="spoolman-file"
+          class="dropzone mt-3"
+        >
+          <Icon name="material-symbols:upload-file-outline-rounded" class="size-7 text-primary" aria-hidden="true" />
+          <span class="font-medium text-foreground">Choose a JSON or CSV file</span>
+          <span>or drop it here</span>
+          <input id="spoolman-file" type="file" accept=".json,.csv,application/json,text/csv" class="sr-only" />
+        </label>
+        <div id="spoolman-message" class="mt-4" aria-live="polite"></div>
+      </section>
+
+      {
+        fileSources.map((source) => (
+          <section class="app-card flex flex-col" aria-labelledby={`load-${source.id}-heading`}>
+            <div class="flex items-center gap-3">
+          {source.image ? (
+            <IconAvatar color="primary">
+              <img slot="icon" id={`${source.id}-logo`} src={source.image} alt="" class="size-7 object-contain" />
+            </IconAvatar>
+          ) : (
+            <IconAvatar icon={source.icon} color="primary" />
+          )}
+              <h2 id={`load-${source.id}-heading`} class="text-xl">{source.label}</h2>
+              <span id={`${source.id}-status`} class="ml-auto" />
+            </div>
+            {
+              source.cloud && (
+                <div class="mt-3 flex flex-wrap items-center gap-3">
+                  <Button type="button" color="primary" id={`${source.id}-cloud`}>Fetch from TigerTag cloud</Button>
+                  <span id={`${source.id}-cloud-hint`} class="text-sm text-muted-foreground" />
+                </div>
+              )
+            }
+            {source.api && (
+              <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <input id="bambuddy-url" type="url" placeholder="http://bambuddy.local:8000" aria-label="Bambuddy server address" class="field-input mt-0" />
+                <input id="bambuddy-key" type="password" placeholder="Bambuddy API key" aria-label="Bambuddy API key" class="field-input mt-0" />
+                <Button type="button" color="primary" id="bambuddy-fetch">Fetch spools</Button>
+              </div>
+            )}
+            {source.id === "filamentdb" && (
+              <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <input id="filamentdb-url" type="url" placeholder="http://filamentdb.local:3000" aria-label="FilamentDB server address" class="field-input mt-0" />
+                <input id="filamentdb-token" type="password" placeholder="Session token (only with user management)" aria-label="FilamentDB session token" class="field-input mt-0" />
+                <Button type="button" color="primary" id="filamentdb-fetch">Fetch spools</Button>
+              </div>
+            )}
+            <p class="mb-4 mt-3 text-sm text-muted-foreground">{source.cloud ? `Or use a file: ${source.how}` : source.how}</p>
+            {(source.id === "tigertag" || source.id === "spoolio") && (
+              <Button type="button" variant="outline" class="mt-3" id={`${source.id}-empty`}>Start empty {source.label} inventory</Button>
+            )}
+            <label
+              id={`${source.id}-drop`}
+              for={`${source.id}-file`}
+              class="dropzone mt-auto"
+            >
+              <Icon name="material-symbols:upload-file-outline-rounded" class="size-7 text-primary" aria-hidden="true" />
+              <span class="font-medium text-foreground">Choose a {source.kind} file</span>
+              <span>or drop it here</span>
+              <input id={`${source.id}-file`} type="file" accept={source.accept} class="sr-only" />
+            </label>
+            <div id={`${source.id}-message`} class="mt-4" aria-live="polite" />
+          </section>
+        ))
+      }
+    </div>
+
+    <section class="app-card mt-10" aria-labelledby="loaded-heading">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+        <div>
+          <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
+          <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground"></p>
+        </div>
+        <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
+          <input
+            id="spool-search-input"
+            type="search"
+            placeholder="Filter loaded spools... (/)"
+            class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
+            aria-label="Filter loaded spools"
+          />
+        </div>
+      </div>
+      <div id="loaded-table" class="mt-4"></div>
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-xs text-muted-foreground">Inventories stay in this tab only and are matched on the next step.</p>
+        <Button href="/sync" color="primary" id="continue-sync" icon="material-symbols:arrow-forward" iconPosition="right">
+          Continue to sync
+        </Button>
+      </div>
+    </section>
+  </Container>
+</BaseLayout>
+
+<script>
+  import "~/scripts/load";
+</script>

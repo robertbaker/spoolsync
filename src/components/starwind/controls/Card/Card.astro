@@ -1,0 +1,304 @@
+---
+/**
+ * Card Component (R5 Enhanced)
+ *
+ * Versatile card container component with R5 styling.
+ * Supports optional image, title, description, badge, and interactive states.
+ *
+ * Features:
+ * - 4 R5 variants: default, bordered, elevated, compact
+ * - Optional image with optimized loading via <figure>
+ * - Image format options: webp, avif, png, jpg
+ * - Lazy and eager loading support
+ * - Title and description sections
+ * - Optional badge overlay
+ * - Interactive hover effects (lift and shadow)
+ * - Link mode for clickable cards
+ * - Slot support for custom content
+ * - Dark mode compatible
+ * - Smooth animations with tailwindcss-motion
+ *
+ * @component
+ * @example
+ * import { Card } from '~/components/ui';
+ * import cardImage from '~/assets/card.avif';
+ *
+ * <!-- Basic card -->
+ * <Card
+ *   title="Service Title"
+ *   description="Brief description"
+ *   variant="bordered"
+ * />
+ *
+ * <!-- Card with image and badge -->
+ * <Card
+ *   title="Service Title"
+ *   description="Brief description"
+ *   image={{ src: cardImage, alt: 'Service', format: 'avif' }}
+ *   badge="New"
+ *   href="/services/example"
+ *   variant="elevated"
+ * />
+ *
+ * <!-- Compact card -->
+ * <Card
+ *   title="Quick Link"
+ *   variant="compact"
+ *   href="/page"
+ * />
+ */
+import type { ImageMetadata } from "astro";
+import type { HTMLAttributes } from "astro/types";
+import Badge from "../Badge/Badge.astro";
+import { Icon } from "astro-icon/components";
+import OptimizedImage from "../OptimizedImage/OptimizedImage.astro";
+import { sanitizeUrl } from "../../lib/safe-url";
+
+import {
+  type CardVariant,
+  type CardColor,
+  getCardClasses,
+} from "./cardVariants";
+import type { BadgeColor, BadgeStyle } from "../Badge/badgeVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette";
+import { partClasses, type ClassesProps } from "../../lib/classes";
+
+type Part =
+  | "figure"
+  /** Positioned wrapper of the badge overlaid on the image. */
+  | "badgeContainer"
+  | "badge"
+  | "imageContainer"
+  | "image"
+  /** Dark scrim over the image in the `image-full` variant. */
+  | "overlay"
+  | "body"
+  | "title"
+  | "description"
+  | "footer";
+
+interface ImageProps {
+  src?: ImageMetadata | string;
+  icon?: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  loading?: "lazy" | "eager";
+  format?: "webp" | "avif" | "png" | "jpg";
+  widths?: number[];
+  sizes?: string;
+}
+
+interface Props
+  extends Omit<HTMLAttributes<"div">, "title">,
+    Pick<HTMLAttributes<"form">, "method" | "action" | "novalidate">,
+    PaletteProps,
+    ClassesProps<Part> {
+  /**
+   * Title of the card. Displayed in the header.
+   */
+  title?: string;
+  /**
+   * Description text.
+   */
+  description?: string;
+  /**
+   * Image properties for the card header.
+   */
+  image?: ImageProps;
+  /**
+   * Badge text overlay.
+   */
+  badge?: string;
+  badgeColor?: BadgeColor;
+  badgeStyle?: BadgeStyle;
+  badgePosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  /**
+   * URL for the card to link to. If provided, renders as `<a>`.
+   */
+  href?: string | undefined;
+  /**
+   * Visual style variant.
+   * @default 'default'
+   */
+  variant?: CardVariant;
+  /**
+   * Thematic color of the card (borders/accents).
+   * @default 'base'
+   */
+  color?: CardColor;
+  /**
+   * Whether to apply hover effects. Defaults to true if href is present.
+   */
+  interactive?: boolean;
+  /**
+   * Whether to use compact padding/layout.
+   * @default false
+   */
+  compact?: boolean;
+  /**
+   * Additional CSS classes.
+   */
+  class?: string;
+  /**
+   * Unique ID.
+   */
+  id?: string | undefined;
+  footerClass?: string;
+  /**
+   * Polymorphic tag to render the card as.
+   * @default 'div' (or 'a' if href is provided)
+   */
+  as?: string;
+}
+
+const {
+  title,
+  description,
+  image,
+  badge,
+  badgeColor = "primary",
+  badgeStyle = "solid",
+  badgePosition = "top-right",
+  href,
+  variant = "default",
+  color = "base",
+  interactive: interactiveProp,
+  compact = false,
+  class: className,
+  id,
+  footerClass,
+  as,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+
+const safeHref = sanitizeUrl(href);
+const interactive = interactiveProp ?? Boolean(safeHref);
+const cardClasses = getCardClasses(variant, color, interactive, className);
+
+const Tag = (as || (safeHref ? "a" : "div")) as "a" | "div" | "section" | "article" | "span";
+const hasFooterSlot = Astro.slots.has("footer");
+const hasTitleSlot = Astro.slots.has("title");
+const hasDescriptionSlot = Astro.slots.has("description");
+const badgePositionClasses: Record<NonNullable<Props["badgePosition"]>, string> = {
+  "top-left": "top-4 left-4",
+  "top-right": "top-4 right-4",
+  "bottom-left": "bottom-4 left-4",
+  "bottom-right": "bottom-4 right-4",
+};
+
+// Determine image container classes based on variant
+const isSide = variant === "side";
+const isImageFull = variant === "image-full";
+
+let imageContainerClass = "w-full h-48";
+if (compact) imageContainerClass = "w-full h-32";
+if (isSide) imageContainerClass = "h-48 w-full sm:h-full";
+if (isImageFull) imageContainerClass = "w-full h-full";
+---
+
+<Tag id={id} data-slot="card" data-variant={variant} class={cardClasses} href={Tag === "a" ? safeHref : undefined} {...withPalette(rest)}>
+  {
+    image ? (
+      <figure
+        class={cls(
+          "figure",
+          "overflow-hidden",
+          isImageFull ? "absolute inset-0" : "relative",
+          isSide && "sm:w-1/2 sm:shrink-0",
+        )}
+      >
+        {badge && (
+          <div class={cls("badgeContainer", "absolute z-10", badgePositionClasses[badgePosition])}>
+            <Badge color={badgeColor} style={badgeStyle} size="lg" class={cls("badge", "shadow-lg")}>
+              {badge}
+            </Badge>
+          </div>
+        )}
+        <div class={cls("imageContainer", imageContainerClass)}>
+          <slot name="image">
+            {image.src ? (
+              <OptimizedImage
+                class={cls(
+                  "image",
+                  "w-full h-full object-cover",
+                  interactive &&
+                    "motion-safe:group-hover:scale-110 motion-safe:transition-transform motion-safe:duration-500",
+                )}
+                src={image.src}
+                alt={image.alt}
+                priority={image.loading === "eager"}
+                {...(image.format ? { format: image.format } : {})}
+                {...(image.width ? { width: image.width } : {})}
+                {...(image.height ? { height: image.height } : {})}
+                {...(image.widths ? { widths: image.widths } : {})}
+                {...(image.sizes ? { sizes: image.sizes } : {})}
+                {...(typeof image.src === "string" ? { inferSize: true } : {})}
+              />
+            ) : (
+              <div class={cls("image", "flex w-full h-full items-center justify-center bg-muted text-muted-foreground")}>
+                <Icon name={image.icon ?? "material-symbols:image-outline"} class="size-12" aria-hidden="true" />
+              </div>
+            )}
+          </slot>
+        </div>
+      </figure>
+    ) : (
+      <slot name="figure" />
+    )
+  }
+
+  {isImageFull && <div class={cls("overlay", "absolute inset-0 bg-scrim/60")} aria-hidden="true" />}
+  <div
+    data-slot="card-body"
+    class={cls(
+      "body",
+      "flex flex-1 flex-col",
+      compact || variant === "compact" ? "gap-3 p-4" : "gap-4 p-6",
+      isImageFull && "relative z-10 text-scrim-foreground",
+    )}
+  >
+    {
+      (title || hasTitleSlot) && (
+        <h2
+          data-slot="card-title"
+          class={cls(
+            "title",
+            "text-xl font-semibold leading-none tracking-tight font-display text-balance",
+            interactive && !isImageFull && "group-hover:text-primary-text transition-colors",
+            isImageFull && "text-scrim-foreground",
+          )}
+        >
+          <slot name="title">{title}</slot>
+          {!image && badge && (
+            <Badge color={badgeColor} style={badgeStyle} class={cls("badge", "shadow-sm")}>
+              {badge}
+            </Badge>
+          )}
+        </h2>
+      )
+    }
+    {
+      (description || hasDescriptionSlot) && (
+        <p
+          class={cls(
+            "description",
+            isImageFull ? "text-scrim-foreground/90" : "text-muted-foreground",
+            "leading-relaxed text-pretty",
+          )}
+        >
+          <slot name="description">{description}</slot>
+        </p>
+      )
+    }
+    <slot />
+    {hasFooterSlot && (
+      <div class={cls("footer", "flex flex-wrap items-center gap-2", footerClass ?? "mt-auto pt-4")}>
+        <slot name="footer" />
+      </div>
+    )}
+  </div>
+</Tag>

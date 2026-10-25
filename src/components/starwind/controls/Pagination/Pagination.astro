@@ -1,0 +1,298 @@
+---
+/**
+ * Pagination Component
+ *
+ * A comprehensive pagination component for navigating through paginated content.
+ * Works seamlessly with Astro's built-in paginate() function and provides full accessibility.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * // In a collection page (.astro)
+ * export async function getStaticPaths() {
+ *   const posts = await getCollection('blog');
+ *   return paginate(posts, { pageSize: 10 });
+ * }
+ *
+ * const { page, ...rest } = Astro.props;
+ * ---
+ *
+ * <!-- Basic pagination -->
+ * <Pagination page={page} />
+ *
+ * <!-- With custom styling -->
+ * <Pagination page={page} class="justify-center" />
+ * ```
+ *
+ * @param {Page} page - Astro Page object from paginate() function
+ * @param {string} [class] - Additional CSS classes for the nav element
+ *
+ * @features
+ * - Smart page number generation with ellipsis for large page counts
+ * - Previous/Next navigation with proper disabled states
+ * - Active page highlighting with aria-current
+ * - Responsive design with mobile-friendly spacing
+ * - Smooth hover transitions and focus states
+ * - Automatic URL generation for page links
+ * - Ellipsis handling for page number truncation
+ * - Dark mode compatible with semantic colors
+ * - Keyboard accessible navigation
+ *
+ * @performance
+ * - Pre-computed page numbers and hrefs avoid runtime calculations
+ * - Efficient page number generation algorithm
+ * - Minimal DOM structure with optimized rendering
+ * - Extracted utility functions for better testability
+ *
+ * @accessibility
+ * - Semantic nav element with aria-label="Pagination"
+ * - aria-current="page" on active page links
+ * - aria-hidden on decorative separator icons
+ * - Screen reader friendly page descriptions
+ * - Keyboard navigation support with proper focus management
+ * - High contrast focus indicators
+ * - Logical heading hierarchy maintained
+ *
+ * @dependencies
+ * - Astro Page type from astro:pagination
+ * - astro-icon for chevron icons
+ * - TailwindCSS for layout and animations
+ */
+
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { Page } from "astro";
+import {
+  type PaginationColor,
+  getPaginationClasses,
+  getNavClasses,
+  hoverBorderClasses,
+} from "./paginationVariants";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../lib/classes";
+
+type Part =
+  | "list"
+  | "item"
+  /** Previous/next controls, both the link and the disabled placeholder. */
+  | "previous"
+  | "next"
+  /** Chevron icons inside the previous/next controls. */
+  | "icon"
+  | "pageLink"
+  | "ellipsis";
+
+interface Labels {
+  nav: string;
+  previous: string;
+  next: string;
+  previousUnavailable: string;
+  nextUnavailable: string;
+  goToPage: (pageNumber: number) => string;
+  currentPage: (pageNumber: number) => string;
+  ellipsis: string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  nav: "Page navigation",
+  previous: "Previous",
+  next: "Next",
+  previousUnavailable: "Previous page unavailable",
+  nextUnavailable: "Next page unavailable",
+  goToPage: (pageNumber) => `Go to page ${pageNumber}`,
+  currentPage: (pageNumber) => `Current page, page ${pageNumber}`,
+  ellipsis: "...",
+};
+
+import { generatePageNumbers, normalizePagination, resolvePageHref } from "./paginationHelpers";
+
+interface Props extends HTMLAttributes<"nav">, ClassesProps<Part>, LabelsProps<Labels> {
+  page: Page;
+  /** Number of adjacent pages on each side (0–100). */
+  siblingCount?: number;
+  /** Number of pages always shown at each boundary (0–100). */
+  boundaryCount?: number;
+  showPreviousNext?: boolean;
+  hideWhenSinglePage?: boolean;
+  /** Override numbered URLs for query parameters or custom route structures. */
+  getPageHref?: (pageNumber: number, page: Page) => string;
+  /** Shared anchor attributes; managed href/current/labels take precedence. */
+  linkAttributes?: HTMLAttributes<"a">;
+  /**
+   * Color theme for active page and hover states
+   * @default "primary"
+   */
+  color?: PaginationColor;
+}
+
+const {
+  page,
+  siblingCount = 1,
+  boundaryCount = 1,
+  showPreviousNext = true,
+  hideWhenSinglePage = false,
+  getPageHref,
+  linkAttributes = {},
+  class: className = "",
+  color = "primary",
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+
+const { currentPage, lastPage } = normalizePagination(page);
+const visible = !(hideWhenSinglePage && lastPage <= 1);
+const hrefCache = new Map<number, string>();
+const hrefFor = (n: number) => {
+  if (!hrefCache.has(n)) hrefCache.set(n, getPageHref?.(n, page) ?? resolvePageHref(page, n));
+  return hrefCache.get(n)!;
+};
+const pageNumbers = generatePageNumbers(page, siblingCount, boundaryCount);
+const previousHref = visible && showPreviousNext && currentPage > 1 ? hrefFor(currentPage - 1) : undefined;
+const nextHref = visible && showPreviousNext && currentPage < lastPage ? hrefFor(currentPage + 1) : undefined;
+const previousSlot = visible && showPreviousNext && Astro.slots.has("previous")
+  ? await Astro.slots.render("previous", [{ previousHref, disabled: !previousHref, currentPage, lastPage }]) : undefined;
+const nextSlot = visible && showPreviousNext && Astro.slots.has("next")
+  ? await Astro.slots.render("next", [{ nextHref, disabled: !nextHref, currentPage, lastPage }]) : undefined;
+const renderedPages = await Promise.all((visible ? pageNumbers : []).map(async (pageNum) => ({
+  pageNum,
+  html: Astro.slots.has(pageNum === "ellipsis" ? "ellipsis" : "page")
+    ? await Astro.slots.render(pageNum === "ellipsis" ? "ellipsis" : "page", [{
+      pageNum, isActive: pageNum === currentPage,
+      href: typeof pageNum === "number" ? hrefFor(pageNum) : undefined,
+      currentPage, lastPage,
+    }]) : undefined,
+})));
+---
+
+{visible && <nav class={getNavClasses(className ?? undefined)} aria-label={labels.nav} {...rest}>
+  <ul class={cls("list", "inline-flex -space-x-px text-sm")}>
+    <!-- Previous Button -->
+    {showPreviousNext && <li class={cls("item")}>
+      {previousSlot !== undefined ? <Fragment set:html={previousSlot} /> : <>
+        {
+          previousHref ? (
+            <a
+              {...linkAttributes}
+              rel="prev"
+              href={previousHref}
+              aria-label={labels.goToPage(currentPage - 1)}
+              class={cls(
+                "previous",
+                `flex items-center justify-center px-4 h-10 ms-0 leading-tight text-foreground/80 bg-background border-2 border-e-0 ${hoverBorderClasses[color].replace("hover:border", "group-hover:border")} rounded-s-xl hover:bg-muted hover:text-foreground hover:shadow-md transition-all duration-300 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`,
+              )}
+            >
+              <Icon
+                class={cls("icon", "w-3 h-3 motion-safe:group-hover:-translate-x-0.5 transition-transform")}
+                name="material-symbols:chevron-left"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{labels.previous}</span>
+            </a>
+          ) : (
+            <span
+              class={cls(
+                "previous",
+                "flex items-center justify-center px-4 h-10 ms-0 leading-tight text-muted-foreground/50 bg-muted/40 border-2 border-e-0 border-border/40 rounded-s-xl cursor-not-allowed opacity-60",
+              )}
+              aria-disabled="true"
+              aria-label={labels.previousUnavailable}
+            >
+              <Icon class={cls("icon", "w-3 h-3")} name="material-symbols:chevron-left" aria-hidden="true" />
+              <span class="sr-only">{labels.previous}</span>
+            </span>
+          )
+        }
+      </>}
+    </li>}
+
+    <!-- Page Numbers -->
+    {
+      renderedPages.map(({ pageNum, html }) => {
+        if (pageNum === "ellipsis") {
+          return (
+            <li class={cls("item")} aria-hidden="true">
+              {html !== undefined ? <Fragment set:html={html} /> : <>
+                <span
+                  class={cls(
+                    "ellipsis",
+                    "flex items-center justify-center px-4 h-10 leading-tight text-muted-foreground bg-background border-2 border-border/40 font-semibold",
+                  )}
+                >
+                  {labels.ellipsis}
+                </span>
+              </>}
+            </li>
+          );
+        }
+
+        const isActive = pageNum === currentPage;
+        const href = hrefFor(pageNum);
+
+        return (
+          <li class={cls("item")}>
+            {html !== undefined ? <Fragment set:html={html} /> : <>
+              <a
+              {...linkAttributes}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={isActive ? labels.currentPage(pageNum) : labels.goToPage(pageNum)}
+                class={cls("pageLink", getPaginationClasses(isActive, color))}
+              >
+                {pageNum}
+              </a>
+            </>}
+          </li>
+        );
+      })
+    }
+
+    <!-- Next Button -->
+    {showPreviousNext && <li class={cls("item")}>
+      {nextSlot !== undefined ? <Fragment set:html={nextSlot} /> : <>
+        {
+          nextHref ? (
+            <a
+              {...linkAttributes}
+              rel="next"
+              href={nextHref}
+              aria-label={labels.goToPage(currentPage + 1)}
+              class={cls(
+                "next",
+                `flex items-center justify-center px-4 h-10 leading-tight text-foreground/80 bg-background border-2 ${hoverBorderClasses[color].replace("hover:border", "group-hover:border")} rounded-e-xl hover:bg-muted hover:text-foreground hover:shadow-md transition-all duration-300 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`,
+              )}
+            >
+              <Icon
+                class={cls("icon", "w-3 h-3 motion-safe:group-hover:translate-x-0.5 transition-transform")}
+                name="material-symbols:chevron-right"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{labels.next}</span>
+            </a>
+          ) : (
+            <span
+              class={cls(
+                "next",
+                "flex items-center justify-center px-4 h-10 leading-tight text-muted-foreground/50 bg-muted/40 border-2 border-border/40 rounded-e-xl cursor-not-allowed opacity-60",
+              )}
+              aria-disabled="true"
+              aria-label={labels.nextUnavailable}
+            >
+              <Icon class={cls("icon", "w-3 h-3")} name="material-symbols:chevron-right" aria-hidden="true" />
+              <span class="sr-only">{labels.next}</span>
+            </span>
+          )
+        }
+      </>}
+    </li>}
+  </ul>
+  <slot />
+</nav>}

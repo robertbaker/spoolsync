@@ -1,0 +1,9 @@
+# oxlint cannot parse Astro template syntax
+
+*.astro
+
+## Build outputs
+
+dist/
+.astro/
+node_modules/

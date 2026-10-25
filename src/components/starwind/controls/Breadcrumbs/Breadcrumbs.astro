@@ -1,0 +1,270 @@
+---
+/**
+ * Breadcrumbs Component
+ *
+ * Navigation hierarchy component displaying the current page path with links.
+ * Uses semantic HTML and proper ARIA attributes for accessibility.
+ *
+ * Features:
+ * - Semantic <nav> element with aria-label="Breadcrumb"
+ * - Last item marked with aria-current="page"
+ * - Responsive spacing (mobile: 1 unit, desktop: 2 units)
+ * - Chevron separator icons with RTL support
+ * - Home icon on first breadcrumb item
+ * - Staggered fade-in animations
+ * - Hover effects on links
+ * - Dark mode compatible
+ * - Fully accessible keyboard navigation
+ *
+ * @component
+ * @example
+ * import Breadcrumbs from '~/components/ui/Breadcrumbs.astro';
+ *
+ * <Breadcrumbs
+ *   items={[
+ *     { label: 'Home', href: '/' },
+ *     { label: 'Services', href: '/services' },
+ *     { label: 'Web Development' }
+ *   ]}
+ * />
+ */
+
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import {
+  computeAriaLabel,
+  getAnimationDelays,
+  getBreadcrumbRenderClasses,
+  getBreadcrumbSeparatorConfig,
+  type BreadcrumbItem,
+  type BreadcrumbColor,
+  type BreadcrumbVariant,
+  type BreadcrumbSize,
+  type BreadcrumbSeparator,
+} from "./breadcrumbsVariants";
+import { getBreadcrumbColorClasses } from "../../lib/colors";
+import { withPalette, type PaletteProps } from "../../lib/palette";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../lib/classes";
+
+type Part =
+  | "shell"
+  | "list"
+  | "item"
+  | "separator"
+  /** The current (or non-linked) crumb. */
+  | "current"
+  | "homeLink"
+  | "homeIcon"
+  | "homeLabel"
+  | "link";
+
+export interface Labels {
+  nav?: string;
+  home?: string;
+}
+
+interface Props extends HTMLAttributes<"nav">, PaletteProps, ClassesProps<Part>, LabelsProps<Labels> {
+  /**
+   * Array of breadcrumb items to display.
+   */
+  items: BreadcrumbItem[];
+  /**
+   * Test identifier for automated testing.
+   * @default 'breadcrumbs'
+   */
+  dataTestid?: string;
+  /**
+   * Accessible label for the navigation element.
+   * If not provided, a deterministic label is generated.
+   */
+  ariaLabel?: string;
+  /**
+   * Color theme for hover states and active items.
+   * @default "primary"
+   */
+  color?: BreadcrumbColor;
+  /**
+   * Presentation variant for the breadcrumb shell and items.
+   * @default "default"
+   */
+  variant?: BreadcrumbVariant;
+  /**
+   * Size scale for text, icon, and shell spacing.
+   * @default "md"
+   */
+  size?: BreadcrumbSize;
+  /**
+   * Separator style between breadcrumb items.
+   * @default "chevron"
+   */
+  separator?: BreadcrumbSeparator;
+  /**
+   * Enables staggered fade-in animation.
+   * @default true
+   */
+  animated?: boolean;
+  /**
+   * Shows the home icon on the first breadcrumb item.
+   * @default true
+   */
+  showHomeIcon?: boolean;
+  /** Keep the current crumb navigable when it has an href. */
+  linkCurrent?: boolean;
+  /** Shared anchor attributes; individual items may override these. */
+  linkAttributes?: HTMLAttributes<"a">;
+  homeIcon?: string;
+}
+const {
+  items,
+  class: className = "",
+  dataTestid = "breadcrumbs",
+  ariaLabel,
+  color = "primary",
+  variant = "default",
+  size = "md",
+  separator = "chevron",
+  animated = true,
+  showHomeIcon = true,
+  linkCurrent = false,
+  linkAttributes = {},
+  homeIcon = "material-symbols:home",
+  labels: labelOverrides,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels({}, labelOverrides);
+
+// Pre-calculate animation delays to avoid inline styles
+const animationDelays = getAnimationDelays(items);
+// Generate a deterministic, unique aria-label
+const computeLabel = labels.nav ?? computeAriaLabel(ariaLabel, dataTestid, items);
+
+// Get pre-built color classes
+const activeColors = getBreadcrumbColorClasses(color);
+const renderClasses = getBreadcrumbRenderClasses(variant, size);
+const separatorConfig = getBreadcrumbSeparatorConfig(separator);
+const explicitCurrentIndex = items.findIndex((item) => item.current);
+const currentIndex = explicitCurrentIndex >= 0 ? explicitCurrentIndex : items.length - 1;
+const renderedItems = await Promise.all(items.map(async (item, index) => {
+  const context = { item, index, isCurrent: index === currentIndex, isFirst: index === 0 };
+  return {
+    ...context,
+    itemHtml: Astro.slots.has("item") ? await Astro.slots.render("item", [context]) : undefined,
+    labelHtml: !Astro.slots.has("item") && Astro.slots.has("label") ? await Astro.slots.render("label", [context]) : undefined,
+    separatorHtml: index > 0 && Astro.slots.has("separator") ? await Astro.slots.render("separator", [context]) : undefined,
+    homeHtml: !Astro.slots.has("item") && index === 0 && showHomeIcon && !!item.href && (!context.isCurrent || linkCurrent) && Astro.slots.has("home") ? await Astro.slots.render("home", [context]) : undefined,
+  };
+}));
+---
+
+<nav
+  data-testid={dataTestid}
+  data-breadcrumb-variant={variant}
+  data-breadcrumb-size={size}
+  data-breadcrumb-separator={separator}
+  class:list={["flex text-foreground", renderClasses.nav, className]}
+  aria-label={computeLabel}
+  {...withPalette(rest)}
+>
+  <div class={cls("shell", renderClasses.shell)}>
+    <ol class={cls("list", renderClasses.list)}>
+      {
+        renderedItems.map(({ item, index, itemHtml, labelHtml, separatorHtml, homeHtml }) => {
+          const isCurrent = index === currentIndex;
+          const isFirst = index === 0;
+          const hasHref = Boolean(item.href);
+          const animationDelay = animationDelays[index];
+          const showFirstIcon = isFirst && showHomeIcon;
+
+          return (
+            <li
+              class={cls("item", renderClasses.item, animated && "animate-fade-in")}
+              style={animated ? `animation-delay: ${animationDelay}` : undefined}
+            >
+              {!isFirst && (<>
+                {separatorHtml !== undefined ? <Fragment set:html={separatorHtml} /> : <>
+                  {separatorConfig.icon ? (
+                    <Icon
+                      name={separatorConfig.icon}
+                      class={cls("separator", renderClasses.separator, separatorConfig.className)}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <span
+                      class={cls("separator", renderClasses.separator, separatorConfig.className)}
+                      aria-hidden="true"
+                    >
+                      {separatorConfig.text}
+                    </span>
+                  )}
+                </>}
+              </>)}
+
+              {itemHtml !== undefined ? <Fragment set:html={itemHtml} /> : <>
+                {(isCurrent && !linkCurrent) || !hasHref ? (
+                  <span
+                    class={cls("current", renderClasses.current)}
+                    aria-current={isCurrent ? "page" : undefined}
+                  >
+                    {labelHtml !== undefined ? <Fragment set:html={labelHtml} /> : item.label}
+                  </span>
+                ) : showFirstIcon ? (
+                  <a
+                    {...linkAttributes}
+                    {...item.linkAttributes}
+                    aria-current={isCurrent ? "page" : undefined}
+                    href={item.href}
+                    class={cls(
+                      "homeLink",
+                      renderClasses.homeLink,
+                      activeColors.hoverText,
+                      activeColors.darkHoverText,
+                    )}
+                  >
+                    {homeHtml !== undefined ? <Fragment set:html={homeHtml} /> : <>
+                      <Icon
+                        name={homeIcon}
+                        class={cls(
+                          "homeIcon",
+                          renderClasses.homeIcon,
+                          activeColors.groupHoverText,
+                          "group-hover:scale-110",
+                        )}
+                        aria-hidden="true"
+                      />
+                    </>}
+                    <span class={cls("homeLabel", "truncate")}>{labelHtml !== undefined ? <Fragment set:html={labelHtml} /> : labels.home ?? item.label}</span>
+                  </a>
+                ) : (
+                  <a
+                    {...linkAttributes}
+                    {...item.linkAttributes}
+                    aria-current={isCurrent ? "page" : undefined}
+                    href={item.href}
+                    class={cls(
+                      "link",
+                      renderClasses.link,
+                      activeColors.hoverText,
+                      activeColors.darkHoverText,
+                      "truncate",
+                    )}
+                  >
+                    {labelHtml !== undefined ? <Fragment set:html={labelHtml} /> : item.label}
+                  </a>
+                )}
+              </>}
+            </li>
+          );
+        })
+      }
+      <slot />
+    </ol>
+  </div>
+</nav>

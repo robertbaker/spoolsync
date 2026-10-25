@@ -1,0 +1,159 @@
+---
+/**
+ * GridMenu — Mobile grid menu overlay variant.
+ *
+ * Full-screen grid of navigation links with optional service-color awareness.
+ * Prop-driven; accepts navigation items and an optional color resolver function.
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../../types/index.ts";
+import {
+  type ColorVariant,
+  getGridMenuColorClasses,
+  getMobileMenuColorClasses,
+  getNavHoverColors,
+} from "../../../../lib/colors.ts";
+import { withPalette, type PaletteProps } from "../../../../lib/palette.ts";
+
+interface Props extends HTMLAttributes<"div">, PaletteProps {
+  items: NavLink[];
+  title?: string | undefined;
+  glass?: boolean | undefined;
+  accentColor?: ColorVariant | undefined;
+  /** Resolve a navigation href to a color name (e.g., "primary", "accent"). Falls back to accentColor. */
+  getItemColor?: ((href: string) => ColorVariant | undefined) | undefined;
+  unstyled?: boolean | undefined;
+}
+
+const {
+  items,
+  title = "Menu",
+  id = "mobile-menu-grid",
+  glass = false,
+  accentColor = "primary",
+  getItemColor,
+  unstyled = false,
+  ...rest
+} = Astro.props;
+
+const baseClasses =
+  "fixed inset-0 z-[60] hidden overflow-y-auto overscroll-contain transition-all duration-300 opacity-0";
+const glassClasses =
+  "bg-linear-to-b from-background/40 via-background/35 to-muted/45 backdrop-blur-2xl";
+const solidClasses = "bg-muted";
+
+const ICON_COVER_CLASSES: Record<ColorVariant, string> = {
+  primary: "from-primary/35 to-primary/10 text-primary-text",
+  success: "from-success/35 to-success/10 text-success-text",
+  info: "from-info/35 to-info/10 text-info-text",
+  warning: "from-warning/35 to-warning/10 text-warning-text",
+  error: "from-error/35 to-error/10 text-error-text",
+  accent: "from-accent/35 to-accent/10 text-foreground",
+  secondary: "from-secondary/35 to-secondary/10 text-foreground",
+  neutral: "from-foreground/35 to-foreground/10 text-foreground",
+};
+
+const getIconCoverClass = (color: ColorVariant = "primary") =>
+  (ICON_COVER_CLASSES as Record<string, string>)[color] ?? ICON_COVER_CLASSES.primary;
+---
+
+<div
+  id={id}
+  data-grid-menu-styled={!unstyled || undefined}
+  class:list={[baseClasses, glass ? glassClasses : solidClasses]}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Mobile navigation menu"
+  aria-hidden="true"
+  {...withPalette(rest)}
+>
+  <div class="relative flex min-h-full flex-col px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-[max(calc(0.5rem+env(safe-area-inset-top,0px)),var(--mobile-menu-header-bottom,0px))]">
+    {/* Grid Content */}
+    <div class="flex-1 px-1 pb-4 pt-3 sm:pt-4">
+      <div
+        data-menu-panel
+        class:list={[
+          "mx-auto w-full max-w-3xl rounded-3xl border p-4 sm:p-5",
+          glass
+            ? "border-foreground/15 bg-background/94 backdrop-blur-xl shadow-xl shadow-foreground/10"
+            : "border-foreground/10 bg-background",
+        ]}
+      >
+      <slot name="title">
+        <h2 class="mb-4 text-xs font-bold opacity-60 uppercase tracking-[0.22em] text-center sm:mb-5">
+          {title}
+        </h2>
+      </slot>
+
+      <nav class="mx-auto w-full max-w-2xl" aria-label="Mobile navigation">
+        <div class="grid w-full grid-cols-2 gap-2.5 sm:gap-3">
+          {
+            items.map((item, index) => {
+              const itemColor = item.color ?? getItemColor?.(item.href) ?? accentColor;
+              const menuColors = getGridMenuColorClasses(itemColor);
+              const mobileColors = getMobileMenuColorClasses(itemColor);
+              const iconName = item.icon?.includes("--")
+                ? item.icon.replace("--", ":")
+                : item.icon;
+
+              return (
+                <slot name="item">
+                  <a
+                    href={item.href}
+                    class:list={[
+                      `card relative isolate min-h-[6.5rem] overflow-hidden select-none touch-manipulation active:scale-[0.98] hover:shadow-xl hover:scale-[1.02] transition-all duration-200 group border border-transparent focus-visible:outline-2 focus-visible:outline-offset-2 ${menuColors.hoverBorder}`,
+                      getNavHoverColors(itemColor),
+                      mobileColors.focusOutline,
+                      glass
+                        ? "border-foreground/15 bg-background/78 backdrop-blur-md shadow-sm shadow-foreground/10"
+                        : "bg-background",
+                    ]}
+                    style={`animation-delay: ${index * 50}ms`}
+                    {...(item.external
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
+                    aria-label={item.ariaLabel}
+                  >
+                    <div
+                      class={`absolute inset-0 bg-linear-to-br ${getIconCoverClass(itemColor)} opacity-90 transition-opacity duration-300 group-hover:opacity-100`}
+                      aria-hidden="true"
+                    ></div>
+                    <div
+                      class={`absolute inset-0 flex items-center justify-center ${menuColors.groupHoverText} opacity-5 transition-all duration-300 group-hover:opacity-10 group-hover:scale-105`}
+                      aria-hidden="true"
+                    >
+                      {iconName ? (
+                        <Icon name={iconName} class="size-40" aria-hidden="true" />
+                      ) : (
+                        <Icon
+                          name="material-symbols:arrow-forward"
+                          class="size-40"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
+                    <span class="relative z-10 flex h-full min-h-[6.5rem] w-full items-center justify-center px-3 text-center text-lg font-black leading-tight tracking-tight text-foreground drop-shadow-[0_1px_2px_color-mix(in_oklab,var(--scrim)_28%,transparent)] sm:text-xl">
+                      <span>{item.text}</span>
+                    </span>
+                  </a>
+                </slot>
+              );
+            })
+          }
+        </div>
+      </nav>
+      </div>
+    </div>
+  </div>
+  <slot />
+</div>
+
+<style>
+  :global(.menu-open) [data-grid-menu-styled] {
+    display: block;
+    opacity: 1;
+  }
+</style>

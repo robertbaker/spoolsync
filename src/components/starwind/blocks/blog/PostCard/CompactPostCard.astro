@@ -1,0 +1,251 @@
+---
+/**
+ * Compact Post Card Component
+ *
+ * @description Small, compact blog post card for highlighted/trending sections.
+ * Displays thumbnail image with title and minimal metadata in a horizontal layout.
+ *
+ * @features
+ * - Compact horizontal layout (image + content)
+ * - Customizable badge label
+ * - Tag list with configurable display limit
+ * - Hover animations and shadow effects
+ * - Space-efficient design for sidebar layouts
+ *
+ * @performance
+ * - Small image sizes for faster loading
+ * - CSS-based animations
+ * - Minimal DOM structure
+ *
+ * @accessibility
+ * - Semantic article element
+ * - Proper heading hierarchy (h4)
+ * - Descriptive image alt text
+ * - Focus visible indicators
+ *
+ * @example
+ * ```astro
+ * <CompactPostCard
+ *   title="Quick Security Tip"
+ *   id="security-tip-1"
+ *   coverImage={thumbImage}
+ *   coverAlt="Security icon"
+ *   tags={["security", "tips"]}
+ *   badgeIcon="material-symbols:bolt"
+ *   badgeText="Trending insight"
+ * />
+ * ```
+ */
+
+import { Icon } from "astro-icon/components";
+import Badge from "../../../controls/Badge/Badge.astro";
+import Button from "../../../controls/Button/Button.astro";
+import Card from "../../../controls/Card/Card.astro";
+import OptimizedImage from "../../../controls/OptimizedImage/OptimizedImage.astro";
+import { formatDate } from "../../../lib/format";
+import { slugify } from "../../../lib/string";
+import type { ImageMetadata } from "astro";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes";
+
+type Part =
+  | "body"
+  | "header"
+  | "badge"
+  | "badgeIcon"
+  | "date"
+  | "media"
+  | "imageLink"
+  | "image"
+  | "content"
+  | "title"
+  | "titleLink"
+  | "readingTime"
+  | "readingTimeIcon"
+  | "tagList"
+  | "tag"
+  | "button"
+  | "buttonIcon";
+
+interface Labels {
+  /** Reading-time text, e.g. "5 min read". */
+  readingTime: (minutes: number) => string;
+  /** Visible text of the continue-reading button. */
+  continueReading: string;
+  /** Accessible name of the continue-reading button. */
+  continueReadingAria: (title: string) => string;
+  /** Accessible name of each tag link. */
+  tagAria: (tag: string) => string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  readingTime: (minutes) => `${minutes} min read`,
+  continueReading: "Continue reading",
+  continueReadingAria: (title) => `Continue reading: ${title}`,
+  tagAria: (tag) => `Browse articles tagged ${tag}`,
+};
+
+interface Props extends ClassesProps<Part>, LabelsProps<Labels> {
+  title: string;
+  id: string;
+  coverImage?: ImageMetadata | undefined;
+  coverAlt?: string | undefined;
+  icon?: string | undefined;
+  tags?: string[];
+  maxTags?: number;
+  badgeIcon?: string;
+  badgeText?: string;
+  pubDate?: Date;
+  readingMinutes?: number;
+}
+
+const {
+  title,
+  id,
+  coverImage,
+  coverAlt,
+  icon,
+  tags = [],
+  maxTags = 2,
+  badgeIcon = "material-symbols:bolt",
+  badgeText = "Trending insight",
+  pubDate,
+  readingMinutes,
+  classes,
+  labels: labelOverrides,
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+
+const hasReadingTime = typeof readingMinutes === "number" && Number.isFinite(readingMinutes);
+---
+
+<Card
+  as="article"
+  class="h-full group relative overflow-hidden rounded-3xl shadow-xl transition-all duration-300 motion-safe:hover:-translate-y-1 hover:border-primary/40"
+  variant="bordered"
+  interactive
+>
+  <div class={cls("body", "flex flex-col gap-4")}>
+    <div class={cls("header", "flex items-center justify-between gap-3")}>
+      <div
+        class={cls(
+          "badge",
+          "inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-primary-text",
+        )}
+      >
+        <slot name="badge">
+          <Icon name={badgeIcon} class={cls("badgeIcon", "size-4")} aria-hidden="true" />
+          <span>{badgeText}</span>
+        </slot>
+      </div>
+      {
+        pubDate && (
+          <time datetime={pubDate.toISOString()} class={cls("date", "text-xs text-muted-foreground")}>
+            {formatDate(pubDate, "medium", "UTC")}
+          </time>
+        )
+      }
+    </div>
+
+    <div class={cls("media", "flex items-center gap-4")}>
+      <slot name="media">
+        {coverImage ? (
+          <a
+            href={`/resources/${id}`}
+            class={cls(
+              "imageLink",
+              "shrink-0 overflow-hidden rounded-2xl focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2",
+            )}
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <OptimizedImage
+              src={coverImage}
+              alt={coverAlt ?? title}
+              class={cls(
+                "image",
+                "h-20 w-24 rounded-2xl object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover:scale-105",
+              )}
+              loading="lazy"
+              widths={[96, 192]}
+              sizes="96px"
+            />
+          </a>
+        ) : (
+          <div class={cls("image", "flex h-20 w-24 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground")}>
+            <Icon name={icon ?? "material-symbols:image-outline"} class="size-8" aria-hidden="true" />
+          </div>
+        )}
+      </slot>
+      <div class={cls("content", "flex-1 min-w-0")}>
+        <h4 class={cls("title", "text-base font-semibold leading-snug text-foreground/90")}>
+          <a
+            href={`/resources/${id}`}
+            class={cls(
+              "titleLink",
+              "hover:text-primary-text transition-colors focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2 rounded-sm line-clamp-2",
+            )}
+          >
+            <slot name="title">{title}</slot>
+          </a>
+        </h4>
+        {
+          hasReadingTime && (
+            <p class={cls("readingTime", "mt-1 flex items-center gap-1 text-xs text-muted-foreground")}>
+              <Icon
+                name="material-symbols:hourglass"
+                class={cls("readingTimeIcon", "size-3.5")}
+                aria-hidden="true"
+              />
+              <span>{labels.readingTime(readingMinutes)}</span>
+            </p>
+          )
+        }
+      </div>
+    </div>
+
+    {
+      tags.length > 0 && (
+        <div class={cls("tagList", "flex flex-wrap gap-2")}>
+          {tags.slice(0, maxTags).map((tag: string) => (
+            <Badge
+              href={`/resources/tag/${slugify(tag)}`}
+              ariaLabel={labels.tagAria(tag)}
+              color="neutral"
+              style="outline"
+              size="sm"
+              class={cls("tag", "border-foreground/10 text-foreground/85 hover:bg-muted/40 transition-colors")}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )
+    }
+
+    <slot />
+
+    <slot name="actions">
+      <Button
+        href={`/resources/${id}`}
+        ariaLabel={labels.continueReadingAria(title)}
+        variant="glass"
+        size="sm"
+        class={cls("button", "gap-2 text-primary-text transition-all hover:gap-3 self-start")}
+      >
+        <span>{labels.continueReading}</span>
+        <Icon
+          name="material-symbols:arrow-forward"
+          class={cls("buttonIcon", "size-4")}
+          aria-hidden="true"
+        />
+      </Button>
+    </slot>
+  </div>
+</Card>

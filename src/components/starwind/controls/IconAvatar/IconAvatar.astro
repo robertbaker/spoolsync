@@ -1,0 +1,156 @@
+---
+/**
+ * Icon Avatar Component
+ *
+ * A reusable icon container component with color-coded backgrounds and consistent sizing.
+ * Perfect for feature highlights, contact methods, status indicators, and navigation elements.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { IconAvatar } from '~/components/ui';
+ * ---
+ *
+ * <!-- Basic usage -->
+ * <IconAvatar icon="material-symbols:check" color="primary" size="md" />
+ *
+ * <!-- Different sizes and colors -->
+ * <IconAvatar icon="material-symbols:mail" color="success" size="lg" rounded="full" />
+ * <IconAvatar icon="material-symbols:settings" color="warning" containerSize="xl" />
+ *
+ * <!-- In feature grids -->
+ * <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+ *   <div class="text-center">
+ *     <IconAvatar icon="material-symbols:code" color="primary" class="mx-auto mb-4" />
+ *     <h3>Development</h3>
+ *   </div>
+ * </div>
+ * ```
+ *
+ * @param {string} icon - Material Symbols icon name rendered by astro-icon
+ * @param {AccentColor} [color="primary"] - Background and text color theme
+ * @param {IconSize} [size="md"] - Icon size preset (xs, sm, md, lg, xl, 2xl)
+ * @param {"sm"|"md"|"lg"|"xl"} [containerSize="md"] - Container size preset
+ * @param {"box"|"field"|"full"} [rounded="field"] - Border radius style
+ * @param {string} [ariaLabel] - ARIA label for screen readers (sets role="img")
+ * @param {string} [class] - Additional CSS classes for customization
+ *
+ * @features
+ * - Nine accent color themes with coordinated background/text combinations
+ * - Six icon size presets with proportional scaling
+ * - Four container size presets for different layout needs
+ * - Three border radius options for visual variety
+ * - Automatic color contrast optimization
+ * - Dark mode compatible with theme-aware colors
+ * - Smooth hover transitions and focus states
+ * - Optimized for use in grids and flex layouts
+ *
+ * @performance
+ * - Pre-computed size and color mappings avoid runtime calculations
+ * - Minimal DOM structure with efficient CSS styling
+ * - Icon components lazy-loaded through astro-icon
+ * - Optimized for fast rendering in lists and feature sections
+ *
+ * @accessibility
+ * - Optional ARIA labels with role="img" for screen readers
+ * - aria-hidden="true" on decorative icon elements
+ * - High contrast ratios maintained across all color combinations
+ * - Keyboard navigation compatible (no focusable elements)
+ * - Screen reader friendly when ariaLabel is provided
+ * - Semantic color coding for status and category indicators
+ *
+ * @dependencies
+ * - astro-icon with the Material Symbols collection
+ * - R5 CSS framework for color system and utilities
+ * - TailwindCSS for sizing and layout classes
+ * - Astro framework for component rendering
+ * - ~/types/common for AccentColor and IconSize type definitions
+ */
+
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import {
+  ICON_SIZES,
+  getIconAvatarContainerClasses,
+  type IconAvatarContainerSize,
+  type IconAvatarRounded,
+  type IconSize,
+} from "./iconAvatarVariants";
+import type { ColorVariant } from "../../lib/colors.ts";
+import { partClasses, type ClassesProps } from "../../lib/classes.ts";
+
+type Part = "icon";
+
+interface Props extends HTMLAttributes<"div">, ClassesProps<Part> {
+  /**
+   * Icon name (from astro-icon)
+   */
+  icon?: string | undefined;
+
+  /**
+   * Color variant (affects background and text color)
+   */
+  color?: ColorVariant;
+
+  /**
+   * Size preset for the icon
+   * @default "md"
+   */
+  size?: IconSize;
+
+  /**
+   * Container size preset
+   * @default "md"
+   */
+  containerSize?: IconAvatarContainerSize;
+
+  /**
+   * Border radius style
+   * @default "field"
+   */
+  rounded?: IconAvatarRounded;
+
+  /**
+   * High contrast mode for rendering on colored / solid backgrounds
+   */
+  contrast?: boolean;
+
+  /**
+   * ARIA label for accessibility
+   */
+  ariaLabel?: string;
+}
+
+const {
+  icon,
+  color = "primary",
+  size = "md",
+  containerSize = "md",
+  rounded = "field",
+  contrast = false,
+  class: className = "",
+  ariaLabel,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+
+const containerClasses = getIconAvatarContainerClasses({
+  color,
+  containerSize,
+  rounded,
+  contrast,
+  className: className ?? undefined,
+});
+---
+
+<div
+  class={containerClasses}
+  role={ariaLabel ? "img" : undefined}
+  aria-label={ariaLabel}
+  {...rest}
+>
+  <slot name="icon">{icon && <Icon name={icon} class={cls("icon", ICON_SIZES[size])} aria-hidden="true" />}</slot>
+</div>

@@ -1,0 +1,308 @@
+---
+/**
+ * Featured Post Card Component
+ *
+ * @description Large hero-style card for featured blog posts with split layout (image + content).
+ * Designed for prominent placement at the top of blog listing pages.
+ *
+ * @features
+ * - Split layout with image on left, content on right
+ * - Editor's pick badge
+ * - Full metadata display (author, date, tags)
+ * - Large call-to-action button
+ * - Gradient overlay on image
+ * - Responsive grid layout
+ *
+ * @performance
+ * - Critical image loading for above-the-fold content
+ * - CSS grid for efficient layout
+ * - Smooth hover transitions
+ *
+ * @accessibility
+ * - Semantic article structure
+ * - Proper heading hierarchy (h3)
+ * - Time elements with datetime attributes
+ * - Descriptive ARIA labels
+ * - Focus visible states
+ *
+ * @example
+ * ```astro
+ * <FeaturedPostCard
+ *   title="The Ultimate Guide to Web Performance"
+ *   description="Deep dive into optimizing your website for speed"
+ *   id="web-performance-guide"
+ *   coverImage={heroImage}
+ *   coverAlt="Performance metrics dashboard"
+ *   pubDate={new Date()}
+ *   author="Jane Smith"
+ *   tags={["performance", "web", "optimization"]}
+ *   badgeText="Editor's pick"
+ * />
+ * ```
+ */
+
+import { Icon } from "astro-icon/components";
+import Avatar from "../../../controls/Avatar/Avatar.astro";
+import Badge from "../../../controls/Badge/Badge.astro";
+import Button from "../../../controls/Button/Button.astro";
+import Card from "../../../controls/Card/Card.astro";
+import OptimizedImage from "../../../controls/OptimizedImage/OptimizedImage.astro";
+import { formatDate } from "../../../lib/format";
+import { slugify } from "../../../lib/string";
+import type { ImageMetadata } from "astro";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes";
+
+type Part =
+  /** The card's figure region wrapping the cover image, overlay, and date pill. */
+  | "figure"
+  | "imageLink"
+  | "image"
+  | "overlay"
+  /** Date / reading-time pill over the image. */
+  | "meta"
+  | "metaIcon"
+  | "readingTime"
+  | "body"
+  | "badge"
+  | "badgeIcon"
+  | "title"
+  | "titleLink"
+  | "description"
+  | "tagList"
+  | "tag"
+  | "footer"
+  | "author"
+  | "authorAvatar"
+  | "authorName"
+  | "authorTitle"
+  | "button"
+  | "buttonIcon";
+
+interface Labels {
+  /** Reading-time text, e.g. "5 min read". */
+  readingTime: (minutes: number) => string;
+  /** Visible text of the call-to-action button. */
+  readMore: string;
+  /** Accessible name of the call-to-action button. */
+  readMoreAria: (title: string) => string;
+  /** Accessible name of each tag link. */
+  tagAria: (tag: string) => string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  readingTime: (minutes) => `${minutes} min read`,
+  readMore: "Read deep dive",
+  readMoreAria: (title) => `Read deep dive: ${title}`,
+  tagAria: (tag) => `Browse articles tagged ${tag}`,
+};
+
+interface Props extends ClassesProps<Part>, LabelsProps<Labels> {
+  title: string;
+  description: string;
+  id: string;
+  coverImage?: ImageMetadata | undefined;
+  coverAlt?: string | undefined;
+  icon?: string | undefined;
+  pubDate: Date;
+  author: string;
+  tags?: string[];
+  maxTags?: number;
+  badgeText?: string;
+  authorTitle?: string;
+  readingMinutes?: number;
+}
+
+const {
+  title,
+  description,
+  id,
+  coverImage,
+  coverAlt,
+  icon,
+  pubDate,
+  author,
+  tags = [],
+  maxTags = 5,
+  badgeText = "Editor's pick",
+  authorTitle = "Principal technologist",
+  readingMinutes,
+  classes,
+  labels: labelOverrides,
+} = Astro.props;
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+const hasReadingTime = typeof readingMinutes === "number" && Number.isFinite(readingMinutes);
+---
+
+<Card
+  as="article"
+  class="group relative overflow-hidden rounded-3xl border-primary/20 bg-muted shadow-2xl transition-all duration-300 motion-safe:hover:-translate-y-1.5 hover:border-primary/60 hover:shadow-[0_30px_60px_-20px_color-mix(in_oklab,var(--scrim)_45%,transparent)] lg:flex-row [&>figure]:w-full [&>figure]:lg:w-3/5 [&>div]:lg:w-2/5"
+  interactive
+>
+  <div slot="figure" class={cls("figure", "relative overflow-hidden h-full")}>
+    <slot name="media">
+      {
+        coverImage ? (
+          <a
+            href={`/resources/${id}`}
+            class={cls(
+              "imageLink",
+              "block h-full w-full overflow-hidden focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2",
+            )}
+            tabindex="-1"
+            aria-hidden="true"
+          >
+            <OptimizedImage
+              src={coverImage}
+              alt={coverAlt ?? title}
+              class={cls(
+                "image",
+                "h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-700 group-hover:scale-105",
+              )}
+              priority
+              fetchpriority="high"
+              widths={[640, 768, 1024, 1280, 1600]}
+              sizes="(min-width: 1280px) 60vw, 100vw"
+            />
+          </a>
+        ) : (
+          <div class={cls("image", "flex h-full w-full items-center justify-center bg-muted text-muted-foreground")}>
+            <Icon name={icon ?? "material-symbols:image-outline"} class="size-16" aria-hidden="true" />
+          </div>
+        )
+      }
+    </slot>
+    <div
+      class={cls(
+        "overlay",
+        "pointer-events-none absolute inset-0 bg-linear-to-t from-primary/60 via-primary/20 to-transparent",
+      )}
+      aria-hidden="true"
+    >
+    </div>
+    <div
+      class={cls(
+        "meta",
+        "absolute bottom-6 left-6 flex flex-wrap items-center gap-3 rounded-2xl bg-scrim/60 px-4 py-2 text-sm font-semibold text-scrim-foreground shadow-lg backdrop-blur",
+      )}
+    >
+      <Icon
+        name="material-symbols:schedule"
+        class={cls("metaIcon", "size-4")}
+        aria-hidden="true"
+      />
+      <time datetime={pubDate.toISOString()}>
+        {formatDate(pubDate, "long", "UTC")}
+      </time>
+      {
+        hasReadingTime && (
+          <span class={cls("readingTime", "inline-flex items-center gap-1.5")}>
+            <Icon name="material-symbols:hourglass" class={cls("metaIcon", "size-4")} aria-hidden="true" />
+            {labels.readingTime(readingMinutes)}
+          </span>
+        )
+      }
+    </div>
+  </div>
+
+  <div class={cls("body", "flex flex-col gap-5 p-8 h-full justify-center")}>
+    <div
+      class={cls(
+        "badge",
+        "inline-flex items-center gap-2 self-start rounded-full border border-foreground/20 bg-foreground/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-foreground/80",
+      )}
+    >
+      <slot name="badge">
+        <Icon name="material-symbols:star" class={cls("badgeIcon", "size-4")} aria-hidden="true" />
+        <span>{badgeText}</span>
+      </slot>
+    </div>
+
+    <h3
+      class={cls(
+        "title",
+        "text-2xl font-display font-bold leading-tight text-foreground md:text-3xl text-balance",
+      )}
+    >
+      <a
+        href={`/resources/${id}`}
+        class={cls(
+          "titleLink",
+          "underline underline-offset-4 hover:text-primary-text focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2 rounded-sm",
+        )}
+      >
+        <slot name="title">{title}</slot>
+      </a>
+    </h3>
+
+    <p class={cls("description", "text-base text-foreground/80 text-pretty")}>
+      <slot name="description">{description}</slot>
+    </p>
+
+    {
+      tags.length > 0 && (
+        <div class={cls("tagList", "flex flex-wrap gap-2")}>
+          {tags.slice(0, maxTags).map((tag: string) => (
+            <Badge
+              href={`/resources/tag/${slugify(tag)}`}
+              ariaLabel={labels.tagAria(tag)}
+              style="outline"
+              class={cls("tag", "border-primary-accent/40 text-primary-text hover:bg-primary-accent/20 transition-colors")}
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )
+    }
+
+    <slot />
+
+    <div class={cls("footer", "mt-auto flex flex-wrap items-center justify-between gap-4 pt-4")}>
+      <div class={cls("author", "flex items-center gap-3 text-sm text-foreground/80")}>
+        <slot name="author">
+          <Avatar
+            initials={author.charAt(0)}
+            size="sm"
+            shape="circle"
+            class={cls("authorAvatar", "bg-success/10 text-success-text")}
+          />
+          <div class="flex flex-col">
+            <span class={cls("authorName", "font-semibold")}>
+              {author}
+            </span>
+            <span class={cls("authorTitle", "text-xs uppercase tracking-wide text-foreground/85")}>
+              {authorTitle}
+            </span>
+          </div>
+        </slot>
+      </div>
+
+      <slot name="actions">
+        <Button
+          href={`/resources/${id}`}
+          ariaLabel={labels.readMoreAria(title)}
+          variant="solid"
+          color="primary"
+          size="lg"
+          class={cls(
+            "button",
+            "gap-2 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl bg-linear-to-r from-primary to-primary-accent text-primary-foreground",
+          )}
+        >
+          <span>{labels.readMore}</span>
+          <Icon
+            name="material-symbols:arrow-forward"
+            class={cls("buttonIcon", "size-5")}
+            aria-hidden="true"
+          />
+        </Button>
+      </slot>
+    </div>
+  </div>
+</Card>

@@ -1,0 +1,30 @@
+---
+import CommandBlock from "~/components/CommandBlock.astro";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
+import { examples } from "./data";
+---
+
+    <section class="mt-20 scroll-mt-24" id="examples">
+      <SectionHeader align="left" eyebrow="Recipes" title="Examples" subtitle="Hover a command to copy it, then swap in your own file names." />
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">
+        {
+          examples.map((example) => (
+            <article class="flex min-w-0 flex-col gap-4 rounded-2xl border bg-card p-5 transition-colors hover:border-primary/40">
+              <header class="flex items-start gap-3">
+                <IconAvatar icon={example.icon} color="primary" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="text-lg">{example.title}</h3>
+                    <Badge color={example.effect.color} style="soft" size="sm">{example.effect.label}</Badge>
+                  </div>
+                  <p class="mt-1 text-sm text-muted-foreground">{example.body}</p>
+                </div>
+              </header>
+              <CommandBlock code={example.code} title={`~/spools — ${example.file}`} class="mt-auto" />
+            </article>
+          ))
+        }
+      </div>
+    </section>

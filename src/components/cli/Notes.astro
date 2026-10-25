@@ -1,0 +1,65 @@
+---
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
+import { noteGroups, sourceNames, resolvableFields } from "./data";
+---
+
+    <section class="mt-20 scroll-mt-24" id="notes">
+      <SectionHeader align="left" eyebrow="Good to know" title="Notes" subtitle="Rules, guarantees, and names worth knowing before a real run." />
+      <div class="mt-8 grid gap-5 lg:grid-cols-2">
+        {
+          noteGroups.map((group) => (
+            <article class="min-w-0 rounded-2xl border bg-card p-5">
+              <header class="flex items-center gap-3">
+                <IconAvatar icon={group.icon} color="primary" />
+                <h3 class="text-lg">{group.title}</h3>
+              </header>
+              <ul class="mt-4 space-y-3">
+                {group.items.map((item) => (
+                  <li class="flex gap-3 text-sm leading-relaxed text-muted-foreground">
+                    <span class="mt-2 size-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+                    <span class="min-w-0 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.8125rem] [&_code]:text-foreground [&_code]:[overflow-wrap:anywhere]" set:html={item} />
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))
+        }
+      </div>
+
+      <article class="mt-5 rounded-2xl border bg-card p-5">
+        <header class="flex items-center gap-3">
+          <IconAvatar icon="material-symbols:menu-book-outline" color="primary" />
+          <div>
+            <h3 class="text-lg">Names you can use</h3>
+            <p class="text-sm text-muted-foreground">Accepted by <code class="font-mono text-foreground">--create-in</code>, <code class="font-mono text-foreground">--empty</code>, and <code class="font-mono text-foreground">--resolve</code>.</p>
+          </div>
+        </header>
+        <div class="mt-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div>
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Source names</h4>
+            <ul class="mt-3 flex flex-wrap gap-2">
+              {sourceNames.map((name) => <li class="rounded-md border bg-muted px-2 py-1 font-mono text-xs">{name}</li>)}
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resolvable fields</h4>
+            <ul class="mt-3 flex flex-wrap gap-2">
+              {resolvableFields.map((name) => <li class="rounded-md border bg-muted px-2 py-1 font-mono text-xs">{name}</li>)}
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <aside class="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="material-symbols:web-asset" color="primary" />
+          <div>
+            <h3 class="text-base font-semibold">Prefer a visual interface?</h3>
+            <p class="text-sm text-muted-foreground">The web app runs the exact same sync engine in your browser.</p>
+          </div>
+        </div>
+        <Button href="/connections" variant="outline">Open the web app</Button>
+      </aside>
+    </section>

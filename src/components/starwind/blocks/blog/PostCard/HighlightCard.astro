@@ -1,0 +1,113 @@
+---
+/**
+ * Highlight Card Component
+ *
+ * A specialized card component for displaying highlighted features or categories with
+ * an icon avatar and two-line text content (label + value). Commonly used in blog hero
+ * sections, feature highlights, or quick-access navigation.
+ *
+ * @component
+ * @example
+ * ```astro
+ * ---
+ * import { HighlightCard } from '~/components/ui/Card';
+ * ---
+ *
+ * <!-- Basic usage -->
+ * <HighlightCard
+ *   icon="material-symbols:mail"
+ *   label="Knowledge Base"
+ *   value="50+ Articles"
+ *   href="/resources/tag/knowledge-base"
+ * />
+ *
+ * <!-- Custom styling -->
+ * <HighlightCard
+ *   icon="material-symbols:schedule"
+ *   label="Publishing cadence"
+ *   value="Weekly guidance"
+ *   href="/resources/tag/publishing"
+ *   ariaLabel="View posts about publishing schedule"
+ * />
+ * ```
+ *
+ * @prop {string} icon - Icon name from astro-icon collection
+ * @prop {string} label - Small uppercase label text (e.g., "Knowledge Base")
+ * @prop {string} value - Larger value text (e.g., "50+ Articles")
+ * @prop {string} [href] - Optional link URL (renders as <a> instead of <div>)
+ * @prop {string} [ariaLabel] - Optional ARIA label for accessibility
+ * @prop {string} [class] - Additional CSS classes for customization
+ *
+ * @features
+ * - Circular icon avatar with glass-morphism background
+ * - Two-line text layout (label + value)
+ * - Hover animations and focus states
+ * - Optional link functionality
+ * - Full accessibility support
+ * - Consistent sizing and spacing
+ *
+ * @accessibility
+ * - Icons marked with aria-hidden="true"
+ * - Custom aria-label support for links
+ * - Keyboard navigation support
+ * - Focus visible indicators
+ * - Sufficient color contrast
+ *
+ * @performance
+ * - Static HTML generation
+ * - No client-side JavaScript
+ * - Optimized for Core Web Vitals
+ */
+
+import Card from "../../../controls/Card/Card.astro";
+import IconAvatar from "../../../controls/IconAvatar/IconAvatar.astro";
+import { partClasses, type ClassesProps } from "../../../lib/classes";
+
+type Part = "content" | "icon" | "text" | "label" | "value";
+
+interface Props extends ClassesProps<Part> {
+  icon: string;
+  label: string;
+  value: string;
+  href?: string | undefined;
+  ariaLabel?: string | undefined;
+  class?: string | undefined;
+}
+
+const { icon, label, value, href, ariaLabel, class: className, classes } = Astro.props;
+
+const cls = partClasses<Part>(classes);
+---
+
+<Card
+  {...href ? { href } : {}}
+  variant="bordered"
+  class={`bg-background/20 dark:bg-muted/30 backdrop-blur-[18px] px-6 py-4 shadow-sm border-primary/20 hover:border-primary/50  ${className}`}
+  compact
+  interactive={!!href}
+  aria-label={ariaLabel}
+>
+  <div class={cls("content", "flex items-center gap-4")}>
+    <slot name="icon">
+      <IconAvatar
+        icon={icon}
+        size="md"
+        class={cls("icon", "bg-background/20 dark:bg-border/40 text-primary-text")}
+      />
+    </slot>
+    <div class={cls("text")}>
+      <p
+        class={cls(
+          "label",
+          "text-xs font-semibold uppercase tracking-wide text-foreground/80",
+        )}
+      >
+        <slot name="label">{label}</slot>
+      </p>
+      <p class={cls("value", "text-base font-semibold text-foreground")}>
+        <slot name="value">{value}</slot>
+      </p>
+      <slot />
+    </div>
+  </div>
+</Card>

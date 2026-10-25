@@ -1,0 +1,167 @@
+---
+import Badge from "../../../controls/Badge/Badge.astro";
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../types/index.ts";
+import { getMobileMenuColorClasses, getNavHoverColors } from "../../../lib/colors.ts";
+import type { NavActiveMatch } from "./navActive";
+import { isLinkActive } from "./navActive";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+
+/**
+ * NavMenu Component
+ *
+ * @description A flexible navigation menu using native details disclosures and Starwind tokens.
+ * Supports desktop (horizontal) and mobile (vertical) layouts with support for nested dropdowns.
+ *
+ * @features
+ * - Responsive layouts (horizontal/vertical)
+ * - Nested dropdown support via <details>
+ * - Active state highlighting
+ * - Icon support
+ * - Customizable styling
+ *
+ * @example
+ * <NavMenu items={links} mode="desktop" />
+ */
+
+interface Props extends HTMLAttributes<"ul">, PaletteProps {
+  /**
+   * Array of navigation items
+   */
+  items: NavLink[];
+  /**
+   * Layout mode: 'desktop' (horizontal) or 'mobile' (vertical)
+   * @default 'desktop'
+   */
+  mode?: "desktop" | "mobile";
+
+  /**
+   * Active link matching mode.
+   * - startsWith: treats parent routes as active (e.g. /services active on /services/foo)
+   * - exact: only exact href matches are active
+   */
+  activeMatch?: NavActiveMatch;
+
+  /**
+   * Whether to close dropdown <details> elements when clicking outside.
+   */
+  closeDropdownsOnOutsideClick?: boolean;
+  unstyled?: boolean;
+}
+
+const {
+  items,
+  mode = "desktop",
+  class: className,
+  id,
+  activeMatch = "startsWith",
+  closeDropdownsOnOutsideClick = true,
+  unstyled = false,
+  ...rest
+} = Astro.props;
+const currentPath = Astro.url.pathname;
+
+function getNavItemClasses(item: NavLink): string[] {
+  const color = item.color ?? "primary";
+  const mobileColors = getMobileMenuColorClasses(color);
+
+  return [
+    "transition-colors duration-200",
+    getNavHoverColors(color),
+    "focus-visible:outline-2 focus-visible:outline-offset-2",
+    mobileColors.focusOutline,
+  ];
+}
+---
+
+<ul
+  id={id}
+  class:list={[
+    !unstyled && "flex list-none px-1",
+    !unstyled && (mode === "desktop" ? "items-center gap-2" : "w-full flex-col gap-1"),
+    className,
+  ]}
+  data-nav-menu
+  data-close-on-outside={String(closeDropdownsOnOutsideClick)}
+  {...withPalette(rest)}
+>
+  {
+    items.map((item) => {
+      return (
+      <li class="relative">
+        {item.children && item.children.length > 0 ? (
+          <details>
+            <summary
+              class:list={[
+                ...getNavItemClasses(item),
+                { "bg-muted text-primary-text": isLinkActive(item.href, currentPath, activeMatch) },
+                "flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2",
+              ]}
+              aria-label={item.ariaLabel}
+            >
+              {item.icon && <Icon name={item.icon} class="size-5" aria-hidden="true" />}
+              {item.text}
+              {item.badge && (
+                <Badge color="info" size="sm">{item.badge}</Badge>
+              )}
+            </summary>
+            <ul class:list={["z-50 mt-1 min-w-48 list-none rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg", mode === "desktop" ? "absolute start-0 top-full" : "ms-3"]}>
+              {item.children.map((child) => {
+                return (
+                <li>
+                  <a
+                    href={child.href}
+                    class:list={[
+                      ...getNavItemClasses(child),
+                      { "bg-muted text-primary-text": isLinkActive(child.href, currentPath, activeMatch) },
+                      "flex items-center gap-2 rounded-md px-3 py-2",
+                    ]}
+                    {...(child.external
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
+                    aria-label={child.ariaLabel}
+                    aria-current={isLinkActive(child.href, currentPath, activeMatch) ? "page" : undefined}
+                  >
+                    {child.icon && <Icon name={child.icon} class="size-4" aria-hidden="true" />}
+                    {child.text}
+                    {child.badge && (
+                      <Badge color="info" size="sm">
+                        {child.badge}
+                      </Badge>
+                    )}
+                  </a>
+                </li>
+              )})}
+            </ul>
+          </details>
+        ) : (
+          <a
+            href={item.href}
+            class:list={[
+              ...getNavItemClasses(item),
+              { "bg-muted text-primary-text": isLinkActive(item.href, currentPath, activeMatch) },
+              "flex items-center gap-2 rounded-md px-3 py-2",
+            ]}
+            {...(item.external
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+            aria-label={item.ariaLabel}
+            aria-current={isLinkActive(item.href, currentPath, activeMatch) ? "page" : undefined}
+          >
+            {item.icon && <Icon name={item.icon} class="size-5" aria-hidden="true" />}
+            {item.text}
+            {item.badge && (
+              <Badge color="info" size="sm">{item.badge}</Badge>
+            )}
+          </a>
+        )}
+      </li>
+    )})
+  }
+</ul>
+
+<script>
+  import { bootstrapNavigationDisclosures } from "./navigationDisclosures";
+  bootstrapNavigationDisclosures();
+</script>

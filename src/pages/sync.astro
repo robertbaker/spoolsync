@@ -1,0 +1,69 @@
+---
+import FlowSteps from "~/components/FlowSteps.astro";
+import PageHeader from "~/components/PageHeader.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+---
+
+<BaseLayout title={`Sync — ${SITE_TITLE}`} description="Match spools across services, resolve differences, and apply them.">
+  <Container class="py-10 sm:py-14">
+    <FlowSteps current="sync" class="mb-6" />
+    <PageHeader
+      eyebrow="Step 3"
+      title="Sync"
+      titleId="tour-sync"
+      description="Spools are matched across your loaded inventories. Pick a value wherever services disagree, then apply or download your changes."
+    />
+
+    <!-- Rendered up front so the page does not shift when the script decides there is nothing to sync. -->
+    <div id="sync-empty" class="mt-10">
+      <div class="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-dashed bg-card/50 px-6 py-12 text-center shadow-xs" role="status">
+        <div class="animate-subtle-pulse">
+          <IconAvatar icon="material-symbols:sync-alt" color="primary" containerSize="xl" size="xl" rounded="full" />
+        </div>
+        <h2 id="sync-empty-title" class="mt-5 text-xl font-bold tracking-tight">Nothing loaded yet</h2>
+        <p id="sync-empty-body" class="mt-2 text-muted-foreground">
+          Load at least two services to match spools and compare differences side by side.
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3">
+          <Button href="/load" color="primary" icon="material-symbols:arrow-forward" iconPosition="right">Go to Load</Button>
+          <Button href="/connections" variant="outline">Connection settings</Button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sync-app" hidden>
+      <div id="sync-summary" class="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-live="polite"></div>
+      <div id="sync-problems" class="mt-6"></div>
+
+      <section id="suggestions-section" class="mt-12" aria-labelledby="suggestions-heading" hidden>
+        <h2 id="suggestions-heading" class="text-2xl">Possible matches</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          These spools look similar but don't share an ID. Confirm or reject each pair—SpoolSync remembers your choice.
+        </p>
+        <div id="suggestions" class="mt-4 grid gap-4"></div>
+      </section>
+
+      <section id="tour-differences" class="mt-12" aria-labelledby="differences-heading">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="differences-heading" class="text-2xl">Differences</h2>
+          <div id="filters" class="flex flex-wrap gap-2" role="group" aria-label="Show"></div>
+        </div>
+        <div id="bulk" class="mt-4 flex flex-wrap gap-2"></div>
+        <div id="groups" class="mt-4 grid gap-4"></div>
+      </section>
+
+      <section id="tour-apply" class="app-card mt-12" aria-labelledby="apply-heading">
+        <h2 id="apply-heading" class="text-2xl">Apply</h2>
+        <div id="apply" class="mt-4 grid gap-6"></div>
+      </section>
+    </div>
+  </Container>
+</BaseLayout>
+
+<script>
+  import "~/scripts/sync";
+</script>

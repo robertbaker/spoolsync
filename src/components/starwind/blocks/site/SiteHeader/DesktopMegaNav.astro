@@ -1,0 +1,213 @@
+---
+import Button from "../../../controls/Button/Button.astro";
+import OptimizedImage from "../../../controls/OptimizedImage/OptimizedImage.astro";
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import type { DesktopMegaNavCta, DesktopMegaNavGroup } from "./index";
+import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
+
+interface Props extends HTMLAttributes<"nav">, PaletteProps {
+  groups: readonly DesktopMegaNavGroup[];
+  cta?: DesktopMegaNavCta;
+}
+
+const { groups, cta, class: className, ...rest } = Astro.props;
+
+function getWidthClass(colCount: number, hasPromo: boolean): string {
+  if (colCount === 1) {
+    return hasPromo ? "w-[min(32rem,calc(100vw-2rem))]" : "w-[min(20rem,calc(100vw-2rem))]";
+  }
+  if (colCount === 2) {
+    return hasPromo ? "w-[min(44rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]";
+  }
+  return hasPromo ? "w-[min(58rem,calc(100vw-2rem))]" : "w-[min(46rem,calc(100vw-2rem))]";
+}
+
+function getColsGridClass(colCount: number): string {
+  if (colCount === 1) return "grid-cols-1";
+  if (colCount === 2) return "grid-cols-2";
+  return "grid-cols-3";
+}
+---
+
+<nav class:list={["hidden lg:flex items-center gap-1", className]} aria-label="Desktop navigation" data-desktop-mega-nav {...withPalette(rest)}>
+  {groups.map((group, groupIndex) => {
+    const colCount = group.columns.length;
+    const hasPromo = Boolean(group.promo);
+    const widthClass = getWidthClass(colCount, hasPromo);
+    const colGridClass = getColsGridClass(colCount);
+    const panelId = `desktop-mega-nav-panel-${groupIndex}`;
+    const triggerId = `desktop-mega-nav-trigger-${groupIndex}`;
+
+    return (
+      <details class="group inline-flex lg:static">
+        <summary
+          id={triggerId}
+          class:list={[
+            "inline-flex h-8 cursor-pointer list-none items-center justify-center gap-1.5 rounded-full px-3 text-xs font-medium text-foreground/80 outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60",
+            { "text-primary-text": group.color === "primary" },
+          ]}
+          aria-label={group.ariaLabel ?? group.label}
+          aria-controls={panelId}
+        >
+          {group.icon && <Icon name={group.icon} class="size-3.5" aria-hidden="true" />}
+          <span>{group.label}</span>
+          <Icon
+            name="material-symbols:keyboard-arrow-down"
+            class="size-3.5 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
+            aria-hidden="true"
+          />
+        </summary>
+
+        <div
+          id={panelId}
+          role="region"
+          aria-labelledby={triggerId}
+          class:list={[
+            "mega-nav-panel z-50 mt-2 max-h-[calc(100vh-5.5rem)] overflow-y-auto overscroll-contain rounded-2xl border border-border/80 bg-popover/95 p-4 text-popover-foreground shadow-xl shadow-foreground/5 backdrop-blur-xl lg:absolute lg:top-full lg:inset-x-0 lg:mx-auto",
+            widthClass,
+          ]}
+        >
+          <div class:list={["grid gap-4", hasPromo ? (colCount === 1 ? "grid-cols-[1fr_13rem]" : colCount === 2 ? "grid-cols-[1fr_14rem]" : "grid-cols-[1fr_15rem]") : "grid-cols-1"]}>
+            <div class:list={["grid gap-4", colGridClass]}>
+              {group.columns.map((column) => (
+                <section class="space-y-1.5">
+                  <div class="px-1.5 pb-0.5">
+                    {column.eyebrow && (
+                      <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {column.eyebrow}
+                      </p>
+                    )}
+                    <h2 class="text-xs font-bold text-foreground">{column.heading}</h2>
+                  </div>
+                  <ul class="space-y-1">
+                    {column.links.map((link) => (
+                      <li>
+                        <slot name="link">
+                          <a
+                            href={link.href}
+                            class="group/link flex items-start gap-2.5 rounded-xl p-2 transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                            aria-label={link.ariaLabel ?? link.label}
+                            {...(link.external
+                              ? { target: "_blank", rel: "noopener noreferrer" }
+                              : {})}
+                          >
+                            <slot name="link-icon">
+                              {link.image ? (
+                                <OptimizedImage src={link.image} class="mt-0.5 size-7 shrink-0 rounded-lg object-cover" alt={link.imageAlt ?? link.label} />
+                              ) : link.icon ? (
+                                <span class="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text transition-colors group-hover/link:bg-primary group-hover/link:text-primary-foreground">
+                                  <Icon name={link.icon} class="size-4" aria-hidden="true" />
+                                </span>
+                              ) : null}
+                            </slot>
+                            <span class="min-w-0 flex-1 space-y-0.5">
+                              <span class="block text-xs font-semibold text-foreground transition-colors group-hover/link:text-primary-text">
+                                {link.label}
+                              </span>
+                              {link.description && (
+                                <span class="block text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                                  {link.description}
+                                </span>
+                              )}
+                            </span>
+                          </a>
+                        </slot>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+
+            {group.promo && (
+              <slot name="promo">
+                <a
+                  href={group.promo.href}
+                  class:list={[
+                    "group/promo flex h-full flex-col justify-between rounded-xl border border-border/50 p-3.5 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                    group.promo.color === "primary" && "bg-primary/[0.04] hover:bg-primary/[0.08]",
+                    group.promo.color === "accent" && "bg-accent/[0.04] hover:bg-accent/[0.08]",
+                    group.promo.color === "secondary" && "bg-secondary/[0.04] hover:bg-secondary/[0.08]",
+                    group.promo.color === "info" && "bg-info/[0.04] hover:bg-info/[0.08]",
+                    !group.promo.color && "bg-muted/40 hover:bg-muted/70",
+                  ]}
+                >
+                  <div class="space-y-1.5">
+                    {group.promo.image && (
+                      <OptimizedImage src={group.promo.image} class="mb-2 h-24 w-full rounded-lg object-cover" alt={group.promo.imageAlt ?? group.promo.title} />
+                    )}
+                    {group.promo.eyebrow && (
+                      <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {group.promo.eyebrow}
+                      </p>
+                    )}
+                    <h3 class="text-xs font-bold leading-snug text-foreground group-hover/promo:text-primary-text transition-colors">
+                      {group.promo.title}
+                    </h3>
+                    <p class="text-[11px] leading-relaxed text-muted-foreground line-clamp-3">
+                      {group.promo.description}
+                    </p>
+                  </div>
+
+                  <span class="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary-text">
+                    <span>{group.promo.actionLabel}</span>
+                    {group.promo.icon ? (
+                      <Icon name={group.promo.icon} class="size-3.5 transition-transform duration-150 group-hover/promo:translate-x-0.5" />
+                    ) : (
+                      <Icon name="material-symbols:arrow-forward" class="size-3.5 transition-transform duration-150 group-hover/promo:translate-x-0.5" />
+                    )}
+                  </span>
+                </a>
+              </slot>
+            )}
+          </div>
+        </div>
+      </details>
+    );
+  })}
+
+  <slot name="cta">
+    {cta && (
+      <Button
+        color="primary"
+        size="sm"
+        class="rounded-full px-4 text-xs font-semibold"
+        href={cta.href}
+        aria-label={cta.ariaLabel ?? cta.label}
+        {...(cta.external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+      >
+        {cta.icon && <Icon name={cta.icon} class="size-3.5" aria-hidden="true" />}
+        {cta.label}
+      </Button>
+    )}
+  </slot>
+  <slot />
+</nav>
+
+<script>
+  import { bootstrapNavigationDisclosures } from "../NavMenu/index.ts";
+  bootstrapNavigationDisclosures();
+</script>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    details[open] > .mega-nav-panel {
+      animation: mega-nav-enter 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes mega-nav-enter {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+</style>
+

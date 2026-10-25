@@ -1,0 +1,112 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import OptimizedImage from "../OptimizedImage/OptimizedImage.astro";
+import {
+  getAvatarClasses,
+  getInnerClasses,
+  getRingClasses,
+  getStatusDotClasses,
+} from "./avatarVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette";
+import { partClasses } from "../../lib/classes";
+import type { AvatarPart, AvatarPresentationProps } from "./avatarTypes";
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, AvatarPresentationProps {
+  [key: string]: unknown;
+}
+
+const {
+  src,
+  alt = "Avatar",
+  initials,
+  icon,
+  size = "md",
+  shape = "circle",
+  status,
+  ring = false,
+  ringColor = "primary",
+  imageProps = {},
+  statusLabel,
+  class: className,
+  classes,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<AvatarPart>(classes);
+
+const avatarClasses = getAvatarClasses(status, className ?? undefined);
+const ringClasses = getRingClasses(ring, ringColor);
+const innerClasses = getInnerClasses(size, shape);
+const imageSize = { xs: 32, sm: 40, md: 48, lg: 64, xl: 96 }[size];
+const showStatusDot = Boolean(status);
+const fallbackContent = Astro.slots.has("fallback")
+  ? await Astro.slots.render("fallback", [{ initials, alt, src, icon }])
+  : undefined;
+const statusContent = status && Astro.slots.has("status")
+  ? await Astro.slots.render("status", [status, statusLabel])
+  : undefined;
+---
+
+<div class={avatarClasses} data-avatar {...withPalette(rest)}>
+  <div
+    class={cls(
+      "inner",
+      innerClasses,
+      ringClasses,
+      "relative flex items-center justify-center overflow-hidden bg-muted text-foreground",
+    )}
+  >
+    <span
+      data-avatar-fallback
+      hidden={Boolean(src)}
+      role={alt ? "img" : undefined}
+      aria-label={alt || undefined}
+      class={cls("fallback", "text-xl leading-none flex items-center justify-center size-full")}
+    >{fallbackContent !== undefined ? <Fragment set:html={fallbackContent} /> : initials ? initials : icon ? <Icon name={icon} class="size-2/3" aria-hidden="true" /> : null}</span>
+    {src && (
+      typeof src === "string" ? (
+        <img
+          loading="lazy"
+          decoding="async"
+          {...imageProps}
+          src={src}
+          alt={alt}
+          width={imageSize}
+          height={imageSize}
+          data-avatar-image
+          class={cls("image", "absolute inset-0 h-full w-full object-cover", imageProps.class as string | undefined)}
+        />
+      ) : (
+        <OptimizedImage
+          {...imageProps}
+          fetchpriority={imageProps.fetchpriority ?? undefined}
+          src={src}
+          alt={alt}
+          width={imageSize}
+          height={imageSize}
+          widths={[imageSize, imageSize * 2]}
+          sizes={`${imageSize}px`}
+          data-avatar-image
+          class={cls("image", "absolute inset-0 h-full w-full object-cover", imageProps.class as string | undefined)}
+        />
+      )
+    )}
+  </div>
+  {
+    showStatusDot && status && (
+      <span
+        class={cls("statusDot", getStatusDotClasses(status))}
+        role={statusLabel ? "img" : undefined}
+        aria-label={statusLabel || undefined}
+        aria-hidden={statusLabel ? undefined : "true"}
+      >{statusContent !== undefined && <Fragment set:html={statusContent} />}</span>
+    )
+  }
+</div>
+
+<script>
+  import { initAvatars } from "./initAvatars";
+  initAvatars();
+  document.addEventListener("astro:page-load", () => initAvatars());
+</script>

@@ -1,0 +1,174 @@
+---
+import Alert from "~/components/starwind/controls/Alert/Alert.astro";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+import FlowSteps from "~/components/FlowSteps.astro";
+import PageHeader from "~/components/PageHeader.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+
+const inputClass = "field-input";
+---
+
+<BaseLayout title={`Connections — ${SITE_TITLE}`} description="Connect SpoolSync to your Spoolman server or TigerTag account.">
+  <Container class="py-10 sm:py-14">
+    <FlowSteps current="connections" class="mb-6" />
+    <PageHeader
+      eyebrow="Step 1"
+      title="Connections"
+      description="Your browser connects directly to Spoolman and TigerTag. Addresses and tokens stay in this browser only."
+    />
+
+    <div class="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+    <div class="space-y-6">
+    <section id="tour-connections" class="app-card" aria-labelledby="spoolman-heading">
+      <div class="flex items-center gap-3">
+        <IconAvatar icon="vendor/spoolman" color="primary" />
+        <h2 id="spoolman-heading" class="text-xl">Spoolman / Spoolman-NG</h2>
+        <span id="spoolman-status-badge" class="ml-auto text-xs"></span>
+      </div>
+      <form id="spoolman-form" class="mt-5 grid gap-5" novalidate>
+        <label class="field-label" for="spoolman-url">
+          Spoolman address
+          <input
+            id="spoolman-url"
+            name="baseUrl"
+            type="url"
+            inputmode="url"
+            autocomplete="url"
+            required
+            placeholder="http://192.168.1.20:7912"
+            class={inputClass}
+          />
+          <span class="field-hint">
+            The URL where you open Spoolman's web UI. A bare host like <code>spoolman.local:7912</code> works too.
+          </span>
+        </label>
+        <div class="field-label">
+          <label for="spoolman-token">
+            API token <span class="font-normal text-muted-foreground">(Spoolman-NG, optional)</span>
+          </label>
+          <div class="relative mt-1.5">
+            <input
+              id="spoolman-token"
+              name="token"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              class={`${inputClass} mt-0 pr-10`}
+            />
+            <button
+              type="button"
+              id="toggle-spoolman-token"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              aria-label="Toggle token visibility"
+            >
+              <span class="text-xs font-mono font-medium" id="toggle-spoolman-token-text">Show</span>
+            </button>
+          </div>
+          <span class="field-hint">
+            Only needed if Spoolman-NG has <code>SPOOLMAN_API_TOKEN</code> set. Standard Spoolman does not use a token.
+          </span>
+        </div>
+        <label class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-transparent p-2 text-sm transition-colors has-[:checked]:border-border has-[:checked]:bg-muted/40 hover:bg-muted/20" for="spoolman-remember">
+          <input id="spoolman-remember" name="rememberToken" type="checkbox" class="size-4 shrink-0" />
+          <span>Remember token on this device (otherwise it clears when the tab closes)</span>
+        </label>
+        <div class="flex flex-wrap gap-3">
+          <Button type="submit" color="primary" id="spoolman-test">Save and test</Button>
+          <Button type="button" variant="outline" id="spoolman-forget">Forget</Button>
+        </div>
+      </form>
+
+      <div id="spoolman-result" class="mt-6" aria-live="polite"></div>
+    </section>
+
+    <section class="app-card" aria-labelledby="tigertag-heading">
+      <div class="flex items-center gap-3">
+        <IconAvatar icon="vendor/tigertag" color="primary" />
+        <h2 id="tigertag-heading" class="text-xl">TigerTag cloud <span class="text-sm font-normal text-muted-foreground">(optional)</span></h2>
+        <span id="tigertag-status-badge" class="ml-auto text-xs"></span>
+      </div>
+      <p class="mt-3 text-sm text-muted-foreground">
+        Sign in to read and update your TigerTag inventory directly without exporting <code>.ttag</code> files. Your password is sent directly to TigerTag's authentication service and is never stored; SpoolSync only keeps the session token.
+      </p>
+      <div id="tigertag-signed-in" class="mt-4" hidden>
+        <p class="text-sm">Signed in as <strong id="tigertag-email"></strong>.</p>
+        <div class="mt-3"><Button type="button" variant="outline" id="tigertag-sign-out">Sign out</Button></div>
+      </div>
+      <form id="tigertag-form" class="mt-5 grid gap-5" novalidate>
+        <label class="field-label" for="tigertag-email-input">
+          Email
+          <input id="tigertag-email-input" name="email" type="email" autocomplete="username" required class={inputClass} />
+        </label>
+        <div class="field-label">
+          <label for="tigertag-password">
+            Password
+          </label>
+          <div class="relative mt-1.5">
+            <input id="tigertag-password" name="password" type="password" autocomplete="current-password" required class={`${inputClass} mt-0 pr-10`} />
+            <button
+              type="button"
+              id="toggle-tigertag-password"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              aria-label="Toggle password visibility"
+            >
+              <span class="text-xs font-mono font-medium" id="toggle-tigertag-password-text">Show</span>
+            </button>
+          </div>
+          <span class="field-hint">
+            Accounts that sign in with Google need a password set in the TigerTag app first; Google sign-in only works on
+            TigerTag's own sites.
+          </span>
+        </div>
+        <label class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-transparent p-2 text-sm transition-colors has-[:checked]:border-border has-[:checked]:bg-muted/40 hover:bg-muted/20" for="tigertag-remember">
+          <input id="tigertag-remember" name="remember" type="checkbox" class="size-4 shrink-0" />
+          <span>Stay signed in on this device</span>
+        </label>
+        <div><Button type="submit" color="primary" id="tigertag-sign-in">Sign in</Button></div>
+      </form>
+      <div id="tigertag-result" class="mt-4" aria-live="polite"></div>
+    </section>
+
+    <div class="flex justify-end">
+      <Button href="/load" color="primary" icon="material-symbols:arrow-forward" iconPosition="right">Continue to Load</Button>
+    </div>
+    </div>
+
+    <aside class="space-y-4 lg:sticky lg:top-24" aria-labelledby="help-heading">
+      <h2 id="help-heading" class="text-lg">Setting up Spoolman</h2>
+      <div class="grid gap-4">
+        <Alert variant="info" style="soft" title="Allow this site in Spoolman (CORS)">
+          <p>
+            Spoolman only responds to web origins it trusts. Add this line to Spoolman's environment (<code>docker-compose.yml</code>
+            <code>environment:</code> or <code>.env</code>) and restart the server:
+          </p>
+          <div class="mt-2 flex items-center gap-2 rounded bg-background p-2">
+            <code id="cors-line" class="min-w-0 flex-1 overflow-x-auto text-xs font-mono">SPOOLMAN_CORS_ORIGIN=…</code>
+            <button
+              type="button"
+              id="copy-cors-btn"
+              class="shrink-0 rounded border px-2 py-1 text-xs hover:bg-muted font-medium transition-colors"
+            >
+              Copy
+            </button>
+          </div>
+          <div id="cors-install-help"></div>
+        </Alert>
+        <Alert variant="neutral" style="soft" title="Plain http:// on your home network">
+          <p>
+            Because this page is served over HTTPS, most browsers block plain <code>http://</code> requests. Chrome,
+            Edge, and other Chromium browsers (version 142+) allow local network requests: when prompted to let this site access your local network, choose <strong>Allow</strong>. Firefox and Safari block mixed content,
+            so use a Chromium browser or serve Spoolman over HTTPS.
+          </p>
+        </Alert>
+      </div>
+    </aside>
+    </div>
+  </Container>
+</BaseLayout>
+
+<script>
+  import "~/scripts/connections";
+</script>

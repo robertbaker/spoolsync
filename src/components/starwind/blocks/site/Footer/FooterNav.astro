@@ -1,0 +1,103 @@
+---
+import type { FooterSection } from "./footerTypes";
+import { partClasses, type ClassesProps } from "../../../lib/classes.ts";
+
+type Part = "section" | "heading" | "nav" | "list" | "item" | "link";
+
+interface Props extends ClassesProps<Part> {
+  sections: FooterSection[];
+  unstyled?: boolean;
+  /** Uppercase + track the column headings. */
+  uppercaseHeadings?: boolean;
+  /** Uppercase + track the links. */
+  uppercaseLinks?: boolean;
+}
+
+const {
+  sections,
+  unstyled = false,
+  uppercaseHeadings = false,
+  uppercaseLinks = false,
+  classes,
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+---
+
+{
+  sections.map((section) => {
+    const isBrandsSection = section.id === "brands";
+    return (
+      <slot name="section">
+        <div class={cls("section", "flex flex-col gap-4")} data-footer-nav-styled={!unstyled ? "" : undefined}>
+          <slot name="heading">
+            <h2
+              id={`${section.id}-heading`}
+              class:list={[
+                cls("heading", "font-semibold text-foreground"),
+                uppercaseHeadings ? "text-sm uppercase tracking-[0.18em]" : "text-lg",
+              ]}
+            >
+              {section.title}
+            </h2>
+          </slot>
+          <nav aria-labelledby={`${section.id}-heading`} class={cls("nav")}>
+            {isBrandsSection ? (
+              <ul class={cls("list", "flex flex-wrap gap-2.5")}>
+                {section.links.map((link) => (
+                  <li class={cls("item")}>
+                    <slot name="link">
+                      <a
+                        href={link.href}
+                        class={cls(
+                          "link",
+                          "flex items-center justify-center rounded-full border border-foreground/15 bg-background/50 px-3 py-1.5 text-sm text-foreground/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary-text hover:shadow-md hover:shadow-primary/10 dark:bg-border/40 dark:hover:shadow-primary/20",
+                        )}
+                        aria-label={link.ariaLabel ?? link.label}
+                        target={link.external ? "_blank" : undefined}
+                        rel={link.external ? "noopener noreferrer" : undefined}
+                      >
+                        {link.label}
+                      </a>
+                    </slot>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul
+                class:list={[
+                  cls("list", "space-y-3 text-sm text-foreground"),
+                  uppercaseLinks ? "uppercase tracking-[0.08em]" : "lg:text-base",
+                ]}
+              >
+                {section.links.map((link) => (
+                  <li class={cls("item")}>
+                    <slot name="link">
+                      <a
+                        href={link.href}
+                        class={cls("link", "footer-link relative inline-block transition-colors duration-300")}
+                        aria-label={link.ariaLabel ?? link.label}
+                        target={link.external ? "_blank" : undefined}
+                        rel={link.external ? "noopener noreferrer" : undefined}
+                      >
+                        {link.label}
+                      </a>
+                    </slot>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </nav>
+        </div>
+      </slot>
+    );
+  })
+}
+<slot />
+
+<style>
+  [data-footer-nav-styled] .footer-link { color: inherit; text-decoration: none; position: relative; display: inline-block; }
+  [data-footer-nav-styled] .footer-link:hover { color: var(--primary-accent); }
+  [data-footer-nav-styled] .footer-link::after { content: ""; position: absolute; width: 0; height: 1px; bottom: -2px; left: 0; background-color: var(--primary-accent); transition: width 0.3s ease; }
+  [data-footer-nav-styled] .footer-link:hover::after { width: 100%; }
+</style>

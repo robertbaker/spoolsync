@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 4 92 92" fill="none" role="img" aria-label="SpoolSync Mark">
+<g id="spoolsync-mark">
+<path d="M21.8 39.7A30 30 0 0 1 78.2 39.7" fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round"/>
+<path d="M81.3 48.2 86.7 36.6 69.7 42.8Z" fill="#f97316" stroke="#f97316" stroke-width="4" stroke-linejoin="round"/>
+<path d="M78.2 60.3A30 30 0 0 1 21.8 60.3" fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round"/>
+<path d="M18.7 51.8 13.3 63.4 30.3 57.2Z" fill="#f97316" stroke="#f97316" stroke-width="4" stroke-linejoin="round"/>
+<path fill="#f97316" fill-rule="evenodd" d="M50 36a14 14 0 1 0 0 28 14 14 0 0 0 0-28Zm0 9a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/>
+</g>
+</svg>

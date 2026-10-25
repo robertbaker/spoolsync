@@ -1,0 +1,56 @@
+---
+import { newestFirst } from "~/lib/blog/order";
+import { getCollection } from "astro:content";
+import type { CollectionEntry } from "astro:content";
+import PostLayout from "~/layouts/PostLayout.astro";
+
+type BlogEntry = CollectionEntry<"blog">;
+type RankedBlogEntry = { post: BlogEntry; score: number };
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection("blog");
+
+  return blogEntries.map((entry: BlogEntry) => {
+    const currentTags = entry.data.tags ?? [];
+    const relatedPosts: BlogEntry[] = blogEntries
+      .filter((post: BlogEntry) => post.id !== entry.id)
+      .map((post: BlogEntry) => ({
+        post,
+        score: currentTags.filter((tag: string) => (post.data.tags ?? []).includes(tag)).length,
+      }))
+      .sort((left: RankedBlogEntry, right: RankedBlogEntry) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+
+        return newestFirst(left.post, right.post);
+      })
+      .slice(0, 3)
+      .map(({ post }: RankedBlogEntry) => post);
+
+    return {
+      params: { id: entry.id },
+      props: { post: entry, relatedPosts },
+      cacheKey: entry.digest,
+    };
+  });
+}
+
+interface Props {
+  post: BlogEntry;
+  relatedPosts: BlogEntry[];
+}
+
+const { post, relatedPosts } = Astro.props as Props;
+---
+
+<PostLayout
+  post={post}
+  relatedPosts={relatedPosts}
+  ctaHeading="Ready to sync your spools?"
+  ctaDescription="Compare your inventories in the browser or from the command line."
+  ctaButtonText="Open the app"
+  ctaButtonHref="/connections"
+  ctaSecondaryText="Browse all articles"
+  ctaSecondaryHref="/resources"
+/>

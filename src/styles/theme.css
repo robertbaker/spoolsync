@@ -1,0 +1,111 @@
+/*
+ * SpoolSync palette: molten-filament orange on warm "PLA paper" (light) or spool-black (dark), with a
+ * teal accent for info. Only seeds are set; tokens.css derives foregrounds, accents and text shades.
+ */
+:root {
+  color-scheme: light dark;
+  interpolate-size: allow-keywords;
+  --background: oklch(0.985 0.008 80);
+  --foreground: oklch(0.22 0.02 55);
+  --card: oklch(0.995 0.004 80);
+  --card-foreground: oklch(0.22 0.02 55);
+  --popover: oklch(0.995 0.004 80);
+  --popover-foreground: oklch(0.22 0.02 55);
+
+  --primary: oklch(0.68 0.19 48); /* molten filament orange */
+  --secondary: oklch(0.955 0.015 80);
+  --accent: oklch(0.94 0.035 75);
+  --neutral: oklch(0.27 0.02 55);
+
+  --muted: oklch(0.955 0.012 80);
+  --muted-foreground: oklch(0.5 0.03 60);
+
+  --info: oklch(0.6 0.11 200); /* teal */
+  --success: oklch(0.62 0.14 150);
+  --warning: oklch(0.82 0.16 85);
+
+  --border: oklch(0.9 0.015 75);
+  --input: oklch(0.9 0.015 75);
+  --radius: 0.75rem;
+
+  --secondary-foreground: oklch(0.22 0.02 55);
+  --accent-foreground: oklch(0.22 0.02 55);
+  --secondary-accent: oklch(0.88 0.02 75);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.17 0.012 55);
+  --foreground: oklch(0.96 0.01 80);
+  --card: oklch(0.22 0.014 55);
+  --card-foreground: oklch(0.96 0.01 80);
+  --popover: oklch(0.22 0.014 55);
+  --popover-foreground: oklch(0.96 0.01 80);
+
+  --primary: oklch(0.74 0.17 52);
+  --secondary: oklch(0.28 0.016 55);
+  --accent: oklch(0.3 0.03 55);
+  --neutral: oklch(0.33 0.016 55);
+
+  --muted: oklch(0.28 0.016 55);
+  --muted-foreground: oklch(0.72 0.025 70);
+
+  --info: oklch(0.74 0.11 200);
+  --success: oklch(0.74 0.14 150);
+  --warning: oklch(0.84 0.15 85);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+
+  --secondary-foreground: oklch(0.96 0.01 80);
+  --accent-foreground: oklch(0.96 0.01 80);
+  --secondary-accent: oklch(0.37 0.018 55);
+}
+
+.spoolsync-tour-highlight {
+  position: relative;
+  z-index: 60;
+  outline: 3px solid var(--primary);
+  outline-offset: 6px;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 8px color-mix(in oklch, var(--primary) 16%, transparent);
+}
+
+/* Self-hosted, so the first paint waits on nothing outside this site. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-variable-wghtOnly-normal.woff2") format("woff2");
+}
+
+@theme {
+  --font-sans:
+    "Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI",
+    "Roboto", "Helvetica Neue", "Arial", "sans-serif";
+  --font-mono:
+    "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono",
+    "Courier New", "monospace";
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--starwind-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--starwind-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}

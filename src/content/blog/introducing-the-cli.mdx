@@ -1,0 +1,59 @@
+---
+title: Sync your filament inventory from the terminal
+description: The spoolsync package runs the same matching, planning, and export engine as the web app, so you can reconcile Spoolman, Spoolio, TigerTag and more from scripts and scheduled jobs.
+pubDate: "2026-10-27"
+author: SpoolSync
+coverImage: ../../assets/images/blog/introducing-the-cli.avif
+coverAlt: The SpoolSync social card showing filament spools being synced between inventory apps.
+tags:
+  - CLI
+  - Releases
+---
+
+SpoolSync started as a browser app: export your inventory from each tool, load the files, review the matches, and write the changes back. The same engine now ships as an npm package, **`spoolsync`**, built for terminals, scripts, and scheduled jobs.
+
+## Install
+
+```sh
+npm install --global spoolsync
+spoolsync --help
+```
+
+<Callout variant="info" title="Requirements">
+
+It needs Node.js 20 or newer.
+
+</Callout>
+
+## Preview before you write
+
+By default the CLI only prints a plan. Point it at an export from each tool:
+
+```sh
+spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json
+```
+
+You get a summary of updates, creates, unresolved field conflicts, and match suggestions you can accept with `--confirm` or decline with `--reject`.
+
+## Write the result
+
+Add `--output-dir` to generate updated import files for every writable source, or `--apply` with `--spoolman-url` to update Spoolman directly over the network. Everything is staged before anything is written, and output paths that would overwrite an input file are rejected.
+
+```sh
+spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json \
+  --resolve material=spoolstock --create-in spoolio --output-dir ./updated
+```
+
+## Start a new inventory
+
+Need a brand-new target? `--empty` starts a blank inventory so you can copy spools into it:
+
+```sh
+spoolsync --spoolio spoolio.json --empty filameter --create-in filameter --output-dir ./updated
+```
+
+<Callout variant="success" title="Want every flag?">
+
+See the [CLI reference](/cli) for every option.
+
+</Callout>

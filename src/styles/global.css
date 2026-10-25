@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+/* Starwind token contract: semantic seeds, derived foregrounds, `.dark`, and the Tailwind mapping. */
+@import "../components/starwind/styles/tokens.css";
+/*
+ * Starwind source copied into this project. Tailwind can scan it directly without depending on a
+ * package in node_modules.
+ */
+@source "../components/starwind/**/*.{astro,ts}";
+@plugin "tailwindcss-motion";
+@plugin "tailwindcss-intersect";
+@plugin "@tailwindcss/typography";
+
+@import "./theme.css";
+@import "./base.css";
+@import "./tables.css";
+@import "./effects.css";
+@import "./forms.css";
+@import "./accessibility.css";
+@import "./prose.css";

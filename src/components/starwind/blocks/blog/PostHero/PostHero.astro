@@ -1,0 +1,173 @@
+---
+/**
+ * PostHero Component
+ *
+ * Article header hero with breadcrumbs, heading, description,
+ * and metadata pills (published date, reading time, author).
+ *
+ * @component
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import Breadcrumbs from "../../../controls/Breadcrumbs/Breadcrumbs.astro";
+import type { BreadcrumbItem, PostMetaPill } from "../blogTypes";
+import { withPalette, type PaletteProps } from "../../../lib/palette";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes";
+
+export type { BreadcrumbItem, PostMetaPill };
+
+type Part =
+  | "container"
+  | "breadcrumbs"
+  | "title"
+  | "description"
+  /** Row wrapping the metadata pills. */
+  | "meta"
+  | "pill";
+
+interface Labels {
+  /** Text of the generated published-date pill. */
+  published: (date: string) => string;
+  /** Text of the generated author pill. */
+  author: (name: string) => string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  published: (date) => `Published ${date}`,
+  author: (name) => `By ${name}`,
+};
+
+interface Props extends HTMLAttributes<"section">, PaletteProps, ClassesProps<Part>, LabelsProps<Labels> {
+  title: string;
+  description?: string;
+  breadcrumbs?: BreadcrumbItem[];
+  publishedDate?: string;
+  publishedDateIso?: string;
+  readingTime?: string;
+  author?: string;
+  metaPills?: PostMetaPill[];
+  /** Topic labels rendered as a kicker above the title. */
+  topics?: string[];
+  backgroundClass?: string;
+}
+
+const {
+  title,
+  description,
+  breadcrumbs,
+  publishedDate,
+  publishedDateIso,
+  readingTime,
+  author,
+  metaPills,
+  topics,
+  backgroundClass = "bg-background text-foreground",
+  class: className,
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+const hasDescriptionSlot = Astro.slots.has("description");
+const hasMetaSlot = Astro.slots.has("meta");
+
+const pills: PostMetaPill[] = metaPills ?? [
+  publishedDate
+    ? { text: labels.published(publishedDate), datetime: publishedDateIso, icon: "material-symbols:calendar-today-outline" }
+    : undefined,
+  readingTime ? { text: readingTime, icon: "material-symbols:schedule-outline" } : undefined,
+  author ? { text: labels.author(author), icon: "material-symbols:person-outline" } : undefined,
+].filter(Boolean) as PostMetaPill[];
+---
+
+<section
+  class:list={["relative overflow-hidden border-b border-border/60", backgroundClass, className]}
+  {...withPalette(rest)}
+>
+  <div
+    class="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/60 to-transparent"
+    aria-hidden="true"
+  >
+  </div>
+  <div
+    class="pointer-events-none absolute -top-24 -left-32 size-72 rounded-full bg-primary/10 blur-3xl"
+    aria-hidden="true"
+  >
+  </div>
+  <div
+    class="pointer-events-none absolute top-10 -right-20 size-56 rounded-full bg-accent/20 blur-3xl"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class={cls("container", "relative mx-auto max-w-5xl px-4 pt-10 pb-14 sm:pt-12 sm:pb-16 lg:px-8")}>
+    {
+      breadcrumbs && breadcrumbs.length > 0 && (
+        <Breadcrumbs items={breadcrumbs} class={cls("breadcrumbs", "mb-8 max-w-full")} />
+      )
+    }
+    <slot name="breadcrumbs" />
+
+    {
+      topics && topics.length > 0 && (
+        <ul class="mb-5 flex flex-wrap gap-2" aria-label="Topics">
+          {topics.map((topic) => (
+            <li class="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wide text-primary-text uppercase">
+              {topic}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    <h1
+      class={cls(
+        "title",
+        "font-display max-w-4xl text-3xl leading-tight font-black tracking-tight text-balance break-words text-foreground sm:text-4xl md:text-5xl",
+      )}
+    >
+      <slot name="title">{title}</slot>
+    </h1>
+
+    {
+      (description || hasDescriptionSlot) && (
+        <p class={cls("description", "mt-5 max-w-3xl text-base leading-7 text-foreground/75 text-pretty sm:text-lg sm:leading-8")}>
+          <slot name="description">{description}</slot>
+        </p>
+      )
+    }
+
+    {
+      (pills.length > 0 || hasMetaSlot) && (
+        <div class={cls("meta", "mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border/60 pt-5 text-sm")}>
+          <slot name="meta">
+            {pills.map((pill) => (
+              <span
+                class={cls(
+                  "pill",
+                  "inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3.5 py-1.5 font-medium text-foreground/80 shadow-xs",
+                )}
+              >
+                {pill.icon && <Icon name={pill.icon} class="size-4 text-primary-text" aria-hidden="true" />}
+                {pill.datetime ? (
+                  <time datetime={pill.datetime}>{pill.text}</time>
+                ) : (
+                  pill.text
+                )}
+              </span>
+            ))}
+          </slot>
+        </div>
+      )
+    }
+
+    <slot />
+  </div>
+</section>

@@ -1,0 +1,226 @@
+---
+/**
+ * Timeline layout styles (global, deduplicated by Astro).
+ *
+ * The timeline class contract (`timeline`, `timeline-vertical`,
+ * `timeline-horizontal`, `timeline-compact`, `timeline-snap-icon`,
+ * `timeline-start|middle|end`, `timeline-box`) used to come from the legacy UI
+ * plugin layer. That layer is gone, so the layout lives here instead — same
+ * class names, so consuming markup is unchanged.
+ *
+ * Row/column tracks are driven by custom properties so callers can retune the
+ * leading/trailing gap without re-declaring the grid:
+ *   --timeline-row-start / --timeline-row-end (vertical)
+ *   --timeline-col-start / --timeline-col-end (horizontal)
+ */
+---
+
+<style is:global>
+  .timeline {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .timeline > li {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    align-items: center;
+    grid-template-columns: [start] auto [middle] auto [end] minmax(0, 1fr);
+    grid-template-rows:
+      var(--timeline-row-start, minmax(0.5rem, 1fr))
+      auto
+      var(--timeline-row-end, minmax(0.5rem, 1fr));
+  }
+
+  /* Vertical is the default track; the class is explicit so markup that names
+     it (and stylesheets that scope to it) has a rule to hang off. */
+  .timeline-vertical {
+    flex-direction: column;
+  }
+
+  .timeline > li > .timeline-start {
+    grid-column: start;
+    grid-row: 2;
+    min-width: 0;
+    justify-self: end;
+    text-align: end;
+  }
+
+  .timeline > li > .timeline-middle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: middle;
+    grid-row: 2;
+  }
+
+  .timeline > li > .timeline-end {
+    grid-column: end;
+    grid-row: 2;
+    min-width: 0;
+    justify-self: start;
+  }
+
+  /* Connector segments: an `<hr>` before the node draws the leading half, one
+     after it draws the trailing half. Items may carry either, both, or none. */
+  .timeline > li > hr {
+    margin: 0;
+    border: none;
+    background-color: var(--border, currentColor);
+    grid-column: middle;
+    justify-self: center;
+    width: 2px;
+    height: 100%;
+  }
+
+  .timeline > li > hr:first-child {
+    grid-row: 1;
+  }
+
+  .timeline > li > hr:last-child {
+    grid-row: 3;
+  }
+
+  /* Snap the node to the top of its row instead of centering it. */
+  .timeline-snap-icon > li {
+    --timeline-row-start: 0;
+  }
+
+  /* Compact: single-sided. `start` content stacks above the card, so row 1
+     must size to that content — it cannot inherit the snap-icon collapse. */
+  .timeline-compact > li {
+    grid-template-columns: [middle] auto [end] minmax(0, 1fr);
+    grid-template-rows:
+      minmax(0.5rem, auto)
+      auto
+      var(--timeline-row-end, minmax(0.5rem, 1fr));
+  }
+
+  .timeline-compact > li > .timeline-start {
+    grid-column: end;
+    grid-row: 1;
+    align-self: end;
+    justify-self: start;
+    text-align: start;
+  }
+
+  @media (max-width: 767px) {
+    .timeline-compact-mobile > li {
+      grid-template-columns: [middle] auto [end] minmax(0, 1fr);
+      grid-template-rows:
+        minmax(0.5rem, auto)
+        auto
+        var(--timeline-row-end, minmax(0.5rem, 1fr));
+    }
+
+    .timeline-compact-mobile > li > .timeline-start {
+      grid-column: end;
+      grid-row: 1;
+      align-self: end;
+      justify-self: start;
+      text-align: start;
+    }
+  }
+
+  .timeline-box {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  .timeline-horizontal {
+    flex-direction: row;
+  }
+
+  .timeline-horizontal > li {
+    grid-template-rows: [start] auto [middle] auto [end] minmax(0, 1fr);
+    grid-template-columns:
+      var(--timeline-col-start, minmax(0.5rem, 1fr))
+      auto
+      var(--timeline-col-end, minmax(0.5rem, 1fr));
+  }
+
+  .timeline-horizontal > li > .timeline-start {
+    grid-row: start;
+    grid-column: 2;
+    align-self: end;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .timeline-horizontal > li > .timeline-middle {
+    grid-row: middle;
+    grid-column: 2;
+  }
+
+  .timeline-horizontal > li > .timeline-end {
+    grid-row: end;
+    grid-column: 2;
+    justify-self: center;
+    text-align: center;
+  }
+
+  .timeline-horizontal > li > hr {
+    grid-row: middle;
+    align-self: center;
+    width: 100%;
+    height: 2px;
+  }
+
+  .timeline-horizontal > li > hr:first-child {
+    grid-column: 1;
+  }
+
+  .timeline-horizontal > li > hr:last-child {
+    grid-column: 3;
+  }
+
+  @media (min-width: 1024px) {
+    .timeline-responsive {
+      flex-direction: row;
+    }
+
+    .timeline-responsive > li {
+      grid-template-rows: [start] auto [middle] auto [end] minmax(0, 1fr);
+      grid-template-columns:
+        var(--timeline-col-start, minmax(0.5rem, 1fr))
+        auto
+        var(--timeline-col-end, minmax(0.5rem, 1fr));
+    }
+
+    .timeline-responsive > li > .timeline-start {
+      grid-row: start;
+      grid-column: 2;
+      align-self: end;
+      justify-self: center;
+      text-align: center;
+    }
+
+    .timeline-responsive > li > .timeline-middle {
+      grid-row: middle;
+      grid-column: 2;
+    }
+
+    .timeline-responsive > li > .timeline-end {
+      grid-row: end;
+      grid-column: 2;
+      justify-self: center;
+      text-align: center;
+    }
+
+    .timeline-responsive > li > hr {
+      grid-row: middle;
+      align-self: center;
+      width: 100%;
+      height: 2px;
+    }
+
+    .timeline-responsive > li > hr:first-child {
+      grid-column: 1;
+    }
+
+    .timeline-responsive > li > hr:last-child {
+      grid-column: 3;
+    }
+  }
+</style>

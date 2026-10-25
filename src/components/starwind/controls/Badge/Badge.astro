@@ -1,0 +1,257 @@
+---
+/**
+ * Semantic status badge with optional link, count, icon, and dismissal action.
+ * Linked dismissible badges keep navigation and dismissal as sibling controls.
+ */
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import { sanitizeUrl } from "../../lib/safe-url.ts";
+import {
+  getBadgeClasses,
+  sizeClasses,
+  type BadgeColor,
+  type BadgeSize,
+  type BadgeStyle,
+  type BadgeShape,
+} from "./badgeVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette.ts";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../lib/classes.ts";
+
+type BadgeAnimation = false | "pulse" | "spin";
+
+type Part =
+  /** Inner wrapper around the dot, icon and text (the link when the badge is linked and dismissible). */
+  | "content"
+  | "dot"
+  | "icon"
+  | "dismissButton"
+  | "dismissIcon";
+
+interface Labels {
+  /** Accessible name for the dismiss button. */
+  dismiss: string;
+}
+
+const DEFAULT_LABELS: Labels = { dismiss: "Remove badge" };
+
+interface Props
+  extends Omit<HTMLAttributes<"a">, "style">, PaletteProps, ClassesProps<Part>, LabelsProps<Labels> {
+  /**
+   * Visual style (solid, soft, outline, ghost).
+   * @default 'default'
+   */
+  style?: BadgeStyle;
+  /**
+   * Shape of the badge (pill, square, circle).
+   * @default 'default'
+   */
+  shape?: BadgeShape;
+  /**
+   * Semantic color theme.
+   * @default 'primary'
+   */
+  color?: BadgeColor;
+  /**
+   * Size preset.
+   * @default 'md'
+   */
+  size?: BadgeSize;
+  /**
+   * Name of the icon to display (via astro-icon).
+   */
+  icon?: string;
+  /**
+   * Position of the icon relative to the text.
+   * @default 'left'
+   */
+  iconPosition?: "left" | "right";
+  /**
+   * Whether the badge shows a close button for dismissal.
+   * @default false
+   */
+  dismissible?: boolean;
+  /**
+   * URL to make the badge a clickable basic link.
+   * Renders as an <a> tag if provided.
+   */
+  href?: string;
+  /**
+   * Shows a small colored dot indicator.
+   * @default false
+   */
+  dot?: boolean;
+  /**
+   * Optional animation preset for live/status states.
+   * @default false
+   */
+  animated?: BadgeAnimation;
+  /**
+   * Numeric badge value. When present, replaces slotted text content.
+   */
+  count?: number;
+  /**
+   * Overflow ceiling for numeric badges.
+   * @default 99
+   */
+  maxCount?: number;
+  /**
+   * ARIA label for screen readers. Required for icon-only badges.
+   */
+  ariaLabel?: string;
+  /**
+   * Test identifier for automated testing.
+   */
+  dataTestid?: string;
+  /**
+   * Additional CSS classes.
+   */
+  class?: string;
+  /**
+   * Shared visual recipe layered on top of the badge style/color classes.
+   * @default 'default'
+   */
+  /**
+   * Adds a soft colored halo around the badge. Pairs best with the soft,
+   * outline, ghost, and gradient styles (the glow follows the badge color).
+   * @default false
+   */
+  glow?: boolean;
+  /**
+   * Unique ID. Required for dismissible badges.
+   */
+  id?: string;
+}
+
+const {
+  style = "default",
+  shape = "default",
+  color,
+  size = "md",
+  icon,
+  iconPosition = "left",
+  dismissible = false,
+  href,
+  dot = false,
+  animated = false,
+  count,
+  maxCount = 99,
+  ariaLabel,
+  dataTestid,
+  class: className,
+  glow = false,
+  id,
+  "aria-label": nativeAriaLabel,
+  "aria-describedby": ariaDescribedby,
+  "aria-labelledby": ariaLabelledby,
+  tabindex: tabIndex,
+  target,
+  rel,
+  download,
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props as Props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+
+const effectiveColor = color ?? "primary";
+
+const safeHref = sanitizeUrl(href);
+const isLink = !!safeHref;
+// Ensure size is a valid key for sizeClasses to prevent TS errors
+const safeSize = (sizeClasses[size] ? size : "md") as BadgeSize;
+
+const baseClasses = getBadgeClasses(
+  effectiveColor,
+  safeSize,
+  isLink,
+  style,
+  shape,
+  className,
+);
+
+const dotClasses = "size-2 rounded-full bg-current";
+const RootTag = isLink && !dismissible ? "a" : "span";
+const ContentTag = isLink && dismissible ? "a" : "span";
+const animationClasses: Record<Exclude<BadgeAnimation, false>, string> = {
+  pulse: "animate-pulse",
+  spin: "animate-spin",
+};
+const contentValue =
+  typeof count === "number" ? `${Math.min(count, maxCount)}${count > maxCount ? "+" : ""}` : undefined;
+const badgeClasses = [
+  baseClasses,
+  animated ? animationClasses[animated] : "",
+  contentValue ? "tabular-nums" : "",
+  glow ? "shadow-lg shadow-current/20" : "",
+]
+  .filter(Boolean)
+  .join(" ");
+---
+
+<RootTag
+  id={id}
+  href={RootTag === "a" ? safeHref : undefined}
+  class={badgeClasses}
+  aria-label={ContentTag === "a" ? undefined : nativeAriaLabel ?? ariaLabel}
+  aria-describedby={ContentTag === "a" ? undefined : ariaDescribedby}
+  aria-labelledby={ContentTag === "a" ? undefined : ariaLabelledby}
+  tabindex={ContentTag === "a" ? undefined : tabIndex}
+  target={RootTag === "a" ? target : undefined}
+  rel={RootTag === "a" ? rel : undefined}
+  download={RootTag === "a" ? download : undefined}
+  data-testid={dataTestid}
+  data-badge
+  data-style={style}
+  data-color={effectiveColor}
+  data-size={safeSize}
+  {...withPalette(rest)}
+>
+  <ContentTag
+    href={ContentTag === "a" ? safeHref : undefined}
+    aria-label={ContentTag === "a" ? nativeAriaLabel ?? ariaLabel : undefined}
+    aria-describedby={ContentTag === "a" ? ariaDescribedby : undefined}
+    aria-labelledby={ContentTag === "a" ? ariaLabelledby : undefined}
+    tabindex={ContentTag === "a" ? tabIndex : undefined}
+    target={ContentTag === "a" ? target : undefined}
+    rel={ContentTag === "a" ? rel : undefined}
+    download={ContentTag === "a" ? download : undefined}
+    class={cls(
+      "content",
+      "inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    )}
+  >
+    {dot && <span class={cls("dot", dotClasses)} aria-hidden="true" />}
+    {icon && iconPosition === "left" && (
+      <Icon name={icon} class={cls("icon", sizeClasses[safeSize].icon)} aria-hidden="true" />
+    )}
+    {contentValue ? contentValue : <slot />}
+    {icon && iconPosition === "right" && (
+      <Icon name={icon} class={cls("icon", sizeClasses[safeSize].icon)} aria-hidden="true" />
+    )}
+  </ContentTag>
+  {dismissible && (
+    <button
+      type="button"
+      class={cls(
+        "dismissButton",
+        "inline-flex size-4 items-center justify-center rounded-full bg-transparent p-0 text-xs font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+      )}
+      aria-label={labels.dismiss}
+      data-badge-dismiss
+    >
+      <Icon name="material-symbols:close" class={cls("dismissIcon", "size-3")} aria-hidden="true" />
+    </button>
+  )}
+</RootTag>
+
+<script>
+  import { initBadgeDismiss } from "./initBadgeDismiss";
+  initBadgeDismiss();
+</script>

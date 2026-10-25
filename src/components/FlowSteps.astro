@@ -1,0 +1,57 @@
+---
+/** Connect → Load → Sync progress strip shown at the top of the three app pages. */
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  current: "connections" | "load" | "sync";
+  class?: string;
+}
+
+const { current, class: className } = Astro.props;
+
+const steps = [
+  { id: "connections", label: "Connect", href: "/connections", icon: "material-symbols:link" },
+  { id: "load", label: "Load", href: "/load", icon: "material-symbols:upload-file-outline-rounded" },
+  { id: "sync", label: "Sync", href: "/sync", icon: "material-symbols:sync" },
+] as const;
+const currentIndex = steps.findIndex((step) => step.id === current);
+---
+
+<nav aria-label="Progress" class={className}>
+  <ol class="flex items-center gap-0.5 text-sm sm:gap-2">
+    {
+      steps.map((step, index) => (
+        <>
+          <li>
+            <a
+              href={step.href}
+              aria-current={step.id === current ? "step" : undefined}
+              class:list={[
+                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 font-medium transition-colors sm:px-3",
+                step.id === current
+                  ? "border-primary/50 bg-primary/15 text-primary-text"
+                  : index < currentIndex
+                    ? "border-transparent text-foreground hover:bg-muted"
+                    : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+              ]}
+            >
+              {index < currentIndex ? (
+                <Icon name="material-symbols:check-circle-rounded" class="size-4 text-success" aria-hidden="true" />
+              ) : (
+                <Icon name={step.icon} class="size-4" aria-hidden="true" />
+              )}
+              <span>
+                <span class="hidden text-muted-foreground sm:inline">{index + 1}.</span> {step.label}
+              </span>
+            </a>
+          </li>
+          {index < steps.length - 1 && (
+            <li aria-hidden="true" class="text-muted-foreground">
+              <Icon name="material-symbols:chevron-right-rounded" class="size-5" />
+            </li>
+          )}
+        </>
+      ))
+    }
+  </ol>
+</nav>

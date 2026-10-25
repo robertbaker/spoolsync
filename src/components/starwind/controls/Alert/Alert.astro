@@ -1,0 +1,200 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { Icon } from "astro-icon/components";
+import {
+  getAlertClasses,
+  getAlertIcon,
+  getAlertLayoutClasses,
+  getAlertSizeClasses,
+  type AlertVariant,
+  type AlertStyle,
+  type AlertSize,
+  type AlertIconPosition,
+} from "./alertVariants";
+import { withPalette, type PaletteProps } from "../../lib/palette.ts";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../lib/classes.ts";
+
+type Part =
+  | "main"
+  | "icon"
+  | "body"
+  | "title"
+  | "content"
+  | "actions"
+  | "dismissButton"
+  | "dismissIcon";
+
+export interface Labels {
+  title?: string;
+  dismiss?: string;
+}
+
+interface Props extends HTMLAttributes<"div">, PaletteProps, ClassesProps<Part>, LabelsProps<Labels> {
+  /**
+   * visual style variant of the alert (the color scheme).
+   * @default 'info'
+   */
+  variant?: AlertVariant;
+  /**
+   * The visual style of the alert (e.g., outline, soft).
+   * @default 'default'
+   */
+  style?: AlertStyle;
+  /**
+   * Bold title displayed at the top of the alert.
+   */
+  title?: string;
+  /**
+   * Custom icon name (from astro-icon).
+   * If not provided, a default icon based on the variant is used.
+   */
+  icon?: string;
+  /**
+   * Alert size scale.
+   * @default "md"
+   */
+  size?: AlertSize;
+  /**
+   * Position for the icon relative to the content.
+   * @default "left"
+   */
+  iconPosition?: AlertIconPosition;
+  /**
+   * ARIA role for the alert surface.
+   * @default "alert"
+   */
+  role?: "alert" | "status";
+  /**
+   * Optional aria-live politeness.
+   */
+  ariaLive?: "off" | "polite" | "assertive";
+  /**
+   * Adds a dismiss button to the alert.
+   * @default false
+   */
+  dismissible?: boolean;
+  /**
+   * Dismiss button accessible label.
+   * @default "Dismiss alert"
+   */
+  dismissLabel?: string;
+  /**
+   * Optional id applied to the dismiss button.
+   */
+  dismissButtonId?: string;
+  /**
+   * Dismiss behavior.
+   * @default "hide"
+   */
+  dismissAction?: "hide" | "remove";
+}
+
+let {
+  variant = "info",
+  style = "default",
+  title,
+  icon,
+  size = "md",
+  iconPosition = "left",
+  role = "alert",
+  ariaLive,
+  dismissible = false,
+  dismissLabel = "Dismiss alert",
+  dismissButtonId,
+  dismissAction = "hide",
+  class: className = "",
+  id,
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels({
+  title,
+  dismiss: dismissLabel,
+}, labelOverrides);
+
+title = labels.title ?? title;
+dismissLabel = labels.dismiss ?? dismissLabel;
+
+const alertClasses = getAlertClasses(variant, style, size, className ?? undefined);
+const iconName = getAlertIcon(variant, icon);
+const resolvedSize = getAlertSizeClasses(size);
+const layout = getAlertLayoutClasses(iconPosition);
+const hasActions = Astro.slots.has("actions");
+const hasTitleSlot = Astro.slots.has("title");
+---
+
+<div
+  role={role}
+  aria-live={ariaLive}
+  class={alertClasses}
+  id={id}
+  data-alert-size={size}
+  data-alert-icon-position={iconPosition}
+  data-alert-dismissible={dismissible ? "true" : "false"}
+  {...withPalette(rest)}
+>
+  <div class={cls("main", layout.main)}>
+    {
+      iconPosition !== "none" && (
+        <slot name="icon">
+          <Icon
+            name={iconName}
+            class={cls("icon", resolvedSize.icon, layout.icon)}
+            aria-hidden="true"
+          />
+        </slot>
+      )
+    }
+    <div class={cls("body", layout.body)}>
+      {
+        (title || hasTitleSlot) && (
+          <h3 class={cls("title", "font-bold", resolvedSize.title)}>
+            <slot name="title">{title}</slot>
+          </h3>
+        )
+      }
+      <div class={cls("content", resolvedSize.body)}>
+        <slot />
+      </div>
+    </div>
+  </div>
+  {
+    (hasActions || dismissible) && (
+      <div class={cls("actions", layout.actions)}>
+        <slot name="actions" />
+        {
+          dismissible && (
+            <slot name="dismiss">
+              <button
+                type="button"
+                id={dismissButtonId}
+                class={cls("dismissButton", resolvedSize.dismissButton)}
+                aria-label={dismissLabel}
+                data-alert-dismiss
+                data-alert-dismiss-action={dismissAction}
+              >
+                <Icon
+                  name="material-symbols:close"
+                  class={cls("dismissIcon", "size-4")}
+                  aria-hidden="true"
+                />
+              </button>
+            </slot>
+          )
+        }
+      </div>
+    )
+  }
+</div>
+
+{
+  dismissible && <script src="./initAlertDismiss.ts" />
+}

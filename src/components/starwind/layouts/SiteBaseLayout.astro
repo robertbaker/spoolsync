@@ -1,0 +1,630 @@
+---
+/**
+ * SiteBaseLayout — configurable full-page layout for sites.
+ *
+ * Renders the HTML shell (SEO, theme init, font preloads), header with any mobile menu variant,
+ * `<main>`, and the full footer. Everything site-specific is a prop or a named slot, so sites
+ * should not need a local copy.
+ *
+ * Slots: `head`, `before-header`, `desktop-nav`, `theme-toggle-mobile`, `theme-toggle-desktop`,
+ * `header-banner`, `header-actions`, `after-header`, default, `after-main`, `before-footer`, `footer-logo`, `footer-description`,
+ * `footer-brand-extra`, `footer-bottom-extra`, `copyright-content`, `after-footer`, `body-end`.
+ *
+ * @example
+ * ```astro
+ * ---
+ * import SiteBaseLayout from "./SiteBaseLayout.astro";
+ * ---
+ * <SiteBaseLayout
+ *   title="About"
+ *   siteTitle={SITE_TITLE}
+ *   siteDescription={SITE_DESCRIPTION}
+ *   siteUrl={SITE_URL}
+ *   socialLinks={SOCIAL_LINKS}
+ *   navLinks={navLinks}
+ *   config={SITE_CONFIG}
+ *   bodyFontHref="/fonts/inter.woff2"
+ * >
+ *   <h1>Page content here</h1>
+ * </SiteBaseLayout>
+ * ```
+ */
+import SEO from "../controls/SEO/SEO.astro";
+import SiteHeaderFull from "../blocks/site/SiteHeader/SiteHeaderFull.astro";
+import HeaderLogo from "../blocks/site/SiteHeader/HeaderLogo.astro";
+import HeaderMobileMenuButton from "../blocks/site/SiteHeader/HeaderMobileMenuButton.astro";
+import DesktopMegaNav from "../blocks/site/SiteHeader/DesktopMegaNav.astro";
+import BottomNav from "../blocks/site/SiteHeader/variants/BottomNav.astro";
+import FabMenu from "../blocks/site/SiteHeader/variants/FabMenu.astro";
+import GridMenu from "../blocks/site/SiteHeader/variants/GridMenu.astro";
+import OverlayMenu from "../blocks/site/SiteHeader/variants/OverlayMenu.astro";
+import SiteFooterConfigured from "../blocks/site/SiteFooterConfigured/SiteFooterConfigured.astro";
+import ThemeToggle from "../controls/ThemeToggle/ThemeToggle.astro";
+import BlockRuntime from "../lib/BlockRuntime.astro";
+import SiteBaseStyles from "./SiteBaseStyles.astro";
+import { createThemeInitScript } from "../lib/theme/themeUtils.ts";
+import type {
+  DesktopMegaNavCta,
+  DesktopMegaNavGroup,
+} from "../blocks/site/SiteHeader/index.ts";
+import type { NavLink, SimpleSiteConfig } from "../types/index.ts";
+import type { CollectionEntry } from "astro:content";
+import type { ImageMetadata } from "astro";
+
+interface FontPreload {
+  href: string;
+  type?: string | undefined;
+}
+
+interface Props {
+  // ── Page / SEO ──
+  /** Page title for <title> and SEO */
+  title: string;
+  /** Page description for SEO (falls back to siteDescription) */
+  description?: string | undefined;
+  /** Site title for header/footer branding */
+  siteTitle: string;
+  /** Site description for SEO fallback and footer */
+  siteDescription: string;
+  /** Base site URL for SEO */
+  siteUrl: string;
+  /** Twitter handle for SEO */
+  twitterHandle?: string | undefined;
+  /** Optional post for article-level SEO metadata */
+  post?: CollectionEntry<"blog"> | undefined;
+  /** Social links for footer and structured data */
+  socialLinks: Record<string, string>;
+  /** Custom OG image (falls back to the post cover image) */
+  image?: string | ImageMetadata | undefined;
+  /** Alt text for the OG image */
+  imageAlt?: string | undefined;
+  /** Advertise the site's RSS feed */
+  hasRss?: boolean | undefined;
+  /** Robots directive override */
+  robots?: string | undefined;
+
+  // ── Config / navigation ──
+  /** Site config object (ui.theme, ui.header, ui.footer, brand, contact) */
+  config: SimpleSiteConfig;
+  /** Desktop navigation links (also mobile unless `mobileNavLinks` is set) */
+  navLinks: NavLink[];
+  /** Mobile menu links override (e.g. a shorter bottom bar) */
+  mobileNavLinks?: NavLink[] | undefined;
+  /**
+   * Grouped desktop navigation rendered with `DesktopMegaNav`. A `desktop-nav` slot wins.
+   * Mobile menus keep using `navLinks`.
+   */
+  megaNav?:
+    | { groups: readonly DesktopMegaNavGroup[]; cta?: DesktopMegaNavCta | undefined }
+    | undefined;
+
+  // ── Document ──
+  /** `<html lang>` (default "en") */
+  lang?: string | undefined;
+  /** `<html dir>` (omitted by default) */
+  dir?: "ltr" | "rtl" | undefined;
+  /**
+   * Pagefind indexing of <main>. `auto` (default) indexes the page unless `robots` contains
+   * `noindex`, in which case it is excluded; `true`/`false` force it.
+   */
+  pagefind?: "auto" | boolean | undefined;
+  /** Extra classes replacing the default skip-link classes */
+  skipLinkClass?: string | undefined;
+  /** Render a reading-progress bar (`.site-scroll-progress`, styled by the site) */
+  scrollProgress?: boolean | undefined;
+  /** Class for the progress bar element (default "site-scroll-progress") */
+  scrollProgressClass?: string | undefined;
+  /** Add scroll-smooth to <html> */
+  scrollSmooth?: boolean | undefined;
+  /** Id for <main> (leading `#` is stripped; default "main-content") */
+  mainId?: string | undefined;
+  /** Extra classes on <main> */
+  mainClass?: string | undefined;
+  /** Fade <main> in on non-home pages (default true) */
+  animateMain?: boolean | undefined;
+  /** Extra classes on <body> */
+  bodyClass?: string | undefined;
+  /** Skip-link label */
+  skipLinkText?: string | undefined;
+  /** Override `<meta name="theme-color">` (default config.ui.theme.metaThemeColor) */
+  themeColor?: string | undefined;
+  /** Emit `<meta name="generator">` (default true) */
+  generator?: boolean | undefined;
+  /** Emit `<meta name="text-scale" content="scale">` (default false) */
+  textScale?: boolean | undefined;
+  /** SVG favicon (default "/favicon.svg"; apple-touch-icon uses `appleTouchIconHref`) */
+  faviconHref?: string | undefined;
+  /** Apple touch icon (default: faviconHref) */
+  appleTouchIconHref?: string | undefined;
+  /** Also link /favicon.ico (stops crawler 404s when the file exists) */
+  faviconIco?: boolean | undefined;
+
+  // ── Fonts / network hints ──
+  /** Primary body font file to preload; no preload when omitted */
+  bodyFontHref?: string | undefined;
+  /** Display font file to preload; no preload when omitted */
+  displayFontHref?: string | undefined;
+  /** Force-disable the body font preload even when `bodyFontHref` is set */
+  preloadBodyFont?: boolean | undefined;
+  /** Force-disable the display font preload even when `displayFontHref` is set */
+  preloadDisplayFont?: boolean | undefined;
+  /** Additional font preloads */
+  extraFontPreloads?: readonly FontPreload[] | undefined;
+  /** Origins to preconnect on every page */
+  preconnectOrigins?: readonly string[] | undefined;
+  /**
+   * Origins to preconnect only on specific paths, keyed by normalized pathname.
+   * Default: none.
+   */
+  routePreconnects?: Record<string, readonly string[]> | undefined;
+  /**
+   * Render the inline theme-init script (default true). Turn off for single-theme sites that
+   * enforce a strict `script-src 'self'` CSP and have no theme toggle.
+   */
+  themeScript?: boolean | undefined;
+  /**
+   * Render the shared <SEO> head tags (default true). Turn off when the page supplies its own
+   * title, meta, Open Graph and structured data through the `head` slot.
+   */
+  seo?: boolean | undefined;
+  /** Register a CSP hash for the inline theme script when Astro CSP is enabled (default true) */
+  cspThemeScriptHash?: boolean | undefined;
+
+  // ── Header ──
+  hideHeader?: boolean | undefined;
+  /** Desktop nav placement: `end` (default) or `center`; defaults to `config.ui.header.navAlign` */
+  headerNavAlign?: "end" | "center" | undefined;
+  /**
+   * Where the `header-banner` slot renders inside the sticky header, above or below the navbar;
+   * defaults to `config.ui.header.bannerPosition`, then `above`.
+   */
+  headerBannerPosition?: "above" | "below" | undefined;
+  /** Show the site title text next to the header logo */
+  showHeaderTitle?: boolean | undefined;
+  /** Extra classes for the header title text */
+  headerTitleClass?: string | undefined;
+  /**
+   * Render the built-in ThemeToggle in the header theme-toggle slots when the page does not
+   * provide its own `theme-toggle-*` slot content (default false).
+   */
+  defaultThemeToggle?: boolean | undefined;
+
+  // ── Footer ──
+  hideFooter?: boolean | undefined;
+  /** Footer brand column arrangement (default "stacked") */
+  footerLogoLayout?: "stacked" | "inline" | undefined;
+  /** Extra classes on the footer brand column */
+  footerBrandClass?: string | undefined;
+  /** Extra classes on the footer logo link */
+  footerLogoClass?: string | undefined;
+  /** Hide the footer description paragraph */
+  hideFooterDescription?: boolean | undefined;
+  /** Footer legal links: under the copyright (`bottom`, default) or as a link column (`nav`) */
+  footerLegalPlacement?: "bottom" | "nav" | undefined;
+  /** Footer surface: `plain` (default), `bordered` (muted body with borders) or `muted` */
+  footerSurface?: "plain" | "bordered" | "muted" | undefined;
+  /** Footer logo size: `sm` | `md` | `lg` | `xl` or a custom height class */
+  footerLogoSize?: string | undefined;
+  /** Footer uppercase text: `true`, or any of `copyright` / `headings` / `links` / `legal` */
+  footerUppercase?: boolean | readonly ("copyright" | "headings" | "links" | "legal")[] | undefined;
+  /** Footer copyright row: `split` (default) or `center` */
+  footerCopyrightAlign?: "split" | "center" | undefined;
+  /** Label above footer social icons; `false` hides it */
+  footerSocialLabel?: string | false | undefined;
+  /** Footer link columns beside the brand at `lg` (2–4) */
+  footerNavColumns?: 2 | 3 | 4 | undefined;
+  /** Footer container width classes (default `max-w-7xl`) */
+  footerContainerClass?: string | undefined;
+  /** Extra classes on the <footer> element (e.g. content-visibility utilities) */
+  footerClass?: string | undefined;
+  /** Inline style on the <footer> element */
+  footerStyle?: string | undefined;
+  /** Prefix the footer copyright line with the site title */
+  footerCopyrightBrand?: boolean | undefined;
+
+  // ── Runtime ──
+  /** Render SharedBlockRuntime for interactive blocks (default true) */
+  sharedRuntime?: boolean | undefined;
+  /** Bootstrap scroll-reveal animations (default true) */
+  scrollReveal?: boolean | undefined;
+}
+
+const {
+  title,
+  description,
+  siteTitle,
+  siteDescription,
+  siteUrl,
+  twitterHandle,
+  post,
+  socialLinks,
+  image,
+  imageAlt,
+  hasRss = false,
+  robots,
+  config,
+  navLinks,
+  mobileNavLinks,
+  megaNav,
+  lang = "en",
+  dir,
+  pagefind = "auto",
+  skipLinkClass,
+  scrollProgress = false,
+  scrollProgressClass = "site-scroll-progress",
+  scrollSmooth = false,
+  mainId,
+  mainClass,
+  animateMain = true,
+  bodyClass,
+  skipLinkText = "Skip to main content",
+  themeColor,
+  generator = true,
+  textScale = false,
+  faviconHref = "/favicon.svg",
+  appleTouchIconHref,
+  faviconIco = false,
+  bodyFontHref,
+  displayFontHref,
+  preloadBodyFont = true,
+  preloadDisplayFont = true,
+  extraFontPreloads = [],
+  preconnectOrigins = [],
+  routePreconnects = {},
+  cspThemeScriptHash = true,
+  themeScript = true,
+  seo = true,
+  hideHeader = false,
+  showHeaderTitle = false,
+  headerTitleClass,
+  defaultThemeToggle = false,
+  hideFooter = false,
+  footerLogoLayout = "stacked",
+  footerBrandClass,
+  footerLogoClass: footerLogoLinkClass,
+  hideFooterDescription = false,
+  footerSurface = "plain",
+  footerLogoSize,
+  footerUppercase,
+  footerCopyrightAlign,
+  footerSocialLabel,
+  footerNavColumns,
+  footerContainerClass,
+  footerLegalPlacement = "bottom",
+  headerNavAlign,
+  headerBannerPosition,
+  footerClass,
+  footerStyle,
+  footerCopyrightBrand = false,
+  sharedRuntime = true,
+  scrollReveal = true,
+} = Astro.props;
+
+const headerSticky = config.ui.header.sticky;
+const headerClass = config.ui.header.class;
+const headerVariant = config.ui.header.variant ?? "default";
+const headerGlass = config.ui.header.glass ?? true;
+const mobileVariant = config.ui.header.mobileVariant ?? "grid";
+const mobileMenuHandedness = config.ui.header.mobileMenuHandedness ?? "right";
+const mobileMenuButtonStyle = config.ui.header.mobileMenuButtonStyle ?? "morph";
+const mobileMenuAccentColor = config.ui.header.mobileMenuAccentColor ?? "primary";
+const headerUnstyled = config.ui.header.unstyled ?? false;
+const headerWindowKey = config.ui.header.windowKey ?? "__simpleSiteHeaderManager";
+const mobileMenuTarget =
+  mobileVariant === "overlay"
+    ? "#mobile-menu-overlay"
+    : mobileVariant === "grid"
+      ? "#mobile-menu-grid"
+      : "#navbar-menu";
+const mainContentId = mainId?.replace(/^#/, "") || "main-content";
+
+const themeInitScript = createThemeInitScript(
+  config.ui.theme.storageKey,
+  config.ui.theme.defaultMode,
+);
+if (themeScript && cspThemeScriptHash && Astro.csp) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(themeInitScript));
+  Astro.csp.insertScriptHash({
+    hash: `sha256-${btoa(String.fromCharCode(...new Uint8Array(digest)))}`,
+    kind: "element",
+  });
+}
+
+const normalizedPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const routeOrigins = routePreconnects[normalizedPath] ?? [];
+const preconnects = [...new Set([...preconnectOrigins, ...routeOrigins])];
+const hasDesktopNavSlot = Astro.slots.has("desktop-nav");
+const hasMobileThemeToggleSlot = Astro.slots.has("theme-toggle-mobile");
+const hasDesktopThemeToggleSlot = Astro.slots.has("theme-toggle-desktop");
+const hasFooterLogoSlot = Astro.slots.has("footer-logo");
+const hasFooterDescriptionSlot = Astro.slots.has("footer-description");
+const hasFooterBrandExtraSlot = Astro.slots.has("footer-brand-extra");
+const hasFooterBottomExtraSlot = Astro.slots.has("footer-bottom-extra");
+const hasCopyrightContentSlot = Astro.slots.has("copyright-content");
+const indexForPagefind = pagefind === "auto" ? !robots?.includes("noindex") : pagefind;
+const resolvedMobileNavLinks = mobileNavLinks ?? navLinks;
+const fontPreloads: FontPreload[] = [
+  ...(preloadBodyFont && bodyFontHref ? [{ href: bodyFontHref, type: "font/woff2" }] : []),
+  ...(preloadDisplayFont && displayFontHref ? [{ href: displayFontHref, type: "font/woff2" }] : []),
+  ...extraFontPreloads,
+];
+---
+
+<!doctype html>
+<html
+  lang={lang}
+  dir={dir}
+  class:list={[{ "scroll-smooth": scrollSmooth }]}
+  data-theme-storage-key={config.ui.theme.storageKey}
+  data-theme-default-mode={config.ui.theme.defaultMode}
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content={themeColor ?? config.ui.theme.metaThemeColor} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    {textScale && <meta name="text-scale" content="scale" />}
+    {generator && <meta name="generator" content={Astro.generator} />}
+    {
+      seo && (
+    <SEO
+      title={title}
+      description={description ?? siteDescription}
+      siteUrl={siteUrl}
+      siteName={siteTitle}
+      {...(twitterHandle ? { twitterHandle } : {})}
+      sameAs={Object.values(socialLinks).filter(Boolean)}
+      {...(post ? { post } : {})}
+      {...(image ? { image } : {})}
+      {...(imageAlt ? { imageAlt } : {})}
+      hasRss={hasRss}
+      {...(robots ? { robots } : {})}
+      {...(config.contact.phone?.e164 ? { telephone: config.contact.phone.e164 } : {})}
+    />
+      )
+    }
+    {
+      preconnects.map((origin) => (
+        <>
+          <link rel="preconnect" href={origin} crossorigin />
+          <link rel="dns-prefetch" href={origin} />
+        </>
+      ))
+    }
+    {
+      fontPreloads.map((font) => (
+        <link
+          rel="preload"
+          href={font.href}
+          as="font"
+          type={font.type ?? "font/woff2"}
+          crossorigin="anonymous"
+        />
+      ))
+    }
+    <link rel="icon" type="image/svg+xml" href={faviconHref} />
+    {faviconIco && <link rel="icon" href="/favicon.ico" sizes="32x32" />}
+    {themeScript && <script is:inline data-astro-rerun set:html={themeInitScript} />}
+    <link rel="apple-touch-icon" href={appleTouchIconHref ?? faviconHref} />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content={config.brand.title} />
+    <slot name="head" />
+  </head>
+  <body
+    class:list={[
+      "site-body min-h-screen bg-background text-foreground antialiased",
+      { "has-fixed-header": headerSticky === "scroll-up" },
+      { "pb-20 lg:pb-0": mobileVariant === "bottom-nav" },
+      bodyClass,
+    ]}
+  >
+    <a
+      href={`#${mainContentId}`}
+      class={skipLinkClass ??
+        "sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:bg-background focus-visible:text-primary-text focus-visible:px-3 focus-visible:py-2 rounded-md"}
+    >
+      {skipLinkText}
+    </a>
+
+    {
+      scrollProgress && (
+        <div
+          id="site-scroll-progress"
+          class={scrollProgressClass}
+          aria-hidden="true"
+          data-scroll-progress
+        />
+      )
+    }
+
+    <div class="flex min-h-screen flex-col">
+      <slot name="before-header" />
+      {
+        !hideHeader && (
+          <SiteHeaderFull
+            {navLinks}
+            homeLinkAriaLabel={config.ui.header.homeLinkAriaLabel}
+            sticky={headerSticky}
+            class={headerClass}
+            variant={headerVariant}
+            glass={headerGlass}
+            mobileVariant={mobileVariant}
+            mobileMenuHandedness={mobileMenuHandedness}
+            showThemeToggle={config.ui.header.showThemeToggle}
+            unstyled={headerUnstyled}
+            windowKey={headerWindowKey}
+            navAlign={headerNavAlign ?? config.ui.header.navAlign ?? "end"}
+            bannerPosition={headerBannerPosition ?? config.ui.header.bannerPosition ?? "above"}
+          >
+            {Astro.slots.has("header-banner") && <slot name="header-banner" slot="banner" />}
+            <slot name="header-actions" slot="actions" />
+            <div slot="logo" class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <slot name="header-logo">
+                <HeaderLogo
+                  src={config.ui.header.logo.src}
+                  icon={config.ui.header.logo.icon}
+                  text={config.ui.header.logo.text}
+                  class={config.ui.header.logo.class}
+                  transparent={config.ui.header.logo.transparent}
+                  width={config.ui.header.logo.width}
+                  height={config.ui.header.logo.height}
+                  fetchpriority="high"
+                />
+              </slot>
+              {showHeaderTitle && (
+                <span
+                  class:list={[
+                    "font-display text-lg sm:text-xl text-foreground truncate",
+                    headerTitleClass,
+                  ]}
+                >
+                  {siteTitle}
+                </span>
+              )}
+            </div>
+            <HeaderMobileMenuButton
+              slot="mobile-button"
+              class={mobileMenuHandedness === "left" ? "order-1" : "order-2"}
+              target={mobileMenuTarget}
+              handedness={mobileMenuHandedness}
+              menuStyle={mobileMenuButtonStyle}
+              accentColor={mobileMenuAccentColor}
+            />
+            {hasDesktopNavSlot ? (
+              <slot name="desktop-nav" slot="desktop-nav" />
+            ) : megaNav ? (
+              <DesktopMegaNav
+                slot="desktop-nav"
+                groups={megaNav.groups}
+                {...(megaNav.cta ? { cta: megaNav.cta } : {})}
+              />
+            ) : null}
+            {hasMobileThemeToggleSlot ? (
+              <slot name="theme-toggle-mobile" slot="theme-toggle-mobile" />
+            ) : defaultThemeToggle ? (
+              <ThemeToggle slot="theme-toggle-mobile" />
+            ) : null}
+            {hasDesktopThemeToggleSlot ? (
+              <slot name="theme-toggle-desktop" slot="theme-toggle-desktop" />
+            ) : defaultThemeToggle ? (
+              <ThemeToggle slot="theme-toggle-desktop" />
+            ) : null}
+          </SiteHeaderFull>
+        )
+      }
+
+      {
+        !hideHeader &&
+          (mobileVariant === "overlay" ? (
+            <OverlayMenu
+              items={resolvedMobileNavLinks}
+              id="mobile-menu-overlay"
+              glass={headerGlass}
+              accentColor={mobileMenuAccentColor}
+            />
+          ) : mobileVariant === "bottom-nav" ? (
+            <BottomNav
+              items={resolvedMobileNavLinks}
+              glass={headerGlass}
+              accentColor={mobileMenuAccentColor}
+            />
+          ) : mobileVariant === "fab" ? (
+            <FabMenu
+              items={resolvedMobileNavLinks}
+              glass={headerGlass}
+              accentColor={mobileMenuAccentColor}
+            />
+          ) : mobileVariant === "collapse" ? null : (
+            <GridMenu
+              items={resolvedMobileNavLinks}
+              id="mobile-menu-grid"
+              glass={headerGlass}
+              accentColor={mobileMenuAccentColor}
+              unstyled={headerUnstyled}
+            />
+          ))
+      }
+      <slot name="after-header" />
+
+      <main
+        id={mainContentId}
+        class:list={[{ "animate-fade-in": animateMain && normalizedPath !== "/" }, mainClass]}
+        tabindex="-1"
+        data-pagefind-body={indexForPagefind ? true : undefined}
+        data-pagefind-ignore={indexForPagefind ? undefined : true}
+      >
+        <slot />
+      </main>
+      <slot name="after-main" />
+
+      {
+        !hideFooter && (
+          <>
+            <slot name="before-footer" />
+            <SiteFooterConfigured
+              {config}
+              {siteTitle}
+              {siteDescription}
+              {socialLinks}
+              logoLayout={footerLogoLayout}
+              brandClass={footerBrandClass}
+              logoClass={footerLogoLinkClass}
+              hideDescription={hideFooterDescription}
+              surface={footerSurface}
+              {...(footerLogoSize ? { logoSize: footerLogoSize } : {})}
+              {...(footerUppercase !== undefined ? { uppercase: footerUppercase } : {})}
+              {...(footerCopyrightAlign ? { copyrightAlign: footerCopyrightAlign } : {})}
+              {...(footerSocialLabel !== undefined ? { socialLabel: footerSocialLabel } : {})}
+              {...(footerNavColumns ? { navColumns: footerNavColumns } : {})}
+              {...(footerContainerClass ? { containerClass: footerContainerClass } : {})}
+              legalPlacement={footerLegalPlacement}
+              class={footerClass}
+              style={footerStyle}
+              copyrightBrand={footerCopyrightBrand}
+            >
+              {hasFooterLogoSlot && <slot name="footer-logo" slot="logo" />}
+              {hasFooterDescriptionSlot && <slot name="footer-description" slot="description" />}
+              {hasFooterBrandExtraSlot && <slot name="footer-brand-extra" slot="brand-extra" />}
+              {hasFooterBottomExtraSlot && <slot name="footer-bottom-extra" slot="bottom-extra" />}
+              {hasCopyrightContentSlot && <slot name="copyright-content" slot="copyright-content" />}
+            </SiteFooterConfigured>
+            <slot name="after-footer" />
+          </>
+        )
+      }
+    </div>
+    {
+      scrollReveal && (
+        <script>
+          import { bootstrapScrollReveal } from "../lib/scrollReveal.ts";
+          bootstrapScrollReveal();
+        </script>
+      )
+    }
+    {
+      scrollProgress && (
+        <script is:inline>
+          (() => {
+            if (window.CSS?.supports?.("animation-timeline", "scroll()")) return;
+            const update = () => {
+              const bar = document.querySelector("[data-scroll-progress]");
+              if (!bar) return;
+              const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+              if (scrollable <= 0) return;
+              bar.style.transform = `scaleX(${Math.min(1, Math.max(0, window.scrollY / scrollable))})`;
+            };
+            window.addEventListener("scroll", update, { passive: true });
+            window.addEventListener("resize", update, { passive: true });
+          })();
+        </script>
+      )
+    }
+    {sharedRuntime && <BlockRuntime />}
+    <slot name="body-end" />
+  </body>
+</html>
+
+<SiteBaseStyles />

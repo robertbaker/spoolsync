@@ -1,0 +1,182 @@
+---
+/**
+ * SiteHeader — Prop-driven responsive navigation header.
+ *
+ * A complete, reusable header component for simple sites.
+ * Uses the focused NavMenu family and an application-owned theme-toggle slot.
+ *
+ * @example
+ * ```astro
+ * ---
+ * import { SiteHeader } from '~/components/ui/SiteHeader';
+ * import { navLinks } from '~/config/navigation';
+ * import { SITE_CONFIG } from '~/config';
+ * ---
+ * <SiteHeader
+ *   navLinks={navLinks}
+ *   logoText={SITE_CONFIG.ui.header.logo.text}
+ *   homeLinkAriaLabel={SITE_CONFIG.ui.header.homeLinkAriaLabel}
+ *   sticky={SITE_CONFIG.ui.header.sticky}
+ *   showThemeToggle={SITE_CONFIG.ui.header.showThemeToggle}
+ * />
+ * ```
+ */
+
+import type { HTMLAttributes } from "astro/types";
+import type { ImageMetadata } from "astro";
+import NavMenu from "../NavMenu/NavMenu.astro";
+import ThemeToggle from "../../../controls/ThemeToggle/ThemeToggle.astro";
+import OptimizedImage from "../../../controls/OptimizedImage/OptimizedImage.astro";
+import { Icon } from "astro-icon/components";
+import type { NavLink } from "../../../types/index.ts";
+import { HEADER_ICON_TRIGGER_CLASSES } from "./headerControlClasses";
+import {
+  partClasses,
+  withLabels,
+  type ClassesProps,
+  type LabelsProps,
+} from "../../../lib/classes.ts";
+
+type Part =
+  | "brand"
+  | "logo"
+  | "nav"
+  | "actions"
+  | "mobileNav"
+  | "mobileTrigger"
+  | "mobileDrawer";
+
+export interface Labels {
+  homeLink?: (logoText: string) => string;
+  primaryNav?: string;
+  mobileNav?: string;
+  toggleNav?: string;
+}
+
+const DEFAULT_LABELS: Labels = {
+  homeLink: (logoText) => `${logoText} — Home`,
+  primaryNav: "Primary navigation",
+  mobileNav: "Mobile navigation",
+  toggleNav: "Toggle primary navigation",
+};
+
+interface Props extends HTMLAttributes<"header">, ClassesProps<Part>, LabelsProps<Labels> {
+  /** Navigation links to render */
+  navLinks: NavLink[];
+  /** Text shown in the header logo/brand area */
+  logoText: string;
+  /** Optional logo icon name from astro-icon */
+  logoIcon?: string;
+  /** Optional logo image source URL or metadata */
+  logoSrc?: string | ImageMetadata;
+  /** Optional logo image alt text */
+  logoAlt?: string;
+  /** Optional logo class name */
+  logoClass?: string;
+  /** ARIA label for the home link */
+  homeLinkAriaLabel?: string;
+  /** Sticky behavior: 'fixed' keeps it pinned, 'none' for static */
+  sticky?: "fixed" | "scroll-up" | "none";
+  /** Whether to show the theme toggle button */
+  showThemeToggle?: boolean;
+  /** ID of the mobile navigation disclosure. */
+  drawerId?: string;
+}
+
+const {
+  navLinks,
+  logoText,
+  logoIcon,
+  logoSrc,
+  logoAlt,
+  logoClass,
+  homeLinkAriaLabel,
+  sticky = "fixed",
+  showThemeToggle = true,
+  drawerId = "mobile-drawer",
+  class: className,
+  classes,
+  labels: labelOverrides,
+  ...rest
+} = Astro.props;
+
+const cls = partClasses<Part>(classes);
+const labels = withLabels(DEFAULT_LABELS, labelOverrides);
+const resolvedHomeLinkAriaLabel =
+  homeLinkAriaLabel ?? labels.homeLink?.(logoText) ?? `${logoText} — Home`;
+
+const hasThemeToggleSlot = Astro.slots.has("theme-toggle");
+---
+
+<header
+  id="main-header"
+  class:list={[
+    "top-0 z-40 flex min-h-16 items-center gap-4 bg-background px-4 shadow-sm",
+    { "sticky top-0": sticky === "fixed" },
+    className,
+  ]}
+  {...rest}
+>
+  <div class={cls("brand", "flex-1 flex items-center gap-2")}>
+    <slot name="before-logo" />
+    <a
+      href="/"
+      class:list={[
+        logoIcon || logoSrc ? "inline-flex items-center" : "inline-flex items-center rounded-md px-3 py-2 text-xl font-bold hover:bg-muted",
+        cls("logo", logoClass),
+      ]}
+      aria-label={resolvedHomeLinkAriaLabel}
+    >
+      <slot name="logo">
+        {
+          logoSrc ? (
+            <>
+              <OptimizedImage src={logoSrc} alt={logoAlt ?? ""} class="h-10 w-auto" />
+              {!logoAlt && <span class="sr-only">{logoText}</span>}
+            </>
+          ) : logoIcon ? (
+            <>
+              <Icon name={logoIcon} class="h-10 w-auto" aria-hidden="true" />
+              <span class="sr-only">{logoText}</span>
+            </>
+          ) : (
+            logoText
+          )
+        }
+      </slot>
+    </a>
+    <slot name="after-logo" />
+  </div>
+  <nav class={cls("nav", "flex-none hidden md:block")} aria-label={labels.primaryNav}>
+    <slot name="nav">
+      <NavMenu items={navLinks} />
+    </slot>
+  </nav>
+  <div class={cls("actions", "flex-none flex items-center gap-1")}>
+    {
+      showThemeToggle && (
+        hasThemeToggleSlot ? (
+          <slot name="theme-toggle" />
+        ) : (
+          <ThemeToggle />
+        )
+      )
+    }
+    <slot name="actions" />
+    <nav class={cls("mobileNav", "relative md:hidden")} aria-label={labels.mobileNav} data-nav-menu>
+      <details id={drawerId}>
+        <summary class:list={[HEADER_ICON_TRIGGER_CLASSES, "list-none", cls("mobileTrigger")]} aria-label={labels.toggleNav}>
+          <slot name="mobile-trigger">
+            <Icon name="material-symbols:menu" class="size-6" aria-hidden="true" />
+          </slot>
+        </summary>
+        <div class={cls("mobileDrawer", "absolute end-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg")}>
+          <slot name="mobile-nav">
+            <NavMenu items={navLinks} mode="mobile" />
+          </slot>
+        </div>
+      </details>
+    </nav>
+  </div>
+  <slot />
+</header>

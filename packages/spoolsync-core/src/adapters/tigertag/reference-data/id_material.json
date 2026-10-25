@@ -1,0 +1,567 @@
+[
+  {
+    "id": 18775,
+    "label": "PE-CF",
+    "material_type": "PE"
+  },
+  {
+    "id": 5238,
+    "label": "PETG-PTFE",
+    "material_type": "PETG"
+  },
+  {
+    "id": 53890,
+    "label": "PCTG-CF",
+    "material_type": "PCTG"
+  },
+  {
+    "id": 9691,
+    "label": "EVA",
+    "material_type": "EVA"
+  },
+  {
+    "id": 7951,
+    "label": "PETG-rCF",
+    "material_type": "PETG"
+  },
+  {
+    "id": 11053,
+    "label": "PET-CF",
+    "material_type": "PET"
+  },
+  {
+    "id": 30594,
+    "label": "PA-GF",
+    "material_type": "PA"
+  },
+  {
+    "id": 49804,
+    "label": "ASA-AF",
+    "material_type": "ASA"
+  },
+  {
+    "id": 18130,
+    "label": "PS",
+    "material_type": "PS"
+  },
+  {
+    "id": 9456,
+    "label": "PLA Marble",
+    "material_type": "PLA"
+  },
+  {
+    "id": 27676,
+    "label": "ASA-CF",
+    "material_type": "ASA"
+  },
+  {
+    "id": 24270,
+    "label": "PPS-CF",
+    "material_type": "PPS"
+  },
+  {
+    "id": 48001,
+    "label": "PLA Wood",
+    "material_type": "PLA"
+  },
+  {
+    "id": 56527,
+    "label": "PEI-1010",
+    "material_type": "PEI-1010"
+  },
+  {
+    "id": 24116,
+    "label": "TPC",
+    "material_type": "TPC"
+  },
+  {
+    "id": 57469,
+    "label": "PETG HF",
+    "material_type": "PETG"
+  },
+  {
+    "id": 46591,
+    "label": "PLA+",
+    "material_type": "PLA"
+  },
+  {
+    "id": 425,
+    "label": "ABS-CF",
+    "material_type": "ABS"
+  },
+  {
+    "id": 42962,
+    "label": "PP-GF",
+    "material_type": "PP"
+  },
+  {
+    "id": 59328,
+    "label": "PA",
+    "material_type": "PA"
+  },
+  {
+    "id": 27268,
+    "label": "PCTPE",
+    "material_type": "PCPTFE"
+  },
+  {
+    "id": 58142,
+    "label": "TPU-GF",
+    "material_type": "TPU"
+  },
+  {
+    "id": 18703,
+    "label": "PETP",
+    "material_type": "PET"
+  },
+  {
+    "id": 33958,
+    "label": "TPE",
+    "material_type": "TPE"
+  },
+  {
+    "id": 48310,
+    "label": "PLA-CF",
+    "material_type": "PLA"
+  },
+  {
+    "id": 31011,
+    "label": "ASA-AERO",
+    "material_type": "ASA"
+  },
+  {
+    "id": 27635,
+    "label": "PE",
+    "material_type": "PE"
+  },
+  {
+    "id": 42623,
+    "label": "PMMA",
+    "material_type": "PMMA"
+  },
+  {
+    "id": 24629,
+    "label": "PLA High Speed",
+    "material_type": "PLA"
+  },
+  {
+    "id": 65535,
+    "label": "None",
+    "material_type": "None"
+  },
+  {
+    "id": 3368,
+    "label": "PC-ABS",
+    "material_type": "PC"
+  },
+  {
+    "id": 50206,
+    "label": "POM",
+    "material_type": "POM"
+  },
+  {
+    "id": 43518,
+    "label": "TPU",
+    "material_type": "TPU"
+  },
+  {
+    "id": 7649,
+    "label": "PETG HS",
+    "material_type": "PETG"
+  },
+  {
+    "id": 45962,
+    "label": "PVB",
+    "material_type": "PVB"
+  },
+  {
+    "id": 1173,
+    "label": "PA6-GF",
+    "material_type": "PA6"
+  },
+  {
+    "id": 30884,
+    "label": "PP",
+    "material_type": "PP"
+  },
+  {
+    "id": 62335,
+    "label": "PEI-1010-CF",
+    "material_type": "PEI-1010"
+  },
+  {
+    "id": 39944,
+    "label": "PA-CF",
+    "material_type": "PA"
+  },
+  {
+    "id": 8394,
+    "label": "Castable Resin",
+    "material_type": ""
+  },
+  {
+    "id": 24115,
+    "label": "SEBS",
+    "material_type": "SEBS"
+  },
+  {
+    "id": 51007,
+    "label": "Biopolymer",
+    "material_type": ""
+  },
+  {
+    "id": 56666,
+    "label": "PA6",
+    "material_type": "PA6"
+  },
+  {
+    "id": 34944,
+    "label": "PETG-GF",
+    "material_type": "PETG"
+  },
+  {
+    "id": 51636,
+    "label": "PES",
+    "material_type": "PES"
+  },
+  {
+    "id": 35100,
+    "label": "ASA-GF",
+    "material_type": "ASA"
+  },
+  {
+    "id": 9483,
+    "label": "PVA",
+    "material_type": "PVA"
+  },
+  {
+    "id": 10272,
+    "label": "PSU",
+    "material_type": "PSU"
+  },
+  {
+    "id": 54568,
+    "label": "ASA+",
+    "material_type": "ASA"
+  },
+  {
+    "id": 14508,
+    "label": "PEI-9085",
+    "material_type": "PEI"
+  },
+  {
+    "id": 12844,
+    "label": "ASA",
+    "material_type": "ASA"
+  },
+  {
+    "id": 63946,
+    "label": "TPI",
+    "material_type": "TPI"
+  },
+  {
+    "id": 55279,
+    "label": "PBT",
+    "material_type": "PBT"
+  },
+  {
+    "id": 20073,
+    "label": "PVC",
+    "material_type": "PVC"
+  },
+  {
+    "id": 21307,
+    "label": "SBS",
+    "material_type": "SBS"
+  },
+  {
+    "id": 8504,
+    "label": "PPA-CF",
+    "material_type": "PPA"
+  },
+  {
+    "id": 10122,
+    "label": "PEKK-CF",
+    "material_type": "PEKK"
+  },
+  {
+    "id": 12878,
+    "label": "CoPE",
+    "material_type": ""
+  },
+  {
+    "id": 29815,
+    "label": "PEEK",
+    "material_type": "PEEK"
+  },
+  {
+    "id": 38256,
+    "label": "PETG",
+    "material_type": "PETG"
+  },
+  {
+    "id": 38250,
+    "label": "PEI-1010-GF",
+    "material_type": "PEI"
+  },
+  {
+    "id": 55418,
+    "label": "PETG-CF",
+    "material_type": "PETG"
+  },
+  {
+    "id": 34409,
+    "label": "TPS",
+    "material_type": "TPS"
+  },
+  {
+    "id": 12216,
+    "label": "PEEK-GF",
+    "material_type": "PEEK"
+  },
+  {
+    "id": 61563,
+    "label": "PC-PBT-GF",
+    "material_type": "PC"
+  },
+  {
+    "id": 20588,
+    "label": "PC-CF",
+    "material_type": "PC"
+  },
+  {
+    "id": 35377,
+    "label": "PEI-9085-GF",
+    "material_type": "PEI"
+  },
+  {
+    "id": 15041,
+    "label": "PCTG",
+    "material_type": "PCTG"
+  },
+  {
+    "id": 46154,
+    "label": "PPS",
+    "material_type": "PPS"
+  },
+  {
+    "id": 48469,
+    "label": "PEEK-CF",
+    "material_type": "PEEK"
+  },
+  {
+    "id": 59849,
+    "label": "PCL",
+    "material_type": "PCL"
+  },
+  {
+    "id": 46276,
+    "label": "PPA-GF",
+    "material_type": "PPA"
+  },
+  {
+    "id": 23080,
+    "label": "PAHT",
+    "material_type": "PA"
+  },
+  {
+    "id": 52077,
+    "label": "PET",
+    "material_type": "PET"
+  },
+  {
+    "id": 1680,
+    "label": "PE-GF",
+    "material_type": "PE"
+  },
+  {
+    "id": 3481,
+    "label": "PCTG-GF",
+    "material_type": "PCTG"
+  },
+  {
+    "id": 41134,
+    "label": "PEI-9085-CF",
+    "material_type": "PEI"
+  },
+  {
+    "id": 5733,
+    "label": "TPU-AMS",
+    "material_type": "TPU"
+  },
+  {
+    "id": 6605,
+    "label": "PA11-GF",
+    "material_type": "PA"
+  },
+  {
+    "id": 38219,
+    "label": "PLA",
+    "material_type": "PLA"
+  },
+  {
+    "id": 22652,
+    "label": "PAHT-GF",
+    "material_type": "PA"
+  },
+  {
+    "id": 22678,
+    "label": "PET-GF",
+    "material_type": "PET"
+  },
+  {
+    "id": 29272,
+    "label": "PA11",
+    "material_type": "PA11"
+  },
+  {
+    "id": 12264,
+    "label": "PA6-CF",
+    "material_type": "PA6"
+  },
+  {
+    "id": 51861,
+    "label": "PETG-ESD",
+    "material_type": "PETG"
+  },
+  {
+    "id": 2053,
+    "label": "PA12-GF",
+    "material_type": "PA12"
+  },
+  {
+    "id": 20562,
+    "label": "ABS",
+    "material_type": "ABS"
+  },
+  {
+    "id": 53970,
+    "label": "PEKK",
+    "material_type": "PEKK"
+  },
+  {
+    "id": 18451,
+    "label": "PA11-CF",
+    "material_type": "PA11"
+  },
+  {
+    "id": 47651,
+    "label": "PC-PBT-CF",
+    "material_type": "PC"
+  },
+  {
+    "id": 48815,
+    "label": "PAHT-CF",
+    "material_type": "PAHT"
+  },
+  {
+    "id": 39667,
+    "label": "PA12-CF",
+    "material_type": "PA12"
+  },
+  {
+    "id": 49074,
+    "label": "ABS-GF",
+    "material_type": "ABS"
+  },
+  {
+    "id": 55796,
+    "label": "PA12",
+    "material_type": "PA12"
+  },
+  {
+    "id": 58498,
+    "label": "PEBA",
+    "material_type": "PEBA"
+  },
+  {
+    "id": 61048,
+    "label": "PVDF",
+    "material_type": "PVDF"
+  },
+  {
+    "id": 26029,
+    "label": "HIPS",
+    "material_type": "HIPS"
+  },
+  {
+    "id": 8345,
+    "label": "PLA+ Silk",
+    "material_type": "PLA"
+  },
+  {
+    "id": 13850,
+    "label": "PPA",
+    "material_type": "PPA"
+  },
+  {
+    "id": 10738,
+    "label": "PC-PTFE",
+    "material_type": "PC"
+  },
+  {
+    "id": 4587,
+    "label": "PC-PBT",
+    "material_type": "PC"
+  },
+  {
+    "id": 10187,
+    "label": "PHA",
+    "material_type": "PHA"
+  },
+  {
+    "id": 735,
+    "label": "ABS-AF",
+    "material_type": "ABS"
+  },
+  {
+    "id": 28110,
+    "label": "SBC",
+    "material_type": "SBC"
+  },
+  {
+    "id": 50497,
+    "label": "PP-CF",
+    "material_type": "PP"
+  },
+  {
+    "id": 10478,
+    "label": "Castable Filament",
+    "material_type": ""
+  },
+  {
+    "id": 30458,
+    "label": "PC",
+    "material_type": "PC"
+  },
+  {
+    "id": 48047,
+    "label": "TPU High Speed",
+    "material_type": "TPU"
+  },
+  {
+    "id": 18922,
+    "label": "PLA-ESD",
+    "material_type": "PLA"
+  },
+  {
+    "id": 11506,
+    "label": "PLA-AERO",
+    "material_type": "PLA"
+  },
+  {
+    "id": 49152,
+    "label": "PPSU",
+    "material_type": "PPSU"
+  },
+  {
+    "id": 10602,
+    "label": "PLA Silk",
+    "material_type": "PLA"
+  },
+  {
+    "id": 34049,
+    "label": "BVOH",
+    "material_type": "BVOH"
+  }
+]

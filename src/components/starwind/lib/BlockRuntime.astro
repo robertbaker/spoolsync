@@ -1,0 +1,20 @@
+---
+/**
+ * Activates native interactions used by product blocks.
+ * Render once in custom application layouts; SiteBaseLayout includes it.
+ */
+---
+
+<script>
+  import { initBlockInteractions } from "./initBlockInteractions.ts";
+
+  let dispose: () => void = () => undefined;
+  const initialize = () => {
+    dispose();
+    dispose = initBlockInteractions();
+  };
+
+  initialize();
+  document.addEventListener("astro:page-load", initialize);
+  document.addEventListener("astro:before-swap", () => dispose());
+</script>
