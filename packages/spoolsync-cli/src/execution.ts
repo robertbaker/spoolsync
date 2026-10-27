@@ -36,6 +36,7 @@ export async function executeWrites(
     failed = true;
     failure = error;
     if (error instanceof ApplyReloadError) applied = error.log;
+    if (error instanceof ExecutionError) applied = error.applied;
     if (error instanceof ExportCommitError) written = error.written;
   }
   let cleanupError: unknown;

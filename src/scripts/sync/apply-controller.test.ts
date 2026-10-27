@@ -1,5 +1,6 @@
 import { expect, mock, test } from "bun:test";
 
+import { ApplyReloadError } from "@spoolsync/core/apply";
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { createEmptyInventory } from "@spoolsync/core/workflow";
 
@@ -81,6 +82,20 @@ test("records failures and rerenders without replacing the previous inventory", 
   await f.controller.run("spoolman", [], f.status);
   expect(f.controller.logs.get("spoolman")).toEqual([
     { groupId: "", ok: false, message: "Server unavailable" },
+  ]);
+  expect(f.loaded.get("spoolman")).toBe(f.inventory);
+  expect(f.save).not.toHaveBeenCalled();
+  expect(f.onApplied).toHaveBeenCalledTimes(1);
+});
+
+test("refresh failures retain completed write logs and the reload warning without saving a stale snapshot", async () => {
+  const f = await fixture();
+  const failure = new ApplyReloadError("Spoolman", f.log, new Error("Refresh offline"));
+  f.apply.mockRejectedValue(failure);
+  await f.controller.run("spoolman", [], f.status);
+  expect(f.controller.logs.get("spoolman")).toEqual([
+    ...f.log,
+    { groupId: "", ok: false, message: failure.message },
   ]);
   expect(f.loaded.get("spoolman")).toBe(f.inventory);
   expect(f.save).not.toHaveBeenCalled();

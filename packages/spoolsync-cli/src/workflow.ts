@@ -1,7 +1,8 @@
+import { ApplyReloadError } from "@spoolsync/core/apply";
 import type { ApplyLogEntry } from "@spoolsync/core/core/model";
 
 import type { Options } from "./args";
-import { executeWrites } from "./execution";
+import { ExecutionError, executeWrites } from "./execution";
 import { prepareExports } from "./exports";
 import { loadInputs } from "./inputs";
 import { createCliPlan } from "./planning";
@@ -26,12 +27,17 @@ export async function runWorkflow(
       ? async () => {
           const log: ApplyLogEntry[] = [];
           for (const service of services) {
-            log.push(
-              ...(await service.apply(planning.plan.get(service.source) ?? [], (done, total) => {
-                if (!options.json)
-                  output.error(`Applying ${service.label} changes: ${done}/${total}`);
-              })),
-            );
+            try {
+              log.push(
+                ...(await service.apply(planning.plan.get(service.source) ?? [], (done, total) => {
+                  if (!options.json)
+                    output.error(`Applying ${service.label} changes: ${done}/${total}`);
+                })),
+              );
+            } catch (error) {
+              if (error instanceof ApplyReloadError) log.push(...error.log);
+              throw new ExecutionError(error, log, []);
+            }
           }
           return log;
         }

@@ -1,4 +1,4 @@
-import type { ApplyAndReloadResult } from "@spoolsync/core/apply";
+import { ApplyReloadError, type ApplyAndReloadResult } from "@spoolsync/core/apply";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
 import type { ApplyLogEntry, LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { snapshotMatchesTarget } from "@spoolsync/core/core/target";
@@ -60,6 +60,7 @@ export class ApplyController {
       this.saveInventory(result.inventory);
     } catch (error) {
       this.logs.set(source, [
+        ...(error instanceof ApplyReloadError ? error.log : []),
         { groupId: "", ok: false, message: error instanceof Error ? error.message : String(error) },
       ]);
     }

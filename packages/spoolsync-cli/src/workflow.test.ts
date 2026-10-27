@@ -131,9 +131,7 @@ test("serialization failures stop CLI workflow before staging or remote writes",
   f.dependencies.exportInventory = async () => {
     throw new Error("Cannot serialize");
   };
-  await expect(runWorkflow(f.options, f.dependencies, f.output)).rejects.toThrow(
-    "Cannot serialize",
-  );
+  expect(runWorkflow(f.options, f.dependencies, f.output)).rejects.toThrow("Cannot serialize");
   expect(f.events).toEqual(["load-empty", "load-remote"]);
   expect(f.stdout).toEqual([]);
 });
@@ -144,7 +142,7 @@ test("remote refresh failures retain completed writes, skip file commits, and cl
     f.events.push("apply");
     throw new ApplyReloadError("Spoolman", f.log, new Error("Refresh failed"));
   };
-  await expect(runWorkflow(f.options, f.dependencies, f.output)).rejects.toMatchObject({
+  expect(runWorkflow(f.options, f.dependencies, f.output)).rejects.toMatchObject({
     applied: f.log,
     written: [],
   });
@@ -167,3 +165,38 @@ test("failed apply entries set a failing exit code while preserving the report a
   expect(f.events.slice(-2)).toEqual(["commit", "cleanup"]);
   expect(JSON.parse(String(f.stdout[0]![0])).applied[0].ok).toBe(false);
 });
+
+for (const refreshFailure of [false, true]) {
+  test(`later service ${refreshFailure ? "refresh" : "apply"} failures retain all completed CLI writes`, async () => {
+    const f = fixture();
+    const laterLog = [{ groupId: "later", ok: true, message: "Created remotely" }];
+    const failure = refreshFailure
+      ? new ApplyReloadError("FilamentDB", laterLog, new Error("Refresh failed"))
+      : new Error("Connection lost");
+    f.dependencies.remoteServices = () => [
+      f.service,
+      {
+        source: "filamentdb",
+        label: "FilamentDB",
+        load: async () => ({
+          source: "filamentdb",
+          spools: [],
+          warnings: [],
+          loadedAt: "now",
+          origin: "api",
+        }),
+        apply: async () => {
+          throw failure;
+        },
+      },
+    ];
+    expect(runWorkflow(f.options, f.dependencies, f.output)).rejects.toMatchObject({
+      applied: [...f.log, ...(refreshFailure ? laterLog : [])],
+      written: [],
+      message: failure.message,
+    });
+    expect(f.events).toContain("cleanup");
+    expect(f.events).not.toContain("commit");
+    expect(f.stdout).toEqual([]);
+  });
+}

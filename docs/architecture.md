@@ -177,6 +177,9 @@ Export serialization does not itself write files. The CLI stages exports before 
 and commits files by rename. Multiple files and remote updates do not form a single transaction;
 see the [CLI guide](../packages/spoolsync-cli/README.md) for partial failures and recovery.
 Remote helpers report completed writes through `ApplyReloadError` if a subsequent refresh fails.
+The CLI retains logs from earlier services when a later apply or refresh fails, skips file commits,
+and cleans staging. The browser retains completed-write entries alongside the refresh failure
+warning without persisting an unrefreshed inventory.
 
 ## Browser data
 

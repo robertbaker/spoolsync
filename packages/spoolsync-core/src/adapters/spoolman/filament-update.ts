@@ -44,7 +44,7 @@ export async function applyFilamentChanges(
         current.filament,
       );
       if (filament.id !== current.filament.id) {
-        (patch as SpoolParameters).filament_id = filament.id;
+        patch.filament_id = filament.id;
         // Moving to a matching filament must not change values the spool previously inherited.
         if (!("price" in patch) && current.price == null && current.filament.price != null)
           patch.price = current.filament.price;
