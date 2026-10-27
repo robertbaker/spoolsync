@@ -17,13 +17,13 @@ test("JSON inventories accept a UTF-8 BOM and preserve unrelated backup data", a
 
 test("empty imports have an actionable error", async () => {
   for (const text of ["", " \r\n\t", "\uFEFF  "]) {
-    await expect(loadInventoryFile("spoolio", text)).rejects.toThrow("inventory file is empty");
+    expect(loadInventoryFile("spoolio", text)).rejects.toThrow("inventory file is empty");
   }
 });
 
 test("export rejects inventory belonging to another service", async () => {
   const loaded = await loadInventoryFile("spoolman", "[]");
-  await expect(exportInventory("spoolio", loaded, [])).rejects.toThrow(
+  expect(exportInventory("spoolio", loaded, [])).rejects.toThrow(
     "Cannot export spoolman inventory as spoolio",
   );
 });

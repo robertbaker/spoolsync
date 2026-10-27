@@ -30,7 +30,7 @@ test("3DFilamentProfiles CSV exports use native JSON number and null types", asy
 });
 
 test("3DFilamentProfiles CSV invalid numeric values cannot silently become null in JSON", async () => {
-  await expect(
+  expect(
     loadInventoryFile("threeDfp", "short_code,brand,spool_purchase_price\none,Test,invalid\n"),
   ).rejects.toThrow("spool_purchase_price must contain a finite number");
 });
@@ -398,9 +398,9 @@ test("empty CSV exports reload and can receive newly synced spools", async () =>
 
 test("header-only CSVs still reject the wrong service and malformed rows", async () => {
   for (const source of ["bambuddy", "filameter", "threeDfp"] as const) {
-    await expect(loadInventoryFile(source, "first_name,last_name\r\n")).rejects.toThrow();
+    expect(loadInventoryFile(source, "first_name,last_name\r\n")).rejects.toThrow();
   }
-  await expect(loadInventoryFile("bambuddy", "material,brand\nPLA,First\n,Second")).rejects.toThrow(
+  expect(loadInventoryFile("bambuddy", "material,brand\nPLA,First\n,Second")).rejects.toThrow(
     "data row 2 is missing a material",
   );
 });
@@ -516,7 +516,7 @@ test("total/used exports reject impossible or negative weights", async () => {
       [500, 600],
       [1000, -1],
     ]) {
-      await expect(
+      expect(
         exportInventory(source, loaded, [
           {
             kind: "create",

@@ -39,8 +39,8 @@ for (const source of ["spoolman", "tigertag"] as const) {
       ...create,
       source: source === "spoolman" ? "tigertag" : "spoolman",
     };
-    await expect(apply([create, foreign])).rejects.toThrow("Cannot apply");
-    await expect(apply([create, create])).rejects.toThrow("Duplicate creation");
+    expect(apply([create, foreign])).rejects.toThrow("Cannot apply");
+    expect(apply([create, create])).rejects.toThrow("Duplicate creation");
     const wrongSpool: PlannedChange = {
       kind: "update",
       source,
@@ -49,9 +49,9 @@ for (const source of ["spoolman", "tigertag"] as const) {
       changes: [],
       links: {},
     };
-    await expect(apply([wrongSpool])).rejects.toThrow("Cannot apply");
+    expect(apply([wrongSpool])).rejects.toThrow("Cannot apply");
     const update: PlannedChange = { ...wrongSpool, spool: makeSpool(source, "1") };
-    await expect(apply([update, update])).rejects.toThrow("Duplicate update");
+    expect(apply([update, update])).rejects.toThrow("Duplicate update");
     expect(requests).toBe(0);
   });
 }

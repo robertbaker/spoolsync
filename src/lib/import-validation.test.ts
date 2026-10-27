@@ -40,36 +40,32 @@ test("Bambuddy canonicalizes numeric IDs and rejects duplicates and invalid expl
     '[{"id":1,"material":"PLA"},{"id":"01","material":"PLA"}]',
     "id,material\n1,PLA\n01,PLA\n",
   ])
-    await expect(loadInventoryFile("bambuddy", text)).rejects.toThrow(
-      "Duplicate Bambuddy record ID",
-    );
+    expect(loadInventoryFile("bambuddy", text)).rejects.toThrow("Duplicate Bambuddy record ID");
   for (const id of ["invalid", "1.5", "-1", "9007199254740992"]) {
-    await expect(loadInventoryFile("bambuddy", `id,material\n${id},PLA`)).rejects.toThrow(
-      "invalid ID",
-    );
-    await expect(
+    expect(loadInventoryFile("bambuddy", `id,material\n${id},PLA`)).rejects.toThrow("invalid ID");
+    expect(
       loadInventoryFile("bambuddy", JSON.stringify([{ id, material: "PLA" }])),
     ).rejects.toThrow("invalid record");
   }
 });
 
 test("Spoolman database files receive an actionable error before CSV parsing", async () => {
-  await expect(
+  expect(
     loadInventoryFile("spoolman", "SQLite format 3\0binary database contents"),
   ).rejects.toThrow("Export your spool inventory from Spoolman as JSON or CSV");
 });
 
 test("TigerTag UID-keyed exports cannot wrap arrays as inventory records", async () => {
   for (const value of [[], [{ name: "Not a record" }]]) {
-    await expect(
-      loadInventoryFile("tigertag", JSON.stringify({ TigerData_bad: value })),
-    ).rejects.toThrow("not a TigerTag file");
+    expect(loadInventoryFile("tigertag", JSON.stringify({ TigerData_bad: value }))).rejects.toThrow(
+      "not a TigerTag file",
+    );
   }
 });
 
 test("3DFilamentProfiles rejects malformed nested properties before updates can disappear", async () => {
   for (const spool_properties of [[], ["price"], "not an object", 12, false]) {
-    await expect(
+    expect(
       loadInventoryFile(
         "threeDfp",
         JSON.stringify([{ short_code: "one", brand: "Test", spool_properties }]),
@@ -100,9 +96,7 @@ test("TigerTag rejects duplicate UIDs before grouping can discard conflicting re
       records,
     }),
   ]) {
-    await expect(loadInventoryFile("tigertag", text)).rejects.toThrow(
-      "Duplicate TigerTag record UID",
-    );
+    expect(loadInventoryFile("tigertag", text)).rejects.toThrow("Duplicate TigerTag record UID");
   }
   const twins = await loadInventoryFile(
     "tigertag",
@@ -167,10 +161,10 @@ test("Spoolman reads mixed JSON row shapes and reports conflicting flat columns"
 });
 
 test("3DFilamentProfiles rejects unrelated CSV columns and nested JSON arrays", async () => {
-  await expect(loadInventoryFile("threeDfp", "first_name,last_name\nAda,Lovelace")).rejects.toThrow(
+  expect(loadInventoryFile("threeDfp", "first_name,last_name\nAda,Lovelace")).rejects.toThrow(
     "spool columns",
   );
-  await expect(loadInventoryFile("threeDfp", '[{"brand":"Test"},[]]')).rejects.toThrow(
+  expect(loadInventoryFile("threeDfp", '[{"brand":"Test"},[]]')).rejects.toThrow(
     "expected a JSON list",
   );
 });
@@ -234,13 +228,13 @@ test("3DFilamentProfiles rejects HueForge exports instead of misreading colors a
     "Brand, Type, Color, Name, TD, Tags, Secondary_Type, Secondary_Color, Secondary_Strength, Owned, Uuid\nTest,PLA,#123456,Blue,0.3,,None,#0000ff,0,true,{example}",
     JSON.stringify({ Filaments: [{ Brand: "Test", Type: "PLA", Color: "#123456", Name: "Blue" }] }),
   ]) {
-    await expect(loadInventoryFile("threeDfp", text)).rejects.toThrow("HueForge");
+    expect(loadInventoryFile("threeDfp", text)).rejects.toThrow("HueForge");
   }
 });
 
 test("Bambuddy rejects malformed JSON records instead of silently dropping them", async () => {
   for (const invalid of [null, [], { material: "PLA" }, { id: "invalid" }]) {
-    await expect(
+    expect(
       loadInventoryFile("bambuddy", JSON.stringify({ spools: [{ id: 1 }, invalid] })),
     ).rejects.toThrow("invalid record");
   }

@@ -70,7 +70,9 @@ const lines = code.split("\n").map((text, index, all) => ({
       area.style.cssText = "position:fixed;opacity:0";
       document.body.append(area);
       area.select();
-      const ok = document.execCommand("copy");
+      // Keep the legacy fallback for browsers/contexts without Clipboard API access.
+      const legacyDocument: { execCommand(command: "copy"): boolean } = document;
+      const ok = legacyDocument.execCommand("copy");
       area.remove();
       return ok;
     }

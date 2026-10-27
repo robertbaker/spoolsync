@@ -186,7 +186,7 @@ test("Filadex logs in, patches only moved fields, and creates unique names", asy
 
 test("Filadex reports a rejected password", async () => {
   const { baseUrl, fetchImpl } = serve(() => Response.json({ message: "no" }, { status: 401 }));
-  await expect(loadFiladex({ baseUrl, username: "me", password: "x", fetchImpl })).rejects.toThrow(
+  expect(loadFiladex({ baseUrl, username: "me", password: "x", fetchImpl })).rejects.toThrow(
     /username or password/,
   );
 });

@@ -17,15 +17,13 @@ test("exports reject foreign, missing, and duplicate update targets", async () =
     changes: [],
     links: {},
   };
-  await expect(
-    exportInventory("spoolio", loaded, [{ ...update, source: "spoolman" }]),
-  ).rejects.toThrow("Cannot apply spoolman changes");
-  await expect(
+  expect(exportInventory("spoolio", loaded, [{ ...update, source: "spoolman" }])).rejects.toThrow(
+    "Cannot apply spoolman changes",
+  );
+  expect(
     exportInventory("spoolio", loaded, [{ ...update, spool: makeSpool("spoolio", "missing") }]),
   ).rejects.toThrow("missing");
-  await expect(exportInventory("spoolio", loaded, [update, update])).rejects.toThrow(
-    "Duplicate update",
-  );
+  expect(exportInventory("spoolio", loaded, [update, update])).rejects.toThrow("Duplicate update");
 });
 
 test("exports reject duplicate creations before generating duplicate spools", async () => {
@@ -35,7 +33,7 @@ test("exports reject duplicate creations before generating duplicate spools", as
     [group],
     new Map([[group.id, { values: {}, createIn: ["spoolio"] }]]),
   ).get("spoolio")!;
-  await expect(exportInventory("spoolio", loaded, [...changes, ...changes])).rejects.toThrow(
+  expect(exportInventory("spoolio", loaded, [...changes, ...changes])).rejects.toThrow(
     "Duplicate creation",
   );
 });
@@ -61,11 +59,11 @@ for (const source of WRITABLE_SOURCE_IDS) {
 }
 
 test("read-only sources cannot become empty targets", async () => {
-  await expect(createEmptyInventory("spoolstock")).rejects.toThrow("read-only");
+  expect(createEmptyInventory("spoolstock")).rejects.toThrow("read-only");
 });
 
 test("rejects duplicate native IDs before matching can merge records", async () => {
-  await expect(
+  expect(
     loadInventoryFile(
       "spoolio",
       JSON.stringify({

@@ -24,7 +24,7 @@ test("unauthorized responses report authentication errors without waiting for th
           { status },
         ),
     );
-    await expect(client.info()).rejects.toMatchObject({ kind: "auth", status });
+    expect(client.info()).rejects.toMatchObject({ kind: "auth", status });
     expect(cancelled).toBe(true);
   }
 });
@@ -33,7 +33,7 @@ test("non-Error transport failures still include a useful message", async () => 
   const client = new SpoolmanClient({ baseUrl: "http://spoolman.test" }, async () => {
     throw "connection reset";
   });
-  await expect(client.info()).rejects.toMatchObject({
+  expect(client.info()).rejects.toMatchObject({
     kind: "network",
     message: "Could not reach Spoolman at http://spoolman.test: connection reset",
   });
@@ -47,7 +47,7 @@ test("a server ignoring pagination fails instead of repeating pages forever", as
     if (requests > 2) throw new Error("Pagination should have stopped already");
     return new Response(JSON.stringify(vendors));
   });
-  await expect(client.listVendors()).rejects.toMatchObject({ kind: "parse" });
+  expect(client.listVendors()).rejects.toMatchObject({ kind: "parse" });
   expect(requests).toBe(2);
 });
 
@@ -62,7 +62,7 @@ test("duplicate IDs inside one page are rejected", async () => {
         ]),
       ),
   );
-  await expect(client.listVendors()).rejects.toMatchObject({ kind: "parse" });
+  expect(client.listVendors()).rejects.toMatchObject({ kind: "parse" });
 });
 
 test("request timeout includes a stalled successful response body", async () => {
@@ -87,7 +87,7 @@ test("request timeout includes a stalled successful response body", async () => 
       );
     },
   );
-  await expect(client.info()).rejects.toMatchObject({ kind: "timeout" });
+  expect(client.info()).rejects.toMatchObject({ kind: "timeout" });
   expect(aborted).toBe(true);
 });
 
@@ -106,7 +106,7 @@ test("request timeout also covers a stalled HTTP error body", async () => {
         { status: 503 },
       ),
   );
-  await expect(client.info()).rejects.toMatchObject({ kind: "timeout" });
+  expect(client.info()).rejects.toMatchObject({ kind: "timeout" });
 });
 
 test("malformed JSON is still reported as a parse error", async () => {
@@ -114,7 +114,7 @@ test("malformed JSON is still reported as a parse error", async () => {
     { baseUrl: "http://spoolman.test" },
     async () => new Response("not json"),
   );
-  await expect(client.info()).rejects.toMatchObject({ kind: "parse" });
+  expect(client.info()).rejects.toMatchObject({ kind: "parse" });
 });
 
 test("body transport failures are network errors", async () => {
@@ -129,5 +129,5 @@ test("body transport failures are network errors", async () => {
         }),
       ),
   );
-  await expect(client.info()).rejects.toMatchObject({ kind: "network" });
+  expect(client.info()).rejects.toMatchObject({ kind: "network" });
 });

@@ -213,7 +213,7 @@ test("Bambuddy refuses CSV values rejected by the target app's integer and color
       "eight secondary colors",
     ],
   ] as const) {
-    await expect(
+    expect(
       exportInventory("bambuddy", loaded, [
         {
           kind: "create",
@@ -433,7 +433,7 @@ test("Spoolman rejects impossible weight edits instead of exporting contradictor
     ["remainingWeight", 1001],
     ["initialWeight", 500],
   ] as const) {
-    await expect(
+    expect(
       exportInventory("spoolman", loaded, [
         {
           kind: "update",
@@ -545,9 +545,9 @@ test("Spoolio preserves unrecognized records and nested extensions on export", a
 
 test("Spoolio rejects duplicate and missing export targets", async () => {
   const duplicate = loadSpoolioJson('{"version":1,"filaments":[{"id":"same"},{"id":"same"}]}');
-  await expect(exportInventory("spoolio", duplicate, [])).rejects.toThrow("duplicate ID");
+  expect(exportInventory("spoolio", duplicate, [])).rejects.toThrow("duplicate ID");
   const loaded = await loadInventoryFile("spoolio", '{"version":1,"filaments":[]}');
-  await expect(
+  expect(
     exportInventory("spoolio", loaded, [
       {
         kind: "update",
@@ -601,13 +601,13 @@ test("FilaMeter refuses ambiguous duplicate document IDs", async () => {
   const loaded = loadFilameterFile(
     '{"regular":[{"_id":"same","filament":"PLA"},{"_id":"same","filament":"PETG"}]}',
   );
-  await expect(exportInventory("filameter", loaded, [])).rejects.toThrow("duplicate IDs");
+  expect(exportInventory("filameter", loaded, [])).rejects.toThrow("duplicate IDs");
 });
 
 test("missing update targets fail instead of reporting an update that was never saved", async () => {
   for (const source of ["threeDfp", "filameter", "spoolman"] as const) {
     const loaded = await loadInventoryFile(source, "[]");
-    await expect(
+    expect(
       exportInventory(source, loaded, [
         {
           kind: "update",
@@ -661,7 +661,7 @@ test("duplicate 3DFilamentProfiles IDs cannot silently discard rows", async () =
       { short_code: "same", brand: "B" },
     ]),
   );
-  await expect(exportInventory("threeDfp", loaded, [])).rejects.toThrow("duplicate IDs");
+  expect(exportInventory("threeDfp", loaded, [])).rejects.toThrow("duplicate IDs");
 });
 
 test("3DFilamentProfiles preserves rows without IDs and updates the selected row", async () => {

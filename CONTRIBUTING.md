@@ -40,6 +40,9 @@ bun run e2e
 ```
 
 The end-to-end suite builds the site and starts the Wrangler preview server automatically.
+With the current Bun runtime, `expect(promise).rejects` matchers wait internally and return
+`void`; omit an extra `await` on those assertions. Continue awaiting asynchronous operations
+and Playwright assertions normally.
 On Linux, CI installs Chromium with `bunx playwright install --with-deps chromium`.
 `bun run ci` runs package and app type checks, lint, unit tests, built CLI integration tests,
 and end-to-end tests. It requires the browser installation above.

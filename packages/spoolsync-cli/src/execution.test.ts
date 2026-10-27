@@ -30,7 +30,7 @@ test("applies, commits, and cleans up in order", async () => {
 
 test("refresh failures retain apply logs, skip file commit, and clean up", async () => {
   const order: string[] = [];
-  await expect(
+  expect(
     executeWrites(
       {
         async commit() {
@@ -52,7 +52,7 @@ test("refresh failures retain apply logs, skip file commit, and clean up", async
 test("file commit failures retain remote results and completed files", async () => {
   let cleaned = false;
   const cause = new ExportCommitError(["first.json"], new Error("disk full"));
-  await expect(
+  expect(
     executeWrites(
       {
         async commit() {
@@ -71,7 +71,7 @@ test("file commit failures retain remote results and completed files", async () 
 test("cleanup failure does not hide the original error", async () => {
   const primary = new Error("primary failure");
   const cleanup = new Error("cleanup failure");
-  await expect(
+  expect(
     executeWrites(
       {
         async commit() {
@@ -93,7 +93,7 @@ test("cleanup failure does not hide the original error", async () => {
 });
 
 test("cleanup failure after success still reports completed work", async () => {
-  await expect(
+  expect(
     executeWrites(
       {
         async commit() {

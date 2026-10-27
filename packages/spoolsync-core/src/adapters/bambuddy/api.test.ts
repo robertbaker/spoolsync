@@ -49,10 +49,10 @@ test("Bambuddy inventory workflow accepts a client without HTTP or credentials",
 
 test("Bambuddy injected transport preserves HTTP errors and duplicate record validation", async () => {
   const connection = { baseUrl: "https://bambuddy.test", apiKey: "test-key" };
-  await expect(
+  expect(
     loadBambuddyApi(connection, async () => new Response(null, { status: 403 })),
   ).rejects.toThrow("Bambuddy returned HTTP 403");
-  await expect(
+  expect(
     loadBambuddyApi(connection, async () =>
       Response.json([
         { id: 1, material: "PLA" },

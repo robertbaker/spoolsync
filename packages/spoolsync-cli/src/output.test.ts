@@ -44,7 +44,7 @@ afterEach(async () => {
 test.skipIf(!hardLinks)("rejects a hard link to an input", async () => {
   const output = path.join(directory, "output.json");
   await link(input, output);
-  await expect(validateOutputPaths([input], [output])).rejects.toThrow("would overwrite an input");
+  expect(validateOutputPaths([input], [output])).rejects.toThrow("would overwrite an input");
 });
 
 test.skipIf(!directoryLinks)("rejects inputs reached through a directory junction", async () => {
@@ -53,7 +53,7 @@ test.skipIf(!directoryLinks)("rejects inputs reached through a directory junctio
   await mkdir(actual);
   await writeFile(path.join(actual, "inventory.json"), "original");
   await symlink(actual, alias, process.platform === "win32" ? "junction" : "dir");
-  await expect(
+  expect(
     validateOutputPaths(
       [path.join(actual, "inventory.json")],
       [path.join(alias, "inventory.json")],
@@ -92,7 +92,7 @@ test("invalid destinations fail before any export is replaced", async () => {
   const blocked = path.join(directory, "blocked.json");
   await writeFile(output, "previous export");
   await mkdir(blocked);
-  await expect(
+  expect(
     stageOutputFiles(directory, [
       { filename: output, text: "new export" },
       { filename: blocked, text: "new export" },
@@ -110,7 +110,7 @@ test("abandoning staged exports preserves existing files", async () => {
 
 test("staging write failures preserve destinations and remove temporary files", async () => {
   const files = [{ filename: input, text: undefined as unknown as string }];
-  await expect(stageOutputFiles(directory, files)).rejects.toBeInstanceOf(TypeError);
+  expect(stageOutputFiles(directory, files)).rejects.toBeInstanceOf(TypeError);
   expect(await readFile(input, "utf8")).toBe("original");
   expect((await readdir(directory)).some((name) => name.startsWith(".spoolsync-"))).toBe(false);
 });
@@ -139,7 +139,7 @@ test("commit failures identify exports already replaced", async () => {
   ]);
   try {
     await mkdir(second);
-    await expect(staged.commit()).rejects.toMatchObject({
+    expect(staged.commit()).rejects.toMatchObject({
       name: "ExportCommitError",
       written: [first],
     });
