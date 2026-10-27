@@ -33,7 +33,32 @@ interface Props {
 }
 
 const { title, description, post, image, imageAlt, robots, hideHeader, hideFooter } = Astro.props;
-const normalizedPath = normalizeSeoPath(Astro.url.pathname);
+// Desktop shows these as header/footer links; on mobile they live in the bottom nav's "More" menu.
+const mobileNavLinks = [
+  ...navLinks,
+  {
+    href: "https://github.com/robertbaker/spoolsync",
+    label: "GitHub",
+    text: "GitHub",
+    icon: "simple-icons:github",
+    external: true,
+  },
+  {
+    href: "https://github.com/robertbaker/spoolsync/issues/new",
+    label: "Report an issue",
+    text: "Report an issue",
+    icon: "material-symbols:bug-report-outline",
+    external: true,
+  },
+  {
+    href: "https://ko-fi.com/spool_sync",
+    label: "Support on Ko-fi",
+    text: "Support on Ko-fi",
+    icon: "simple-icons:kofi",
+    external: true,
+  },
+];
+const normalizedPath =normalizeSeoPath(Astro.url.pathname);
 const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_ROBOTS : undefined);
 ---
 
@@ -49,6 +74,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   twitterHandle={TWITTER_HANDLE}
   socialLinks={SOCIAL_LINKS}
   navLinks={navLinks}
+  mobileNavLinks={mobileNavLinks}
   config={SITE_CONFIG}
   {...(resolvedRobots ? { robots: resolvedRobots } : {})}
   {...(hideHeader ? { hideHeader } : {})}
@@ -62,17 +88,28 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <img src="/logo-mark.svg" alt="" class="size-9 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-6" width="36" height="36" />
     <span>Spool<span class="text-primary">Sync</span></span>
   </span>
-  <a
-    slot="header-actions"
-    href="https://ko-fi.com/spool_sync"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="inline-flex size-9 items-center justify-center rounded-full bg-[#ff5e5b] text-white transition-all hover:scale-105 hover:bg-[#e94d4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-    aria-label="Support SpoolSync on Ko-fi"
-    title="Support SpoolSync on Ko-fi"
-  >
-    <Icon name="simple-icons:kofi" class="size-5" aria-hidden="true" />
-  </a>
+  <Fragment slot="header-actions">
+    <a
+      href="https://github.com/robertbaker/spoolsync"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex size-9 items-center justify-center rounded-full text-foreground transition-all hover:scale-105 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      aria-label="SpoolSync on GitHub"
+      title="SpoolSync on GitHub"
+    >
+      <Icon name="simple-icons:github" class="size-5" aria-hidden="true" />
+    </a>
+    <a
+      href="https://ko-fi.com/spool_sync"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex size-9 items-center justify-center rounded-full bg-[#ff5e5b] text-white transition-all hover:scale-105 hover:bg-[#e94d4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      aria-label="Support SpoolSync on Ko-fi"
+      title="Support SpoolSync on Ko-fi"
+    >
+      <Icon name="simple-icons:kofi" class="size-5" aria-hidden="true" />
+    </a>
+  </Fragment>
   <span slot="footer-logo" class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground">
     <img src="/logo-mark.svg" alt="" class="size-10" width="40" height="40" loading="lazy" />
     <span>Spool<span class="text-primary">Sync</span></span>
@@ -86,6 +123,15 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <span> · </span>
     <a class="footer-link underline" href="https://ko-fi.com/spool_sync" target="_blank" rel="noopener noreferrer">
       Support us on Ko-fi
+    </a>
+    <span> · </span>
+    <a
+      class="footer-link underline"
+      href="https://github.com/robertbaker/spoolsync/issues/new"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Report an issue / bug
     </a>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.

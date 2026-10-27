@@ -4,6 +4,8 @@ Compare filament spool inventories across **Spoolman / Spoolman-NG**, **Spoolsto
 **Spoolio** (spoolio.net), **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, and **FilamentDB**, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
 <https://www.spoolsync.com>—no server, no account, and no database of its own.
 
+> ☕ **Enjoying SpoolSync?** It's free and open source. [Support development on Ko-fi](https://ko-fi.com/spool_sync).
+
 Spoolstock is a read-only source: SpoolSync can read its CSV exports and use their values to update other services, but Spoolstock does not accept imports.
 
 A sync takes three steps:
@@ -176,6 +178,12 @@ npm release credentials and a clean working tree; running the CLI or its build d
 - `docs/architecture.md`: current code organization and inventory lifecycle.
 
 Deployed as static assets on Workers (`wrangler.jsonc`) at `www.spoolsync.com`.
+
+## Support the project
+
+SpoolSync is free and maintained in spare time. If it saves you effort, you can
+[donate on Ko-fi](https://ko-fi.com/spool_sync). Found a problem?
+[Report an issue](https://github.com/robertbaker/spoolsync/issues/new).
 
 ## Contributing and license
 
