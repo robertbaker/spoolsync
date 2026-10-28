@@ -21,12 +21,15 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       e2e: ${{ steps.filter.outputs.e2e }}
+      e2e_specs: ${{ steps.filter.outputs.e2e_specs }}
+      e2e_specs_files: ${{ steps.filter.outputs.e2e_specs_files }}
       cli: ${{ steps.filter.outputs.cli }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
+          list-files: shell
           filters: |
             app:
               - 'src/**'
@@ -46,10 +49,10 @@ jobs:
               - 'package.json'
               - 'bun.lock'
               - '.github/workflows/ci.yml'
+            # Anything that can change browser behavior: runs the whole suite.
             e2e:
               - 'src/**'
               - 'public/**'
-              - 'e2e/**'
               - 'packages/spoolsync-core/**'
               - 'astro.config.mjs'
               - 'wrangler.jsonc'
@@ -59,6 +62,9 @@ jobs:
               - 'package.json'
               - 'bun.lock'
               - '.github/workflows/ci.yml'
+            # Changed spec files only: runs just those specs when nothing above changed.
+            e2e_specs:
+              - 'e2e/**/*.spec.ts'
             cli:
               - 'packages/spoolsync-cli/**'
               - 'packages/spoolsync-core/**'
@@ -105,7 +111,7 @@ jobs:
   e2e:
     name: E2E
     needs: changes
-    if: needs.changes.outputs.e2e == 'true'
+    if: needs.changes.outputs.e2e == 'true' || needs.changes.outputs.e2e_specs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -129,7 +135,21 @@ jobs:
       # Runs even on a cache hit: the cache holds browsers only, not the apt system deps.
       - run: bunx playwright install --with-deps chromium
       - run: bun run build
-      - run: bun run test:e2e
+      # Full suite when app code changed; otherwise only the spec files that changed.
+      - name: Run E2E tests
+        env:
+          FULL_SUITE: ${{ needs.changes.outputs.e2e }}
+          CHANGED_SPECS: ${{ needs.changes.outputs.e2e_specs_files }}
+        run: |
+          if [ "$FULL_SUITE" = "true" ]; then
+            bun run test:e2e
+          else
+            specs=""
+            for f in $CHANGED_SPECS; do [ -f "$f" ] && specs="$specs $f"; done # skip deleted specs
+            if [ -z "$specs" ]; then echo "No changed specs left to run."; exit 0; fi
+            echo "Running changed specs:$specs"
+            bun run test:e2e $specs
+          fi
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
