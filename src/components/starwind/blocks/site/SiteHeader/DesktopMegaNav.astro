@@ -94,7 +94,7 @@ function getColsGridClass(colCount: number): string {
                           >
                             <slot name="link-icon">
                               {link.image ? (
-                                <OptimizedImage src={link.image} class="mt-0.5 size-7 shrink-0 rounded-lg object-cover" alt={link.imageAlt ?? link.label} />
+                                <OptimizedImage src={link.image} sizes="28px" class="mt-0.5 size-7 shrink-0 rounded-lg object-cover" alt={link.imageAlt ?? link.label} />
                               ) : link.icon ? (
                                 <span class="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary-text transition-colors group-hover/link:bg-primary group-hover/link:text-primary-foreground">
                                   <Icon name={link.icon} class="size-4" aria-hidden="true" />
@@ -135,7 +135,7 @@ function getColsGridClass(colCount: number): string {
                 >
                   <div class="space-y-1.5">
                     {group.promo.image && (
-                      <OptimizedImage src={group.promo.image} class="mb-2 h-24 w-full rounded-lg object-cover" alt={group.promo.imageAlt ?? group.promo.title} />
+                      <OptimizedImage src={group.promo.image} sizes="320px" class="mb-2 h-24 w-full rounded-lg object-cover" alt={group.promo.imageAlt ?? group.promo.title} />
                     )}
                     {group.promo.eyebrow && (
                       <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

@@ -77,7 +77,7 @@ const solidClasses = "bg-background border-border";
               aria-current={isCurrent(item.href) ? "page" : undefined}
             >
               {item.image ? (
-                <OptimizedImage src={item.image} class="size-6 rounded-full object-cover transition-transform group-active:scale-90" alt={item.imageAlt ?? item.text} />
+                <OptimizedImage src={item.image} sizes="24px" class="size-6 rounded-full object-cover transition-transform group-active:scale-90" alt={item.imageAlt ?? item.text} />
               ) : item.icon ? (
                 <Icon name={item.icon} class="size-6 transition-transform group-active:scale-90" aria-hidden="true" />
               ) : (
@@ -151,7 +151,7 @@ const solidClasses = "bg-background border-border";
                         aria-label={item.ariaLabel}
                       >
                         {item.image ? (
-                          <OptimizedImage src={item.image} class="size-5 shrink-0 rounded-full object-cover" alt={item.imageAlt ?? item.text} />
+                          <OptimizedImage src={item.image} sizes="20px" class="size-5 shrink-0 rounded-full object-cover" alt={item.imageAlt ?? item.text} />
                         ) : item.icon ? (
                           <Icon name={item.icon} class="size-5 shrink-0 opacity-70" aria-hidden="true" />
                         ) : null}

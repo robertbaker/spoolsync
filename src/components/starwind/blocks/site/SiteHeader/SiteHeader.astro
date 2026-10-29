@@ -131,7 +131,7 @@ const hasThemeToggleSlot = Astro.slots.has("theme-toggle");
         {
           logoSrc ? (
             <>
-              <OptimizedImage src={logoSrc} alt={logoAlt ?? ""} class="h-10 w-auto" />
+              <OptimizedImage src={logoSrc} alt={logoAlt ?? ""} sizes="160px" class="h-10 w-auto" />
               {!logoAlt && <span class="sr-only">{logoText}</span>}
             </>
           ) : logoIcon ? (

@@ -85,7 +85,6 @@ const statusContent = status && Astro.slots.has("status")
           alt={alt}
           width={imageSize}
           height={imageSize}
-          widths={[imageSize, imageSize * 2]}
           sizes={`${imageSize}px`}
           data-avatar-image
           class={cls("image", "absolute inset-0 h-full w-full object-cover", imageProps.class as string | undefined)}
