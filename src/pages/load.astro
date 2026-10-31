@@ -35,10 +35,10 @@ const fileSources = [
     how: "Use Export in Tiger Studio Manager's inventory toolbar for a .ttag file, or Settings → Data → Download JSON. When importing the updated file back into Studio, choose Restore to preserve remaining weights.",
     cloud: true,
   },
-  { id: "threeDfp", label: "3DFilamentProfiles", kind: "CSV or JSON", icon: "material-symbols:database-outline", accept: ".csv,.json,text/csv,application/json", how: "Export your My Spools list as CSV or JSON from 3DFilamentProfiles, then choose or drop the file here." },
+  { id: "threeDfp", label: "3DFilamentProfiles", kind: "CSV or JSON", icon: "vendor/3dfilamentprofiles", accept: ".csv,.json,text/csv,application/json", how: "Export your My Spools list as CSV or JSON from 3DFilamentProfiles, then choose or drop the file here." },
   { id: "bambuddy", label: "Bambuddy", kind: "CSV or JSON", icon: "material-symbols:inventory-2-outline", image: bambuddyLogo.src, accept: ".csv,.json,text/csv,application/json", how: "Fetch directly with your Bambuddy API key, load a saved inventory API response as JSON, or export an inventory CSV. Bambuddy's CSV importer only adds new entries, so review the download before importing.", api: true },
   { id: "filameter", label: "FilaMeter", kind: "JSON or CSV", icon: "vendor/filameter", accept: ".json,.csv,application/json,text/csv", how: "Open Settings → Import/Export to download a JSON backup or export your filament CSV, then choose or drop it here." },
-  { id: "filadex", label: "Filadex", kind: "JSON or CSV", icon: "material-symbols:inventory-2-outline", accept: ".json,.csv,application/json,text/csv", how: "Download JSON or CSV from Filadex's export menu (or GET /api/filaments?export=json), then choose or drop the file here." },
+  { id: "filadex", label: "Filadex", kind: "JSON or CSV", icon: "vendor/filadex", accept: ".json,.csv,application/json,text/csv", how: "Download JSON or CSV from Filadex's export menu (or GET /api/filaments?export=json), then choose or drop the file here." },
   { id: "filamentdb", label: "FilamentDB", kind: "JSON", icon: "material-symbols:database-outline", accept: ".json,application/json", how: "Save the response of GET /api/spools from FilamentDB, or a single spool file from its data/spools folder. Extract ZIP exports first, or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token." },
 ];
 ---

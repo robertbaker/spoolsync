@@ -25,6 +25,7 @@ export const FOOTER_UI_CONFIG: SiteFooterConfig = {
         },
         { href: "https://github.com/robertbaker/spoolsync", label: "GitHub", external: true },
         { href: "https://ko-fi.com/spool_sync", label: "Support on Ko-fi", external: true },
+        { href: "/credits", label: "Credits" },
       ],
     },
   ],

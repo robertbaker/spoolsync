@@ -90,7 +90,7 @@ export const services = [
   },
   {
     name: "3DFilamentProfiles",
-    icon: "material-symbols:database-outline",
+    icon: "vendor/3dfilamentprofiles",
     how: "My Spools CSV or JSON export",
     read: "CSV or JSON",
     write: "CSV or JSON",
@@ -118,7 +118,7 @@ export const services = [
   },
   {
     name: "Filadex",
-    icon: "material-symbols:inventory-2-outline",
+    icon: "vendor/filadex",
     how: "JSON or CSV from the export menu",
     read: "JSON or CSV",
     write: "JSON or CSV",

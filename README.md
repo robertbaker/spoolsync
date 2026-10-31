@@ -190,7 +190,8 @@ SpoolSync is free and maintained in spare time. If it saves you effort, you can
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and pull request guidance. SpoolSync
 is open source under the GNU AGPL version 3; see [LICENSE](LICENSE) for the full terms. The
 Starwind components include MIT-licensed code; see
-[src/components/starwind/UPSTREAM.md](src/components/starwind/UPSTREAM.md).
+[src/components/starwind/UPSTREAM.md](src/components/starwind/UPSTREAM.md). Third-party asset credits
+and icon attributions are listed in [CREDITS](CREDITS).
 
 ## Trademarks
 

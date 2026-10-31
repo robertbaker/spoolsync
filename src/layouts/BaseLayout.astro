@@ -57,6 +57,12 @@ const mobileNavLinks = [
     icon: "simple-icons:kofi",
     external: true,
   },
+  {
+    href: "/credits",
+    label: "Credits",
+    text: "Credits",
+    icon: "material-symbols:attribution-outline",
+  },
 ];
 const normalizedPath =normalizeSeoPath(Astro.url.pathname);
 const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_ROBOTS : undefined);
@@ -132,6 +138,10 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
       rel="noopener noreferrer"
     >
       Report an issue / bug
+    </a>
+    <span> · </span>
+    <a class="footer-link underline" href="/credits">
+      Credits
     </a>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.

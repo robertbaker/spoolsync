@@ -1,0 +1,184 @@
+---
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+import PageHeader from "~/components/PageHeader.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+---
+
+<BaseLayout
+  title={`Credits — ${SITE_TITLE}`}
+  description="Credits and attributions for third-party icons, brand logos, and assets used in SpoolSync."
+>
+  <Container class="py-10 sm:py-14">
+    <PageHeader
+      eyebrow="Attribution"
+      title="Credits"
+      description="SpoolSync is open-source and relies on graphics, icons, and libraries created by the community. We gratefully credit the following authors and resources."
+    />
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">Service & Provider Icons</h2>
+    <div class="mt-6 grid gap-6 md:grid-cols-2">
+      <section class="app-card flex flex-col" aria-labelledby="credit-3dfp-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/3dfilamentprofiles" color="primary" />
+          <h3 id="credit-3dfp-heading" class="text-xl font-semibold">3DFilamentProfiles</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          3d printer filament by Oleksandr Panasovskyi from <a
+            href="https://thenounproject.com/browse/icons/term/3d-printer-filament/"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="3d printer filament Icons"
+            class="underline hover:text-foreground"
+          >Noun Project</a> (<a
+            href="https://creativecommons.org/licenses/by/3.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >CC BY 3.0</a>)
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-spoolman-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/spoolman" color="primary" />
+          <h3 id="credit-spoolman-heading" class="text-xl font-semibold">Spoolman / Spoolman-NG</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of the open-source <a
+            href="https://github.com/Donkie/Spoolman"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Spoolman</a> project by Donkie, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-spoolstock-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/spoolstock" color="primary" />
+          <h3 id="credit-spoolstock-heading" class="text-xl font-semibold">Spoolstock</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of <a
+            href="https://spoolstock.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Spoolstock</a>, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-spoolio-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/spoolio" color="primary" />
+          <h3 id="credit-spoolio-heading" class="text-xl font-semibold">Spoolio</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of <a
+            href="https://spoolio.net"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Spoolio</a>, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-tigertag-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/tigertag" color="primary" />
+          <h3 id="credit-tigertag-heading" class="text-xl font-semibold">TigerTag</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of <a
+            href="https://tigertag.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >TigerTag</a> (Tiger Studio), used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-bambuddy-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar color="primary">
+            <img slot="icon" src={bambuddyLogo.src} alt="" class="size-7 object-contain" />
+          </IconAvatar>
+          <h3 id="credit-bambuddy-heading" class="text-xl font-semibold">Bambuddy</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of the open-source <a
+            href="https://github.com/maziggy/bambuddy"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Bambuddy</a> project, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-filameter-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/filameter" color="primary" />
+          <h3 id="credit-filameter-heading" class="text-xl font-semibold">FilaMeter</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of the open-source <a
+            href="https://github.com/SiloCityLabs/filameter.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >FilaMeter</a> project by Silo City Labs, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-filadex-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="vendor/filadex" color="primary" />
+          <h3 id="credit-filadex-heading" class="text-xl font-semibold">Filadex</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          Logo courtesy of the open-source <a
+            href="https://github.com/the-luap/filadex"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Filadex</a> project by the-luap, used to identify compatibility.
+        </p>
+      </section>
+
+      <section class="app-card flex flex-col" aria-labelledby="credit-icons-heading">
+        <div class="flex items-center gap-3">
+          <IconAvatar icon="material-symbols:category-outline" color="primary" />
+          <h3 id="credit-icons-heading" class="text-xl font-semibold">Interface Icons</h3>
+        </div>
+        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+          UI and system icons are provided by <a
+            href="https://fonts.google.com/icons"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Google Material Symbols</a> (Apache 2.0) and <a
+            href="https://simpleicons.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >Simple Icons</a> (CC0 1.0 Universal) via <a
+            href="https://github.com/natemoo-re/astro-icon"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline hover:text-foreground"
+          >astro-icon</a>.
+        </p>
+      </section>
+    </div>
+
+    <section class="app-card mt-10" aria-labelledby="disclaimer-heading">
+      <h3 id="disclaimer-heading" class="text-lg font-semibold">Trademarks & Compatibility Notice</h3>
+      <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+        SpoolSync is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, or Bambu Lab. All brand names, registered trademarks, and logos are property of their respective owners and are used strictly to identify compatibility.
+      </p>
+    </section>
+  </Container>
+</BaseLayout>
