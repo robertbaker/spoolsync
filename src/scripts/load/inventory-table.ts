@@ -40,6 +40,10 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
       filameterId,
       filadexId,
       filamentdbSerial,
+      spoolmasterId,
+      spoolhoarderId,
+      spoolappId,
+      spoolkeepId,
     } = spool.crossIds;
     const parts = [];
     if (spool.source !== "spoolman" && spoolmanId !== undefined)
@@ -57,6 +61,12 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
     if (spool.source !== "filadex" && filadexId) parts.push(`Filadex ${filadexId.slice(0, 8)}`);
     if (spool.source !== "filamentdb" && filamentdbSerial)
       parts.push(`FilamentDB ${filamentdbSerial.slice(0, 8)}`);
+    if (spool.source !== "spoolmaster" && spoolmasterId) parts.push(`SpoolMaster ${spoolmasterId}`);
+    if (spool.source !== "spoolhoarder" && spoolhoarderId)
+      parts.push(`Spool Hoarder ${spoolhoarderId.slice(0, 8)}`);
+    if (spool.source !== "spoolapp" && spoolappId) parts.push(`Spool ${spoolappId.slice(0, 8)}`);
+    if (spool.source !== "spoolkeep" && spoolkeepId)
+      parts.push(`SpoolKeep ${spoolkeepId.slice(0, 8)}`);
     return parts.join(", ") || "—";
   }
 

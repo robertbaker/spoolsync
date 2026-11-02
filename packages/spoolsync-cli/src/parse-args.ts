@@ -22,6 +22,11 @@ const sourceFlags: Record<string, SourceId> = {
   "--filameter": "filameter",
   "--filadex": "filadex",
   "--filamentdb": "filamentdb",
+  "--spoolmaster": "spoolmaster",
+  "--spoolhoarder": "spoolhoarder",
+  "--spool-hoarder": "spoolhoarder",
+  "--spool": "spoolapp",
+  "--spoolkeep": "spoolkeep",
 };
 
 const SINGLETON_FLAGS: string[] = [

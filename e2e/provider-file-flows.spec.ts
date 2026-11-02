@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { buildXlsx } from "../packages/spoolsync-core/src/adapters/shared/xlsx-fixture";
+
 const spoolioExport = JSON.stringify({
   version: 1,
   filaments: [
@@ -283,3 +285,110 @@ test("Bambuddy API fetch loads inventory from the configured server", async ({ p
   await expect(page.getByText("1 loaded from API")).toBeVisible();
   await expect(page.getByText("API yellow")).toBeVisible();
 });
+
+const readOnlyAppCases = [
+  {
+    source: "spoolmaster",
+    label: "SpoolMaster",
+    file: {
+      name: "SpoolMaster.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: Buffer.from(
+        buildXlsx([
+          {
+            name: "Stock",
+            rows: [
+              [
+                "Brand",
+                "Material",
+                "Color",
+                "Color code",
+                "Initial Weight (g)",
+                "Remaining Weight (g)",
+              ],
+              ["Example Master Brand", "PLA", "Master blue", "#2244CC", 1000, 640],
+            ],
+          },
+        ]),
+      ),
+    },
+  },
+  {
+    source: "spoolhoarder",
+    label: "Spool Hoarder",
+    file: {
+      name: "hoarder.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "spoolId,brand,material,name,colorHexCodes,spoolSize,remainingWeight\nh1,Example Hoarder Brand,PLA,Hoarder red,E53935,1000,500\n",
+      ),
+    },
+  },
+  {
+    source: "spoolapp",
+    label: "Spool",
+    file: {
+      name: "Spool_Backup.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          version: "1.6",
+          spools: [
+            {
+              id: "s1",
+              brand: "Example Spool Brand",
+              materialType: "PLA",
+              colourName: "Spool pink",
+              colourHex: "#F79FAE",
+              nominalWeight: 1000,
+              currentWeight: 800,
+            },
+          ],
+        }),
+      ),
+    },
+  },
+  {
+    source: "spoolkeep",
+    label: "SpoolKeep",
+    file: {
+      name: "SpoolKeep_Backup.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify([
+          {
+            id: "k1",
+            brand: "Example Keep Brand",
+            family: "PLA",
+            color: "Keep teal",
+            newQuantity: 1,
+          },
+        ]),
+      ),
+    },
+  },
+] as const;
+
+for (const app of readOnlyAppCases) {
+  test(`${app.label} export loads as a read-only source and feeds a writable target`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("/load");
+    await page.locator(`#${app.source}-file`).setInputFiles(app.file);
+    await expect(page.getByText(`Loaded 1 spool from ${app.file.name}`)).toBeVisible();
+    await page.locator("#spoolio-file").setInputFiles({
+      name: "spoolio.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(spoolioExport),
+    });
+    await expect(page.getByText("Loaded 1 spool from spoolio.json")).toBeVisible();
+
+    await page.goto("/sync");
+    await expect(page.getByText(`${app.label} is read-only`)).toBeVisible();
+    await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
+    await expect(page.getByRole("button", { name: /Download.*JSON/ }).first()).toBeEnabled();
+    expect(errors).toEqual([]);
+  });
+}

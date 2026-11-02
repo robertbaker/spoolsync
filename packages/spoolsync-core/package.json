@@ -19,7 +19,11 @@
     "./adapters/bambuddy/*": "./src/adapters/bambuddy/*.ts",
     "./adapters/filameter/*": "./src/adapters/filameter/*.ts",
     "./adapters/filadex/*": "./src/adapters/filadex/*.ts",
-    "./adapters/filamentdb/*": "./src/adapters/filamentdb/*.ts"
+    "./adapters/filamentdb/*": "./src/adapters/filamentdb/*.ts",
+    "./adapters/spoolmaster/*": "./src/adapters/spoolmaster/*.ts",
+    "./adapters/spoolhoarder/*": "./src/adapters/spoolhoarder/*.ts",
+    "./adapters/spoolapp/*": "./src/adapters/spoolapp/*.ts",
+    "./adapters/spoolkeep/*": "./src/adapters/spoolkeep/*.ts"
   },
   "scripts": {
     "test": "bun test ./src/"

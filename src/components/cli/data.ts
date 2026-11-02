@@ -24,6 +24,22 @@ export const inputs = [
   { flag: "--filadex <file>", copy: "--filadex", desc: "Filadex JSON or CSV export." },
   { flag: "--filamentdb <file>", copy: "--filamentdb", desc: "FilamentDB spools JSON." },
   {
+    flag: "--spoolmaster <file>",
+    copy: "--spoolmaster",
+    desc: "SpoolMaster Excel (.xlsx) export (read-only source).",
+  },
+  {
+    flag: "--spoolhoarder <file>",
+    copy: "--spoolhoarder",
+    desc: "Spool Hoarder inventory or HueForge CSV (read-only source; alias: --spool-hoarder).",
+  },
+  { flag: "--spool <file>", copy: "--spool", desc: "Spool app JSON backup (read-only source)." },
+  {
+    flag: "--spoolkeep <file>",
+    copy: "--spoolkeep",
+    desc: "SpoolKeep JSON backup (read-only source).",
+  },
+  {
     flag: "--filamentdb-url <url>",
     copy: "--filamentdb-url",
     desc: "Load FilamentDB directly; --apply writes back (token via --filamentdb-token or FILAMENTDB_TOKEN).",
@@ -200,7 +216,7 @@ export const safety = [
 export const quickSteps = [
   {
     title: "Export",
-    body: "Export your inventory from at least two supported tools (Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, or FilamentDB).",
+    body: "Export your inventory from at least two supported tools (Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, or SpoolKeep).",
   },
   {
     title: "Preview",

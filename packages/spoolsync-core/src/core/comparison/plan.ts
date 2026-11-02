@@ -38,6 +38,10 @@ function groupLinks(group: SpoolGroup): CrossIds {
     filameter: "filameterId",
     filadex: "filadexId",
     filamentdb: "filamentdbSerial",
+    spoolmaster: "spoolmasterId",
+    spoolhoarder: "spoolhoarderId",
+    spoolapp: "spoolappId",
+    spoolkeep: "spoolkeepId",
   };
   // The loaded service owns its record's identity; foreign cross-IDs cannot override it.
   for (const source of presentSources(group)) {
@@ -65,6 +69,10 @@ export const LINKABLE_IDS: Record<SourceId, ReadonlyArray<keyof CrossIds>> = {
   filameter: [],
   filadex: [],
   filamentdb: [],
+  spoolmaster: [],
+  spoolhoarder: [],
+  spoolapp: [],
+  spoolkeep: [],
 };
 
 /** Cross-ids the target can hold but does not have yet. */

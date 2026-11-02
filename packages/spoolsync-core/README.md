@@ -42,7 +42,7 @@ fails, they throw `ApplyReloadError` with the completed apply log and original e
 Retain the log and reload before retrying writes, since successful changes already took effect.
 
 All adapters are available through root namespaces (`spoolman`, `spoolstock`, `spoolio`,
-`tigertag`, `threeDfp`, `bambuddy`, `filameter`) or the package's adapter subpaths.
+`tigertag`, `threeDfp`, `bambuddy`, `filameter`, `spoolmaster`, `spoolhoarder`, `spoolapp`, `spoolkeep`) or the package's adapter subpaths.
 
 From the repository root:
 

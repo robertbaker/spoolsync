@@ -1,5 +1,5 @@
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
-import { SOURCE_LABELS } from "@spoolsync/core/core/model";
+import { isBinarySource, SOURCE_LABELS } from "@spoolsync/core/core/model";
 import { createEmptyInventory, loadInventoryFile } from "@spoolsync/core/workflow";
 
 import { byId, h, notice } from "../dom";
@@ -51,7 +51,10 @@ export function wireFileSource(source: SourceId, { state, store }: LoadContext):
     }
     let result: LoadResult;
     try {
-      result = await loadInventoryFile(source, await file.text());
+      result = await loadInventoryFile(
+        source,
+        isBinarySource(source) ? new Uint8Array(await file.arrayBuffer()) : await file.text(),
+      );
     } catch (error) {
       result = {
         source,

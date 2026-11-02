@@ -1,7 +1,7 @@
 # SpoolSync
 
 Compare filament spool inventories across **Spoolman / Spoolman-NG**, **Spoolstock**,
-**Spoolio** (spoolio.net), **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, and **FilamentDB**, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
+**Spoolio** (spoolio.net), **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, **FilamentDB**, and the read-only Mac/iOS apps **SpoolMaster**, **Spool Hoarder**, **Spool**, and **SpoolKeep**, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
 <https://www.spoolsync.com>—no server, no account, and no database of its own.
 
 > ☕ **Enjoying SpoolSync?** It's free and open source. [Support development on Ko-fi](https://ko-fi.com/spool_sync).
@@ -57,6 +57,10 @@ initial weight must be resolved before export.
 | FilaMeter              | Settings JSON backup or filament CSV export     | JSON backup or CSV download                         |
 | Filadex                | JSON or CSV export; API login (CLI only)        | JSON or CSV download; API (CLI only)                |
 | FilamentDB             | Server API, or `/api/spools` JSON               | API, or JSON list download                          |
+| SpoolMaster            | Excel `.xlsx` export (Stock sheet)              | Read-only (SpoolMaster does not accept imports)     |
+| Spool Hoarder          | Inventory CSV, or HueForge library CSV          | Read-only (Spool Hoarder does not accept imports)   |
+| Spool (Mac/iOS app)    | JSON backup (`spools` list)                     | Read-only (the app does not accept imports)         |
+| SpoolKeep              | JSON backup                                     | Read-only (SpoolKeep does not accept imports)       |
 
 ## Connecting your Spoolman
 
@@ -117,6 +121,11 @@ For standalone Linux installs, update your `.env` file and restart the service
 - Spoolio normalizes `PLA-Glow`, `PETG+`, and `PA6-CF` into base material types on import. SpoolSync preserves the exact material name
   in the filament notes and restores it on the next load.
 - Spoolstock is export-only and does not accept file imports.
+- SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources:
+  - **SpoolMaster** exports have no record IDs, so spools are identified by worksheet row; the Shopping List sheet is ignored. It does not store density, barcode, empty spool weight, or archived status.
+  - **Spool Hoarder** reads its inventory CSV and the HueForge library CSV. HueForge rows have no weights, and entries with `Owned` false load as archived. Rows marked deleted are skipped. A gross `weightBasis` is converted to net filament weight when the empty spool weight is known.
+  - **Spool** stores one nozzle and bed temperature, and storage locations only as slot numbers, so location is not read. Finished or archived spools load as archived.
+  - **SpoolKeep** counts spools instead of weighing them, so each counted unit (new and used) loads as its own spool with unknown weights, and an entry with none left loads as one archived spool. It does not store density, weights, location, or purchase date.
 
 ## Development
 

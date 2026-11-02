@@ -17,3 +17,7 @@ export * as bambuddy from "./adapters/bambuddy";
 export * as filameter from "./adapters/filameter";
 export * as filadex from "./adapters/filadex";
 export * as filamentdb from "./adapters/filamentdb";
+export * as spoolmaster from "./adapters/spoolmaster";
+export * as spoolhoarder from "./adapters/spoolhoarder";
+export * as spoolapp from "./adapters/spoolapp";
+export * as spoolkeep from "./adapters/spoolkeep";

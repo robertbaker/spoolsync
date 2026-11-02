@@ -1,6 +1,8 @@
 import { openConflicts, type GroupResolution } from "@spoolsync/core/core/compare";
 import type { MatchResult } from "@spoolsync/core/core/match";
 import {
+  isWritableSource,
+  SOURCE_IDS,
   SOURCE_LABELS,
   WRITABLE_SOURCE_IDS,
   type SourceId,
@@ -37,15 +39,17 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
     const unresolved = match.groups.filter(
       (g) => openConflicts(g, ensureResolution(resolutions, g)).length,
     ).length;
-    if (loaded.has("spoolstock")) {
+    for (const source of SOURCE_IDS) {
+      if (!loaded.has(source) || isWritableSource(source)) continue;
+      const label = SOURCE_LABELS[source];
       sections.push(
         notice(
           "info",
-          "Spoolstock is read-only",
+          `${label} is read-only`,
           h(
             "p",
             { class: "mt-1" },
-            "SpoolSync can compare its CSV exports and use their values to update other services, but Spoolstock does not accept imports.",
+            `SpoolSync can compare its ${source === "spoolstock" ? "CSV exports" : "exports"} and use their values to update other services, but ${label} does not accept imports.`,
           ),
         ),
       );

@@ -6,7 +6,7 @@ export function pairArg(value: string): string {
     records.length !== 2 ||
     records.some(
       (record) =>
-        !/^(spoolman|spoolstock|spoolio|tigertag|threeDfp|bambuddy|filameter|filadex|filamentdb):.+$/.test(
+        !/^(spoolman|spoolstock|spoolio|tigertag|threeDfp|bambuddy|filameter|filadex|filamentdb|spoolmaster|spoolhoarder|spoolapp|spoolkeep):.+$/.test(
           record,
         ),
     )

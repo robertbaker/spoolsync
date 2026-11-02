@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { buildXlsx } from "../../spoolsync-core/src/adapters/shared/xlsx-fixture";
 import { createFakeSpoolman } from "../../spoolsync-core/src/adapters/spoolman/fake-server";
 import { version } from "../package.json";
 
@@ -74,6 +75,60 @@ test("a spool deleted after planning cannot modify a surviving spool's filament"
   } finally {
     await server.stop(true);
   }
+});
+
+test("compares a SpoolMaster .xlsx workbook against a writable file inventory", async () => {
+  await writeFile(
+    path.join(directory, "stock.xlsx"),
+    buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          [
+            "Brand",
+            "Material",
+            "Color",
+            "Color code",
+            "Initial Weight (g)",
+            "Remaining Weight (g)",
+          ],
+          ["Elegoo", "PLA", "Blue", "#0000FF", 1000, 400],
+        ],
+      },
+    ]),
+  );
+  const child = Bun.spawn(
+    [
+      runtime,
+      cli,
+      "--spoolmaster",
+      path.join(directory, "stock.xlsx"),
+      "--spoolio",
+      path.join(directory, "spoolio.json"),
+      "--create-in",
+      "spoolio",
+      "--output-dir",
+      path.join(directory, "updated"),
+      "--json",
+    ],
+    { stdout: "pipe", stderr: "pipe" },
+  );
+  const [stdout, stderr, code] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]);
+  expect({ code, stderr }).toEqual({ code: 0, stderr: "" });
+  expect(JSON.parse(stdout)).toBeObject();
+  const written = JSON.parse(
+    await readFile(path.join(directory, "updated", "spoolio.json"), "utf8"),
+  );
+  expect(written.filaments).toHaveLength(1);
+  expect(written.filaments[0]).toMatchObject({
+    brand: "Elegoo",
+    type: "PLA",
+    weightRemaining: 400,
+  });
 });
 
 for (const failRefresh of [true, false]) {

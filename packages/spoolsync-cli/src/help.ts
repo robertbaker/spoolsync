@@ -16,6 +16,10 @@ Inputs (provide at least two):
   --filameter <file>      FilaMeter backup JSON or CSV export
   --filadex <file>        Filadex JSON or CSV export
   --filamentdb <file>     FilamentDB spools JSON
+  --spoolmaster <file>    SpoolMaster Excel (.xlsx) export (read-only source)
+  --spoolhoarder <file>   Spool Hoarder inventory or HueForge CSV (read-only source)
+  --spool <file>          Spool app JSON backup (read-only source)
+  --spoolkeep <file>      SpoolKeep JSON backup (read-only source)
   --empty <sources>      Start empty writable inventories (comma-separated; repeatable)
   --spoolman-url <url>    Load Spoolman directly instead of from a file
   --spoolman-token <token> API token (or set SPOOLMAN_TOKEN)
@@ -29,10 +33,10 @@ Planning:
                           Choose one source per field (see valid names below)
   --confirm <pair>        Confirm a suggested pair (source:id,source:id); repeatable
   --reject <pair>         Reject a suggested pair (source:id,source:id); repeatable
-  --create-in <sources>   Create missing spools in loaded writable sources (not spoolstock)
+  --create-in <sources>   Create missing spools in loaded writable sources (not read-only sources)
 
 Output:
-  --output-dir <dir>      Write updated import files for loaded file sources (not spoolstock)
+  --output-dir <dir>      Write updated import files for loaded file sources (not read-only sources)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
   --json                  Print the plan as JSON
   -V, --version           Show the installed CLI version (supports --json)

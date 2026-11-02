@@ -1,13 +1,20 @@
 import {
   hasServiceCapability,
+  isBinarySource,
   type LoadResult,
   type SourceId,
   type WritableSourceId,
 } from "../core/model";
 
-/** Parses an inventory file with the adapter for its selected source. Adapter code stays lazy. */
-export async function loadInventoryFile(source: SourceId, text: string): Promise<LoadResult> {
-  const loaded = await parseInventoryFile(source, text);
+/**
+ * Parses an inventory file with the adapter for its selected source. Adapter code stays lazy.
+ * Binary formats (see `isBinarySource`) need bytes; text formats accept text or UTF-8 bytes.
+ */
+export async function loadInventoryFile(
+  source: SourceId,
+  input: string | Uint8Array,
+): Promise<LoadResult> {
+  const loaded = await parseInventoryFile(source, input);
   const ids = new Set<string>();
   for (const spool of loaded.spools) {
     if (ids.has(spool.sourceId))
@@ -19,9 +26,25 @@ export async function loadInventoryFile(source: SourceId, text: string): Promise
   return { ...loaded, origin: "file" };
 }
 
-async function parseInventoryFile(source: SourceId, text: string): Promise<LoadResult> {
+async function parseInventoryFile(
+  source: SourceId,
+  input: string | Uint8Array,
+): Promise<LoadResult> {
   if (!hasServiceCapability(source, "file-export"))
     throw new Error(`${source} does not support file exports.`);
+
+  if (isBinarySource(source)) {
+    const bytes = typeof input === "string" ? undefined : input;
+    if (!bytes?.byteLength)
+      throw new Error("The inventory file is empty. Choose an export from your service.");
+    switch (source) {
+      case "spoolmaster":
+        return (await import("../adapters/spoolmaster")).loadSpoolmasterXlsx(bytes);
+      default:
+        throw new Error(`${source} has no binary file loader.`);
+    }
+  }
+  let text = typeof input === "string" ? input : new TextDecoder().decode(input);
 
   // Windows exports may include a UTF-8 BOM, including in JSON files.
   text = text.replace(/^\uFEFF/, "");
@@ -51,6 +74,14 @@ async function parseInventoryFile(source: SourceId, text: string): Promise<LoadR
       return (await import("../adapters/filadex")).loadFiladexFile(text);
     case "filamentdb":
       return (await import("../adapters/filamentdb")).loadFilamentDbFile(text);
+    case "spoolhoarder":
+      return (await import("../adapters/spoolhoarder")).loadSpoolHoarderCsv(text);
+    case "spoolapp":
+      return (await import("../adapters/spoolapp")).loadSpoolAppJson(text);
+    case "spoolkeep":
+      return (await import("../adapters/spoolkeep")).loadSpoolKeepJson(text);
+    case "spoolmaster":
+      throw new Error("spoolmaster inventories must be read as bytes.");
   }
 }
 

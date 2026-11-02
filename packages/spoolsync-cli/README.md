@@ -3,7 +3,8 @@
 Compare and sync filament inventories from your terminal. `spoolsync` uses the same matching,
 planning, and export adapters as the [SpoolSync web app](https://spoolsync.com), and works across
 Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, FilamentDB, and
-Filadex.
+Filadex. Read-only inputs also include SpoolMaster (`--spoolmaster`, `.xlsx`), Spool Hoarder
+(`--spoolhoarder`), the Spool app (`--spool`), and SpoolKeep (`--spoolkeep`).
 
 > Spoolstock CSV exports are read-only inputs. For a walkthrough of the browser app's
 > Connect → Load → Sync flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.

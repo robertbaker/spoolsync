@@ -14,6 +14,10 @@ export const SOURCE_IDS = [
   "filameter",
   "filadex",
   "filamentdb",
+  "spoolmaster",
+  "spoolhoarder",
+  "spoolapp",
+  "spoolkeep",
 ] as const;
 export type SourceId = (typeof SOURCE_IDS)[number];
 
@@ -28,6 +32,10 @@ export const SERVICE_CAPABILITIES = {
   filameter: ["file-import", "file-export"],
   filadex: ["file-import", "file-export", "api-import", "api-export"],
   filamentdb: ["file-import", "file-export", "api-import", "api-export"],
+  spoolmaster: ["file-export"],
+  spoolhoarder: ["file-export"],
+  spoolapp: ["file-export"],
+  spoolkeep: ["file-export"],
 } as const satisfies Record<SourceId, readonly ServiceCapability[]>;
 
 export type ServiceCapability = "file-import" | "file-export" | "api-import" | "api-export";
@@ -62,7 +70,18 @@ export const SOURCE_LABELS: Record<SourceId, string> = {
   filameter: "FilaMeter",
   filadex: "Filadex",
   filamentdb: "FilamentDB",
+  spoolmaster: "SpoolMaster",
+  spoolhoarder: "Spool Hoarder",
+  spoolapp: "Spool",
+  spoolkeep: "SpoolKeep",
 };
+
+/** Sources whose export files are binary (ZIP-based) and must be read as bytes, not text. */
+export const BINARY_SOURCE_IDS: readonly SourceId[] = ["spoolmaster"];
+
+export function isBinarySource(source: SourceId): boolean {
+  return BINARY_SOURCE_IDS.includes(source);
+}
 
 /**
  * Ids that other services have stamped on this spool. Existing tools already write these (the
@@ -79,6 +98,10 @@ export interface CrossIds {
   filameterId?: string;
   filadexId?: string;
   filamentdbSerial?: string;
+  spoolmasterId?: string;
+  spoolhoarderId?: string;
+  spoolappId?: string;
+  spoolkeepId?: string;
 }
 
 export interface CommonSpool {

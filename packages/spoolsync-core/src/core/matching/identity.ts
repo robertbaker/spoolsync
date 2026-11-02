@@ -16,6 +16,10 @@ function identityKeys(spool: CommonSpool): string[] {
     filameterId,
     filadexId,
     filamentdbSerial,
+    spoolmasterId,
+    spoolhoarderId,
+    spoolappId,
+    spoolkeepId,
   } = spool.crossIds;
   if (spoolmanId !== undefined) keys.add(`spoolman:${spoolmanId}`);
   if (spoolstockShortId) keys.add(`spoolstock:${spoolstockShortId}`);
@@ -26,6 +30,10 @@ function identityKeys(spool: CommonSpool): string[] {
   if (filameterId) keys.add(`filameter:${filameterId}`);
   if (filadexId) keys.add(`filadex:${filadexId}`);
   if (filamentdbSerial) keys.add(`filamentdb:${filamentdbSerial}`);
+  if (spoolmasterId) keys.add(`spoolmaster:${spoolmasterId}`);
+  if (spoolhoarderId) keys.add(`spoolhoarder:${spoolhoarderId}`);
+  if (spoolappId) keys.add(`spoolapp:${spoolappId}`);
+  if (spoolkeepId) keys.add(`spoolkeep:${spoolkeepId}`);
   return [...keys];
 }
 

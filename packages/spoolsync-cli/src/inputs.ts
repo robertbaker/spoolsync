@@ -1,4 +1,4 @@
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { isBinarySource, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 
 import type { Options } from "./args";
 import type { CliDependencies } from "./runtime";
@@ -8,7 +8,7 @@ export async function loadInputs(
   options: Options,
   dependencies: Pick<
     CliDependencies,
-    "readText" | "createEmptyInventory" | "loadInventoryFile" | "remoteServices"
+    "readText" | "readBytes" | "createEmptyInventory" | "loadInventoryFile" | "remoteServices"
   >,
 ) {
   const loaded = new Map<SourceId, LoadResult>();
@@ -16,7 +16,9 @@ export async function loadInputs(
     loaded.set(source, await dependencies.createEmptyInventory(source));
   for (const [source, filename] of options.inputs) {
     try {
-      const file = await dependencies.readText(filename);
+      const file = isBinarySource(source)
+        ? await dependencies.readBytes(filename)
+        : await dependencies.readText(filename);
       loaded.set(source, await dependencies.loadInventoryFile(source, file));
     } catch (error) {
       throw new Error(

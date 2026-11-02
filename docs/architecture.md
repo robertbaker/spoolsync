@@ -100,6 +100,12 @@ responsibilities:
 - FilaMeter separates document contracts, mapping, file loading, document mutation, and export
   assembly. The exporter retains backup metadata and non-filament documents while replacing only
   changed filament documents.
+- SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only file sources, each with load and
+  map modules. SpoolMaster's `.xlsx` export is read as bytes through `shared/xlsx.ts` and
+  `shared/zip.ts` (stored and deflated entries, CRC-verified, via `DecompressionStream`); binary
+  sources are listed in `BINARY_SOURCE_IDS`, and `loadInventoryFile` accepts text or bytes. Browser and
+  CLI inputs choose bytes or text from `isBinarySource`. SpoolKeep expands its spool counts into
+  individual spools, and Spool Hoarder detects its inventory or HueForge layout from the headers.
 
 TigerTag file creation and Spoolio, 3DFilamentProfiles, FilamentDB, and FilaMeter exports accept an optional `AdapterRuntime` for
 clock and ID generation. Production callers use the default runtime; tests can supply deterministic

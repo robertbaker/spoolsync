@@ -15,6 +15,7 @@ export interface CliOutput {
 
 export interface CliDependencies {
   readText(filename: string): Promise<string>;
+  readBytes(filename: string): Promise<Uint8Array>;
   createEmptyInventory: typeof createEmptyInventory;
   loadInventoryFile: typeof loadInventoryFile;
   exportInventory: typeof exportInventory;
@@ -26,6 +27,7 @@ export interface CliDependencies {
 /** Default composition; workflows can inject file, adapter, staging, and output implementations. */
 export const defaultDependencies: CliDependencies = {
   readText: (filename) => readFile(filename, "utf8"),
+  readBytes: async (filename) => new Uint8Array(await readFile(filename)),
   createEmptyInventory,
   loadInventoryFile,
   exportInventory,

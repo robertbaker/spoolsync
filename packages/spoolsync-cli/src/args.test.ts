@@ -65,6 +65,28 @@ describe("CLI arguments", () => {
     expect(options.createIn).toEqual(["spoolio", "filameter"]);
   });
 
+  test("accepts the Mac and iOS app sources as read-only inputs", () => {
+    const options = parseArgs([
+      "--spoolmaster",
+      "stock.xlsx",
+      "--spool-hoarder",
+      "hoarder.csv",
+      "--spool",
+      "backup.json",
+      "--spoolkeep",
+      "keep.json",
+    ]);
+    expect(Object.fromEntries(options.inputs)).toEqual({
+      spoolmaster: "stock.xlsx",
+      spoolhoarder: "hoarder.csv",
+      spoolapp: "backup.json",
+      spoolkeep: "keep.json",
+    });
+    for (const source of ["spoolmaster", "spoolhoarder", "spoolapp", "spoolkeep"])
+      expect(() => parseArgs([...files, "--empty", source])).toThrow("read-only");
+    expect(pairArg("spoolapp:a,spoolkeep:b")).toBe(pairArg("spoolkeep:b,spoolapp:a"));
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(
