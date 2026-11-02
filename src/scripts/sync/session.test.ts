@@ -84,3 +84,32 @@ test("sync filters reflect current resolutions and exclude read-only creation ta
   expect(state.visibleGroups()).toHaveLength(0);
   expect(state.writableLoadedSources()).toEqual(["spoolman", "spoolio"]);
 });
+
+test("bulk decisions answer every suggestion once and persist a single time", () => {
+  const { state, saveMatchDecisions } = session(
+    new Map([
+      [
+        "spoolman",
+        snapshot("spoolman", [
+          makeSpool("spoolman", "1", { name: "Alpha" }),
+          makeSpool("spoolman", "2", { name: "Beta" }),
+        ]),
+      ],
+      [
+        "spoolio",
+        snapshot("spoolio", [
+          makeSpool("spoolio", "a", { name: "Alpha" }),
+          makeSpool("spoolio", "b", { name: "Beta" }),
+        ]),
+      ],
+    ]),
+  );
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(2);
+  expect(state.decideAll(true)).toBe(2);
+  expect(saveMatchDecisions).toHaveBeenCalledTimes(1);
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(0);
+  expect(state.match.groups.filter((group) => group.status === "linked")).toHaveLength(2);
+  expect(state.decideAll(false)).toBe(0);
+});

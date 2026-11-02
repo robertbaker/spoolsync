@@ -69,6 +69,15 @@ export class SyncSession {
     this.persistence.saveMatchDecisions(this.decisions);
   }
 
+  /** Answers every currently suggested pair the same way; the match is recomputed once afterwards. */
+  decideAll(same: boolean): number {
+    const suggestions = [...this.match.suggestions];
+    for (const suggestion of suggestions)
+      this.decisions = decideMatch(this.decisions, suggestion, same);
+    this.persistence.saveMatchDecisions(this.decisions);
+    return suggestions.length;
+  }
+
   visibleGroups(): SpoolGroup[] {
     return this.match.groups.filter((group) => {
       if (this.filter === "open") return openConflicts(group, this.resolutionFor(group)).length > 0;

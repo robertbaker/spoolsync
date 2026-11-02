@@ -33,11 +33,19 @@ const renderGroups = createGroupsView(state, () => {
   renderApply(state.match, state.resolutions);
 });
 const { renderFilters, renderBulk } = createControlsView(state, renderAll, renderGroups);
-const renderSuggestions = createSuggestionsView(state, (suggestion, same) => {
-  state.decide(suggestion, same);
-  showToast(same ? "Confirmed match as same spool" : "Marked spools as different", "info");
-  renderAll();
-});
+const renderSuggestions = createSuggestionsView(
+  state,
+  (suggestion, same) => {
+    state.decide(suggestion, same);
+    showToast(same ? "Confirmed match as same spool" : "Marked spools as different", "info");
+    renderAll();
+  },
+  (same) => {
+    const count = state.decideAll(same);
+    showToast(`${same ? "Confirmed" : "Rejected"} ${count} possible matches`, "info");
+    renderAll();
+  },
+);
 
 function renderAll(): void {
   state.recompute();

@@ -132,3 +132,47 @@ test("services can be searched and filtered, and panels open when they report", 
   await expect(panel).toHaveJSProperty("open", true);
   await expect(page.locator("#load-bar-summary")).toContainText("Nothing loaded yet");
 });
+
+test("possible matches can be answered together after a second click", async ({ page }) => {
+  await page.goto("/load");
+  const filaments = [1, 2, 3].map((n) => ({
+    id: `s${n}`,
+    type: "PLA",
+    brand: "Prusa",
+    colorName: `Color ${n}`,
+    colorHex: `#00${n}0${n}0`,
+    weightTotal: 1000,
+    weightRemaining: 100 * n,
+  }));
+  await page.locator("#smart-file").setInputFiles([
+    {
+      name: "spoolio.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ version: 1, filaments })),
+    },
+    {
+      name: "keep.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify(
+          [1, 2, 3].map((n) => ({
+            id: `k${n}`,
+            brand: "Prusa",
+            family: "PLA",
+            color: `Color ${n}`,
+            newQuantity: 1,
+          })),
+        ),
+      ),
+    },
+  ]);
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.goto("/sync");
+  const confirmAll = page.getByRole("button", { name: "All 3 are the same spool" });
+  await confirmAll.click();
+  await expect(page.getByRole("button", { name: /Click again to confirm 3 pairs/ })).toBeVisible();
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  await page.getByRole("button", { name: /Click again to confirm 3 pairs/ }).click();
+  await expect(page.locator("#suggestions-section")).toBeHidden();
+  await expect(page.locator("#sync-summary")).toContainText("3");
+});

@@ -9,9 +9,48 @@ import type { SyncSession } from "./session";
 export function createSuggestionsView(
   state: SyncSession,
   decide: (suggestion: MatchSuggestion, same: boolean) => void,
+  decideAll: (same: boolean) => void,
 ) {
+  const CONFIRM_WINDOW_MS = 5000;
+
+  /** A bulk answer cannot be undone from the page, so it takes a second click to confirm. */
+  function bulkButton(
+    label: string,
+    same: boolean,
+    count: number,
+    primary: boolean,
+  ): HTMLButtonElement {
+    const control = button(
+      label,
+      () => {
+        if (control.dataset["armed"] !== "true") {
+          control.dataset["armed"] = "true";
+          control.textContent = `Click again to ${same ? "confirm" : "reject"} ${count} pairs`;
+          setTimeout(() => {
+            if (!control.isConnected) return;
+            delete control.dataset["armed"];
+            control.textContent = label;
+          }, CONFIRM_WINDOW_MS);
+          return;
+        }
+        decideAll(same);
+      },
+      primary ? "primary" : "outline",
+    );
+    return control;
+  }
+
   function renderSuggestions(): void {
     byId("suggestions-section").hidden = state.match.suggestions.length === 0;
+    const count = state.match.suggestions.length;
+    byId("suggestions-bulk").replaceChildren(
+      ...(count > 1
+        ? [
+            bulkButton(`All ${count} are the same spool`, true, count, false),
+            bulkButton(`All ${count} are different`, false, count, false),
+          ]
+        : []),
+    );
     const groupsById = new Map(state.match.groups.map((group) => [group.id, group]));
     byId("suggestions").replaceChildren(
       ...state.match.suggestions.map((suggestion) => {

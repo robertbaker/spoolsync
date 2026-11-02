@@ -71,6 +71,11 @@ Services are native `<details>` panels (`SourcePanel.astro`) that open when they
 `source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar
 in step with what is loaded; it enables once two services are loaded.
 
+On the Sync page, a bulk answer for the pending possible matches (`SyncSession.decideAll`) saves
+decisions once and needs a second click, because match decisions cannot be undone from the page.
+Suggestions are still never merged without an explicit answer. The progress strip marks Connect as
+optional and never shows it as completed, since file-only workflows skip it.
+
 ## Adapter modules
 
 Adapter entry points preserve their public imports while delegating to modules with narrower

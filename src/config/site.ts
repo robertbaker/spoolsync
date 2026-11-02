@@ -1,7 +1,7 @@
 export const SITE_TITLE = "SpoolSync";
 export const SITE_BRAND_NAME = "SpoolSync";
 export const SITE_DESCRIPTION =
-  "Compare filament spool inventories across Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, and FilaMeter, then sync changes in your browser.";
+  "Compare filament spool inventories across Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, and more, then sync changes in your browser.";
 export const SITE_URL = "https://www.spoolsync.com";
 export const AUTHOR_NAME = "SpoolSync";
 export const TWITTER_HANDLE = "";

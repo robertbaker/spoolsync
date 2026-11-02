@@ -35,13 +35,14 @@ const currentIndex = steps.findIndex((step) => step.id === current);
                     : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
               ]}
             >
-              {index < currentIndex ? (
+              {index < currentIndex && step.id !== "connections" ? (
                 <Icon name="material-symbols:check-circle-rounded" class="size-4 text-success" aria-hidden="true" />
               ) : (
                 <Icon name={step.icon} class="size-4" aria-hidden="true" />
               )}
               <span>
                 <span class="hidden text-muted-foreground sm:inline">{index + 1}.</span> {step.label}
+                {step.id === "connections" && <span class="hidden text-xs font-normal text-muted-foreground lg:inline">(optional)</span>}
               </span>
             </a>
           </li>
