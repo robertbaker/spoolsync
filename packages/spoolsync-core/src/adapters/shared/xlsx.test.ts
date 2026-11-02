@@ -32,24 +32,24 @@ describe("readXlsx", () => {
   );
 
   test("rejects files that are not workbooks", async () => {
-    await expect(readXlsx(new TextEncoder().encode("Brand,Material\nA,PLA"))).rejects.toThrow(
+    expect(readXlsx(new TextEncoder().encode("Brand,Material\nA,PLA"))).rejects.toThrow(
       "not an Excel",
     );
-    await expect(readXlsx(buildZip([{ name: "readme.txt", content: "hi" }]))).rejects.toThrow(
+    expect(readXlsx(buildZip([{ name: "readme.txt", content: "hi" }]))).rejects.toThrow(
       "not an Excel",
     );
-    await expect(readXlsx(new Uint8Array([0x50, 0x4b, 3, 4]))).rejects.toThrow("too small");
+    expect(readXlsx(new Uint8Array([0x50, 0x4b, 3, 4]))).rejects.toThrow("too small");
   });
 
   test("rejects a damaged archive instead of returning partial data", async () => {
     const bytes = buildXlsx(sheets);
-    await expect(readXlsx(bytes.slice(0, bytes.length - 40))).rejects.toThrow("ZIP");
+    expect(readXlsx(bytes.slice(0, bytes.length - 40))).rejects.toThrow("ZIP");
     const corrupted = bytes.slice();
     const entry = listZipEntries(bytes)[0]!;
     // Flip a byte inside the entry's compressed data (past the local header and file name).
     const position = entry.localHeaderOffset + 30 + entry.name.length + 4;
     corrupted[position] = (corrupted[position] ?? 0) ^ 0xff;
-    await expect(readXlsx(corrupted)).rejects.toThrow();
+    expect(readXlsx(corrupted)).rejects.toThrow();
   });
 });
 

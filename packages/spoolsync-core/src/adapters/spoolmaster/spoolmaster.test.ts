@@ -180,10 +180,10 @@ describe("loadSpoolmasterXlsx", () => {
   });
 
   test("rejects workbooks without a stock table and non-workbooks", async () => {
-    await expect(
+    expect(
       loadSpoolmasterXlsx(buildXlsx([{ name: "Sheet1", rows: [["a", "b"]] }])),
     ).rejects.toThrow("SpoolMaster");
-    await expect(loadSpoolmasterXlsx(new TextEncoder().encode("Brand,Material"))).rejects.toThrow(
+    expect(loadSpoolmasterXlsx(new TextEncoder().encode("Brand,Material"))).rejects.toThrow(
       "Export your stock from SpoolMaster",
     );
   });
@@ -212,7 +212,7 @@ describe("loadSpoolmasterXlsx", () => {
       ],
     ]);
     expect((await loadInventoryFile("spoolmaster", bytes)).spools).toHaveLength(1);
-    await expect(loadInventoryFile("spoolmaster", "Brand,Material")).rejects.toThrow("empty");
-    await expect(loadInventoryFile("spoolmaster", new Uint8Array())).rejects.toThrow("empty");
+    expect(loadInventoryFile("spoolmaster", "Brand,Material")).rejects.toThrow("empty");
+    expect(loadInventoryFile("spoolmaster", new Uint8Array())).rejects.toThrow("empty");
   });
 });

@@ -58,6 +58,19 @@ browser adapters and resolves current credentials for each write attempt. Keep s
 connection and token handling there, and keep the controller's target checks, progress, logs,
 and inventory refresh handling shared across services.
 
+## Load page
+
+The Load page leads with one multi-file drop zone. `detectInventorySources` (core `workflow/detect.ts`)
+picks the service for each file: unique header or field signatures decide first (Spool Hoarder CSV
+columns, Spool and SpoolKeep JSON, Spoolio's `version` + `filaments`), then each plausible parser is
+tried and only parsers that read at least one spool count. Several matches are shown as choices and
+nothing is guessed. `smart-drop.ts` loads the chosen source through the same `readInventoryFile`
+path as each service's own picker, so request revisions and persistence are shared.
+
+Services are native `<details>` panels (`SourcePanel.astro`) that open when they report a message.
+`source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar
+in step with what is loaded; it enables once two services are loaded.
+
 ## Adapter modules
 
 Adapter entry points preserve their public imports while delegating to modules with narrower

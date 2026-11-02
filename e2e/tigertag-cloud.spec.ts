@@ -80,6 +80,7 @@ test("sign in to TigerTag, fetch the cloud inventory and apply a change", async 
   await expect(page.getByText("Signed in as me@example.com")).toBeVisible();
 
   await page.goto("/load");
+  await page.locator("#tigertag-panel > summary").click();
   await page.getByRole("button", { name: "Fetch from TigerTag cloud" }).click();
   await expect(page.getByText("Loaded 1 spool from TigerTag")).toBeVisible();
   await page.locator("#spoolstock-file").setInputFiles(spoolstockCsv);

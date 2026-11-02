@@ -36,7 +36,7 @@ test("binary sources are read as bytes and text sources as text", async () => {
 });
 
 test("load failures name the source and file", async () => {
-  await expect(
+  expect(
     loadInputs(parseArgs(["--spoolmaster", "bad.xlsx", "--spoolkeep", "keep.json"]), {
       ...defaultDependencies,
       readBytes: async () => new TextEncoder().encode("not a workbook"),

@@ -279,6 +279,7 @@ test("Bambuddy API fetch loads inventory from the configured server", async ({ p
 
   await page.goto("/load");
   await expect(page.locator("#bambuddy-logo")).toBeVisible();
+  await page.locator("#bambuddy-panel > summary").click();
   await page.getByLabel("Bambuddy server address").fill("http://bambuddy.test:8000");
   await page.getByLabel("Bambuddy API key").fill("test-key");
   await page.locator("#bambuddy-fetch").click();

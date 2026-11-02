@@ -1,0 +1,62 @@
+---
+/** A collapsible service on the Load page. Native <details>, so it works without scripting. */
+import { Icon } from "astro-icon/components";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+
+interface Props {
+  id: string;
+  label: string;
+  kind: string;
+  icon?: string;
+  image?: string;
+  api?: boolean;
+  readonly?: boolean;
+  open?: boolean;
+  tourId?: string;
+}
+
+const { id, label, kind, icon, image, api = false, readonly = false, open = false, tourId } = Astro.props;
+const search = `${label} ${kind} ${api ? "api connect" : ""} ${readonly ? "read-only" : ""}`.toLowerCase();
+---
+
+<details
+  id={tourId ?? `${id}-panel`}
+  data-panel={id}
+  data-search={search}
+  data-api={String(api)}
+  data-readonly={String(readonly)}
+  open={open}
+  class="app-card group self-start p-0 open:ring-1 open:ring-primary/30"
+>
+  <summary
+    class="flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:p-5 [&::-webkit-details-marker]:hidden"
+  >
+    {
+      image ? (
+        <IconAvatar color="primary">
+          <img slot="icon" id={`${id}-logo`} src={image} alt="" class="size-7 object-contain" />
+        </IconAvatar>
+      ) : (
+        <IconAvatar icon={icon} color="primary" />
+      )
+    }
+    <span class="min-w-0 flex-1">
+      <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <h2 id={`load-${id}-heading`} class="text-lg font-semibold leading-tight">{label}</h2>
+        {api && <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary-text">API</span>}
+        {readonly && <span class="rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground">Read-only</span>}
+      </span>
+      <span class="block text-xs text-muted-foreground">{kind}</span>
+    </span>
+    <span id={`${id}-status`} class="shrink-0"></span>
+    <Icon
+      name="material-symbols:expand-more-rounded"
+      class="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+      aria-hidden="true"
+    />
+  </summary>
+  <div class="flex flex-col border-t px-4 pb-5 pt-4 sm:px-5" aria-labelledby={`load-${id}-heading`} role="group">
+    <slot />
+    <div id={`${id}-message`} class="mt-4 empty:mt-0" aria-live="polite"></div>
+  </div>
+</details>

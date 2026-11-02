@@ -28,10 +28,14 @@ export function createLoadStatusView(state: LoadState, renderTable: () => void) 
         class:
           "ml-1.5 text-xs text-muted-foreground hover:text-foreground underline transition-colors",
         title: `Unload ${SOURCE_LABELS[source]}`,
+        "aria-label": `Unload ${SOURCE_LABELS[source]}`,
       },
       "Unload",
     );
-    clearBtn.addEventListener("click", () => {
+    clearBtn.addEventListener("click", (event) => {
+      // The status sits inside the panel summary; do not toggle the panel.
+      event.preventDefault();
+      event.stopPropagation();
       state.unload(source);
       setStatus(source);
       renderTable();

@@ -36,53 +36,7 @@ export function wireFileSource(source: SourceId, { state, store }: LoadContext):
     }
   });
 
-  async function read(file: File): Promise<void> {
-    const current = state.nextRevision(source);
-    message.replaceChildren();
-    if (file.size > MAX_FILE_BYTES) {
-      message.replaceChildren(
-        notice(
-          "error",
-          "File too large",
-          h("p", {}, "Exports are far smaller than 20 MB; check the file."),
-        ),
-      );
-      return;
-    }
-    let result: LoadResult;
-    try {
-      result = await loadInventoryFile(
-        source,
-        isBinarySource(source) ? new Uint8Array(await file.arrayBuffer()) : await file.text(),
-      );
-    } catch (error) {
-      result = {
-        source,
-        spools: [],
-        warnings: [(error as Error).message],
-        loadedAt: new Date().toISOString(),
-      };
-    }
-    if (!state.isCurrent(source, current)) return;
-    if (!result.spools.length && result.warnings.length) {
-      message.replaceChildren(
-        notice(
-          "error",
-          `No spools found in ${file.name}`,
-          ...result.warnings.map((w) => h("p", { class: "mt-1" }, w)),
-          state.results.has(source)
-            ? h("p", { class: "mt-2" }, "Your previously loaded inventory is still available.")
-            : null,
-        ),
-      );
-      return;
-    }
-    message.replaceChildren(
-      notice("success", `Loaded ${plural(result.spools.length, "spool")} from ${file.name}`),
-      ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),
-    );
-    store(result);
-  }
+  const read = (file: File) => readInventoryFile(source, file, { state, store });
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
@@ -104,4 +58,58 @@ export function wireFileSource(source: SourceId, { state, store }: LoadContext):
     const file = event.dataTransfer?.files[0];
     if (file) void read(file);
   });
+}
+
+/** Reads one file into a source's inventory, reporting the outcome in that source's panel. */
+export async function readInventoryFile(
+  source: SourceId,
+  file: File,
+  { state, store }: LoadContext,
+): Promise<void> {
+  const message = byId(`${source}-message`);
+  const current = state.nextRevision(source);
+  message.replaceChildren();
+  if (file.size > MAX_FILE_BYTES) {
+    message.replaceChildren(
+      notice(
+        "error",
+        "File too large",
+        h("p", {}, "Exports are far smaller than 20 MB; check the file."),
+      ),
+    );
+    return;
+  }
+  let result: LoadResult;
+  try {
+    result = await loadInventoryFile(
+      source,
+      isBinarySource(source) ? new Uint8Array(await file.arrayBuffer()) : await file.text(),
+    );
+  } catch (error) {
+    result = {
+      source,
+      spools: [],
+      warnings: [(error as Error).message],
+      loadedAt: new Date().toISOString(),
+    };
+  }
+  if (!state.isCurrent(source, current)) return;
+  if (!result.spools.length && result.warnings.length) {
+    message.replaceChildren(
+      notice(
+        "error",
+        `No spools found in ${file.name}`,
+        ...result.warnings.map((w) => h("p", { class: "mt-1" }, w)),
+        state.results.has(source)
+          ? h("p", { class: "mt-2" }, "Your previously loaded inventory is still available.")
+          : null,
+      ),
+    );
+    return;
+  }
+  message.replaceChildren(
+    notice("success", `Loaded ${plural(result.spools.length, "spool")} from ${file.name}`),
+    ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),
+  );
+  store(result);
 }
