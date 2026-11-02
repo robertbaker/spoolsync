@@ -176,3 +176,88 @@ test("possible matches can be answered together after a second click", async ({ 
   await expect(page.locator("#suggestions-section")).toBeHidden();
   await expect(page.locator("#sync-summary")).toContainText("3");
 });
+
+test("one button downloads every updated file", async ({ page }) => {
+  await page.goto("/load");
+  await page.locator("#smart-file").setInputFiles([
+    {
+      name: "spoolio.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          version: 1,
+          filaments: [{ id: "only-spoolio", type: "PETG", brand: "Alpha", colorName: "Teal" }],
+        }),
+      ),
+    },
+    {
+      name: "filameter.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          regular: [
+            {
+              _id: "only-filameter",
+              filament: "Violet",
+              material: "PLA",
+              brand: "Beta",
+              color: "#7733AA",
+              total_weight: 1000,
+              used_weight: 100,
+            },
+          ],
+        }),
+      ),
+    },
+  ]);
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.goto("/sync");
+  await expect(page.locator("#download-all")).toHaveCount(0);
+  await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
+  await page.getByRole("button", { name: "Add all missing to FilaMeter" }).click();
+  const downloads: string[] = [];
+  page.on("download", (download) => downloads.push(download.suggestedFilename()));
+  await page.getByRole("button", { name: "Download all 2 updated files" }).click();
+  await expect.poll(() => downloads.length).toBe(2);
+  expect(downloads.some((name) => /spoolio/i.test(name))).toBe(true);
+  expect(downloads.some((name) => /filameter/i.test(name))).toBe(true);
+});
+
+test("a long differences list is windowed and can be searched", async ({ page }) => {
+  await page.goto("/load");
+  const total = 60;
+  const filaments = Array.from({ length: total }, (_, index) => ({
+    id: `s${index}`,
+    type: "PLA",
+    brand: index === 41 ? "Needle" : "Hay",
+    colorName: `Color ${index}`,
+  }));
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "big.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments })),
+  });
+  await expect(page.locator("#load-bar-summary")).toContainText("1 service loaded");
+  await page.locator("#filameter-file").setInputFiles({
+    name: "filameter.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        regular: [{ _id: "z1", filament: "Other", material: "PLA", brand: "Other" }],
+      }),
+    ),
+  });
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.goto("/sync");
+  await expect(page.locator("#groups article")).toHaveCount(25);
+  await expect(page.getByText("Showing 25 of 61 spools")).toBeVisible();
+  await page.getByRole("button", { name: "Show 25 more" }).click();
+  await expect(page.locator("#groups article")).toHaveCount(50);
+  await page.getByRole("button", { name: "Show all 61" }).click();
+  await expect(page.locator("#groups article")).toHaveCount(61);
+
+  await page.getByLabel("Filter spools").fill("needle");
+  await expect(page.locator("#groups article")).toHaveCount(1);
+  await page.getByLabel("Filter spools").fill("nothing-matches");
+  await expect(page.getByText('No spools matching "nothing-matches".')).toBeVisible();
+});

@@ -76,6 +76,16 @@ decisions once and needs a second click, because match decisions cannot be undon
 Suggestions are still never merged without an explicit answer. The progress strip marks Connect as
 optional and never shows it as completed, since file-only workflows skip it.
 
+The Spoolman and TigerTag connection forms are shared Astro components
+(`src/components/connections/`) used by both the Connections page and the Load panels. Their wiring
+(`connections/wire.ts`) is loaded the first time a panel's settings open, and dispatches
+`spoolsync:connection-changed` after any save or clear. The Load page re-reads credentials at use
+time on that event and, when storage dropped an API snapshot because the server or account changed,
+drops the in-page copy too; file snapshots are kept.
+
+The Differences list renders a window of 25 groups at a time (cards are built only for that window)
+and can be filtered by text. The Apply section offers one button that downloads every changed file.
+
 ## Adapter modules
 
 Adapter entry points preserve their public imports while delegating to modules with narrower

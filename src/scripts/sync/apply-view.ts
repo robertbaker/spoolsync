@@ -18,7 +18,7 @@ import { ApplyController } from "./apply-controller";
 import { counts, changeList, renderLog } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
 import { DownloadController } from "./download-controller";
-import { download } from "./presentation";
+import { button, download } from "./presentation";
 import { sourceActions } from "./source-actions";
 
 export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: () => void) {
@@ -68,7 +68,61 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
       );
     }
 
-    for (const source of WRITABLE_SOURCE_IDS.filter((source) => loaded.has(source))) {
+    const writable = WRITABLE_SOURCE_IDS.filter((source) => loaded.has(source));
+    // Bambuddy's CSV importer only creates entries, so a file without creations has nothing to import.
+    const downloadable = writable.filter((source) => {
+      const changes = plan.get(source) ?? [];
+      return (
+        changes.length > 0 &&
+        (source !== "bambuddy" || changes.some((change) => change.kind === "create"))
+      );
+    });
+    if (downloadable.length > 1) {
+      const allStatus = h("div", { class: "mt-3", "aria-live": "polite" });
+      const downloadAll = button(
+        `Download all ${downloadable.length} updated files`,
+        () => {
+          void (async () => {
+            downloadAll.disabled = true;
+            allStatus.replaceChildren();
+            for (const source of downloadable) {
+              const result = h("div", { class: "mt-2" });
+              await downloads.run(
+                source,
+                () => loaded.get(source)!,
+                plan.get(source) ?? [],
+                result,
+              );
+              allStatus.append(result);
+              // Browsers may ask before allowing several downloads; pace them so each is registered.
+              await new Promise((resolve) => setTimeout(resolve, 250));
+            }
+            downloadAll.disabled = false;
+          })();
+        },
+        "primary",
+        { id: "download-all" },
+      );
+      sections.push(
+        h(
+          "div",
+          { class: "rounded-xl border bg-muted/30 p-4" },
+          h(
+            "div",
+            { class: "flex flex-wrap items-center justify-between gap-3" },
+            h(
+              "p",
+              { class: "text-sm text-muted-foreground" },
+              `${downloadable.map((source) => SOURCE_LABELS[source]).join(", ")} have changes. Your browser may ask to allow multiple downloads.`,
+            ),
+            downloadAll,
+          ),
+          allStatus,
+        ),
+      );
+    }
+
+    for (const source of writable) {
       const changes = plan.get(source) ?? [];
       const status = h("div", { class: "mt-3", "aria-live": "polite" });
       const log = renderLog(controller.logs.get(source));

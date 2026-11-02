@@ -1,0 +1,48 @@
+---
+/** TigerTag sign-in form, shared by the Connections page and the Load panel. */
+import Button from "~/components/starwind/controls/Button/Button.astro";
+
+const inputClass = "field-input";
+interface Props {
+  badge?: boolean;
+}
+const { badge = false } = Astro.props;
+---
+
+{badge && <div class="mb-3 flex justify-end"><span id="tigertag-status-badge" class="text-xs"></span></div>}
+<div id="tigertag-signed-in" class="mt-4" hidden>
+  <p class="text-sm">Signed in as <strong id="tigertag-email"></strong>.</p>
+  <div class="mt-3"><Button type="button" variant="outline" id="tigertag-sign-out">Sign out</Button></div>
+</div>
+<form id="tigertag-form" class="mt-5 grid gap-5" novalidate>
+  <label class="field-label" for="tigertag-email-input">
+    Email
+    <input id="tigertag-email-input" name="email" type="email" autocomplete="username" required class={inputClass} />
+  </label>
+  <div class="field-label">
+    <label for="tigertag-password">
+      Password
+    </label>
+    <div class="relative mt-1.5">
+      <input id="tigertag-password" name="password" type="password" autocomplete="current-password" required class={`${inputClass} mt-0 pr-10`} />
+      <button
+        type="button"
+        id="toggle-tigertag-password"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+        aria-label="Toggle password visibility"
+      >
+        <span class="text-xs font-mono font-medium" id="toggle-tigertag-password-text">Show</span>
+      </button>
+    </div>
+    <span class="field-hint">
+      Accounts that sign in with Google need a password set in the TigerTag app first; Google sign-in only works on
+      TigerTag's own sites.
+    </span>
+  </div>
+  <label class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-transparent p-2 text-sm transition-colors has-[:checked]:border-border has-[:checked]:bg-muted/40 hover:bg-muted/20" for="tigertag-remember">
+    <input id="tigertag-remember" name="remember" type="checkbox" class="size-4 shrink-0" />
+    <span>Stay signed in on this device</span>
+  </label>
+  <div><Button type="submit" color="primary" id="tigertag-sign-in">Sign in</Button></div>
+</form>
+<div id="tigertag-result" class="mt-4" aria-live="polite"></div>

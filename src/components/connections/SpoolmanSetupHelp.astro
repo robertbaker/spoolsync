@@ -1,0 +1,31 @@
+---
+/** CORS and mixed-content help for reaching a Spoolman server from this site. */
+import Alert from "~/components/starwind/controls/Alert/Alert.astro";
+---
+
+<div class="grid gap-4">
+  <Alert variant="info" style="soft" title="Allow this site in Spoolman (CORS)">
+    <p>
+      Spoolman only responds to web origins it trusts. Add this line to Spoolman's environment (<code>docker-compose.yml</code>
+      <code>environment:</code> or <code>.env</code>) and restart the server:
+    </p>
+    <div class="mt-2 flex items-center gap-2 rounded bg-background p-2">
+      <code id="cors-line" class="min-w-0 flex-1 overflow-x-auto text-xs font-mono">SPOOLMAN_CORS_ORIGIN=…</code>
+      <button
+        type="button"
+        id="copy-cors-btn"
+        class="shrink-0 rounded border px-2 py-1 text-xs hover:bg-muted font-medium transition-colors"
+      >
+        Copy
+      </button>
+    </div>
+    <div id="cors-install-help"></div>
+  </Alert>
+  <Alert variant="neutral" style="soft" title="Plain http:// on your home network">
+    <p>
+      Because this page is served over HTTPS, most browsers block plain <code>http://</code> requests. Chrome,
+      Edge, and other Chromium browsers (version 142+) allow local network requests: when prompted to let this site access your local network, choose <strong>Allow</strong>. Firefox and Safari block mixed content,
+      so use a Chromium browser or serve Spoolman over HTTPS.
+    </p>
+  </Alert>
+</div>

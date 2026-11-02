@@ -9,7 +9,7 @@ import { SOURCE_IDS, SOURCE_LABELS, type CommonSpool } from "@spoolsync/core/cor
 
 import { byId, h } from "../dom";
 import { comparisonRow } from "./comparison-row";
-import { sourceTag, spoolTitle, swatches } from "./presentation";
+import { button, sourceTag, spoolTitle, swatches } from "./presentation";
 import type { SyncSession } from "./session";
 
 export function createGroupsView(state: SyncSession, onChanged: () => void) {
@@ -39,6 +39,11 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     const open = openConflicts(group, state.resolutionFor(group)).length;
     status.textContent = open ? `${open} to resolve` : "Ready";
     status.className = `rounded-full px-2 py-0.5 text-xs font-medium ${open ? "bg-warning/15 text-warning-text" : "bg-success/15 text-success-text"}`;
+  }
+
+  /** Whether a group has differences or missing services worth showing, without building its card. */
+  function hasContent(group: SpoolGroup): boolean {
+    return compareGroup(group).length > 0 || state.missingSources(group).length > 0;
   }
 
   function groupCard(group: SpoolGroup): HTMLElement | null {
@@ -157,24 +162,91 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     return card;
   }
 
-  function renderGroups(): void {
-    const cards = state
-      .visibleGroups()
-      .map(groupCard)
-      .filter((card): card is HTMLElement => card !== null);
-    byId("groups").replaceChildren(
-      ...(cards.length
-        ? cards
-        : [
-            h(
-              "p",
-              { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-              state.filter === "all" ? "Everything matches. Nothing to do." : "Nothing here.",
-            ),
-          ]),
-    );
-    for (const group of state.visibleGroups()) updateGroupStatus(group);
+  const PAGE_SIZE = 25;
+  let shown = PAGE_SIZE;
+  let lastFilter = state.filter;
+  let query = "";
+
+  function searchText(group: SpoolGroup): string {
+    return SOURCE_IDS.flatMap((source) => {
+      const spool = group.members[source];
+      return spool
+        ? [spool.vendor, spool.material, spool.name, spool.sourceId, spool.location, spool.upc]
+        : [];
+    })
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
   }
+
+  function renderGroups(): void {
+    if (state.filter !== lastFilter) {
+      lastFilter = state.filter;
+      shown = PAGE_SIZE;
+    }
+    const needle = query.trim().toLowerCase();
+    const groups = state
+      .visibleGroups()
+      .filter((group) => !needle || searchText(group).includes(needle));
+    // Build cards only for the visible window so very large inventories stay responsive.
+    const cards: HTMLElement[] = [];
+    const rendered: SpoolGroup[] = [];
+    let candidates = 0;
+    for (const group of groups) {
+      if (!hasContent(group)) continue;
+      candidates++;
+      if (cards.length >= shown) continue;
+      const card = groupCard(group);
+      if (!card) continue;
+      cards.push(card);
+      rendered.push(group);
+    }
+    const hidden = candidates - cards.length;
+    const children: HTMLElement[] = cards.length
+      ? [...cards]
+      : [
+          h(
+            "p",
+            { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
+            needle
+              ? `No spools matching "${query.trim()}".`
+              : state.filter === "all"
+                ? "Everything matches. Nothing to do."
+                : "Nothing here.",
+          ),
+        ];
+    if (hidden > 0) {
+      const more = button(`Show ${Math.min(PAGE_SIZE, hidden)} more`, () => {
+        shown += PAGE_SIZE;
+        renderGroups();
+      });
+      const all = button(`Show all ${candidates}`, () => {
+        shown = Number.POSITIVE_INFINITY;
+        renderGroups();
+      });
+      children.push(
+        h(
+          "div",
+          { class: "flex flex-wrap items-center gap-3 rounded-lg border border-dashed p-4" },
+          h(
+            "p",
+            { class: "text-sm text-muted-foreground", "aria-live": "polite" },
+            `Showing ${cards.length} of ${candidates} spools`,
+          ),
+          more,
+          all,
+        ),
+      );
+    }
+    byId("groups").replaceChildren(...children);
+    for (const group of rendered) updateGroupStatus(group);
+  }
+
+  document.getElementById("group-search")?.addEventListener("input", (event) => {
+    query = (event.target as HTMLInputElement).value;
+    shown = PAGE_SIZE;
+    renderGroups();
+  });
 
   return renderGroups;
 }

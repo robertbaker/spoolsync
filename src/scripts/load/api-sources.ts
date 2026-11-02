@@ -11,6 +11,7 @@ import {
   saveTigertagSession,
 } from "~/lib/browser/storage";
 
+import { CONNECTION_CHANGED } from "../connections/events";
 import { byId, h, notice } from "../dom";
 import { plural, warningsNotice } from "./presentation";
 import { wireRemoteSource } from "./remote-source";
@@ -25,17 +26,24 @@ function success(result: LoadResult, from: string, includeWarnings = true): HTML
 }
 
 function wireSpoolman(context: LoadContext): void {
-  const connection = loadSpoolmanConnection();
   const button = byId<HTMLButtonElement>("spoolman-load");
-  byId("spoolman-target").textContent = connection
-    ? `From ${connection.baseUrl}`
-    : "No Spoolman server configured yet.";
-  button.disabled = !connection;
+  const target = byId("spoolman-target");
+  // Read at use time: the connection can be edited in this page's settings panel.
+  const refresh = () => {
+    const connection = loadSpoolmanConnection();
+    target.textContent = connection
+      ? `From ${connection.baseUrl}`
+      : "No Spoolman server configured yet.";
+    button.disabled = !connection;
+  };
+  refresh();
+  document.addEventListener(CONNECTION_CHANGED, refresh);
   wireRemoteSource(context, {
     source: "spoolman",
     button,
     message: byId("spoolman-message"),
     prepare() {
+      const connection = loadSpoolmanConnection();
       if (!connection) return null;
       return {
         loading: notice("info", "Fetching…", h("p", {}, connection.baseUrl)),
@@ -57,8 +65,8 @@ function wireSpoolman(context: LoadContext): void {
               "p",
               { class: "mt-2" },
               h(
-                "a",
-                { href: "/connections", class: "underline" },
+                "button",
+                { type: "button", class: "underline", "data-open-settings": "spoolman" },
                 "Test the connection to see why →",
               ),
             )
@@ -147,18 +155,30 @@ function wireFilamentDb(context: LoadContext): void {
 }
 
 function wireTigertag(context: LoadContext): void {
-  const session = loadTigertagSession();
   const button = byId<HTMLButtonElement>("tigertag-cloud");
   const hint = byId("tigertag-cloud-hint");
-  button.disabled = !session;
-  if (session) hint.textContent = `Signed in as ${session.email}`;
-  else
-    hint.append("Not signed in. ", h("a", { href: "/connections", class: "underline" }, "Sign in"));
+  const refresh = () => {
+    const session = loadTigertagSession();
+    button.disabled = !session;
+    hint.replaceChildren();
+    if (session) hint.textContent = `Signed in as ${session.email}`;
+    else {
+      const open = h(
+        "button",
+        { type: "button", class: "underline", "data-open-settings": "tigertag" },
+        "Sign in",
+      );
+      hint.append("Not signed in. ", open);
+    }
+  };
+  refresh();
+  document.addEventListener(CONNECTION_CHANGED, refresh);
   wireRemoteSource(context, {
     source: "tigertag",
     button,
     message: byId("tigertag-message"),
     prepare() {
+      const session = loadTigertagSession();
       if (!session) return null;
       return {
         loading: notice("info", "Fetching from TigerTag…"),

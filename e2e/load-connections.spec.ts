@@ -1,0 +1,104 @@
+import { expect, test } from "@playwright/test";
+
+import { createFakeSpoolman } from "../packages/spoolsync-core/src/adapters/spoolman/fake-server";
+
+const cors = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "*",
+  "access-control-allow-methods": "*",
+};
+
+test("Spoolman connection can be set up and cleared without leaving the Load page", async ({
+  page,
+}) => {
+  await page.goto("/load");
+  await expect(page.locator("#spoolman-load")).toBeDisabled();
+  await expect(page.locator("#spoolman-target")).toHaveText("No Spoolman server configured yet.");
+  // Nothing is configured yet, so the settings are already open.
+  await expect(page.locator("#spoolman-url")).toBeVisible();
+
+  await page.route("http://spoolman.test:7912/**", (route) =>
+    route.request().method() === "OPTIONS"
+      ? route.fulfill({ status: 204, headers: cors })
+      : route.fulfill({ status: 200, headers: cors, json: { version: "0.22.0" } }),
+  );
+  await page.locator("#spoolman-url").fill("spoolman.test:7912");
+  await page.getByRole("button", { name: "Save and test" }).click();
+  await expect(page.locator("#spoolman-target")).toHaveText("From http://spoolman.test:7912");
+  await expect(page.locator("#spoolman-load")).toBeEnabled();
+
+  await page.getByRole("button", { name: "Forget" }).click();
+  await expect(page.locator("#spoolman-load")).toBeDisabled();
+  await expect(page.locator("#spoolman-target")).toHaveText("No Spoolman server configured yet.");
+});
+
+test("changing the Spoolman address drops its fetched snapshot but keeps file inventories", async ({
+  page,
+}) => {
+  const filament = { id: 10, name: "Black", material: "PLA", density: 1.25, diameter: 1.75 };
+  const fake = createFakeSpoolman({
+    filaments: [filament],
+    spools: [{ id: 51, filament, initial_weight: 1000, remaining_weight: 860, extra: {} }],
+  });
+  await page.route("http://one.test:7912/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    if (new URL(request.url()).pathname === "/api/v1/info")
+      return route.fulfill({ json: { version: "0.23.1" }, headers: cors });
+    const response = await fake.fetchImpl(request.url(), { method: request.method() });
+    return route.fulfill({
+      status: response.status,
+      body: await response.text(),
+      headers: { ...cors, "content-type": "application/json" },
+    });
+  });
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "spoolio.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "Kept" }] })),
+  });
+  await page.locator("#spoolman-url").fill("http://one.test:7912");
+  await page.getByRole("button", { name: "Save and test" }).click();
+  await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();
+  await page.locator("#spoolman-load").click();
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+
+  await page.locator("#spoolman-url").fill("http://two.test:7912");
+  await page.getByRole("button", { name: "Save and test" }).click();
+  await expect(page.locator("#spoolman-target")).toHaveText("From http://two.test:7912");
+  await expect(page.locator("#spoolman-status")).toContainText("Not loaded");
+  await expect(page.locator("#load-bar-summary")).toContainText("1 service loaded");
+  await expect(page.locator("#spoolio-status")).toContainText("1 loaded from file");
+});
+
+test("TigerTag sign-in works from its panel and clears the password", async ({ page }) => {
+  await page.route("https://identitytoolkit.googleapis.com/**", (route) =>
+    route.request().method() === "OPTIONS"
+      ? route.fulfill({ status: 204, headers: cors })
+      : route.fulfill({
+          headers: cors,
+          json: {
+            localId: "u1",
+            email: "me@example.com",
+            idToken: "t0",
+            refreshToken: "r0",
+            expiresIn: "3600",
+          },
+        }),
+  );
+  await page.goto("/load");
+  await page.locator("#tigertag-panel > summary").click();
+  await expect(page.locator("#tigertag-cloud")).toBeDisabled();
+  await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
+  await expect(page.locator("#tigertag-email-input")).toBeFocused();
+  await page.locator("#tigertag-email-input").fill("me@example.com");
+  await page.locator("#tigertag-password").fill("not-a-real-password");
+  await page.locator("#tigertag-sign-in").click();
+  await expect(page.locator("#tigertag-cloud-hint")).toHaveText("Signed in as me@example.com");
+  await expect(page.locator("#tigertag-cloud")).toBeEnabled();
+  await expect(page.locator("#tigertag-password")).toHaveValue("");
+
+  await page.locator("#tigertag-sign-out").click();
+  await expect(page.locator("#tigertag-cloud")).toBeDisabled();
+});

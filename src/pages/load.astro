@@ -7,6 +7,9 @@ import Container from "~/components/starwind/controls/Container/Container.astro"
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 import SourcePanel from "~/components/SourcePanel.astro";
+import SpoolmanConnectionForm from "~/components/connections/SpoolmanConnectionForm.astro";
+import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro";
+import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
 import { isWritableSource, type SourceId } from "@spoolsync/core/core/model";
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
 
@@ -140,8 +143,20 @@ const fileSources = [
         <p id="spoolman-target" class="mb-3 break-all text-sm text-muted-foreground empty:hidden"></p>
         <div class="flex flex-wrap gap-3">
           <Button type="button" color="primary" id="spoolman-load">Fetch spools</Button>
-          <Button href="/connections" variant="outline">Connection settings</Button>
+          <Button type="button" variant="outline" data-open-settings="spoolman">Connection settings</Button>
         </div>
+        <details id="spoolman-settings" class="mt-4 rounded-xl border bg-muted/20">
+          <summary class="cursor-pointer rounded-xl p-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary">
+            Connection settings
+          </summary>
+          <div class="p-4 pt-1">
+            <SpoolmanConnectionForm badge />
+            <details class="mt-5 rounded-lg border">
+              <summary class="cursor-pointer p-3 text-sm font-medium">Setup help: CORS and plain http://</summary>
+              <div class="p-3 pt-0"><SpoolmanSetupHelp /></div>
+            </details>
+          </div>
+        </details>
         <p class="mt-4 text-sm text-muted-foreground">
           Or load a file instead: a Spoolman export (Settings → Export, JSON or CSV), the API export from
           <code>/api/v1/export/spools?fmt=json</code>, or a raw JSON list of spools from the API.
@@ -170,6 +185,19 @@ const fileSources = [
                 <Button type="button" color="primary" id={`${source.id}-cloud`}>Fetch from TigerTag cloud</Button>
                 <span id={`${source.id}-cloud-hint`} class="text-sm text-muted-foreground" />
               </div>
+            )}
+            {source.cloud && (
+              <details id="tigertag-settings" class="mb-3 rounded-xl border bg-muted/20">
+                <summary class="cursor-pointer rounded-xl p-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary">
+                  Account sign-in
+                </summary>
+                <div class="p-4 pt-1">
+                  <p class="mb-4 text-sm text-muted-foreground">
+                    Your password goes straight to TigerTag's sign-in service and is never stored; SpoolSync keeps only the session token.
+                  </p>
+                  <TigertagConnectionForm badge />
+                </div>
+              </details>
             )}
             {source.api && (
               <div class="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">

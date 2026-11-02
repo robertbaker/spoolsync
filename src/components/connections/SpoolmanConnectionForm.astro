@@ -1,0 +1,66 @@
+---
+/** Spoolman address and token form, shared by the Connections page and the Load panel. */
+import Button from "~/components/starwind/controls/Button/Button.astro";
+
+const inputClass = "field-input";
+interface Props {
+  badge?: boolean;
+}
+const { badge = false } = Astro.props;
+---
+
+{badge && <div class="mb-3 flex justify-end"><span id="spoolman-status-badge" class="text-xs"></span></div>}
+<form id="spoolman-form" class="mt-5 grid gap-5" novalidate>
+  <label class="field-label" for="spoolman-url">
+    Spoolman address
+    <input
+      id="spoolman-url"
+      name="baseUrl"
+      type="url"
+      inputmode="url"
+      autocomplete="url"
+      required
+      placeholder="http://192.168.1.20:7912"
+      class={inputClass}
+    />
+    <span class="field-hint">
+      The URL where you open Spoolman's web UI. A bare host like <code>spoolman.local:7912</code> works too.
+    </span>
+  </label>
+  <div class="field-label">
+    <label for="spoolman-token">
+      API token <span class="font-normal text-muted-foreground">(Spoolman-NG, optional)</span>
+    </label>
+    <div class="relative mt-1.5">
+      <input
+        id="spoolman-token"
+        name="token"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+        class={`${inputClass} mt-0 pr-10`}
+      />
+      <button
+        type="button"
+        id="toggle-spoolman-token"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+        aria-label="Toggle token visibility"
+      >
+        <span class="text-xs font-mono font-medium" id="toggle-spoolman-token-text">Show</span>
+      </button>
+    </div>
+    <span class="field-hint">
+      Only needed if Spoolman-NG has <code>SPOOLMAN_API_TOKEN</code> set. Standard Spoolman does not use a token.
+    </span>
+  </div>
+  <label class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-transparent p-2 text-sm transition-colors has-[:checked]:border-border has-[:checked]:bg-muted/40 hover:bg-muted/20" for="spoolman-remember">
+    <input id="spoolman-remember" name="rememberToken" type="checkbox" class="size-4 shrink-0" />
+    <span>Remember token on this device (otherwise it clears when the tab closes)</span>
+  </label>
+  <div class="flex flex-wrap gap-3">
+    <Button type="submit" color="primary" id="spoolman-test">Save and test</Button>
+    <Button type="button" variant="outline" id="spoolman-forget">Forget</Button>
+  </div>
+</form>
+
+<div id="spoolman-result" class="mt-6" aria-live="polite"></div>
