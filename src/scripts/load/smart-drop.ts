@@ -61,6 +61,8 @@ export function wireSmartDrop(context: LoadContext): void {
     const list = h("ul", { class: "space-y-1.5" });
     results!.replaceChildren(list);
     const assigned = new Map<SourceId, string>();
+    // Keep the outcome in view above the sticky bar.
+    results!.scrollIntoView({ block: "nearest" });
     for (const file of files.slice(0, MAX_FILES)) {
       const row = line("warning", `${file.name}: checking…`);
       list.append(row);

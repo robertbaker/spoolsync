@@ -225,12 +225,12 @@ const fileSources = [
     <div
       id="load-bar"
       hidden
-      class="sticky bottom-24 z-10 md:bottom-4 md:pr-36 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-3 pl-5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      class="sticky bottom-40 z-10 md:bottom-4 md:pr-36 mt-6 flex flex-nowrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
     >
-      <p id="load-bar-summary" class="text-sm text-muted-foreground" aria-live="polite">
+      <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
         Nothing loaded yet. Drop export files above or open a service below.
       </p>
-      <Button href="/sync" color="primary" id="continue-sync" aria-disabled="true" icon="material-symbols:arrow-forward" iconPosition="right">
+      <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" icon="material-symbols:arrow-forward" iconPosition="right">
         Continue to sync
       </Button>
     </div>

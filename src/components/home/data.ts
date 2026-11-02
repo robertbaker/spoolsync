@@ -46,8 +46,8 @@ export const highlights = [
   },
   {
     icon: "material-symbols:inventory-2-outline",
-    title: "Seven tools, one table",
-    body: "Compare inventories across all seven services and write updates back via API or import files.",
+    title: "Thirteen tools, one table",
+    body: "Compare inventories across all thirteen services. Write updates back via API or import files where a service accepts them.",
   },
 ];
 
