@@ -37,6 +37,7 @@ import { SITE_TITLE } from "~/config";
 
     <div id="sync-app" hidden>
       <div id="sample-banner" class="mt-8" hidden></div>
+      <div id="review-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
       <div id="sync-summary" class="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" aria-live="polite"></div>
       <div id="sync-chart" class="mt-6 rounded-xl border p-4" hidden></div>
       <div id="sync-problems" class="mt-6"></div>
@@ -48,6 +49,7 @@ import { SITE_TITLE } from "~/config";
         <p class="mt-1 text-sm text-muted-foreground">
           These spools look similar but don't share an ID. Confirm or reject each pair—SpoolSync remembers your choice.
         </p>
+        <div id="review-controls" class="mt-4 flex flex-wrap items-center gap-3"></div>
         <div id="suggestions-bulk" class="mt-4 flex flex-wrap items-center gap-2" aria-live="polite"></div>
         <div id="suggestions" class="mt-4 grid gap-4"></div>
       </section>

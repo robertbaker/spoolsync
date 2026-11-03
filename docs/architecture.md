@@ -361,3 +361,31 @@ site through Wrangler on port 4324. See [CONTRIBUTING.md](../CONTRIBUTING.md) fo
 
 The Sync sticky bar (`sync/jump-bar.ts`) shows `Pending matches (N)` next to the ready-changes count, with
 "Review matches" and "Jump to apply" links that each hide while their target is on screen.
+
+## Sync review tools
+
+- **Match review.** `sync/review-queue.ts` is the pure order of the one-at-a-time review: pairs keep
+  the order they had when it started, a skipped pair stays pending and is offered again after the
+  rest, and a pair that returns after an undo becomes current. `sync/review-mode.ts` draws it in
+  the "Possible matches" section, answers through the same `decide` callback and `SyncSession`
+  history as the plain list, and owns the S/D/N/Z/Esc keys. They are ignored while typing in a
+  field (`isTypingTarget`) or while a dialog is open. Focus moves to the new pair's heading after
+  each action, and `#review-live` announces the result. The sticky bar's "Review matches" link
+  starts the review.
+- **Pair comparison.** `comparePair` in `core/comparison/pair.ts` compares the fields that identify
+  a spool with `valuesEqual`, and marks fields a service cannot store as not comparable instead of
+  different. `sync/suggestion-card.ts` renders it as a table; a differing row says "Differs" and
+  has a bar, so the mark survives forced-colors and print.
+- **Plan preview.** `changeParts` and `omitExcluded` in `core/comparison/exclusions.ts` name each
+  excludable part of a planned change (a field of an update, its link IDs, or a creation) and
+  remove excluded parts from a plan. `SyncSession` keeps the excluded keys in its undo history but
+  not in browser storage, so a reload includes every change again. The apply view draws the
+  collapsible preview from the full plan and gives everything else (counts, Apply, downloads, the
+  sticky bar) the filtered plan.
+- **Copy as CLI command.** `deriveCliChoices` (`@spoolsync/core/cli-choices`) finds the
+  `--resolve`, `--create-in`, `--confirm` and `--reject` options nearest to the plan and counts
+  changes the command would add or miss, using `resolutionsFromChoices`, which the CLI also uses to
+  build its plan. `sync/cli-command.ts` formats the invocation with placeholders for files, URLs and
+  the output folder; tokens are never included, only the environment variable the CLI reads. The
+  CLI chooses one source per field for all spools and cannot skip single changes, so the page
+  states when the command differs from the plan.

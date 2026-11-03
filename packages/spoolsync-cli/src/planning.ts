@@ -1,7 +1,7 @@
-import { compareGroup, type GroupResolution } from "@spoolsync/core/core/compare";
+import { compareGroup } from "@spoolsync/core/core/compare";
 import { matchSpools, recordKey } from "@spoolsync/core/core/match";
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
-import { ensureResolution, planSync } from "@spoolsync/core/planner";
+import { planSync, resolutionsFromChoices } from "@spoolsync/core/planner";
 
 import { pairArg, type Options } from "./args";
 
@@ -36,17 +36,7 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
         `Could not reject ${a},${b}: these records are already linked by cross-IDs or other confirmations. Correct those links before rejecting the pair.`,
       );
   }
-  const resolutions = new Map<string, GroupResolution>();
-  for (const group of matches.groups) {
-    const resolution = ensureResolution(resolutions, group);
-    for (const [field, source] of options.resolves) {
-      const comparison = compareGroup(group).find((item) => item.field === field);
-      const option = comparison?.options.find((candidate) => candidate.sources.includes(source));
-      if (option) resolution.values[field] = option.value;
-    }
-    for (const source of options.createIn)
-      if (!group.members[source]) resolution.createIn.push(source);
-  }
+  const resolutions = resolutionsFromChoices(matches.groups, options.resolves, options.createIn);
   const plan = planSync(matches.groups, resolutions, matches.suggestions);
   const plannedChanges = Object.fromEntries(
     SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [

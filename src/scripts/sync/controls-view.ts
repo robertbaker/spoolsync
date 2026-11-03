@@ -134,6 +134,7 @@ export function createControlsView(
       button("Reset choices", () => {
         state.checkpoint("resetting all choices");
         state.resolutions.clear();
+        state.clearExclusions();
         state.persist();
         renderAll();
         showToast("Reset all resolution choices", "info");

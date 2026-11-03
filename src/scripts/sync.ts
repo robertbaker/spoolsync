@@ -1,3 +1,4 @@
+import type { MatchSuggestion } from "@spoolsync/core/core/match";
 import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 
 import {
@@ -23,6 +24,7 @@ import { createApplyView } from "./sync/apply-view";
 import { createControlsView } from "./sync/controls-view";
 import { createGroupsView } from "./sync/groups-view";
 import { button } from "./sync/presentation";
+import { createReviewMode } from "./sync/review-mode";
 import { SyncSession } from "./sync/session";
 import { createSuggestionsView } from "./sync/suggestions-view";
 import { createSummaryView } from "./sync/summary-view";
@@ -43,7 +45,16 @@ const state = new SyncSession(loaded, loadMatchDecisions(), loadResolutions(), {
 // Come back to the same view of the differences list.
 state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
-const renderApply = createApplyView(loaded, renderAll);
+const renderApply = createApplyView(loaded, renderAll, {
+  excluded: () => state.excluded(),
+  decisions: () => state.matchDecisions(),
+  // Leaving a change out is part of the undo history, so Undo and Redo must reflect it.
+  setExcluded: (key, exclude, label) => {
+    if (!state.setExcluded(key, exclude, label)) return;
+    renderApply(state.match, state.resolutions);
+    renderBulk();
+  },
+});
 const renderGroups = createGroupsView(state, () => {
   renderSummary();
   renderApply(state.match, state.resolutions);
@@ -65,13 +76,21 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault();
   undoOrRedo(key === "y" || event.shiftKey ? "redo" : "undo");
 });
+const decideMatch = (suggestion: MatchSuggestion, same: boolean) => {
+  state.decide(suggestion, same);
+  showToast(same ? "Confirmed match as same spool" : "Marked spools as different", "info");
+  renderAll();
+};
+// The one-at-a-time review shares the list's redraw, so it is created before the list.
+const review = createReviewMode({
+  state,
+  decide: decideMatch,
+  undo: () => undoOrRedo("undo"),
+  rerender: () => renderSuggestions(),
+});
 const renderSuggestions = createSuggestionsView(
   state,
-  (suggestion, same) => {
-    state.decide(suggestion, same);
-    showToast(same ? "Confirmed match as same spool" : "Marked spools as different", "info");
-    renderAll();
-  },
+  decideMatch,
   (same) => {
     const count = state.decideAll(same);
     showToast(`${same ? "Confirmed" : "Rejected"} ${count} possible matches`, "info");
@@ -82,7 +101,12 @@ const renderSuggestions = createSuggestionsView(
     showToast(`Forgot ${count} match ${count === 1 ? "answer" : "answers"}`, "info");
     renderAll();
   },
+  review,
 );
+
+review.wireKeys();
+// "Review matches" in the sticky bar starts (or returns to) the one-at-a-time review.
+document.getElementById("sync-bar-review")?.addEventListener("click", () => review.start());
 
 function renderAll(): void {
   state.recompute();

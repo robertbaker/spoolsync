@@ -26,6 +26,7 @@ interface UndoEntry {
   label: string;
   resolutions: Map<string, GroupResolution>;
   decisions: MatchDecisions;
+  excluded: Set<string>;
 }
 
 export interface SyncPersistence {
@@ -79,6 +80,30 @@ export class SyncSession {
     this.persistence.saveMatchDecisions(this.decisions);
   }
 
+  /**
+   * Planned changes the visitor left out of the plan (see `changeParts`). Part of the undo history,
+   * but kept only for this visit: a reload starts with every change included.
+   */
+  private excludedKeys = new Set<string>();
+
+  excluded(): ReadonlySet<string> {
+    return this.excludedKeys;
+  }
+
+  /** Includes or leaves out one planned change; returns whether anything changed. */
+  setExcluded(key: string, exclude: boolean, label: string): boolean {
+    if (this.excludedKeys.has(key) === exclude) return false;
+    this.checkpoint(label);
+    if (exclude) this.excludedKeys.add(key);
+    else this.excludedKeys.delete(key);
+    return true;
+  }
+
+  /** Includes every change again. Call it inside a checkpoint of its own. */
+  clearExclusions(): void {
+    this.excludedKeys.clear();
+  }
+
   private undoStack: UndoEntry[] = [];
   private redoStack: UndoEntry[] = [];
 
@@ -97,6 +122,7 @@ export class SyncSession {
       label,
       resolutions: structuredClone(this.resolutions),
       decisions: structuredClone(this.decisions),
+      excluded: new Set(this.excludedKeys),
     };
   }
 
@@ -104,6 +130,7 @@ export class SyncSession {
   private restore(entry: UndoEntry): void {
     this.resolutions = structuredClone(entry.resolutions);
     this.decisions = structuredClone(entry.decisions);
+    this.excludedKeys = new Set(entry.excluded);
     this.persist();
     this.persistence.saveMatchDecisions(this.decisions);
   }
@@ -132,6 +159,10 @@ export class SyncSession {
     this.undoStack.push(this.snapshot(entry.label));
     this.restore(entry);
     return entry.label;
+  }
+
+  matchDecisions(): MatchDecisions {
+    return this.decisions;
   }
 
   /** How many possible matches the visitor has answered, saved across visits. */
