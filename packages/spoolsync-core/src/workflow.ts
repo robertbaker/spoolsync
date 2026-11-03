@@ -23,3 +23,21 @@ export {
   type RemainingWeightChange,
   type SnapshotSpool,
 } from "./workflow/changes";
+export { duplicateKeys, findDuplicateSpools, type DuplicateGroup } from "./workflow/duplicates";
+export {
+  checkInventoryHealth,
+  HEALTH_ISSUES,
+  HEALTH_LABELS,
+  spoolIssues,
+  type HealthIssue,
+  type HealthReport,
+} from "./workflow/health";
+export {
+  diffFingerprints,
+  fingerprintSpools,
+  hasChanges as hasFingerprintChanges,
+  type InventoryChanges as FingerprintChanges,
+  type SpoolFingerprint,
+  type WeightChange,
+} from "./workflow/inventory-changes";
+export { spoolKey } from "./workflow/spool-key";

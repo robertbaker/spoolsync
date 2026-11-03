@@ -1,6 +1,14 @@
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 
-import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
+import {
+  clearLoadResult,
+  readLoadResult,
+  readSnapshot,
+  readWatchlist,
+  saveLoadResult,
+  saveSnapshot,
+  toggleWatched,
+} from "~/lib/browser/storage";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
@@ -12,6 +20,8 @@ import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
 import { renderFileHistory } from "./load/file-history-view";
 import { wireFileSource } from "./load/file-source";
+import { LoadInsights } from "./load/insights";
+import { renderInsights } from "./load/insights-view";
 import { createInventoryTable } from "./load/inventory-table";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
@@ -22,15 +32,25 @@ import { createLoadStatusView } from "./load/status-view";
 import { button, download } from "./sync/presentation";
 
 const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
-const renderTable = createInventoryTable(state.results);
+const insights = new LoadInsights(state.results, {
+  readSnapshot,
+  saveSnapshot,
+  readWatchlist,
+  toggleWatched,
+});
+// Watching a spool changes the panels and highlights too, so it takes the full render.
+const renderTable = createInventoryTable(state.results, insights, () => render());
 const panels = wireSourcePanels(state);
 const actionBar = createActionBar(state);
 const unloadAll = document.getElementById("unload-all");
 const downloadCombined = document.getElementById("download-combined");
 const loadedStats = document.getElementById("loaded-stats");
 const loadedChart = document.getElementById("loaded-chart");
+const insightsRoot = document.getElementById("loaded-insights");
 const render = () => {
+  insights.refresh();
   renderTable();
+  if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
   renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);
   if (loadedChart) renderLoadedChart(loadedChart, state.results);
@@ -53,7 +73,13 @@ const context = {
     store(result);
     panels.markUsed(result.source);
   },
+  fileLoaded(result: LoadResult) {
+    insights.fileLoaded(result);
+    render();
+  },
 };
+// Choosing a filter only redraws the table; the panels and focus stay where they are.
+insights.onFilterChange(renderTable);
 wireApiSources(context);
 wireConnectionPanels();
 wireSmartDrop(context);

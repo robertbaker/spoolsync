@@ -43,4 +43,6 @@ export class LoadState {
 export interface LoadContext {
   state: LoadState;
   store(result: LoadResult): void;
+  /** Called after a file was stored, so the page can compare it with the previous file. */
+  fileLoaded?(result: LoadResult): void;
 }

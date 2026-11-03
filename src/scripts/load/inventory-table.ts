@@ -5,11 +5,13 @@ import {
   type SourceId,
 } from "@spoolsync/core/core/model";
 import { isRunningLow } from "@spoolsync/core/core/stock";
+import { HEALTH_ISSUES, HEALTH_LABELS, spoolKey } from "@spoolsync/core/workflow";
 
 import { currentLowStockRule } from "~/lib/low-stock";
 import { readPreferences, updatePreferences, type SortKey } from "~/lib/preferences";
 
 import { byId, h } from "../dom";
+import type { InsightFilter, LoadInsights } from "./insights";
 
 type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
 
@@ -49,7 +51,17 @@ export function sortSpools(spools: CommonSpool[], sort: Sort): CommonSpool[] {
   });
 }
 
-export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>) {
+const FILTER_LABELS: Record<InsightFilter, string> = {
+  duplicates: "Possible duplicates",
+  watched: "Watched",
+  ...HEALTH_LABELS,
+};
+
+export function createInventoryTable(
+  results: ReadonlyMap<SourceId, LoadResult>,
+  insights?: LoadInsights,
+  onWatchChange?: () => void,
+) {
   function swatches(colors: string[]): HTMLElement {
     if (!colors.length) return h("span", { class: "text-muted-foreground" }, "—");
     return h(
@@ -133,7 +145,69 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
     });
   }
 
+  function watchButton(key: string, spool: CommonSpool, watching: boolean): HTMLElement {
+    const label =
+      [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || spool.sourceId;
+    const button = h(
+      "button",
+      {
+        type: "button",
+        "aria-pressed": String(watching),
+        "aria-label": `Watch ${label} (${SOURCE_LABELS[spool.source]} ${spool.sourceId})`,
+        "data-watch": key,
+        class:
+          "rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-foreground",
+      },
+      watching ? "Watching" : "Watch",
+    );
+    button.addEventListener("click", () => {
+      insights?.toggleWatch(key);
+      onWatchChange?.();
+      // The table is redrawn, so hand keyboard focus to the same spool's button when it remains.
+      document.querySelector<HTMLElement>(`[data-watch="${CSS.escape(key)}"]`)?.focus();
+    });
+    return button;
+  }
+
+  /** One-click filter chips: duplicates, watched spools, and each health check that found something. */
+  function renderChips(): void {
+    const container = document.getElementById("insight-chips");
+    if (!container || !insights) return;
+    const filters: InsightFilter[] = [
+      "duplicates",
+      "watched",
+      ...HEALTH_ISSUES.filter((issue) => insights.health.counts[issue] > 0),
+    ];
+    const shown = filters.filter(
+      (filter) => insights.countFor(filter) > 0 || insights.activeFilter === filter,
+    );
+    container.hidden = shown.length === 0;
+    container.replaceChildren(
+      h("span", { class: "text-xs font-medium text-muted-foreground" }, "Show only:"),
+      ...shown.map((filter) => {
+        const pressed = insights.activeFilter === filter;
+        const chip = h(
+          "button",
+          {
+            type: "button",
+            "aria-pressed": String(pressed),
+            "data-filter": filter,
+            class:
+              "rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-foreground",
+          },
+          `${FILTER_LABELS[filter]} (${insights.countFor(filter)})`,
+        );
+        chip.addEventListener("click", () => {
+          insights.setFilter(pressed ? null : filter);
+          container.querySelector<HTMLElement>(`[data-filter="${filter}"]`)?.focus();
+        });
+        return chip;
+      }),
+    );
+  }
+
   function renderTable(): void {
+    renderChips();
     const all = [...results.values()].flatMap((result) => result.spools);
     const container = byId("loaded-table");
     const counts = [...results.values()].map(
@@ -176,19 +250,26 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
           return text.includes(searchQuery);
         })
       : all;
-    const filtered = sortSpools(lowOnly ? matching.filter(isLow) : matching, sort);
+    const insightFilter = insights?.activeFilter ?? null;
+    const narrowed =
+      insights && insightFilter ? matching.filter((s) => insights.matches(s)) : matching;
+    const filtered = sortSpools(lowOnly ? narrowed.filter(isLow) : narrowed, sort);
 
     byId("loaded-summary").textContent =
-      searchQuery || lowOnly
+      searchQuery || lowOnly || insightFilter
         ? `Showing ${filtered.length} of ${all.length} spools (${counts.join(" · ")})`
         : counts.join(" · ");
 
-    if ((searchQuery || lowOnly) && !filtered.length) {
+    if ((searchQuery || lowOnly || insightFilter) && !filtered.length) {
       container.replaceChildren(
         h(
           "p",
           { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-          searchQuery ? `No spools matching "${searchQuery}".` : "No spools are running low.",
+          searchQuery
+            ? `No spools matching "${searchQuery}".`
+            : insightFilter
+              ? `No spools match "${FILTER_LABELS[insightFilter]}".`
+              : "No spools are running low.",
         ),
       );
       return;
@@ -204,11 +285,26 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
       { label: "Remaining", key: "remaining" },
       { label: "Location", key: "location" },
       { label: "Linked to" },
+      ...(insights ? [{ label: "Watch" }] : []),
     ];
-    const rows = filtered.map((spool) =>
-      h(
+    const drops = insights?.droppedWatched();
+    const rows = filtered.map((spool) => {
+      const key = spoolKey(spool);
+      const drop = drops?.get(key);
+      const watching = insights?.watched.has(key) ?? false;
+      const flags = insights
+        ? [
+            insights.duplicateSpoolKeys.has(key) ? "Possible duplicate" : null,
+            ...(insights.health.byKey.get(key) ?? []).map((issue) => HEALTH_LABELS[issue]),
+          ].filter(Boolean)
+        : [];
+      return h(
         "tr",
-        { class: spool.archived ? "text-muted-foreground/70" : "" },
+        {
+          class:
+            `${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
+          ...(flags.length ? { title: flags.join("; ") } : {}),
+        },
         h("td", { class: "whitespace-nowrap font-medium" }, SOURCE_LABELS[spool.source]),
         h(
           "td",
@@ -233,11 +329,22 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
                 "Low",
               )
             : null,
+          drop
+            ? h(
+                "span",
+                {
+                  class:
+                    "ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-text",
+                },
+                `Dropped ${Math.round(-drop.delta)} g`,
+              )
+            : null,
         ),
         h("td", {}, spool.location ?? "—"),
         h("td", { class: "text-xs" }, links(spool)),
-      ),
-    );
+        insights ? h("td", {}, watchButton(key, spool, watching)) : null,
+      );
+    });
 
     container.replaceChildren(
       h(
