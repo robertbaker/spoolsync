@@ -41,11 +41,18 @@ Start a new target inventory without a starter file:
 spoolsync --spoolio spoolio.json --empty filameter --create-in filameter --output-dir ./updated
 ```
 
-Check what an export holds without planning anything; this works with a single inventory and adds
+Check what an export holds without planning anything (including how many spools are running low: at or under a fifth of their full weight); this works with a single inventory and adds
 `--json` output for scripts:
 
 ```sh
 spoolsync --spoolkeep SpoolKeep.json --summary
+```
+
+Print a shopping list of spools that are running low (at or under a fifth of their full weight,
+each physical spool listed once). It works with a single inventory and supports `--json`:
+
+```sh
+spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --reorder
 ```
 
 Export every loaded spool to one spreadsheet-friendly CSV, tagged by service. This also works with a

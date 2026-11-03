@@ -15,7 +15,7 @@ export async function runWorkflow(
   output: CliOutput,
 ): Promise<void> {
   const { loaded, services } = await loadInputs(options, dependencies);
-  if (options.summary || (options.exportCsv && loaded.size < 2)) {
+  if (options.summary || options.reorder || (options.exportCsv && loaded.size < 2)) {
     // Nothing to compare: a report of what is loaded, an export of it, or both.
     const { staged } = await prepareExports(options, loaded, new Map(), dependencies);
     const { written } = await executeWrites(staged);

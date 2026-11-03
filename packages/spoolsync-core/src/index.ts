@@ -1,6 +1,7 @@
 export * from "./core/model";
 export * from "./core/normalize";
 export * from "./core/color";
+export * from "./core/stock";
 export * from "./core/match";
 export * from "./core/compare";
 export * from "./core/target";

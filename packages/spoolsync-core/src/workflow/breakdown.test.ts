@@ -85,3 +85,27 @@ test("groups by brand, ignoring case and folding missing brands", () => {
     { material: "Unknown brand", grams: 50, spools: 1 },
   ]);
 });
+
+test("groups by color family using each spool's first color", () => {
+  const { rows } = remainingBy(
+    "color",
+    [
+      result("spoolman", [
+        makeSpool("spoolman", "1", { colors: ["E53935"], name: "A", remainingWeight: 300 }),
+        makeSpool("spoolman", "2", {
+          colors: ["D62828", "000000"],
+          name: "B",
+          remainingWeight: 200,
+        }),
+        makeSpool("spoolman", "3", { colors: ["2244CC"], name: "C", remainingWeight: 100 }),
+        makeSpool("spoolman", "4", { colors: [], name: "D", remainingWeight: 40 }),
+      ]),
+    ],
+    none,
+  );
+  expect(rows).toEqual([
+    { material: "Red", grams: 500, spools: 2 },
+    { material: "Blue", grams: 100, spools: 1 },
+    { material: "Unknown color", grams: 40, spools: 1 },
+  ]);
+});

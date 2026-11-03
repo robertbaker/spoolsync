@@ -411,6 +411,94 @@ test("--watch --quiet stays silent when a save does not change the result", asyn
   expect(await child.exited).toBe(0);
 });
 
+test("--summary flags spools that are running low", async () => {
+  await writeFile(
+    path.join(directory, "low.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        { id: "a", type: "PLA", brand: "A", weightTotal: 1000, weightRemaining: 150 },
+        { id: "b", type: "PLA", brand: "A", weightTotal: 1000, weightRemaining: 900 },
+        { id: "c", type: "PETG", brand: "B", weightTotal: 1000, weightRemaining: 100 },
+      ],
+    }),
+  );
+  const child = Bun.spawn(
+    [runtime, cli, "--spoolio", path.join(directory, "low.json"), "--summary"],
+    { stdout: "pipe", stderr: "pipe" },
+  );
+  const [stdout, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+  expect(code).toBe(0);
+  expect(stdout).toContain(
+    "spoolio: 3 spools, 2 brands, 2 materials, 1,150 g remaining; 2 running low",
+  );
+});
+
+test("--reorder prints a shopping list of spools that are running low", async () => {
+  await writeFile(
+    path.join(directory, "low.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          type: "PLA",
+          brand: "Prusa",
+          colorName: "Blue",
+          weightTotal: 1000,
+          weightRemaining: 150,
+        },
+        {
+          id: "b",
+          type: "PLA",
+          brand: "Prusa",
+          colorName: "Red",
+          weightTotal: 1000,
+          weightRemaining: 900,
+        },
+        {
+          id: "c",
+          type: "PETG",
+          brand: "Polymaker",
+          colorName: "Teal",
+          weightTotal: 1000,
+          weightRemaining: 40,
+        },
+      ],
+    }),
+  );
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  const text = await run("--spoolio", path.join(directory, "low.json"), "--reorder");
+  expect(text.code).toBe(0);
+  expect(text.stdout.trim().split("\n")).toEqual([
+    "Running low (2):",
+    "- Polymaker PETG Teal: 40 g left (4%)",
+    "- Prusa PLA Blue: 150 g left (15%)",
+  ]);
+
+  const json = await run("--spoolio", path.join(directory, "low.json"), "--reorder", "--json");
+  const report = JSON.parse(json.stdout);
+  expect(report.reorder.map((item: { name: string }) => item.name)).toEqual(["Teal", "Blue"]);
+
+  const conflict = await run(
+    "--spoolio",
+    path.join(directory, "low.json"),
+    "--reorder",
+    "--output-dir",
+    path.join(directory, "out"),
+  );
+  expect(conflict.code).not.toBe(0);
+  expect(conflict.stderr).toContain("--reorder only reports what is loaded");
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

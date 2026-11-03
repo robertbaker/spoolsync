@@ -1,8 +1,9 @@
+import { colorFamily } from "../core/color";
 import type { MatchDecisions } from "../core/match";
 import { SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
 import { findMatches } from "../planner";
 
-export type BreakdownField = "material" | "vendor";
+export type BreakdownField = "material" | "vendor" | "color";
 
 export interface MaterialShare {
   /** Display name; `Other` folds the tail and `Unknown ...` covers spools without a value. */
@@ -21,7 +22,14 @@ export interface MaterialBreakdown {
 const UNKNOWN: Record<BreakdownField, string> = {
   material: "Unknown material",
   vendor: "Unknown brand",
+  color: "Unknown color",
 };
+
+/** The value a spool is grouped under, or `undefined` when it has none. */
+function valueOf(spool: CommonSpool, field: BreakdownField): string | undefined {
+  if (field === "color") return spool.colors[0] ? colorFamily(spool.colors[0]) : undefined;
+  return spool[field]?.trim() || undefined;
+}
 
 /** The record that stands for a linked spool: the first with a known weight, else the first. */
 function representative(members: Partial<Record<(typeof SOURCE_IDS)[number], CommonSpool>>) {
@@ -49,7 +57,7 @@ export function remainingBy(
     duplicatesRemoved += members.length - 1;
     const spool = representative(group.members);
     const material =
-      members.find((candidate) => candidate[field])?.[field]?.trim() || UNKNOWN[field];
+      members.map((candidate) => valueOf(candidate, field)).find(Boolean) ?? UNKNOWN[field];
     const key = material.toLowerCase();
     const entry = totals.get(key) ?? { material, grams: 0, spools: 0 };
     entry.grams += spool.remainingWeight ?? 0;
@@ -81,4 +89,26 @@ export function remainingByMaterial(
   limit = 6,
 ): MaterialBreakdown {
   return remainingBy("material", results, decisions, limit);
+}
+
+export interface UniqueSpool {
+  /** The record that stands for the spool: the first with a known weight, else the first. */
+  spool: CommonSpool;
+  /** Every loaded record of this spool, across services. */
+  members: CommonSpool[];
+}
+
+/** One entry per physical spool, with a spool linked across services appearing once. */
+export function uniqueSpools(
+  results: readonly LoadResult[],
+  decisions: MatchDecisions,
+): UniqueSpool[] {
+  const { groups } = findMatches(
+    results.flatMap((result) => result.spools),
+    decisions,
+  );
+  return groups.map((group) => ({
+    spool: representative(group.members),
+    members: SOURCE_IDS.flatMap((source) => group.members[source] ?? []),
+  }));
 }

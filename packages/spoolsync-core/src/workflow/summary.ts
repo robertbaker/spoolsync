@@ -1,4 +1,5 @@
 import type { LoadResult, SourceId } from "../core/model";
+import { isRunningLow } from "../core/stock";
 
 export interface InventorySummary {
   source: SourceId;
@@ -10,6 +11,8 @@ export interface InventorySummary {
   remainingGrams: number;
   /** Spools whose remaining weight is not known, so the total above leaves them out. */
   unknownWeights: number;
+  /** Spools still in use that are at or under a fifth of their full weight. */
+  runningLow: number;
   warnings: number;
 }
 
@@ -20,10 +23,12 @@ export function summarizeInventory(result: LoadResult): InventorySummary {
   let remainingGrams = 0;
   let unknownWeights = 0;
   let archived = 0;
+  let runningLow = 0;
   for (const spool of result.spools) {
     if (spool.vendor) brands.add(spool.vendor.toLowerCase());
     if (spool.material) materials.add(spool.material.toLowerCase());
     if (spool.archived) archived++;
+    if (isRunningLow(spool)) runningLow++;
     if (spool.remainingWeight === null) unknownWeights++;
     else remainingGrams += spool.remainingWeight;
   }
@@ -35,6 +40,7 @@ export function summarizeInventory(result: LoadResult): InventorySummary {
     materials: materials.size,
     remainingGrams: Math.round(remainingGrams),
     unknownWeights,
+    runningLow,
     warnings: result.warnings.length,
   };
 }

@@ -248,6 +248,23 @@ const fileSources = [
         <div class="flex flex-wrap items-center gap-3">
           <button
             type="button"
+            id="low-only"
+            hidden
+            aria-pressed="false"
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-warning-text transition-colors hover:bg-warning/10 aria-pressed:border-warning/50 aria-pressed:bg-warning/15"
+          >
+            Running low
+          </button>
+          <button
+            type="button"
+            id="copy-reorder"
+            hidden
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Copy reorder list
+          </button>
+          <button
+            type="button"
             id="download-combined"
             hidden
             class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

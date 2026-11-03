@@ -41,6 +41,7 @@ Output:
   --completion <shell>    Print a shell completion script (bash, zsh, or fish)
   --watch                 Run again whenever an input file changes (not with --apply or --*-url)
   --quiet                 With --watch, print a run only when its output differs from the last
+  --reorder               Print a shopping list of spools that are running low
   --summary               Print counts for each loaded inventory instead of planning changes
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories

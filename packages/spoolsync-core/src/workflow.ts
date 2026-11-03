@@ -11,3 +11,5 @@ export {
   type MaterialBreakdown,
   type MaterialShare,
 } from "./workflow/breakdown";
+export { uniqueSpools, type UniqueSpool } from "./workflow/breakdown";
+export { formatReorderList, reorderItems, type ReorderItem } from "./workflow/reorder";

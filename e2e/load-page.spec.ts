@@ -727,3 +727,114 @@ test("the plan summary can be copied", async ({ page, context }) => {
     "1 spool has open conflicts left as they are",
   ]);
 });
+
+const lowStockFile = {
+  name: "low.json",
+  mimeType: "application/json",
+  buffer: Buffer.from(
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          type: "PLA",
+          brand: "Zeta",
+          colorName: "Alpha",
+          weightTotal: 1000,
+          weightRemaining: 100,
+        },
+        {
+          id: "b",
+          type: "PLA",
+          brand: "Beta",
+          colorName: "Bravo",
+          weightTotal: 1000,
+          weightRemaining: 900,
+        },
+        {
+          id: "c",
+          type: "PETG",
+          brand: "Alpha",
+          colorName: "Charlie",
+          weightTotal: 1000,
+          weightRemaining: 150,
+        },
+      ],
+    }),
+  ),
+};
+
+test("spools that are running low are flagged and can be filtered", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#low-only")).toBeHidden();
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  await expect(page.locator("#loaded-stats")).toContainText("2 running low");
+  const lowButton = page.locator("#low-only");
+  await expect(lowButton).toHaveText("Running low (2)");
+  await expect(page.locator("#loaded-table tbody tr")).toHaveCount(3);
+
+  await lowButton.click();
+  await expect(lowButton).toHaveAttribute("aria-pressed", "true");
+  const rows = page.locator("#loaded-table tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText("Low");
+  await expect(page.locator("#loaded-summary")).toContainText("Showing 2 of 3 spools");
+  await lowButton.click();
+  await expect(rows).toHaveCount(3);
+});
+
+test("table columns sort, announce their order, and keep keyboard focus", async ({ page }) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  const brands = () => page.locator("#loaded-table tbody tr td:nth-child(3)").allInnerTexts();
+  expect(await brands()).toEqual(["Zeta", "Beta", "Alpha"]);
+
+  await page.getByRole("button", { name: /^Brand/ }).click();
+  await expect(page.getByRole("columnheader", { name: /Brand/ })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  expect(await brands()).toEqual(["Alpha", "Beta", "Zeta"]);
+  await expect(page.getByRole("button", { name: /^Brand/ })).toBeFocused();
+
+  await page.getByRole("button", { name: /^Brand/ }).click();
+  expect(await brands()).toEqual(["Zeta", "Beta", "Alpha"]);
+  await page.getByRole("button", { name: /^Brand/ }).click();
+  await expect(page.getByRole("columnheader", { name: /Brand/ })).toHaveAttribute(
+    "aria-sort",
+    "none",
+  );
+
+  await page.getByRole("button", { name: /^Remaining/ }).click();
+  expect(await brands()).toEqual(["Zeta", "Alpha", "Beta"]);
+});
+
+test("the chart can group by color family", async ({ page }) => {
+  await page.goto("/load");
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const chart = page.locator("#loaded-chart");
+  await chart.getByRole("button", { name: "By color" }).click();
+  await expect(chart).toContainText("Remaining filament by color");
+  await expect(chart.getByRole("img")).toHaveCount(5);
+  await expect(chart.getByRole("img").first()).toHaveAccessibleName(
+    "Yellow: 1,800 g remaining across 2 spools, 30% of the total",
+  );
+});
+
+test("the reorder list covers low spools once each and can be copied", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/load");
+  await expect(page.locator("#copy-reorder")).toBeHidden();
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  await page.locator("#copy-reorder").click();
+  await expect(page.getByText("Copied 2 spools to reorder")).toBeVisible();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text.split("\n")).toEqual([
+    "Running low (2):",
+    "- Zeta PLA Alpha: 100 g left (10%)",
+    "- Alpha PETG Charlie: 150 g left (15%)",
+  ]);
+});

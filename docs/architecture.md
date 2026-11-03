@@ -138,6 +138,15 @@ puts the per-service counts, open conflicts, and unanswered matches on the clipb
 outside a text field, or from the footer button. Toasts sit above the sticky bars so they never cover
 their buttons.
 
+"Running low" has one definition, `isRunningLow` in core (`core/stock.ts`): a spool still in use at or
+under a fifth of its full weight, or at or under 100 g when the full weight is unknown; archived and
+unweighed spools never count. It feeds the stats cards, the table's Low badge and filter, the CLI
+`--summary` line, and the reorder list (`workflow/reorder.ts`), which lists each low spool once using
+the same matching as the chart. The loaded-spools table sorts by column (ascending, descending,
+loaded order) with `aria-sort`, keeps blanks last in both directions, and returns keyboard focus to
+the column's button after redrawing. The chart's "By color" view groups by `colorFamily`
+(`core/color.ts`), which names a family from hue, saturation, and lightness.
+
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
 run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is

@@ -116,9 +116,14 @@ export const output = [
     desc: "With --watch, print a run only when its output differs from the previous run. Errors that differ are still shown.",
   },
   {
+    flag: "--reorder",
+    copy: "--reorder",
+    desc: "Print a shopping list of spools that are running low (at or under a fifth of their full weight), each spool once. Works with a single inventory.",
+  },
+  {
     flag: "--summary",
     copy: "--summary",
-    desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams) instead of planning changes. Works with a single inventory.",
+    desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams, and how many are running low) instead of planning changes. Works with a single inventory.",
   },
   {
     flag: "--export-csv <file>",

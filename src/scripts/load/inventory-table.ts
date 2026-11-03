@@ -4,8 +4,48 @@ import {
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
+import { isRunningLow } from "@spoolsync/core/core/stock";
 
 import { byId, h } from "../dom";
+
+export type SortKey = "source" | "vendor" | "material" | "name" | "remaining" | "location";
+type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
+
+/** Clicking a column sorts it ascending, then descending, then returns to the loaded order. */
+export function nextSort(current: Sort, key: SortKey): Sort {
+  if (current?.key !== key) return { key, direction: "asc" };
+  return current.direction === "asc" ? { key, direction: "desc" } : null;
+}
+
+/** A sorted copy; empty values always sort last, whichever direction is chosen. */
+export function sortSpools(spools: CommonSpool[], sort: Sort): CommonSpool[] {
+  if (!sort) return spools;
+  const value = (spool: CommonSpool): string | number | null => {
+    switch (sort.key) {
+      case "source":
+        return SOURCE_LABELS[spool.source];
+      case "remaining":
+        return spool.remainingWeight;
+      default:
+        return spool[sort.key];
+    }
+  };
+  const direction = sort.direction === "asc" ? 1 : -1;
+  return [...spools].sort((a, b) => {
+    const left = value(a);
+    const right = value(b);
+    if (left === null || left === "") return right === null || right === "" ? 0 : 1;
+    if (right === null || right === "") return -1;
+    const order =
+      typeof left === "number" && typeof right === "number"
+        ? left - right
+        : String(left).localeCompare(String(right), undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
+    return order * direction;
+  });
+}
 
 export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>) {
   function swatches(colors: string[]): HTMLElement {
@@ -71,6 +111,13 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
   }
 
   let searchQuery = "";
+  let lowOnly = false;
+  let sort: { key: SortKey; direction: "asc" | "desc" } | null = null;
+  const lowButton = document.getElementById("low-only");
+  lowButton?.addEventListener("click", () => {
+    lowOnly = !lowOnly;
+    renderTable();
+  });
   const searchWrap = document.getElementById("loaded-filter-wrap");
   const searchInput = document.getElementById("spool-search-input") as HTMLInputElement | null;
 
@@ -104,7 +151,16 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
       return;
     }
 
-    const filtered = searchQuery
+    const lowCount = all.filter(isRunningLow).length;
+    if (lowCount === 0) lowOnly = false;
+    const reorderButton = document.getElementById("copy-reorder");
+    if (reorderButton) reorderButton.hidden = lowCount === 0;
+    if (lowButton) {
+      lowButton.hidden = lowCount === 0;
+      lowButton.textContent = `Running low (${lowCount})`;
+      lowButton.setAttribute("aria-pressed", String(lowOnly));
+    }
+    const matching = searchQuery
       ? all.filter((s) => {
           const text = [s.vendor, s.material, s.name, s.location, s.sourceId, ...s.colors]
             .filter(Boolean)
@@ -113,32 +169,34 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
           return text.includes(searchQuery);
         })
       : all;
+    const filtered = sortSpools(lowOnly ? matching.filter(isRunningLow) : matching, sort);
 
-    byId("loaded-summary").textContent = searchQuery
-      ? `Showing ${filtered.length} of ${all.length} spools (${counts.join(" · ")})`
-      : counts.join(" · ");
+    byId("loaded-summary").textContent =
+      searchQuery || lowOnly
+        ? `Showing ${filtered.length} of ${all.length} spools (${counts.join(" · ")})`
+        : counts.join(" · ");
 
-    if (searchQuery && !filtered.length) {
+    if ((searchQuery || lowOnly) && !filtered.length) {
       container.replaceChildren(
         h(
           "p",
           { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-          `No spools matching "${searchQuery}".`,
+          searchQuery ? `No spools matching "${searchQuery}".` : "No spools are running low.",
         ),
       );
       return;
     }
 
-    const headers = [
-      "Source",
-      "ID",
-      "Brand",
-      "Material",
-      "Name",
-      "Color",
-      "Remaining",
-      "Location",
-      "Linked to",
+    const headers: Array<{ label: string; key?: SortKey }> = [
+      { label: "Source", key: "source" },
+      { label: "ID" },
+      { label: "Brand", key: "vendor" },
+      { label: "Material", key: "material" },
+      { label: "Name", key: "name" },
+      { label: "Color" },
+      { label: "Remaining", key: "remaining" },
+      { label: "Location", key: "location" },
+      { label: "Linked to" },
     ];
     const rows = filtered.map((spool) =>
       h(
@@ -154,7 +212,21 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
         h("td", {}, spool.material ?? "—"),
         h("td", {}, spool.name ?? "—", spool.archived ? " (archived)" : ""),
         h("td", {}, swatches(spool.colors)),
-        h("td", { class: "whitespace-nowrap" }, weight(spool)),
+        h(
+          "td",
+          { class: "whitespace-nowrap" },
+          weight(spool),
+          isRunningLow(spool)
+            ? h(
+                "span",
+                {
+                  class:
+                    "ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-text",
+                },
+                "Low",
+              )
+            : null,
+        ),
         h("td", {}, spool.location ?? "—"),
         h("td", { class: "text-xs" }, links(spool)),
       ),
@@ -172,7 +244,50 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
         h(
           "table",
           {},
-          h("thead", {}, h("tr", {}, ...headers.map((label) => h("th", { scope: "col" }, label)))),
+          h(
+            "thead",
+            {},
+            h(
+              "tr",
+              {},
+              ...headers.map((header) => {
+                if (!header.key) return h("th", { scope: "col" }, header.label);
+                const active = sort?.key === header.key ? sort.direction : null;
+                const button = h(
+                  "button",
+                  {
+                    type: "button",
+                    class:
+                      "inline-flex items-center gap-1 font-inherit uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary",
+                  },
+                  header.label,
+                  h(
+                    "span",
+                    { "aria-hidden": "true", class: "text-[0.7em]" },
+                    active === "asc" ? "▲" : active === "desc" ? "▼" : "↕",
+                  ),
+                );
+                button.addEventListener("click", () => {
+                  sort = nextSort(sort, header.key!);
+                  renderTable();
+                  // The table is redrawn, so hand keyboard focus to the same column's button.
+                  const next = [...container.querySelectorAll("th button")].find((candidate) =>
+                    candidate.textContent?.startsWith(header.label),
+                  );
+                  (next as HTMLElement | undefined)?.focus();
+                });
+                return h(
+                  "th",
+                  {
+                    scope: "col",
+                    "aria-sort":
+                      active === "asc" ? "ascending" : active === "desc" ? "descending" : "none",
+                  },
+                  button,
+                );
+              }),
+            ),
+          ),
           h("tbody", {}, ...rows),
         ),
       ),

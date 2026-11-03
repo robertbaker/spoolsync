@@ -124,3 +124,18 @@ document.getElementById("try-sample")?.addEventListener("click", async () => {
     ),
   );
 });
+
+document.getElementById("copy-reorder")?.addEventListener("click", async () => {
+  const { formatReorderList, reorderItems } = await import("@spoolsync/core/workflow");
+  const { loadMatchDecisions } = await import("~/lib/browser/storage");
+  const items = reorderItems([...state.results.values()], loadMatchDecisions());
+  try {
+    await navigator.clipboard.writeText(formatReorderList(items));
+    showToast(
+      `Copied ${items.length} ${items.length === 1 ? "spool" : "spools"} to reorder`,
+      "success",
+    );
+  } catch {
+    showToast("Could not copy the list", "error");
+  }
+});

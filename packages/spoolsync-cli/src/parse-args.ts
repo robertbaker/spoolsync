@@ -50,6 +50,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--config",
   "--completion",
   "--summary",
+  "--reorder",
   "--watch",
   "--quiet",
   "--apply",
@@ -92,6 +93,7 @@ export function parseArgs(argv: string[]): Options {
   let filadexUser: string | undefined;
   let apply = false;
   let summary = false;
+  let reorder = false;
   let watch = false;
   let quiet = false;
   let json = false;
@@ -190,6 +192,8 @@ export function parseArgs(argv: string[]): Options {
       json = true;
     } else if (arg === "--summary") {
       summary = true;
+    } else if (arg === "--reorder") {
+      reorder = true;
     } else if (arg === "--watch") {
       watch = true;
     } else if (arg === "--quiet") {
@@ -214,6 +218,7 @@ export function parseArgs(argv: string[]): Options {
     ...(filadexUser ? { filadexUser } : {}),
     apply,
     summary,
+    reorder,
     watch,
     quiet,
     ...(outputDir ? { outputDir } : {}),

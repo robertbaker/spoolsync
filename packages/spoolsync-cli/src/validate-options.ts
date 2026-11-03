@@ -25,6 +25,7 @@ export function validateOptions(options: Options): void {
     outputDir,
     exportCsv,
     summary,
+    reorder,
     watch,
     quiet,
   } = options;
@@ -78,14 +79,15 @@ export function validateOptions(options: Options): void {
     confirm.length && "--confirm",
     reject.length && "--reject",
   ].filter(Boolean);
-  if (summary && changeOptions.length)
+  const reportOnly = summary || reorder;
+  if (reportOnly && changeOptions.length)
     throw new Error(
-      `--summary only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
+      `--${summary ? "summary" : "reorder"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
     );
   if (inventories < 2) {
-    if (!(exportCsv || summary))
+    if (!(exportCsv || reportOnly))
       throw new Error(
-        "Provide at least two inventories to compare, for example --spoolman <file> --spoolio <file>. With a single inventory, use --summary to see what it holds or --export-csv <file> to export it.",
+        "Provide at least two inventories to compare, for example --spoolman <file> --spoolio <file>. With a single inventory, use --summary to see what it holds, --reorder for what is running low, or --export-csv <file> to export it.",
       );
     if (inventories < 1) throw new Error("Provide at least one inventory to report on or export.");
     if (changeOptions.length)

@@ -52,6 +52,13 @@ export function renderLoadedStats(
             ? ` (${summary.unknownWeights.toLocaleString()} without a weight)`
             : "",
         ),
+        summary.runningLow
+          ? h(
+              "p",
+              { class: "mt-1 text-xs font-medium text-warning-text" },
+              `${summary.runningLow.toLocaleString()} running low`,
+            )
+          : null,
       ),
     ];
   });

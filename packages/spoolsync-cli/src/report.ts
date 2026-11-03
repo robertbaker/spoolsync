@@ -5,7 +5,7 @@ import {
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
-import { summarizeInventory } from "@spoolsync/core/workflow";
+import { formatReorderList, reorderItems, summarizeInventory } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
 import { ExecutionError } from "./execution";
@@ -98,11 +98,28 @@ export function reportInventoryOnly(
     return result ? [summarizeInventory(result)] : [];
   });
   const spools = summaries.reduce((total, summary) => total + summary.spools, 0);
+  const reorder = options.reorder
+    ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] })
+    : [];
   if (options.json) {
     output.log(
       JSON.stringify(
         {
-          ...(options.summary ? { inventories: summaries } : { spools }),
+          ...(options.summary ? { inventories: summaries } : {}),
+          ...(options.reorder
+            ? {
+                reorder: reorder.map(({ spool, fraction }) => ({
+                  service: spool.source,
+                  id: spool.sourceId,
+                  vendor: spool.vendor,
+                  material: spool.material,
+                  name: spool.name,
+                  remainingGrams: spool.remainingWeight,
+                  fraction,
+                })),
+              }
+            : {}),
+          ...(options.summary || options.reorder ? {} : { spools }),
           ...(options.exportCsv && written.includes(options.exportCsv)
             ? { csvExport: options.exportCsv }
             : {}),
@@ -126,9 +143,11 @@ export function reportInventoryOnly(
           `${summary.remainingGrams.toLocaleString("en-US")} g remaining` +
           (summary.unknownWeights
             ? ` (${plural(summary.unknownWeights, "spool")} without a known weight)`
-            : ""),
+            : "") +
+          (summary.runningLow ? `; ${summary.runningLow} running low` : ""),
       );
     }
+  if (options.reorder) output.log(formatReorderList(reorder));
   if (options.exportCsv && written.includes(options.exportCsv))
     output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
 }

@@ -125,6 +125,14 @@ describe("CLI arguments", () => {
     expect(() => parseArgs([...fileInputs, "--quiet"])).toThrow("only applies with --watch");
   });
 
+  test("--reorder is report-only and works with a single inventory", () => {
+    expect(parseArgs(["--spoolkeep", "k.json", "--reorder"]).reorder).toBe(true);
+    expect(() => parseArgs(["--spoolkeep", "k.json", "--reorder", "--output-dir", "o"])).toThrow(
+      "--reorder only reports",
+    );
+    expect(() => parseArgs(["--spoolkeep", "k.json"])).toThrow("--reorder for what is running low");
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(

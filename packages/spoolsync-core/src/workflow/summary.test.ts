@@ -27,6 +27,7 @@ test("summarizes counts, distinct brands and materials, and known weight", () =>
     materials: 2,
     remainingGrams: 601,
     unknownWeights: 1,
+    runningLow: 0,
     warnings: 1,
   });
 });
@@ -35,4 +36,19 @@ test("an empty inventory summarizes to zeros", () => {
   expect(
     summarizeInventory({ source: "spoolman", spools: [], warnings: [], loadedAt: "now" }),
   ).toMatchObject({ spools: 0, remainingGrams: 0, brands: 0 });
+});
+
+test("counts spools that are running low, leaving finished and unweighed ones out", () => {
+  const summary = summarizeInventory({
+    source: "spoolio",
+    spools: [
+      makeSpool("spoolio", "a", { remainingWeight: 150, initialWeight: 1000 }),
+      makeSpool("spoolio", "b", { remainingWeight: 900, initialWeight: 1000 }),
+      makeSpool("spoolio", "c", { remainingWeight: 10, initialWeight: 1000, archived: true }),
+      makeSpool("spoolio", "d", { remainingWeight: null }),
+    ],
+    warnings: [],
+    loadedAt: "now",
+  });
+  expect(summary.runningLow).toBe(1);
 });

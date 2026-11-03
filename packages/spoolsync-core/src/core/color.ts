@@ -80,3 +80,45 @@ export function deltaE2000Lab(
     (dLp / SL) ** 2 + (dCp / SC) ** 2 + (dHp / SH) ** 2 + RT * (dCp / SC) * (dHp / SH),
   );
 }
+
+export const COLOR_FAMILIES = [
+  "Black",
+  "White",
+  "Gray",
+  "Red",
+  "Orange",
+  "Yellow",
+  "Green",
+  "Teal",
+  "Blue",
+  "Purple",
+  "Pink",
+  "Brown",
+] as const;
+export type ColorFamily = (typeof COLOR_FAMILIES)[number];
+
+/** A named family for an "RRGGBB" colour, by hue, saturation and lightness, for grouping spools. */
+export function colorFamily(hex: string): ColorFamily {
+  const channel = (offset: number) => parseInt(hex.slice(offset, offset + 2), 16) / 255;
+  const [r, g, b] = [channel(0), channel(2), channel(4)];
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  if (lightness < 0.14) return "Black";
+  if (lightness > 0.92 && saturation < 0.5) return "White";
+  if (saturation < 0.14) return lightness > 0.88 ? "White" : lightness < 0.2 ? "Black" : "Gray";
+  let hue =
+    max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+  hue = (hue * 60 + 360) % 360;
+  if (hue < 45 && lightness < 0.42 && saturation > 0.2) return "Brown";
+  if (hue >= 345 || hue < 15) return lightness > 0.72 ? "Pink" : "Red";
+  if (hue < 45) return "Orange";
+  if (hue < 70) return "Yellow";
+  if (hue < 165) return "Green";
+  if (hue < 200) return "Teal";
+  if (hue < 255) return "Blue";
+  if (hue < 300) return "Purple";
+  return "Pink";
+}

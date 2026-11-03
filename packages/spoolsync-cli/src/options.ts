@@ -19,6 +19,8 @@ export type Options = {
   exportCsv?: string;
   /** Report counts for what is loaded instead of planning changes. */
   summary: boolean;
+  /** Print a shopping list of spools that are running low instead of planning changes. */
+  reorder: boolean;
   /** Run again whenever an input file changes. */
   watch: boolean;
   /** With --watch, print a run only when its output changed. */
