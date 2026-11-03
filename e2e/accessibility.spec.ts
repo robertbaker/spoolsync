@@ -67,6 +67,20 @@ for (const colorScheme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
+    test("changelog dialog has no detectable violations", async ({ page }) => {
+      await page.route("https://raw.githubusercontent.com/**", (route) =>
+        route.fulfill({
+          status: 200,
+          headers: { "access-control-allow-origin": "*" },
+          body: "## [0.2.0](https://github.com/robertbaker/spoolsync/compare/a...b) (2026-10-28)\n\n### Bug Fixes\n\n* **sync:** retain logs ([3aa6df2](https://github.com/robertbaker/spoolsync/commit/3aa6df2bb))\n",
+        }),
+      );
+      await page.goto("/");
+      await page.getByRole("button", { name: /show what is new/ }).click();
+      await expect(page.getByRole("dialog", { name: "What's new" })).toContainText("retain logs");
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("saved-settings dialog has no detectable violations", async ({ page }) => {
       await loadTwoServices(page);
       await page.getByRole("button", { name: "Saved settings" }).click();

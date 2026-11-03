@@ -635,6 +635,66 @@ test("saved settings are remembered between runs and can be overridden, ignored,
   expect(combined.code).not.toBe(0);
 });
 
+test("settings can be exported to a file, imported back, and shared with the browser's format", async () => {
+  const run = async (...args: string[]) => {
+    const child = spawnIsolated([runtime, cli, ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: directory,
+    });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  const settingsFile = path.join(directory, ".settings", "config.json");
+  // Defaults can be saved without any inventory at all.
+  const saved = await run("--output-dir", "out", "--low-threshold", "30", "--save-config");
+  expect(saved).toMatchObject({ code: 0, stderr: "" });
+
+  const exported = await run("--export-settings", "mine.json");
+  expect(exported).toMatchObject({ code: 0, stderr: "" });
+  const document = JSON.parse(await readFile(path.join(directory, "mine.json"), "utf8"));
+  expect(document.entries).toEqual({ "spoolsync:low-stock-percent": "30" });
+  expect(document.cli["low-threshold"]).toBe(30);
+
+  // Importing replaces what is saved, from the CLI's own export.
+  await run("--clear-config");
+  const imported = await run("--import-settings", "mine.json");
+  expect(imported.code).toBe(0);
+  expect(JSON.parse(await readFile(settingsFile, "utf8"))).toEqual(document.cli);
+
+  // A file exported by the browser supplies the shared setting, and the rest is reported.
+  await writeFile(
+    path.join(directory, "web.json"),
+    JSON.stringify({
+      format: "spoolsync-settings",
+      version: 1,
+      entries: { "spoolsync:low-stock-percent": "15", "spoolsync:prefs": '{"lowOnly":true}' },
+    }),
+  );
+  const fromWeb = await run("--import-settings", "web.json");
+  expect(fromWeb.code).toBe(0);
+  expect(fromWeb.stderr).toContain("Skipped 1 settings the CLI does not use: spoolsync:prefs");
+  expect(JSON.parse(await readFile(settingsFile, "utf8"))).toEqual({ "low-threshold": 15 });
+
+  // Bad files and bad flags are refused without touching what is saved.
+  await writeFile(
+    path.join(directory, "bad.json"),
+    '{"format":"spoolsync-settings","version":1,"cli":{"spoolman-token":"x"}}',
+  );
+  const bad = await run("--import-settings", "bad.json");
+  expect(bad.code).not.toBe(0);
+  expect(bad.stderr).toContain("looks like a secret");
+  expect(JSON.parse(await readFile(settingsFile, "utf8"))).toEqual({ "low-threshold": 15 });
+  expect((await run("--import-settings")).stderr).toContain("requires a file name");
+  expect((await run("--export-settings", "a.json", "--import-settings", "b.json")).code).not.toBe(
+    0,
+  );
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

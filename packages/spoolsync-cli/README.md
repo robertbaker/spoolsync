@@ -80,6 +80,11 @@ spoolsync --summary          # uses the saved inventories
 - **Never saved:** tokens and passwords, `--apply`, `--watch`, and per-run choices such as
   `--confirm`. The file is written atomically and readable only by you.
 - `--no-user-config` ignores the file for one run, and `--clear-config` deletes it.
+- **Share settings:** `--export-settings <file>` writes your saved settings to a file and
+  `--import-settings <file>` replaces them from one. The file uses the same format as the browser's
+  **Saved settings → Export settings**, so the two can exchange what they share (the low-stock
+  threshold); the CLI's own settings ride along in a `cli` section the browser ignores. Imports go
+  through the same checks as a config file, so a secret or unknown key is refused.
 - `--show-config` prints what the settings file, `--config`, and the command line each contribute, to
   see why an option has the value it has.
 

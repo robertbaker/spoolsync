@@ -19,6 +19,13 @@ import {
   reconcileResolutions,
 } from "@spoolsync/core/planner";
 
+const MAX_UNDO = 50;
+
+interface UndoEntry {
+  label: string;
+  resolutions: Map<string, GroupResolution>;
+}
+
 export interface SyncPersistence {
   saveResolutions(resolutions: ReadonlyMap<string, GroupResolution>): void;
   saveMatchDecisions(decisions: MatchDecisions): void;
@@ -67,6 +74,47 @@ export class SyncSession {
   decide(suggestion: MatchSuggestion, same: boolean): void {
     this.decisions = decideMatch(this.decisions, suggestion, same);
     this.persistence.saveMatchDecisions(this.decisions);
+  }
+
+  private undoStack: UndoEntry[] = [];
+  private redoStack: UndoEntry[] = [];
+
+  /**
+   * Remembers the current choices before a change, so the change can be undone. Call it just before
+   * mutating `resolutions`. A new change drops anything that could have been redone.
+   */
+  checkpoint(label: string): void {
+    this.undoStack.push({ label, resolutions: structuredClone(this.resolutions) });
+    if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
+    this.redoStack = [];
+  }
+
+  /** What undoing would reverse, or `null` when there is nothing to undo. */
+  undoLabel(): string | null {
+    return this.undoStack.at(-1)?.label ?? null;
+  }
+
+  redoLabel(): string | null {
+    return this.redoStack.at(-1)?.label ?? null;
+  }
+
+  /** Restores the choices from before the last change. Returns its label, or `null` if none. */
+  undo(): string | null {
+    const entry = this.undoStack.pop();
+    if (!entry) return null;
+    this.redoStack.push({ label: entry.label, resolutions: structuredClone(this.resolutions) });
+    this.resolutions = structuredClone(entry.resolutions);
+    this.persist();
+    return entry.label;
+  }
+
+  redo(): string | null {
+    const entry = this.redoStack.pop();
+    if (!entry) return null;
+    this.undoStack.push({ label: entry.label, resolutions: structuredClone(this.resolutions) });
+    this.resolutions = structuredClone(entry.resolutions);
+    this.persist();
+    return entry.label;
   }
 
   /** How many possible matches the visitor has answered, saved across visits. */

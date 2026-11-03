@@ -66,6 +66,16 @@ Keep shared inventory behavior in `packages/spoolsync-core/` when it applies to 
 See [the architecture guide](docs/architecture.md) for the inventory lifecycle and
 [the documentation index](docs/README.md) for package and converter guides.
 
+## Releases and the changelog
+
+`bun run release` (maintainers) bumps the version and prepends a section to
+`packages/spoolsync-cli/CHANGELOG.md` listing every `feat` and `fix` commit since the last release
+tag, across the whole repository, with its scope and commit link. Other commit types (`docs`,
+`style`, `chore`, and so on) are left out, so write commit subjects as user-facing summaries. A `!`
+after the type (`feat!:`) or a `BREAKING CHANGE:` footer marks a breaking change and makes a major
+bump, so use it only when one is intended. The site footer shows this version, and its "What's
+new" dialog reads that same file from GitHub.
+
 ## Formatting
 
 `bun run format` formats `src`, `tests`, `tools`, and `packages`. For individual documentation

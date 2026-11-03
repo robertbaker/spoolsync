@@ -43,6 +43,8 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:recent-sources",
       "spoolsync:chart-view",
       "spoolsync:chart-table-open",
+      "spoolsync:last-seen-version",
+      "spoolsync:changelog-cache",
     ],
     storage: "local",
   },

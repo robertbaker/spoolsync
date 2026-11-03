@@ -126,6 +126,16 @@ export const output = [
     desc: "Show what the settings file, --config, and the command line each contribute, to see where an option's value comes from.",
   },
   {
+    flag: "--export-settings <file>",
+    copy: "--export-settings",
+    desc: "Write your saved settings to a file. The format matches the browser's settings export, so the low-stock threshold can be shared.",
+  },
+  {
+    flag: "--import-settings <file>",
+    copy: "--import-settings",
+    desc: "Replace your saved settings with ones exported from the CLI or the browser. Secrets and unknown keys are refused; unused browser entries are reported as skipped.",
+  },
+  {
     flag: "--no-user-config",
     copy: "--no-user-config",
     desc: "Ignore the per-user settings file for this run.",

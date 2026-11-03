@@ -63,7 +63,11 @@ export function createControlsView(
     );
   }
 
-  function bulk(action: (group: SpoolGroup, resolution: GroupResolution) => void): void {
+  function bulk(
+    label: string,
+    action: (group: SpoolGroup, resolution: GroupResolution) => void,
+  ): void {
+    state.checkpoint(label);
     for (const group of state.match.groups) {
       action(group, state.resolutionFor(group));
     }
@@ -71,12 +75,21 @@ export function createControlsView(
     renderAll();
   }
 
+  /** Undoes or redoes the last change to the plan, then redraws and says what happened. */
+  function undoOrRedo(direction: "undo" | "redo"): boolean {
+    const label = direction === "undo" ? state.undo() : state.redo();
+    if (label === null) return false;
+    renderAll();
+    showToast(`${direction === "undo" ? "Undid" : "Redid"} ${label}`, "info");
+    return true;
+  }
+
   function renderBulk(): void {
     const sources = state.loadedSources();
     const writeTargets = state.writableLoadedSources();
     const controls: HTMLElement[] = sources.map((source) =>
       button(`Take ${SOURCE_LABELS[source]}'s values`, () => {
-        bulk((group, resolution) => {
+        bulk(`taking ${SOURCE_LABELS[source]}'s values`, (group, resolution) => {
           const member = group.members[source];
           if (!member) return;
           for (const comparison of compareGroup(group)) {
@@ -93,7 +106,7 @@ export function createControlsView(
     );
     controls.push(
       button("Take lowest remaining weight", () => {
-        bulk((group, resolution) => {
+        bulk("taking the lowest remaining weights", (group, resolution) => {
           const comparison = compareGroup(group).find(
             (c) => c.field === "remainingWeight" && c.kind === "conflict",
           );
@@ -108,7 +121,7 @@ export function createControlsView(
     for (const source of writeTargets) {
       controls.push(
         button(`Add all missing to ${SOURCE_LABELS[source]}`, () => {
-          bulk((group, resolution) => {
+          bulk(`adding all missing spools to ${SOURCE_LABELS[source]}`, (group, resolution) => {
             if (state.pendingGroupIds().has(group.id)) return;
             if (!group.members[source] && !resolution.createIn.includes(source))
               resolution.createIn.push(source);
@@ -119,14 +132,29 @@ export function createControlsView(
     }
     controls.push(
       button("Reset choices", () => {
+        state.checkpoint("resetting all choices");
         state.resolutions.clear();
         state.persist();
         renderAll();
         showToast("Reset all resolution choices", "info");
       }),
     );
-    byId("bulk").replaceChildren(...controls);
+    const undo = button(
+      state.undoLabel() ? `Undo ${state.undoLabel()}` : "Undo",
+      () => undoOrRedo("undo"),
+      "outline",
+      { id: "undo-choice", title: "Undo the last change (Ctrl+Z)" },
+    );
+    undo.disabled = state.undoLabel() === null;
+    const redo = button(
+      state.redoLabel() ? `Redo ${state.redoLabel()}` : "Redo",
+      () => undoOrRedo("redo"),
+      "outline",
+      { id: "redo-choice", title: "Redo (Ctrl+Shift+Z)" },
+    );
+    redo.disabled = state.redoLabel() === null;
+    byId("bulk").replaceChildren(undo, redo, ...controls);
   }
 
-  return { renderFilters, renderBulk };
+  return { renderFilters, renderBulk, undoOrRedo };
 }

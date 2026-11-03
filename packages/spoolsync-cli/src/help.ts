@@ -45,6 +45,8 @@ Output:
   --reorder               Print a shopping list of spools that are running low
   --save-config           Save the given options (and inventory paths) as defaults in your settings file
   --no-user-config        Ignore the settings file for this run
+  --export-settings <file> Write your saved settings to a file (the browser can import it too)
+  --import-settings <file> Replace your saved settings with ones exported from the CLI or the browser
   --show-config           Show what the settings file, --config, and the command line each supply
   --config-path           Print where the settings file lives
   --clear-config          Delete the settings file

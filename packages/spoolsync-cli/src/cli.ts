@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 
+import { readFile } from "node:fs/promises";
+
 import { version } from "../package.json";
 import { parseArgs } from "./args";
 import { expandConfig } from "./config";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
-import { clearUserConfig, savableSettings, saveUserConfig, userConfigPath } from "./user-config";
+import { buildExportDocument, parseImportDocument } from "./settings-transfer";
+import {
+  clearUserConfig,
+  savableSettings,
+  saveUserConfig,
+  userConfigPath,
+  writeTextAtomic,
+} from "./user-config";
 import { runWatch } from "./watch";
 import { runWorkflow } from "./workflow";
 
@@ -28,6 +37,31 @@ try {
     const configFile = userConfigPath();
     if (args.includes("--config-path")) {
       output.log(configFile);
+    } else if (args.includes("--export-settings") || args.includes("--import-settings")) {
+      const exporting = args.includes("--export-settings");
+      const flag = exporting ? "--export-settings" : "--import-settings";
+      const target = args[args.indexOf(flag) + 1];
+      if (!target || target.startsWith("-")) throw new Error(`${flag} requires a file name.`);
+      if (args.includes("--export-settings") && args.includes("--import-settings"))
+        throw new Error("Use either --export-settings or --import-settings, not both.");
+      if (exporting) {
+        let saved: Record<string, unknown> | null = null;
+        try {
+          saved = JSON.parse(await readFile(configFile, "utf8")) as Record<string, unknown>;
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+        }
+        await writeTextAtomic(target, buildExportDocument(saved));
+        output.log(`Exported ${saved ? Object.keys(saved).length : 0} settings to ${target}`);
+      } else {
+        const { settings, skipped } = parseImportDocument(await readFile(target, "utf8"), target);
+        await saveUserConfig(configFile, settings);
+        output.log(`Imported ${Object.keys(settings).length} settings into ${configFile}`);
+        if (skipped.length)
+          output.error(
+            `Skipped ${skipped.length} settings the CLI does not use: ${skipped.join(", ")}`,
+          );
+      }
     } else if (args.includes("--show-config")) {
       const lines: Record<string, string[]> = {};
       expandConfig(

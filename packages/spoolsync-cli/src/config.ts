@@ -144,6 +144,11 @@ function optionsFromFile(
   return expanded;
 }
 
+/** Validates a config object (unknown keys, secrets, wrong types) without using its options. */
+export function checkConfig(file: string, config: Record<string, unknown>): void {
+  optionsFromFile(file, config, new Set(), false);
+}
+
 const givenFlags = (args: readonly string[]) =>
   new Set(
     args.filter((arg) => arg.startsWith("--")).map((arg) => canonical(arg.slice(2).split("=")[0]!)),

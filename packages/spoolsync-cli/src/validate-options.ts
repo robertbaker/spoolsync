@@ -106,6 +106,8 @@ export function validateOptions(options: Options): void {
         `With a single inventory, comparing, resolving, and writing need at least two inventories; remove ${changeOptions.join(", ")}.`,
       );
   }
+  // Saving defaults runs nothing, so the checks that tie options to loaded inventories do not apply.
+  if (saveConfig) return;
   if (
     outputDir &&
     ![...inputs.keys(), ...empty].some((source) =>

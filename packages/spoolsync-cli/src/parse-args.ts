@@ -59,6 +59,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--clear-config",
   "--config-path",
   "--show-config",
+  "--export-settings",
+  "--import-settings",
   "--no-user-config",
   "--summary",
   "--reorder",

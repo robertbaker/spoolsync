@@ -23,6 +23,7 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     field: FieldComparison["field"],
     value: FieldValue | undefined,
   ): void {
+    state.checkpoint(`change to ${field}`);
     const resolution = state.resolutionFor(group);
     if (value === undefined) delete resolution.values[field];
     else resolution.values[field] = value;
@@ -139,6 +140,9 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
             input.checked = resolution.createIn.includes(source);
             input.disabled = pending;
             input.addEventListener("change", () => {
+              state.checkpoint(
+                `${input.checked ? "adding" : "not adding"} a spool to ${SOURCE_LABELS[source]}`,
+              );
               resolution.createIn = input.checked
                 ? [...new Set([...resolution.createIn, source])]
                 : resolution.createIn.filter((s) => s !== source);

@@ -76,8 +76,7 @@
         },
         "gitRawCommitsOpts": {
           "path": [
-            ".",
-            "../spoolsync-core"
+            "../.."
           ]
         }
       }

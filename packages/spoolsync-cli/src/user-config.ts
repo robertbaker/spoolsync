@@ -109,3 +109,16 @@ export async function clearUserConfig(file: string): Promise<boolean> {
     throw error;
   }
 }
+
+/** Writes text to a file atomically (temporary file, then rename), readable only by the owner. */
+export async function writeTextAtomic(file: string, text: string, mode = 0o600): Promise<void> {
+  await mkdir(path.dirname(file), { recursive: true });
+  const temporary = `${file}.${process.pid}.tmp`;
+  try {
+    await writeFile(temporary, text, { mode, flag: "wx" });
+    await rename(temporary, file);
+  } catch (error) {
+    await rm(temporary, { force: true });
+    throw error;
+  }
+}

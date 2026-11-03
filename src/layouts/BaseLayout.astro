@@ -2,6 +2,7 @@
 import type { ImageMetadata } from "astro";
 import type { CollectionEntry } from "astro:content";
 import { Icon } from "astro-icon/components";
+import cliPackage from "../../packages/spoolsync-cli/package.json";
 import SiteBaseLayout from "~/components/starwind/layouts/SiteBaseLayout.astro";
 import {
   SITE_URL,
@@ -146,6 +147,8 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <span> · </span>
     <button type="button" class="footer-link underline" data-open-shortcuts>Keyboard shortcuts</button>
     <span> · </span>
+    <button type="button" class="footer-link underline" data-open-changelog data-version={cliPackage.version} aria-label={`SpoolSync version ${cliPackage.version}, show what is new`}>v{cliPackage.version}</button>
+    <span> · </span>
     <button type="button" class="footer-link underline" data-open-saved-data>Saved settings</button>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, SpoolKeep or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.
@@ -162,11 +165,14 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
 
 <script>
   import "~/scripts/tour";
+  import { announceUpdate, wireChangelog } from "~/scripts/changelog-dialog";
   import { wireSavedData } from "~/scripts/saved-data-dialog";
   import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
 
   wireShortcutsHelp();
   wireSavedData();
+  wireChangelog();
+  announceUpdate(document.querySelector<HTMLElement>("[data-open-changelog]")?.dataset["version"] ?? "");
 
   // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
   const syncAria = (el: Element | null) => {

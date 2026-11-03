@@ -135,3 +135,60 @@ test("saved match answers can be counted and reset so pairs are suggested again"
   expect(state.match.suggestions).toHaveLength(1);
   expect(state.resetDecisions()).toBe(0);
 });
+
+test("changes to the plan can be undone and redone, and a new change drops the redo history", () => {
+  const { state } = session(
+    new Map([
+      ["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1")])],
+      ["spoolio", snapshot("spoolio", [])],
+    ]),
+  );
+  state.recompute();
+  const group = state.match.groups[0]!;
+  expect(state.undoLabel()).toBeNull();
+  expect(state.undo()).toBeNull();
+
+  state.checkpoint("adding a spool to Spoolio");
+  state.resolutionFor(group).createIn.push("spoolio");
+  state.checkpoint("picking a weight");
+  state.resolutionFor(group).values["remainingWeight"] = 123;
+  expect(state.undoLabel()).toBe("picking a weight");
+
+  expect(state.undo()).toBe("picking a weight");
+  expect(state.resolutionFor(group).values["remainingWeight"]).toBeUndefined();
+  expect(state.resolutionFor(group).createIn).toEqual(["spoolio"]);
+  expect(state.redoLabel()).toBe("picking a weight");
+
+  expect(state.undo()).toBe("adding a spool to Spoolio");
+  expect(state.resolutionFor(group).createIn).toEqual([]);
+  expect(state.undoLabel()).toBeNull();
+
+  expect(state.redo()).toBe("adding a spool to Spoolio");
+  expect(state.resolutionFor(group).createIn).toEqual(["spoolio"]);
+  expect(state.redo()).toBe("picking a weight");
+  expect(state.resolutionFor(group).values["remainingWeight"]).toBe(123);
+  expect(state.redo()).toBeNull();
+
+  // Undoing and then changing something else means the old future can no longer be replayed.
+  state.undo();
+  state.checkpoint("something new");
+  expect(state.redoLabel()).toBeNull();
+});
+
+test("snapshots are independent copies and the history is bounded", () => {
+  const { state } = session(
+    new Map([["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1")])]]),
+  );
+  state.recompute();
+  const group = state.match.groups[0]!;
+  state.checkpoint("first");
+  state.resolutionFor(group).values["name"] = "changed after the snapshot";
+  state.undo();
+  // The restored choices are not the object that was mutated afterwards.
+  expect(state.resolutionFor(group).values["name"]).toBeUndefined();
+
+  for (let index = 0; index < 120; index++) state.checkpoint(`change ${index}`);
+  let undone = 0;
+  while (state.undo() !== null) undone++;
+  expect(undone).toBe(50);
+});

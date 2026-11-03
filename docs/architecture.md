@@ -162,6 +162,19 @@ document and imports one back, accepting only allow-listed keys whose values pas
 validators the pages use; credentials are never exported and a planted credential key is skipped
 and reported. `spoolsync --show-config` traces each option to the layer that supplied it.
 
+The Sync page keeps an undo and redo history of changes to the plan (`SyncSession.checkpoint`,
+`undo`, `redo`): each value pick, "add to" checkbox, bulk action, and reset takes a deep snapshot of
+the resolutions first (50 deep), the buttons show what they would reverse, and Ctrl or Cmd + Z
+and Shift + Z work outside text fields. The footer shows the running version (read from the CLI
+package at build time) and opens a "What's new" dialog that fetches the changelog from GitHub,
+parses it (`lib/changelog.ts`) into DOM without ever inserting HTML or following non-https links,
+keeps a saved copy for offline use, and notes when the running version is behind. The first visit
+after the version changes shows a one-time toast. `bun run release` builds the changelog with
+`release-it` and conventional commits: every `feat` and `fix` commit since the last release tag,
+across the whole repository (not just the CLI), is listed with its scope and commit link.
+`--export-settings` and `--import-settings` read and write the same `spoolsync-settings` document
+as the browser (`settings-transfer.ts`).
+
 The threshold is a `LowStockRule` (share of full weight, plus fallback grams that scale with it) that
 every caller can pass; the web app saves the visitor's choice (`lib/low-stock.ts`, 10 to 50 percent)
 and the CLI takes `--low-threshold` or a numeric `low-threshold` config key. The chart also groups by

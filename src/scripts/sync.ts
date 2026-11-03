@@ -18,6 +18,7 @@ import {
 
 import { byId, h, notice, showToast } from "./dom";
 import { renderLoadedChart } from "./load/loaded-chart";
+import { isTypingTarget } from "./shortcuts";
 import { createApplyView } from "./sync/apply-view";
 import { createControlsView } from "./sync/controls-view";
 import { createGroupsView } from "./sync/groups-view";
@@ -46,8 +47,24 @@ const renderApply = createApplyView(loaded, renderAll);
 const renderGroups = createGroupsView(state, () => {
   renderSummary();
   renderApply(state.match, state.resolutions);
+  // A pick is an undoable change, so the Undo and Redo buttons must reflect it.
+  renderBulk();
 });
-const { renderFilters, renderBulk } = createControlsView(state, renderAll, renderGroups);
+const { renderFilters, renderBulk, undoOrRedo } = createControlsView(
+  state,
+  renderAll,
+  renderGroups,
+);
+
+// Ctrl or Cmd + Z undoes a change to the plan; adding Shift (or pressing Y) redoes it.
+document.addEventListener("keydown", (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || isTypingTarget(document.activeElement))
+    return;
+  const key = event.key.toLowerCase();
+  if (key !== "z" && key !== "y") return;
+  event.preventDefault();
+  undoOrRedo(key === "y" || event.shiftKey ? "redo" : "undo");
+});
 const renderSuggestions = createSuggestionsView(
   state,
   (suggestion, same) => {

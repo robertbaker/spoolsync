@@ -58,6 +58,16 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   },
   { flag: "--no-user-config", description: "Ignore the settings file for this run", kind: "flag" },
   {
+    flag: "--export-settings",
+    description: "Write your saved settings to a file that the browser can also import",
+    kind: "file",
+  },
+  {
+    flag: "--import-settings",
+    description: "Load settings exported from the CLI or the browser",
+    kind: "file",
+  },
+  {
     flag: "--show-config",
     description: "Show which settings file or option supplies each default",
     kind: "flag",

@@ -139,3 +139,22 @@ test("files that are not a settings export are refused with a clear reason", () 
   );
   expect(() => importSettings('{"format":"spoolsync-settings","version":1}')).toThrow("no entries");
 });
+
+test("a settings export from the CLI imports here, using the shared low-stock setting", () => {
+  const result = importSettings(
+    JSON.stringify({
+      format: "spoolsync-settings",
+      version: 1,
+      exportedAt: "2026-11-03T12:00:00.000Z",
+      entries: { "spoolsync:low-stock-percent": "25" },
+      // The CLI's own settings ride along; the browser has no use for them and ignores them.
+      cli: {
+        spoolio: "/home/ada/spoolio.json",
+        "output-dir": "/home/ada/out",
+        "low-threshold": 25,
+      },
+    }),
+  );
+  expect(result).toEqual({ imported: ["spoolsync:low-stock-percent"], skipped: [] });
+  expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("25");
+});

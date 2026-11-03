@@ -1088,3 +1088,54 @@ test("settings can be exported and imported into another browser, minus credenti
   await expect(otherDialog.locator("#import-settings-result")).toContainText("not valid JSON");
   await other.close();
 });
+
+test("changes to the plan can be undone and redone from buttons and the keyboard", async ({
+  page,
+}) => {
+  await page.goto("/sync?sample=1");
+  await page.getByRole("button", { name: "All 3 are the same spool" }).click();
+  await page.getByRole("button", { name: /Click again to confirm 3 pairs/ }).click();
+  const undo = page.locator("#undo-choice");
+  const redo = page.locator("#redo-choice");
+  await expect(undo).toBeDisabled();
+  await expect(redo).toBeDisabled();
+
+  await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
+  await expect(page.locator("#sync-bar-summary")).toContainText("1 change ready");
+  await expect(undo).toBeEnabled();
+  await expect(undo).toContainText("Undo adding all missing spools to Spoolio");
+
+  await undo.click();
+  await expect(page.locator("#sync-bar")).toBeHidden();
+  await expect(page.getByText("Undid adding all missing spools to Spoolio")).toBeVisible();
+  await expect(undo).toBeDisabled();
+  await expect(redo).toBeEnabled();
+
+  await redo.click();
+  await expect(page.locator("#sync-bar-summary")).toContainText("1 change ready");
+
+  // Keyboard: Ctrl+Z undoes, Ctrl+Shift+Z redoes, and typing in a field keeps its own undo.
+  await page.keyboard.press("Control+z");
+  await expect(page.locator("#sync-bar")).toBeHidden();
+  await page.keyboard.press("Control+Shift+z");
+  await expect(page.locator("#sync-bar-summary")).toContainText("1 change ready");
+  await page.getByLabel("Filter spools").focus();
+  await page.keyboard.type("abc");
+  await page.keyboard.press("Control+z");
+  await expect(page.locator("#sync-bar-summary")).toContainText("1 change ready");
+
+  // Individual picks are undoable too.
+  await page.getByLabel("Filter spools").fill("");
+  const radio = page.getByRole("radio").first();
+  if (await radio.count()) {
+    await radio.check();
+    await expect(undo).toContainText("Undo change to");
+  }
+  await page.getByRole("button", { name: "Reset choices" }).click();
+  await expect(undo).toContainText("Undo resetting all choices");
+  await undo.click();
+  // Undoing the reset brings back both the added spool and the value that was picked.
+  await expect(page.locator("#sync-bar-summary")).toContainText(
+    "2 changes ready across 2 services",
+  );
+});
