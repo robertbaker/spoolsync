@@ -71,6 +71,7 @@ test("only durable, non-secret options are saved, with absolute paths", () => {
     "create-in": ["spoolio"],
     resolve: ["material=spoolio"],
     "output-dir": path.resolve("out"),
+    format: "json",
   });
   expect(JSON.stringify(settings)).not.toContain("token");
   const secrets = parseArgs([

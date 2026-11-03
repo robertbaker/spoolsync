@@ -68,6 +68,7 @@ export function savableSettings(options: Options): Record<string, unknown> {
   if (options.resolves.length)
     settings["resolve"] = options.resolves.map(([field, source]) => `${field}=${source}`);
   if (options.outputDir) settings["output-dir"] = path.resolve(options.outputDir);
+  if (options.json) settings["format"] = "json";
   if (options.lowThreshold !== undefined) settings["low-threshold"] = options.lowThreshold;
   if (options.spoolmanUrl) settings["spoolman-url"] = options.spoolmanUrl;
   if (options.filamentdbUrl) settings["filamentdb-url"] = options.filamentdbUrl;

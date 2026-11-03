@@ -63,7 +63,7 @@ spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv
 ```
 
 Remember your setup. `--save-config` writes the options you give (and your inventory file paths, as
-absolute paths) to a settings file in your user profile, so a bare `spoolsync --summary` works next
+absolute paths, and `--format json` when you use it) to a settings file in your user profile, so a bare `spoolsync --summary` works next
 time:
 
 ```sh
