@@ -1,4 +1,5 @@
 import { local, read, write } from "~/lib/browser/storage/access";
+import { formatWeight, gramsToUnit, readDisplaySettings } from "~/lib/units";
 import { readStockHistory, type StockPoint } from "~/lib/browser/storage/stock-history";
 import { combinedTrend, trendChange } from "~/lib/stock-trend";
 
@@ -12,7 +13,7 @@ const WIDTH = 600;
 const HEIGHT = 210;
 const PAD = { left: 56, right: 14, top: 14, bottom: 30 };
 
-const grams = (value: number) => `${Math.round(value).toLocaleString()} g`;
+const grams = (value: number) => formatWeight(value);
 const day = (at: string, withYear = false) =>
   new Date(at).toLocaleDateString(undefined, {
     month: "short",
@@ -89,6 +90,7 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
     ([px, py], index) => `${index ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`,
   );
   const ticks = [0, top / 2, top];
+  const unit = readDisplaySettings().weightUnit;
   const axisLabel = "fill-muted-foreground text-[10px]";
 
   const chart = svg(
@@ -110,7 +112,9 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
       svg(
         "text",
         { x: String(PAD.left - 6), y: String(y(tick) + 3), "text-anchor": "end", class: axisLabel },
-        document.createTextNode(Math.round(tick).toLocaleString()),
+        document.createTextNode(
+          Math.round(gramsToUnit(tick, unit)).toLocaleString(),
+        ),
       ),
     ]),
     svg(
@@ -168,7 +172,7 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
       h(
         "tr",
         {},
-        ...["Loaded", "Spools", "Remaining (g)"].map((heading) =>
+        ...["Loaded", "Spools", `Remaining (${unit})`].map((heading) =>
           h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading),
         ),
       ),
@@ -187,7 +191,9 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
             h(
               "td",
               { class: "py-1 pr-3 tabular-nums" },
-              Math.round(point.totalGrams).toLocaleString(),
+              gramsToUnit(point.totalGrams, unit).toLocaleString(undefined, {
+                maximumFractionDigits: unit === "oz" ? 1 : 0,
+              }),
             ),
           ),
         ),

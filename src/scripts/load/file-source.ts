@@ -5,6 +5,7 @@ import { createEmptyInventory, loadInventoryFile } from "@spoolsync/core/workflo
 import { recordFile } from "~/lib/browser/storage";
 
 import { byId, h, notice } from "../dom";
+import { importReportView } from "./import-report-view";
 import { plural, warningsNotice } from "./presentation";
 import type { LoadContext } from "./state";
 
@@ -112,6 +113,7 @@ export async function readInventoryFile(
   message.replaceChildren(
     notice("success", `Loaded ${plural(result.spools.length, "spool")} from ${file.name}`),
     ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),
+    importReportView(result, file.name),
   );
   store(result);
   recordFile(source, {

@@ -8,6 +8,7 @@ import { remainingBy, summarizeInventory } from "@spoolsync/core/workflow";
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { local, read, write } from "~/lib/browser/storage/access";
+import { formatWeight, gramsToUnit, readDisplaySettings } from "~/lib/units";
 
 import { h } from "../dom";
 import { barRow, viewSwitcher } from "./chart-parts";
@@ -41,7 +42,7 @@ const VIEW_NOUNS: Record<View, string> = {
   location: "location",
 };
 
-const grams = (value: number) => `${value.toLocaleString()} g`;
+const grams = (value: number) => formatWeight(value);
 
 function byService(results: ReadonlyMap<SourceId, LoadResult>): Datum[] {
   return SOURCE_IDS.flatMap((source) => {
@@ -112,8 +113,8 @@ export function renderLoadedChart(
 
   const subtitle =
     view === "service"
-      ? `${grams(total)} across the loaded services, in grams. A spool listed in several services counts in each.`
-      : `${grams(total)} in total, in grams${duplicatesRemoved ? `. ${plural(duplicatesRemoved, "linked spool")} counted once.` : "."}`;
+      ? `${grams(total)} across the loaded services. A spool listed in several services counts in each.`
+      : `${grams(total)} in total${duplicatesRemoved ? `. ${plural(duplicatesRemoved, "linked spool")} counted once.` : "."}`;
 
   const bars = data.map((datum) =>
     barRow({
@@ -137,7 +138,7 @@ export function renderLoadedChart(
         ...[
           VIEW_NOUNS[view].replace(/^./, (c) => c.toUpperCase()),
           "Spools",
-          "Remaining (g)",
+          `Remaining (${readDisplaySettings().weightUnit})`,
           "Share",
         ].map((heading) => h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading)),
       ),
@@ -151,7 +152,9 @@ export function renderLoadedChart(
           { class: "border-t" },
           h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, datum.label),
           h("td", { class: "py-1 pr-3 tabular-nums" }, datum.spools.toLocaleString()),
-          h("td", { class: "py-1 pr-3 tabular-nums" }, datum.grams.toLocaleString()),
+          h("td", { class: "py-1 pr-3 tabular-nums" }, gramsToUnit(datum.grams, readDisplaySettings().weightUnit).toLocaleString(undefined, {
+              maximumFractionDigits: readDisplaySettings().weightUnit === "oz" ? 1 : 0,
+            })),
           h("td", { class: "py-1 tabular-nums" }, `${share(datum)}%`),
         ),
       ),

@@ -7,6 +7,7 @@ import {
   listSavedData,
 } from "~/lib/saved-data";
 
+import { displaySettingsSection } from "./display-settings";
 import { h } from "./dom";
 import { download } from "./sync/presentation";
 
@@ -142,6 +143,7 @@ function rebuild(body: HTMLElement): void {
           },
           "Nothing is saved.",
         ),
+    displaySettingsSection(),
     h(
       "div",
       { class: "mt-4 border-t pt-3" },

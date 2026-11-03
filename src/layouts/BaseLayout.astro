@@ -162,6 +162,10 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <button type="button" class="footer-link underline" data-open-changelog data-version={cliPackage.version} aria-label={`SpoolSync version ${cliPackage.version}, show what is new`}>v{cliPackage.version}</button>
     <span> · </span>
     <button type="button" class="footer-link underline" data-open-saved-data>Saved settings</button>
+    <span> · </span>
+    <button type="button" class="footer-link underline" data-open-palette aria-keyshortcuts="Control+K Meta+K">Command palette</button>
+    <span> · </span>
+    <button type="button" class="footer-link underline" data-open-setup>Setup guide</button>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, SpoolKeep or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.
     </span>
@@ -182,8 +186,12 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   import { announceUpdate, wireChangelog } from "~/scripts/changelog-dialog";
   import { wireSavedData } from "~/scripts/saved-data-dialog";
   import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
+  import { wirePalette } from "~/scripts/palette";
+  import { wireSetupTriggers } from "~/scripts/setup/launch";
 
   wireShortcutsHelp();
+  wirePalette();
+  wireSetupTriggers();
   wireSavedData();
   wireChangelog();
   announceUpdate(document.querySelector<HTMLElement>("[data-open-changelog]")?.dataset["version"] ?? "");

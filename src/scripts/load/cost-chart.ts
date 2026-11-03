@@ -3,6 +3,7 @@ import { costPerKg, type CostBreakdown, type CostGrouping } from "@spoolsync/cor
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { local, read, write } from "~/lib/browser/storage/access";
+import { formatMoney } from "~/lib/units";
 
 import { h } from "../dom";
 import { barRow, viewSwitcher } from "./chart-parts";
@@ -16,8 +17,7 @@ const VIEWS: ReadonlyArray<{ id: CostGrouping; label: string; noun: string }> = 
   { id: "vendor", label: "By brand", noun: "brand" },
 ];
 
-const money = (value: number) =>
-  value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (value: number) => formatMoney(value);
 
 /**
  * What a kilogram of filament cost, for the spools whose service records a price. Prices are shown
@@ -154,7 +154,7 @@ export function renderCostChart(
         h(
           "p",
           { class: "text-xs text-muted-foreground" },
-          `Total price over full weight, as recorded (no currency conversion). ${unpriced ? `${plural(unpriced, "spool")} of ${totalSpools} without a price or full weight ${unpriced === 1 ? "is" : "are"} left out.` : "Every spool is included."}`,
+          `Total price over full weight, as recorded (no currency conversion; the symbol is only how amounts are displayed). ${unpriced ? `${plural(unpriced, "spool")} of ${totalSpools} without a price or full weight ${unpriced === 1 ? "is" : "are"} left out.` : "Every spool is included."}`,
         ),
       ),
       h("div", { class: "space-y-0.5" }, ...bars),

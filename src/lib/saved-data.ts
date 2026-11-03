@@ -6,6 +6,7 @@ import { sanitizeStockHistory } from "./browser/storage/stock-history";
 import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
 import { sanitizePreferences } from "./preferences";
 import { sanitizeViews } from "./saved-views";
+import { sanitizeDisplaySettings } from "./units";
 
 /**
  * What SpoolSync keeps in this browser, grouped in plain words, so the visitor can see it and take
@@ -54,6 +55,9 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:saved-views",
       "spoolsync:last-seen-version",
       "spoolsync:changelog-cache",
+      "spoolsync:display",
+      "spoolsync:setup-dismissed",
+      "spoolsync:palette-recent",
     ],
     storage: "local",
   },
@@ -221,8 +225,15 @@ function isValidEntry(key: string, text: string): boolean {
         return sanitizeWatchlist(JSON.parse(text)).length > 0;
       case "spoolsync:low-stock-percent":
         return isLowStockPercent(Number(text));
+      case "spoolsync:display": {
+        const clean = sanitizeDisplaySettings(JSON.parse(text));
+        return clean.weightUnit !== "g" || clean.currency !== "";
+      }
+      case "spoolsync:setup-dismissed":
+        return text === "1";
       case "spoolsync:open-panels":
       case "spoolsync:recent-sources":
+      case "spoolsync:palette-recent":
         return isStringList(JSON.parse(text));
       case "spoolsync:chart-view":
         return CHART_VIEWS.includes(text);
