@@ -1,4 +1,4 @@
-export {};
+import { wireSlashFocus } from "./shortcuts";
 
 const tabs = [...document.querySelectorAll<HTMLButtonElement>("[data-install-tab]")];
 const select = (id: string, focus = false) => {
@@ -44,18 +44,5 @@ if (optionsSearch) {
     }
   });
 
-  document.addEventListener("keydown", (e) => {
-    if (
-      e.key === "/" &&
-      document.activeElement !== optionsSearch &&
-      !(
-        document.activeElement instanceof HTMLInputElement ||
-        document.activeElement instanceof HTMLTextAreaElement
-      )
-    ) {
-      e.preventDefault();
-      optionsSearch.focus();
-      optionsSearch.select();
-    }
-  });
+  wireSlashFocus(optionsSearch);
 }

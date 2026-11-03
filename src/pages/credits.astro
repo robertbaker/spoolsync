@@ -5,6 +5,7 @@ import PageHeader from "~/components/PageHeader.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 ---
 
 <BaseLayout
@@ -58,7 +59,9 @@ import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
 
       <section class="app-card flex flex-col" aria-labelledby="credit-spoolstock-heading">
         <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/spoolstock" color="primary" />
+          <IconAvatar color="primary">
+            <img slot="icon" src={spoolstockLogo.src} alt="" class="size-7 object-contain" />
+          </IconAvatar>
           <h3 id="credit-spoolstock-heading" class="text-xl font-semibold">Spoolstock</h3>
         </div>
         <p class="mt-4 text-sm leading-relaxed text-muted-foreground">

@@ -87,6 +87,16 @@ drops the in-page copy too; file snapshots are kept.
 The Differences list renders a window of 25 groups at a time (cards are built only for that window)
 and can be filtered by text. The Apply section offers one button that downloads every changed file.
 
+Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
+primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
+without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the
+visitor opened or closed in localStorage; panels that open themselves to show a result are not saved.
+
+Static assets are kept small: the vendor logos shown at icon size are 128 px rasters or small SVGs
+rather than large traced vectors, and the bundled Inter variable font is subset to Latin, Latin
+Extended-A/B, punctuation, arrows, and common symbols (about 100 KB). If a new page needs a glyph
+outside that set, re-subset the font from the full Inter release.
+
 ## Adapter modules
 
 Adapter entry points preserve their public imports while delegating to modules with narrower

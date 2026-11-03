@@ -82,7 +82,8 @@ test("sign in to TigerTag, fetch the cloud inventory and apply a change", async 
   await expect(page.locator("#tigertag-cloud-hint")).toHaveText("Signed in as me@example.com");
 
   await page.goto("/load");
-  await page.locator("#tigertag-panel > summary").click();
+  // The panel was left open on the previous visit, and the page remembers that.
+  await expect(page.locator("#tigertag-panel")).toHaveJSProperty("open", true);
   await page.getByRole("button", { name: "Fetch from TigerTag cloud" }).click();
   await expect(page.getByText("Loaded 1 spool from TigerTag")).toBeVisible();
   await page.locator("#spoolstock-file").setInputFiles(spoolstockCsv);

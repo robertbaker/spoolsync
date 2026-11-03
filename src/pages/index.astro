@@ -8,6 +8,7 @@ import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionH
 import StepTimeline from "~/components/StepTimeline.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
 
 import { steps, highlights, services } from "~/components/home/data";
@@ -49,7 +50,7 @@ import { steps, highlights, services } from "~/components/home/data";
           <Icon name="vendor/spoolman" class="size-3.5" aria-hidden="true" /> Spoolman
         </span>
         <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
-          <Icon name="vendor/spoolstock" class="size-3.5" aria-hidden="true" /> Spoolstock
+          <img src={spoolstockLogo.src} alt="" class="size-3.5 object-contain" /> Spoolstock
         </span>
         <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
           <Icon name="vendor/spoolio" class="size-3.5" aria-hidden="true" /> Spoolio

@@ -79,22 +79,6 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
       searchQuery = searchInput.value.trim().toLowerCase();
       renderTable();
     });
-    document.addEventListener("keydown", (e) => {
-      if (
-        e.key === "/" &&
-        searchWrap &&
-        !searchWrap.hidden &&
-        document.activeElement !== searchInput &&
-        !(
-          document.activeElement instanceof HTMLInputElement ||
-          document.activeElement instanceof HTMLTextAreaElement
-        )
-      ) {
-        e.preventDefault();
-        searchInput.focus();
-        searchInput.select();
-      }
-    });
   }
 
   function renderTable(): void {

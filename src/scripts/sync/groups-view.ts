@@ -8,6 +8,7 @@ import type { SpoolGroup } from "@spoolsync/core/core/match";
 import { SOURCE_IDS, SOURCE_LABELS, type CommonSpool } from "@spoolsync/core/core/model";
 
 import { byId, h } from "../dom";
+import { wireSlashFocus } from "../shortcuts";
 import { comparisonRow } from "./comparison-row";
 import { button, sourceTag, spoolTitle, swatches } from "./presentation";
 import type { SyncSession } from "./session";
@@ -242,7 +243,9 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     for (const group of rendered) updateGroupStatus(group);
   }
 
-  document.getElementById("group-search")?.addEventListener("input", (event) => {
+  const groupSearch = document.getElementById("group-search") as HTMLInputElement | null;
+  wireSlashFocus(groupSearch);
+  groupSearch?.addEventListener("input", (event) => {
     query = (event.target as HTMLInputElement).value;
     shown = PAGE_SIZE;
     renderGroups();

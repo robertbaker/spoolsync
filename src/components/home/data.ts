@@ -1,4 +1,5 @@
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 
 export const steps = [
   {
@@ -57,7 +58,8 @@ export const services = [
   },
   {
     name: "Spoolstock",
-    icon: "vendor/spoolstock",
+    icon: "material-symbols:inventory-2-outline",
+    image: spoolstockLogo.src,
     how: "CSV export from the app's Inventory tab",
     read: "CSV file",
     write: "Not supported (read-only)",

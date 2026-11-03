@@ -12,13 +12,15 @@ import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro"
 import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
 import { isWritableSource, type SourceId } from "@spoolsync/core/core/model";
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 
 const fileSources = [
   {
     id: "spoolstock",
     label: "Spoolstock",
     kind: "CSV",
-    icon: "vendor/spoolstock",
+    icon: "material-symbols:inventory-2-outline",
+    image: spoolstockLogo.src,
     accept: ".csv,text/csv",
     how: "Spoolstock is export-only. In the app, open Inventory and tap the CSV export icon, then choose or drop the file here. SpoolSync compares its values against other services, though Spoolstock itself does not accept imports.",
   },
@@ -112,7 +114,7 @@ const fileSources = [
         <input
           id="source-search"
           type="search"
-          placeholder="Find a service..."
+          placeholder="Find a service... (/)"
           aria-label="Find a service"
           class="field-input mt-0 w-full py-1.5 text-sm sm:w-56"
         />
@@ -241,7 +243,7 @@ const fileSources = [
           <input
             id="spool-search-input"
             type="search"
-            placeholder="Filter loaded spools... (/)"
+            placeholder="Filter loaded spools..."
             class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
             aria-label="Filter loaded spools"
           />

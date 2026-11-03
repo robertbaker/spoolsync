@@ -266,3 +266,53 @@ test("a long differences list is windowed and can be searched", async ({ page })
   await page.getByLabel("Filter spools").fill("nothing-matches");
   await expect(page.getByText('No spools matching "nothing-matches".')).toBeVisible();
 });
+
+test("slash focuses the search field and panel choices are remembered", async ({ page }) => {
+  await page.goto("/load");
+  await page.keyboard.press("/");
+  await expect(page.getByLabel("Find a service")).toBeFocused();
+  // Typing a slash into the field is not swallowed.
+  await page.keyboard.type("a/b");
+  await expect(page.getByLabel("Find a service")).toHaveValue("a/b");
+  await page.getByLabel("Find a service").fill("");
+
+  const spoolio = page.locator("#spoolio-panel");
+  await expect(spoolio).not.toHaveJSProperty("open", true);
+  await page.locator("#spoolio-panel > summary").click();
+  await page.locator('[data-panel="spoolman"] > summary').click();
+  await page.reload();
+  await expect(spoolio).toHaveJSProperty("open", true);
+  await expect(page.locator('[data-panel="spoolman"]')).not.toHaveJSProperty("open", true);
+
+  // A panel that opens itself to show a result is not remembered as a choice.
+  await page.locator("#spoolio-panel > summary").click();
+  await page.locator("#spoolkeep-file").setInputFiles({
+    name: "keep.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify([{ id: "k", brand: "B", family: "PLA", newQuantity: 1 }])),
+  });
+  await expect(page.locator("#spoolkeep-panel")).toHaveJSProperty("open", true);
+  await page.reload();
+  await expect(page.locator("#spoolkeep-panel")).not.toHaveJSProperty("open", true);
+  await expect(spoolio).not.toHaveJSProperty("open", true);
+});
+
+test("slash focuses the spool filter on the Sync page", async ({ page }) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "a.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "A" }] })),
+  });
+  await page.locator("#filameter-file").setInputFiles({
+    name: "b.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({ regular: [{ _id: "b", filament: "B", material: "PLA" }] }),
+    ),
+  });
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.goto("/sync");
+  await page.keyboard.press("/");
+  await expect(page.getByLabel("Filter spools")).toBeFocused();
+});
