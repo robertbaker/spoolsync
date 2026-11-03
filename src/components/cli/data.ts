@@ -106,6 +106,11 @@ export const output = [
     desc: "Print a completion script for bash, zsh, or fish. For example: source <(spoolsync --completion bash).",
   },
   {
+    flag: "--watch",
+    copy: "--watch",
+    desc: "Run again whenever an input file changes (handles editors that save by replacing the file). Needs file inputs; refused with --apply and --*-url, so a service is never written on every save. Press Ctrl+C to stop.",
+  },
+  {
     flag: "--summary",
     copy: "--summary",
     desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams) instead of planning changes. Works with a single inventory.",

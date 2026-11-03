@@ -74,6 +74,14 @@ spoolsync --config spoolsync.json
 Tokens and passwords are rejected in config files (they tend to be committed); use the
 `SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables.
 
+Keep a plan up to date while you edit an export. `--watch` re-runs whenever an input file changes,
+reports errors and keeps going, and stops on Ctrl+C. It only watches files, and it refuses `--apply`
+so a service is never written on every save:
+
+```sh
+spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --watch
+```
+
 Enable tab completion for options, source names, and fields:
 
 ```sh

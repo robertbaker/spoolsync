@@ -1,0 +1,101 @@
+import { watch as fsWatch } from "node:fs";
+import path from "node:path";
+
+import type { CliOutput } from "./runtime";
+
+export interface FileWatcher {
+  close(): void;
+}
+
+export interface WatchDependencies {
+  /** Calls `onEvent` with the changed file name (or null when the platform omits it). */
+  watchDirectory(directory: string, onEvent: (filename: string | null) => void): FileWatcher;
+  /** Quiet time after the last change before running again, so one save is one run. */
+  debounceMs: number;
+  now(): Date;
+}
+
+export const defaultWatchDependencies: WatchDependencies = {
+  // Watching the directory, not the file, survives editors that save by replacing the file.
+  watchDirectory: (directory, onEvent) =>
+    fsWatch(directory, { persistent: true }, (_event, filename) =>
+      onEvent(filename === null ? null : String(filename)),
+    ),
+  debounceMs: 250,
+  now: () => new Date(),
+};
+
+export interface WatchRequest {
+  files: readonly string[];
+  /** Runs the workflow once. It reports its own errors and records its exit code on `output`. */
+  run(output: CliOutput): Promise<void>;
+  output: CliOutput;
+  signal: AbortSignal;
+  dependencies?: WatchDependencies;
+}
+
+/**
+ * Runs once, then again whenever one of the files changes, until the signal aborts. Changes that
+ * arrive while a run is in progress cause exactly one more run afterwards. Status lines go to
+ * stderr so machine-readable results on stdout stay clean. The exit code is that of the last run.
+ */
+export async function runWatch(request: WatchRequest): Promise<void> {
+  const { files, run, output, signal, dependencies = defaultWatchDependencies } = request;
+  const targets = new Map<string, Map<string, string>>();
+  for (const file of files) {
+    const absolute = path.resolve(file);
+    const directory = path.dirname(absolute);
+    const names = targets.get(directory) ?? new Map<string, string>();
+    names.set(path.basename(absolute), file);
+    targets.set(directory, names);
+  }
+
+  let exitCode = 0;
+  const runOutput: CliOutput = { ...output, setExitCode: (code) => (exitCode = code) };
+  const changed = new Set<string>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let running: Promise<void> | undefined;
+  let again = false;
+
+  const stamp = () => dependencies.now().toTimeString().slice(0, 8);
+  async function execute(): Promise<void> {
+    do {
+      again = false;
+      const names = [...changed];
+      changed.clear();
+      if (names.length) output.error(`[${stamp()}] ${names.join(", ")} changed; running again`);
+      exitCode = 0;
+      await run(runOutput);
+    } while (again);
+  }
+
+  await execute();
+  output.error(
+    `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C to stop.`,
+  );
+
+  const watchers = [...targets].map(([directory, names]) =>
+    dependencies.watchDirectory(directory, (filename) => {
+      const matched =
+        filename === null ? [...names.values()] : [names.get(filename)].filter(Boolean);
+      if (!matched.length) return;
+      for (const file of matched) changed.add(file as string);
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (running) again = true;
+        else {
+          running = execute().finally(() => (running = undefined));
+        }
+      }, dependencies.debounceMs);
+    }),
+  );
+
+  if (!signal.aborted)
+    await new Promise<void>((resolve) =>
+      signal.addEventListener("abort", () => resolve(), { once: true }),
+    );
+  clearTimeout(timer);
+  for (const watcher of watchers) watcher.close();
+  await running;
+  output.setExitCode(exitCode);
+}

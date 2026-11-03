@@ -547,3 +547,51 @@ test("each loaded service shows its headline numbers", async ({ page }) => {
   await page.locator("#unload-all").click();
   await expect(stats).toBeHidden();
 });
+
+test("remaining filament is charted as ranked bars with a table view", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#loaded-chart")).toBeHidden();
+  // One service is a stat card, not a chart.
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "one.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        version: 1,
+        filaments: [{ id: "a", type: "PLA", brand: "A", weightTotal: 1000, weightRemaining: 500 }],
+      }),
+    ),
+  });
+  await expect(page.locator("#loaded-stats")).toBeVisible();
+  await expect(page.locator("#loaded-chart")).toBeHidden();
+
+  await page.locator("#unload-all").click();
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const chart = page.locator("#loaded-chart");
+  await expect(chart).toBeVisible();
+  await expect(chart).toContainText("Remaining filament by service");
+  await expect(chart).toContainText("5,980 g in total");
+  const bars = chart.getByRole("img");
+  await expect(bars).toHaveCount(2);
+  // Ranked largest first, each with a full accessible description.
+  await expect(bars.first()).toHaveAccessibleName(
+    "FilaMeter: 3,320 g remaining across 4 spools, 56% of the total",
+  );
+  await expect(bars.nth(1)).toHaveAccessibleName(
+    "Spoolio: 2,660 g remaining across 4 spools, 44% of the total",
+  );
+
+  // The tooltip shows on hover and on keyboard focus.
+  await bars.first().hover();
+  await expect(chart.getByText("FilaMeter: 3,320 g (56%)")).toBeVisible();
+  await page.locator("#download-combined").focus();
+  await bars.nth(1).focus();
+  await expect(chart.getByText("Spoolio: 2,660 g (44%)")).toBeVisible();
+
+  await chart.getByText("View as table").click();
+  const rows = chart.locator("tbody tr");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first()).toContainText("FilaMeter");
+  await expect(rows.first()).toContainText("3,320");
+  await expect(rows.first()).toContainText("56%");
+});

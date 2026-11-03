@@ -101,6 +101,23 @@ describe("CLI arguments", () => {
     expect(parseArgs([...files, "--export-csv", "all.csv"]).exportCsv).toBe("all.csv");
   });
 
+  test("--watch needs file inputs and refuses to write to a service", () => {
+    const fileInputs = ["--spoolio", "a.json", "--spoolkeep", "b.json"];
+    expect(parseArgs([...fileInputs, "--watch"]).watch).toBe(true);
+    expect(() => parseArgs([...fileInputs, "--watch", "--spoolman-url", "http://x"])).toThrow(
+      "--*-url",
+    );
+    expect(() =>
+      parseArgs(["--spoolman-url", "http://x", "--empty", "spoolio", "--watch"]),
+    ).toThrow("--*-url");
+    expect(() =>
+      parseArgs([...fileInputs, "--filamentdb-url", "http://x", "--apply", "--watch"]),
+    ).toThrow("--watch cannot be combined with --apply");
+    expect(() => parseArgs(["--empty", "spoolio,filameter", "--watch"])).toThrow(
+      "at least one file input",
+    );
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(

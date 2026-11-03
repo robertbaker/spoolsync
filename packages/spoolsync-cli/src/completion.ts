@@ -44,6 +44,7 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   { flag: "--output-dir", description: "Write updated import files here", kind: "directory" },
   { flag: "--export-csv", description: "Write every loaded spool to one CSV", kind: "file" },
   { flag: "--config", description: "Read default options from a JSON file", kind: "file" },
+  { flag: "--watch", description: "Run again whenever an input file changes", kind: "flag" },
   { flag: "--summary", description: "Print counts instead of planning changes", kind: "flag" },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
   { flag: "--json", description: "Print machine-readable output", kind: "flag" },
@@ -126,11 +127,12 @@ function fish(): string {
     const description = `-d '${quote(spec.description)}'`;
     const arg = {
       file: "-r -F",
-      directory: "-r -a '(__fish_complete_directories)'",
-      "writable-sources": `-r -a '${writable}'`,
-      resolution: `-r -a '${resolutions}'`,
-      shell: `-r -a '${COMPLETION_SHELLS.join(" ")}'`,
-      text: "-r",
+      // -x means the value is required and files are not offered, so only the listed choices show.
+      directory: "-x -a '(__fish_complete_directories)'",
+      "writable-sources": `-x -a '${writable}'`,
+      resolution: `-x -a '${resolutions}'`,
+      shell: `-x -a '${COMPLETION_SHELLS.join(" ")}'`,
+      text: "-x",
       flag: "",
     }[spec.kind];
     return `complete -c spoolsync -l ${name} ${arg} ${description}`.replace(/ {2,}/g, " ");

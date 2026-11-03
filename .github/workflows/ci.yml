@@ -91,7 +91,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run check
+      # The completion tests run the real bash, zsh, and fish; REQUIRE_COMPLETION_SHELLS makes a
+      # missing shell fail here instead of being skipped.
+      - name: Install shells for completion tests
+        run: sudo apt-get update && sudo apt-get install -y zsh fish
       - run: bun run test
+        env:
+          REQUIRE_COMPLETION_SHELLS: "1"
 
       - name: Cancel workflow on failure
         if: failure()

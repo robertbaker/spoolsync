@@ -113,6 +113,19 @@ file, command-line options replace the same option, and secrets are refused. She
 scripts (`completion.ts`) are generated from one option list that a test keeps equal to the parser's
 known options.
 
+Under those cards, `load/loaded-chart.ts` draws remaining filament per service as ranked horizontal
+bars: one measure and one hue, so no legend and no dual axis. It appears only when two or more
+services have weights, because one service is better as its stat card. Each bar has a value at its
+tip, a hover and focus tooltip, an accessible name, and a row in a "View as table" disclosure. The
+mark color is `--chart-mark` (theme.css): the brand orange in light mode and a slightly darker step in
+dark mode, both validated for lightness band, chroma, and 3:1 contrast against the card surface.
+
+`spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
+replace the file are seen. A burst of changes is one run, a change during a run causes one more
+run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is
+never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
+completion tests run the real shells there instead of skipping.
+
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
 primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
 without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the

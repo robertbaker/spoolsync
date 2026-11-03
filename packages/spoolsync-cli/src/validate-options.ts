@@ -25,6 +25,7 @@ export function validateOptions(options: Options): void {
     outputDir,
     exportCsv,
     summary,
+    watch,
   } = options;
   if (spoolmanUrl && inputs.has("spoolman"))
     throw new Error("Use either --spoolman-url or --spoolman <file>, not both.");
@@ -55,6 +56,15 @@ export function validateOptions(options: Options): void {
     (spoolmanUrl ? 1 : 0) +
     (filamentdbUrl ? 1 : 0) +
     (filadexUrl ? 1 : 0);
+  if (watch) {
+    if (apply)
+      throw new Error(
+        "--watch cannot be combined with --apply: writing to a service on every file change is too easy to do by accident. Run --apply once, on its own.",
+      );
+    if (spoolmanUrl || filamentdbUrl || filadexUrl)
+      throw new Error("--watch only watches files, so it cannot be used with --*-url inventories.");
+    if (!inputs.size) throw new Error("--watch needs at least one file input to watch.");
+  }
   const changeOptions = [
     apply && "--apply",
     outputDir && "--output-dir",

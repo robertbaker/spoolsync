@@ -50,6 +50,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--config",
   "--completion",
   "--summary",
+  "--watch",
   "--apply",
   "--json",
   "--spoolman-url",
@@ -90,6 +91,7 @@ export function parseArgs(argv: string[]): Options {
   let filadexUser: string | undefined;
   let apply = false;
   let summary = false;
+  let watch = false;
   let json = false;
   const singletonFlags = new Set<string>();
   for (let i = 0; i < args.length; i++) {
@@ -186,6 +188,8 @@ export function parseArgs(argv: string[]): Options {
       json = true;
     } else if (arg === "--summary") {
       summary = true;
+    } else if (arg === "--watch") {
+      watch = true;
     } else {
       const suggestion = closestOption(arg, KNOWN_OPTIONS);
       throw new Error(`Unknown option: ${arg}${suggestion ? `. Did you mean ${suggestion}?` : ""}`);
@@ -206,6 +210,7 @@ export function parseArgs(argv: string[]): Options {
     ...(filadexUser ? { filadexUser } : {}),
     apply,
     summary,
+    watch,
     ...(outputDir ? { outputDir } : {}),
     ...(exportCsv ? { exportCsv } : {}),
     json,

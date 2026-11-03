@@ -31,6 +31,8 @@
   --secondary-foreground: oklch(0.22 0.02 55);
   --accent-foreground: oklch(0.22 0.02 55);
   --secondary-accent: oklch(0.88 0.02 75);
+  /* Data marks: validated for lightness band, chroma, and 3:1 contrast against the card surface. */
+  --chart-mark: oklch(0.68 0.19 48);
 }
 
 .dark {
@@ -60,6 +62,8 @@
   --secondary-foreground: oklch(0.96 0.01 80);
   --accent-foreground: oklch(0.96 0.01 80);
   --secondary-accent: oklch(0.37 0.018 55);
+  /* A darker step than the brand orange: dark-mode marks must sit inside the 0.48 to 0.67 lightness band. */
+  --chart-mark: oklch(0.66 0.18 50);
 }
 
 .spoolsync-tour-highlight {

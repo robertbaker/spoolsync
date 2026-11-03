@@ -19,5 +19,7 @@ export type Options = {
   exportCsv?: string;
   /** Report counts for what is loaded instead of planning changes. */
   summary: boolean;
+  /** Run again whenever an input file changes. */
+  watch: boolean;
   json: boolean;
 };

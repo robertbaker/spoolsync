@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -311,6 +311,63 @@ test("--completion prints a script for each supported shell and rejects others",
   const unknown = await run("--completion", "powershell");
   expect(unknown.code).not.toBe(0);
   expect(unknown.stderr).toContain('Unknown shell "powershell"');
+});
+
+test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
+  const keep = path.join(directory, "keep.json");
+  await writeFile(keep, JSON.stringify([{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }]));
+  const child = Bun.spawn([runtime, cli, "--spoolkeep", keep, "--summary", "--watch"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  let stdout = "";
+  let stderr = "";
+  const pump = async (stream: ReadableStream<Uint8Array>, append: (text: string) => void) => {
+    const decoder = new TextDecoder();
+    for await (const chunk of stream) append(decoder.decode(chunk, { stream: true }));
+  };
+  void pump(child.stdout, (text) => (stdout += text));
+  void pump(child.stderr, (text) => (stderr += text));
+  const until = async (condition: () => boolean, what: string) => {
+    const deadline = Date.now() + 15_000;
+    while (!condition()) {
+      if (Date.now() > deadline)
+        throw new Error(`Timed out waiting for ${what}.\n${stdout}\n${stderr}`);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+  try {
+    await until(() => stderr.includes("Watching 1 file"), "the first run");
+    expect(stdout).toContain("spoolkeep: 1 spool");
+
+    // Save by replacing the file, as many editors do.
+    const replacement = path.join(directory, "keep.json.tmp");
+    await writeFile(
+      replacement,
+      JSON.stringify([
+        { id: "k1", brand: "A", family: "PLA", newQuantity: 1 },
+        { id: "k2", brand: "B", family: "PETG", newQuantity: 2 },
+      ]),
+    );
+    await rename(replacement, keep);
+    await until(() => stdout.includes("spoolkeep: 3 spools"), "the second run");
+    expect(stderr).toContain("keep.json changed; running again");
+
+    // A broken save is reported and watching continues.
+    await writeFile(keep, "{not json");
+    await until(() => stderr.includes("spoolsync: Could not load spoolkeep"), "the error report");
+    await writeFile(
+      keep,
+      JSON.stringify([{ id: "k9", brand: "Z", family: "PLA", newQuantity: 1 }]),
+    );
+    await until(
+      () => stdout.includes("spoolkeep: 1 spool") && stdout.split("spoolkeep:").length > 3,
+      "recovery",
+    );
+  } finally {
+    child.kill("SIGINT");
+  }
+  expect(await child.exited).toBe(0);
 });
 
 for (const failRefresh of [true, false]) {
