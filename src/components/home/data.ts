@@ -1,10 +1,19 @@
-import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
-import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
+import { SERVICE_COUNT_WORD, SERVICE_VIEWS, joinNames } from "~/lib/services";
+
+const fetchNames = joinNames(
+  SERVICE_VIEWS.filter((service) => service.apiInBrowser).map((service) => service.name),
+  "or",
+);
+const applyNames = joinNames(
+  SERVICE_VIEWS.filter((service) => service.apiWriteInBrowser).map((service) => service.name),
+);
+
+const titleCase = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 
 export const steps = [
   {
     title: "Load",
-    body: "Drop in export files, or fetch from Spoolman, TigerTag, Bambuddy, or FilamentDB.",
+    body: `Drop in export files, or fetch from ${fetchNames}.`,
     href: "/load",
     ready: true,
   },
@@ -22,7 +31,7 @@ export const steps = [
   },
   {
     title: "Apply",
-    body: "Update Spoolman and TigerTag directly, or download updated files for import.",
+    body: `Update ${applyNames} directly, or download updated files for import.`,
     href: "/sync",
     ready: true,
   },
@@ -41,129 +50,7 @@ export const highlights = [
   },
   {
     icon: "material-symbols:inventory-2-outline",
-    title: "Thirteen tools, one table",
-    body: "Compare inventories across all thirteen services. Write updates back via API or import files where a service accepts them.",
-  },
-];
-
-export const services = [
-  {
-    name: "Spoolman / Spoolman-NG",
-    icon: "vendor/spoolman",
-    how: "Direct over your local network, or via export file",
-    read: "API or JSON/CSV file",
-    write: "API or JSON file",
-    actionText: "Load inventories →",
-    actionHref: "/load",
-  },
-  {
-    name: "Spoolstock",
-    icon: "material-symbols:inventory-2-outline",
-    image: spoolstockLogo.src,
-    how: "CSV export from the app's Inventory tab",
-    read: "CSV file",
-    write: "Not supported (read-only)",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "Spoolio",
-    icon: "vendor/spoolio",
-    how: "JSON export from spoolio.net settings",
-    read: "JSON file",
-    write: "JSON file",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "TigerTag",
-    icon: "vendor/tigertag",
-    how: "TigerTag cloud sign-in, or a .ttag / JSON backup",
-    read: "Cloud or file",
-    write: "Cloud or .ttag file",
-    actionText: "Connect cloud or file →",
-    actionHref: "/load",
-  },
-  {
-    name: "3DFilamentProfiles",
-    icon: "vendor/3dfilamentprofiles",
-    how: "My Spools CSV or JSON export",
-    read: "CSV or JSON",
-    write: "CSV or JSON",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "Bambuddy",
-    icon: "material-symbols:inventory-2-outline",
-    image: bambuddyLogo.src,
-    how: "Direct via API key, or inventory CSV export",
-    read: "CSV or API",
-    write: "CSV (new spools)",
-    actionText: "Load inventory →",
-    actionHref: "/load",
-  },
-  {
-    name: "FilaMeter",
-    icon: "vendor/filameter",
-    how: "JSON backup or filament CSV from Settings",
-    read: "JSON backup or CSV",
-    write: "JSON or CSV",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "Filadex",
-    icon: "vendor/filadex",
-    how: "JSON or CSV from the export menu",
-    read: "JSON or CSV",
-    write: "JSON or CSV",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "FilamentDB",
-    icon: "material-symbols:database-outline",
-    how: "Spools JSON from /api/spools",
-    read: "JSON",
-    write: "JSON",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "SpoolMaster",
-    icon: "material-symbols:table-chart-outline",
-    how: "Excel (.xlsx) export of the Stock sheet",
-    read: "Excel file",
-    write: "Not supported (read-only)",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "Spool Hoarder",
-    icon: "material-symbols:inventory-2-outline",
-    how: "Inventory CSV or HueForge library CSV",
-    read: "CSV file",
-    write: "Not supported (read-only)",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "Spool",
-    icon: "material-symbols:backup-outline",
-    how: "JSON backup from the Mac and iOS app",
-    read: "JSON file",
-    write: "Not supported (read-only)",
-    actionText: "Load export file →",
-    actionHref: "/load",
-  },
-  {
-    name: "SpoolKeep",
-    icon: "material-symbols:backup-outline",
-    how: "JSON backup from the Mac and iOS app",
-    read: "JSON file",
-    write: "Not supported (read-only)",
-    actionText: "Load export file →",
-    actionHref: "/load",
+    title: `${titleCase(SERVICE_COUNT_WORD)} tools, one table`,
+    body: `Compare inventories across all ${SERVICE_COUNT_WORD} services. Write updates back via API or import files where a service accepts them.`,
   },
 ];

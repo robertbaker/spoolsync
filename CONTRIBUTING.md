@@ -30,7 +30,12 @@ bun run check:packages
 bun run lint
 bun run test
 bun run test:cli
+bun run docs:services:check
 ```
+
+The supported-tools list lives in one registry (`packages/spoolsync-core/src/core/services.ts`, plus web
+text in `src/lib/services.ts`). After editing it, run `bun run docs:services` to refresh the generated
+regions in the README files.
 
 For changes to browser flows, run the end-to-end suite as well:
 

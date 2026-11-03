@@ -43,7 +43,9 @@ const fitsAll = items.length <= MAX_VISIBLE;
 const primaryItems = fitsAll ? items : items.slice(0, MAX_VISIBLE - 1);
 const secondaryItems = fitsAll ? [] : items.slice(MAX_VISIBLE - 1);
 const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
-const isCurrent = (href: string) => (href.replace(/\/$/, "") || "/") === currentPath;
+const normalize = (href: string) => href.replace(/\/$/, "") || "/";
+const isCurrent = (item: NavLink) =>
+  [item.href, ...(item.matchPaths ?? [])].some((href) => normalize(href) === currentPath);
 const hasMore = secondaryItems.length > 0;
 const moreButtonColors = getMobileMenuColorClasses(accentColor);
 
@@ -74,7 +76,7 @@ const solidClasses = "bg-background border-border";
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
               aria-label={item.ariaLabel}
-              aria-current={isCurrent(item.href) ? "page" : undefined}
+              aria-current={isCurrent(item) ? "page" : undefined}
             >
               {item.image ? (
                 <OptimizedImage src={item.image} sizes="24px" class="size-6 rounded-full object-cover transition-transform group-active:scale-90" alt={item.imageAlt ?? item.text} />

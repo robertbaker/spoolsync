@@ -5,7 +5,7 @@ import { Icon } from "astro-icon/components";
 import type { NavLink } from "../../../types/index.ts";
 import { getMobileMenuColorClasses, getNavHoverColors } from "../../../lib/colors.ts";
 import type { NavActiveMatch } from "./navActive";
-import { isLinkActive } from "./navActive";
+import { isLinkActive, isNavItemActive } from "./navActive";
 import { withPalette, type PaletteProps } from "../../../lib/palette.ts";
 
 /**
@@ -95,7 +95,7 @@ function getNavItemClasses(item: NavLink): string[] {
             <summary
               class:list={[
                 ...getNavItemClasses(item),
-                { "bg-muted text-primary-text": isLinkActive(item.href, currentPath, activeMatch) },
+                { "bg-muted text-primary-text": isNavItemActive(item, currentPath, activeMatch) },
                 "flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2",
               ]}
               aria-label={item.ariaLabel}
@@ -140,14 +140,14 @@ function getNavItemClasses(item: NavLink): string[] {
             href={item.href}
             class:list={[
               ...getNavItemClasses(item),
-              { "bg-muted text-primary-text": isLinkActive(item.href, currentPath, activeMatch) },
+              { "bg-muted text-primary-text": isNavItemActive(item, currentPath, activeMatch) },
               "flex items-center gap-2 rounded-md px-3 py-2",
             ]}
             {...(item.external
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
             aria-label={item.ariaLabel}
-            aria-current={isLinkActive(item.href, currentPath, activeMatch) ? "page" : undefined}
+            aria-current={isNavItemActive(item, currentPath, activeMatch) ? "page" : undefined}
           >
             {item.icon && <Icon name={item.icon} class="size-5" aria-hidden="true" />}
             {item.text}

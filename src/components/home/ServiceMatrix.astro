@@ -1,0 +1,150 @@
+---
+/**
+ * "Supported tools" matrix. Every row comes from the services registry. Wide containers show a
+ * table-like grid with column headings; narrow ones show each tool as a labelled card. Search and
+ * filter chips are wired by `scripts/service-matrix.ts`; without scripting the full list still shows.
+ */
+import { Icon } from "astro-icon/components";
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
+import ServiceMark from "~/components/ServiceMark.astro";
+import { MATRIX_FILTERS, SERVICE_COUNT, SERVICE_COUNT_WORD, SERVICE_VIEWS } from "~/lib/services";
+
+const apiLabel = (service: (typeof SERVICE_VIEWS)[number]) =>
+  service.apiInBrowser ? "Browser and CLI" : service.apiCliOnly ? "CLI only" : "None";
+---
+
+<section id="supported-tools" class="mt-20 scroll-mt-20" aria-labelledby="supported-tools-heading">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="max-w-2xl">
+      <p class="text-xs font-semibold uppercase tracking-wide text-primary-text">Supported tools</p>
+      <h2 id="supported-tools-heading" class="mt-1 text-3xl font-bold tracking-tight">
+        {SERVICE_COUNT_WORD.charAt(0).toUpperCase() + SERVICE_COUNT_WORD.slice(1)} tools, one table
+      </h2>
+      <p class="mt-2 text-muted-foreground">
+        What SpoolSync reads from and writes back to. Read-only tools still supply values that update the others.
+      </p>
+    </div>
+  </div>
+
+  <search class="mt-6 flex flex-wrap items-center gap-3" aria-label="Filter supported tools">
+    <label class="sr-only" for="matrix-search">Search supported tools</label>
+    <input
+      id="matrix-search"
+      type="search"
+      placeholder="Search tools, formats, or platforms"
+      autocomplete="off"
+      class="field-input mt-0 min-h-11 w-full py-1.5 text-sm sm:w-72"
+      data-matrix-search
+    />
+    <div class="flex flex-wrap gap-1.5" role="group" aria-label="Capability filter">
+      {
+        MATRIX_FILTERS.map((filter) => (
+          <button
+            type="button"
+            data-matrix-filter={filter.value}
+            aria-pressed={filter.value === "all"}
+            class="min-h-11 rounded-full border px-3.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary-text"
+          >
+            {filter.label}
+          </button>
+        ))
+      }
+    </div>
+    <p id="matrix-status" class="w-full text-xs text-muted-foreground" role="status" aria-live="polite">
+      Showing all {SERVICE_COUNT} tools.
+    </p>
+  </search>
+
+  <div class="service-matrix mt-4" data-matrix>
+    <div class="service-matrix__head" aria-hidden="true">
+      <span>Tool</span>
+      <span>Platform</span>
+      <span>Read</span>
+      <span>Write back</span>
+      <span>API</span>
+      <span></span>
+    </div>
+    <ul class="grid gap-3" id="matrix-list">
+      {
+        SERVICE_VIEWS.map((service) => (
+          <li class="service-matrix__row modern-card" data-matrix-row={service.id}>
+            <div class="service-matrix__tool">
+              <span class="grid size-10 shrink-0 place-items-center rounded-lg border bg-background/60">
+                <ServiceMark id={service.id} class="size-6" />
+              </span>
+              <div class="min-w-0">
+                <h3 class="text-base font-bold leading-tight">
+                  {service.vendorUrl ? (
+                    <a
+                      href={service.vendorUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      {service.fullName}
+                      <span class="sr-only"> (opens the tool's site)</span>
+                    </a>
+                  ) : (
+                    service.fullName
+                  )}
+                </h3>
+                <p class="text-xs text-muted-foreground">{service.summary}</p>
+              </div>
+            </div>
+            <dl class="service-matrix__cells">
+              <div>
+                <dt>Platform</dt>
+                <dd class="flex flex-wrap gap-1">
+                  {service.platformLabels.map((label) => (
+                    <Badge color="neutral" style="soft" size="sm">{label}</Badge>
+                  ))}
+                </dd>
+              </div>
+              <div>
+                <dt>Read</dt>
+                <dd>
+                  <Badge color="info" style="soft" size="sm">{service.read}</Badge>
+                </dd>
+              </div>
+              <div>
+                <dt>Write back</dt>
+                <dd>
+                  <Badge color={service.canWrite ? "success" : "neutral"} style="soft" size="sm">{service.write}</Badge>
+                  {service.canWrite && service.writeNote && (
+                    <span class="mt-1 block text-xs text-muted-foreground">{service.writeNote}</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>API</dt>
+                <dd>
+                  <Badge color={service.hasApi ? "primary" : "neutral"} style="soft" size="sm">{apiLabel(service)}</Badge>
+                </dd>
+              </div>
+            </dl>
+            <a
+              href={`/load?panel=${service.id}`}
+              class="service-matrix__action inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Load {service.name}
+              <Icon name="material-symbols:arrow-forward-rounded" class="size-4" aria-hidden="true" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <p
+      id="matrix-empty"
+      class="mt-4 rounded-lg border border-dashed p-6 text-center text-muted-foreground"
+      hidden
+    >
+      No tool matches. Clear the search or choose another filter.
+    </p>
+  </div>
+</section>
+
+<script>
+  import { wireServiceMatrix } from "~/scripts/service-matrix";
+
+  wireServiceMatrix();
+</script>

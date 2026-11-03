@@ -1,56 +1,49 @@
 ---
-/** Load → Sync progress strip shown at the top of the two app pages. */
+/**
+ * The inventory workflow stepper: 1 Load, 2 Review, 3 Apply. Shared by the Load and Sync pages so
+ * the two read as one flow. Server-rendered for the empty state; `scripts/workflow-steps.ts` then
+ * fills in progress from the inventories loaded in this tab. Every step is a real link, so nothing
+ * depends on scripting.
+ */
 import { Icon } from "astro-icon/components";
+import { WORKFLOW_STEPS, type WorkflowStepId } from "~/config/site";
 
 interface Props {
-  current: "load" | "sync";
+  /** The page this stepper is on. The Sync page highlights Review (or Apply when linked with #tour-apply). */
+  current: WorkflowStepId | "sync";
   class?: string;
 }
 
-const { current, class: className } = Astro.props;
-
-const steps = [
-  { id: "load", label: "Load", href: "/load", icon: "material-symbols:upload-file-outline-rounded" },
-  { id: "sync", label: "Sync", href: "/sync", icon: "material-symbols:sync" },
-] as const;
-const currentIndex = steps.findIndex((step) => step.id === current);
+const { current: currentProp, class: className } = Astro.props;
+const page: WorkflowStepId = currentProp === "sync" ? "review" : currentProp;
 ---
 
-<nav aria-label="Progress" class={className}>
-  <ol class="flex items-center gap-0.5 text-sm sm:gap-2">
+<nav aria-label="Inventory workflow" class:list={["workflow-steps", className]} data-workflow-steps data-page={page}>
+  <ol class="workflow-steps__list">
     {
-      steps.map((step, index) => (
-        <>
-          <li>
-            <a
-              href={step.href}
-              aria-current={step.id === current ? "step" : undefined}
-              class:list={[
-                "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 font-medium transition-colors sm:px-3",
-                step.id === current
-                  ? "border-primary/50 bg-primary/15 text-primary-text"
-                  : index < currentIndex
-                    ? "border-transparent text-foreground hover:bg-muted"
-                    : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-              ]}
-            >
-              {index < currentIndex ? (
-                <Icon name="material-symbols:check-circle-rounded" class="size-4 text-success" aria-hidden="true" />
-              ) : (
-                <Icon name={step.icon} class="size-4" aria-hidden="true" />
-              )}
-              <span>
-                <span class="hidden text-muted-foreground sm:inline">{index + 1}.</span> {step.label}
+      WORKFLOW_STEPS.map((step, index) => (
+        <li data-step={step.id} data-state={step.id === page ? "current" : "todo"} class="workflow-steps__item">
+          <a href={step.href} aria-current={step.id === page ? "step" : undefined} class="workflow-steps__link">
+            <span class="workflow-steps__badge" aria-hidden="true">
+              <span class="workflow-steps__number">{index + 1}</span>
+              <Icon name="material-symbols:check-rounded" class="workflow-steps__check size-4" />
+            </span>
+            <span class="workflow-steps__text">
+              <span class="workflow-steps__label">{step.label}</span>
+              <span class="workflow-steps__meta" data-step-meta>
+                {step.hint}
               </span>
-            </a>
-          </li>
-          {index < steps.length - 1 && (
-            <li aria-hidden="true" class="text-muted-foreground">
-              <Icon name="material-symbols:chevron-right-rounded" class="size-5" />
-            </li>
-          )}
-        </>
+            </span>
+          </a>
+        </li>
       ))
     }
   </ol>
+  <span class="sr-only" role="status" aria-live="polite" data-workflow-live></span>
 </nav>
+
+<script>
+  import { wireWorkflowSteps } from "~/scripts/workflow-steps";
+
+  wireWorkflowSteps();
+</script>

@@ -4,6 +4,8 @@
  * came from.
  */
 
+import { SERVICES } from "./services";
+
 export const SOURCE_IDS = [
   "spoolman",
   "spoolstock",
@@ -21,29 +23,17 @@ export const SOURCE_IDS = [
 ] as const;
 export type SourceId = (typeof SOURCE_IDS)[number];
 
-/** Ways a service can exchange inventory with SpoolSync. */
-export const SERVICE_CAPABILITIES = {
-  spoolman: ["file-import", "file-export", "api-import", "api-export"],
-  spoolstock: ["file-export"],
-  spoolio: ["file-import", "file-export"],
-  tigertag: ["file-import", "file-export", "api-import", "api-export"],
-  threeDfp: ["file-import", "file-export"],
-  bambuddy: ["file-import", "file-export", "api-export"],
-  filameter: ["file-import", "file-export"],
-  filadex: ["file-import", "file-export", "api-import", "api-export"],
-  filamentdb: ["file-import", "file-export", "api-import", "api-export"],
-  spoolmaster: ["file-export"],
-  spoolhoarder: ["file-export"],
-  spoolapp: ["file-export"],
-  spoolkeep: ["file-export"],
-} as const satisfies Record<SourceId, readonly ServiceCapability[]>;
-
 export type ServiceCapability = "file-import" | "file-export" | "api-import" | "api-export";
+
+/** Ways each service can exchange inventory with SpoolSync, taken from the services registry. */
+export const SERVICE_CAPABILITIES = Object.fromEntries(
+  SOURCE_IDS.map((source) => [source, SERVICES[source].capabilities]),
+) as { [Source in SourceId]: (typeof SERVICES)[Source]["capabilities"] };
 
 /** A service can be a write target through either an import file or its API. */
 export type WritableSourceId = {
   [Source in SourceId]: Extract<
-    (typeof SERVICE_CAPABILITIES)[Source][number],
+    (typeof SERVICES)[Source]["capabilities"][number],
     "file-import" | "api-import"
   > extends never
     ? never
@@ -60,21 +50,10 @@ export function isWritableSource(source: SourceId): source is WritableSourceId {
 
 export const WRITABLE_SOURCE_IDS: readonly WritableSourceId[] = SOURCE_IDS.filter(isWritableSource);
 
-export const SOURCE_LABELS: Record<SourceId, string> = {
-  spoolman: "Spoolman",
-  spoolstock: "Spoolstock",
-  spoolio: "Spoolio",
-  tigertag: "TigerTag",
-  threeDfp: "3DFilamentProfiles",
-  bambuddy: "Bambuddy",
-  filameter: "FilaMeter",
-  filadex: "Filadex",
-  filamentdb: "FilamentDB",
-  spoolmaster: "SpoolMaster",
-  spoolhoarder: "Spool Hoarder",
-  spoolapp: "Spool",
-  spoolkeep: "SpoolKeep",
-};
+/** Display names, taken from the services registry. */
+export const SOURCE_LABELS = Object.fromEntries(
+  SOURCE_IDS.map((source) => [source, SERVICES[source].name]),
+) as Record<SourceId, string>;
 
 /** Sources whose export files are binary (ZIP-based) and must be read as bytes, not text. */
 export const BINARY_SOURCE_IDS: readonly SourceId[] = ["spoolmaster"];

@@ -6,7 +6,7 @@ export const DEFAULT_SOCIAL_IMAGE_ALT = "SpoolSync filament inventory sync" as c
 
 export const NOINDEX_ROBOTS = "noindex, follow, noarchive" as const;
 
-const EXACT_NOINDEX_PATHS = new Set(["/404"]);
+const EXACT_NOINDEX_PATHS = new Set(["/404", "/inventory"]);
 
 export function normalizeSeoPath(pathname: string): string {
   return pathname.replace(/\/+$/, "") || "/";

@@ -58,6 +58,57 @@ browser adapters and resolves current credentials for each write attempt. Keep s
 connection and token handling there, and keep the controller's target checks, progress, logs,
 and inventory refresh handling shared across services.
 
+## Supported tools registry
+
+`packages/spoolsync-core/src/core/services.ts` is the single source of truth for which tools exist and
+what they can do. `SERVICES` is `satisfies Record<SourceId, ServiceInfo>`, so a `SourceId` without an
+entry (or an entry for an unknown id) fails to compile. Each entry holds the display names, vendor URL,
+platforms, capabilities (`file-import`, `file-export`, `api-import`, `api-export`, from the service's
+point of view), read and write file formats, which clients ship an API integration (`browser`, `cli`),
+and the CLI options. `core/model.ts` derives `SERVICE_CAPABILITIES`, `WritableSourceId`,
+`WRITABLE_SOURCE_IDS`, and `SOURCE_LABELS` from it; `SOURCE_IDS` stays the canonical id list and a test
+keeps both equal. Helpers (`readSummary`, `writeSummary`, `countWord`, `SERVICE_COUNT`) produce the text
+other layers show.
+
+`src/lib/services.ts` adds the web-only half, again keyed by `SourceId`: icon, the "where do I find the
+export" instructions, and card summaries. It builds `SERVICE_VIEWS`, the derived records used by the home
+page's filterable "Supported tools" matrix, the Load page panels (including each file input's `accept`
+attribute, derived from the read formats), the Credits page, the setup guide (`source-guides.ts`), the
+site description, the tour copy, and the footer disclaimer. Raster logos are attached in
+`service-logos.ts`, which only works inside the Astro build. Counts such as "thirteen tools" are
+computed, never typed.
+
+Markdown cannot import, so `tools/sync-services-docs.ts` rewrites marked regions in `README.md` and the
+package READMEs: `<!-- services:start -->...<!-- services:end -->` holds the capability table and
+`<!-- services:NAME:start -->` regions hold named lists, counts, and the CLI option and write tables.
+Run `bun run docs:services` after editing the registry; `bun run docs:services:check` fails when a region
+is stale. A unit test compares the registry with `SOURCE_IDS` and the adapter capabilities.
+
+When adding an adapter: add its id to `SOURCE_IDS`, its entry to `SERVICES` and `SERVICE_WEB`, its logo
+credit if it ships one, then run `docs:services`. Verify the read/write and API claims against the
+adapter (`loadX`, `exportX`, client/apply modules) so the registry stays accurate.
+
+## Inventory workflow and navigation
+
+Load and Sync are one workflow, so the header, bottom bar, and command palette have a single
+"Inventory" entry (`NAV_LINKS` in `src/config/site.ts`). It links to `/load` and carries
+`matchPaths` (`/load`, `/sync`, `/inventory`), which `isNavItemActive` (starwind `NavMenu`) and the
+bottom bar use so it is highlighted on both pages. The stepper (`components/FlowSteps.astro`,
+`scripts/workflow-steps.ts`) renders "1 Load, 2 Review, 3 Apply" on both pages. Its links are always
+real anchors; script only adds progress. It counts inventories in session storage, listens for
+`spoolsync:inventories-changed` (dispatched by `LoadState.store` and `unload`) and the URL hash
+(`#tour-apply` marks Apply on the Sync page), and shows done/current/todo with a short status line.
+The Load page's sticky bar ("Continue to review") remains the way forward once two services are loaded.
+`/inventory` is a small no-index route that sends people to Review when two or more inventories are
+loaded and to Load otherwise (a meta refresh covers scripting being off). Both `/load` and `/sync` keep
+working, and `/connections` still redirects to `/load`.
+
+`src/styles/navigation.css` holds the platform features for this area: cross-document view transitions
+(`@view-transition`, only under `prefers-reduced-motion: no-preference`, with the header and bottom bar
+given stable `view-transition-name`s so they do not cross-fade), container queries for the stepper and
+matrix, dynamic viewport units, safe-area insets for the fixed bottom bar, 44px targets, visible focus
+rings, and `content-visibility: auto` on matrix rows.
+
 ## Load page
 
 The Load page leads with one multi-file drop zone. `detectInventorySources` (core `workflow/detect.ts`)
@@ -73,9 +124,9 @@ in step with what is loaded; it enables once two services are loaded.
 
 On the Sync page, a bulk answer for the pending possible matches (`SyncSession.decideAll`) saves
 decisions once and needs a second click, because match decisions cannot be undone from the page.
-Suggestions are still never merged without an explicit answer. The app is two pages, Load and Sync;
-the former Connections page was folded into the Load panels, and `/connections` redirects to `/load`
-(`public/_redirects` and Astro `redirects`).
+Suggestions are still never merged without an explicit answer. The app is two pages, Load and Sync,
+presented as one "Inventory" workflow (see below); the former Connections page was folded into the
+Load panels, and `/connections` redirects to `/load` (`public/_redirects` and Astro `redirects`).
 
 The Spoolman and TigerTag connection forms are shared Astro components
 (`src/components/connections/`) used inside the Load panels. Their wiring

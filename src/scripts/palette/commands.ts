@@ -1,6 +1,7 @@
 import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 
 import { navLinks } from "~/config/navigation";
+import { WORKFLOW_STEPS } from "~/config/site";
 import { readLoadResult } from "~/lib/browser/storage/inventories";
 import { readDisplaySettings, updateDisplaySettings } from "~/lib/units";
 
@@ -66,7 +67,18 @@ export function handleLandingParams(): void {
 }
 
 function pageItems(): PaletteItem[] {
-  const links = [...navLinks, { href: "/credits", label: "Credits", text: "Credits" }];
+  // The Inventory entry covers two pages, so the palette lists each step of it instead.
+  const links = [
+    ...navLinks.flatMap((link) =>
+      link.matchPaths
+        ? WORKFLOW_STEPS.filter((step) => step.id !== "apply").map((step) => ({
+            href: step.href,
+            label: step.id === "load" ? "Load" : "Review and apply",
+          }))
+        : [link],
+    ),
+    { href: "/credits", label: "Credits" },
+  ];
   return links.map((link) => ({
     id: `page:${link.href}`,
     group: "Pages" as const,

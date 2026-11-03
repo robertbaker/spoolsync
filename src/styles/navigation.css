@@ -1,0 +1,311 @@
+/*
+ * Navigation, the Load/Sync workflow stepper, and the home page's tool matrix.
+ *
+ * Modern platform features are used only where they degrade cleanly: cross-document view
+ * transitions are opt-in for people who have not asked for reduced motion, container queries
+ * size the matrix by its own width, and dynamic viewport units and safe-area insets keep the fixed
+ * mobile bar clear of browser toolbars and device notches.
+ */
+
+/* Cross-document view transitions (Chromium, Safari 18.2+): a short fade between pages. */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  /* The header and bottom bar stay put instead of cross-fading with the page. */
+  #main-header,
+  header[data-site-header-styled] {
+    view-transition-name: site-header;
+  }
+
+  div:has(> nav[aria-label="Primary"]) {
+    view-transition-name: site-bottom-nav;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 140ms;
+    animation-timing-function: ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Dynamic viewport height so mobile browser toolbars do not leave a gap or a scroll. */
+@supports (min-height: 100dvh) {
+  body,
+  .site-body,
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
+/* Header links reach the 44px minimum target size and show a clear keyboard focus ring. */
+:is(#main-header, header[data-site-header-styled]) nav a,
+:is(#main-header, header[data-site-header-styled]) nav summary,
+nav[aria-label="Primary"] a {
+  min-block-size: 44px;
+}
+
+:is(#main-header, header[data-site-header-styled]) nav a:focus-visible,
+nav[aria-label="Primary"] a:focus-visible,
+.workflow-steps__link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* The fixed bottom bar keeps clear of rounded corners and the home indicator. */
+@media (max-width: 1023.98px) {
+  div:has(> nav[aria-label="Primary"]) {
+    inset-inline: max(0.75rem, env(safe-area-inset-left, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  #main-content {
+    padding-block-end: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Workflow stepper: 1 Load, 2 Review, 3 Apply. */
+.workflow-steps {
+  container-type: inline-size;
+  container-name: steps;
+}
+
+.workflow-steps__list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workflow-steps__link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-block-size: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+
+.workflow-steps__link:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.workflow-steps__badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.workflow-steps__check {
+  display: none;
+}
+
+.workflow-steps__text {
+  display: grid;
+  min-inline-size: 0;
+  line-height: 1.2;
+}
+
+.workflow-steps__label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.workflow-steps__meta {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-steps__item[data-state="current"] .workflow-steps__link {
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  color: var(--foreground);
+}
+
+.workflow-steps__item[data-state="current"] .workflow-steps__badge {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.workflow-steps__item[data-state="done"] .workflow-steps__link {
+  color: var(--foreground);
+}
+
+.workflow-steps__item[data-state="done"] .workflow-steps__badge {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--background);
+}
+
+.workflow-steps__item[data-state="done"] .workflow-steps__number {
+  display: none;
+}
+
+.workflow-steps__item[data-state="done"] .workflow-steps__check {
+  display: block;
+}
+
+@container steps (min-width: 34rem) {
+  .workflow-steps__meta {
+    display: block;
+  }
+}
+
+/* On very narrow screens only the number and label show, so three steps fit in one row. */
+@container steps (max-width: 20rem) {
+  .workflow-steps__link {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-inline: 0.375rem;
+    text-align: center;
+  }
+}
+
+@media (forced-colors: active) {
+  .workflow-steps__item[data-state="current"] .workflow-steps__link {
+    border-color: Highlight;
+  }
+
+  .workflow-steps__badge {
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+@media print {
+  .workflow-steps {
+    display: none;
+  }
+}
+
+/* Supported tools matrix. Narrow containers show cards; wide ones show a table-like grid. */
+.service-matrix {
+  container-type: inline-size;
+  container-name: matrix;
+}
+
+.service-matrix__head {
+  display: none;
+}
+
+.service-matrix__row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 11rem;
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+}
+
+.service-matrix__row[hidden] {
+  display: none;
+}
+
+.service-matrix__tool {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-inline-size: 0;
+}
+
+.service-matrix__cells {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.service-matrix__cells dt {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.service-matrix__cells dd {
+  margin: 0.25rem 0 0;
+}
+
+@container matrix (min-width: 60rem) {
+  .service-matrix__head,
+  .service-matrix__row {
+    grid-template-columns: minmax(14rem, 2fr) 1.2fr 1.1fr 1.4fr 1fr auto;
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .service-matrix__head {
+    display: grid;
+    padding-inline: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* The cells line up with the heading row through a subgrid of the row's own columns. */
+  .service-matrix__cells {
+    grid-column: 2 / 6;
+    grid-template-columns: subgrid;
+    align-items: start;
+  }
+
+  /* Column labels live in the heading row but stay available to assistive technology. */
+  .service-matrix__cells dt {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .service-matrix__cells dd {
+    margin: 0;
+  }
+}
+
+@media print {
+  .service-matrix__row {
+    break-inside: avoid;
+    content-visibility: visible;
+  }
+}

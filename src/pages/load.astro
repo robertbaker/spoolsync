@@ -10,83 +10,35 @@ import SourcePanel from "~/components/SourcePanel.astro";
 import SpoolmanConnectionForm from "~/components/connections/SpoolmanConnectionForm.astro";
 import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro";
 import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
-import { isWritableSource, type SourceId } from "@spoolsync/core/core/model";
-import { SOURCE_GUIDES } from "~/lib/source-guides";
-import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
-import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
+import { SERVICE_COUNT_WORD, SERVICE_VIEWS, acceptAllFiles, extensionList, serviceView } from "~/lib/services";
+import { serviceLogoSrc } from "~/lib/service-logos";
 
-const fileSources = [
-  {
-    id: "spoolstock",
-    label: "Spoolstock",
-    kind: SOURCE_GUIDES.spoolstock.kind,
-    icon: "material-symbols:inventory-2-outline",
-    image: spoolstockLogo.src,
-    accept: ".csv,text/csv",
-    how: SOURCE_GUIDES.spoolstock.how,
-  },
-  {
-    id: "spoolio",
-    label: "Spoolio",
-    kind: SOURCE_GUIDES.spoolio.kind,
-    icon: "vendor/spoolio",
-    accept: ".json,application/json",
-    how: SOURCE_GUIDES.spoolio.how,
-  },
-  {
-    id: "tigertag",
-    label: "TigerTag",
-    kind: SOURCE_GUIDES.tigertag.kind,
-    icon: "vendor/tigertag",
-    accept: ".ttag,.json,application/json",
-    how: SOURCE_GUIDES.tigertag.how,
-    cloud: true,
-  },
-  { id: "threeDfp", label: "3DFilamentProfiles", kind: SOURCE_GUIDES.threeDfp.kind, icon: "vendor/3dfilamentprofiles", accept: ".csv,.json,text/csv,application/json", how: SOURCE_GUIDES.threeDfp.how },
-  { id: "bambuddy", label: "Bambuddy", kind: SOURCE_GUIDES.bambuddy.kind, icon: "material-symbols:inventory-2-outline", image: bambuddyLogo.src, accept: ".csv,.json,text/csv,application/json", how: SOURCE_GUIDES.bambuddy.how, api: true },
-  { id: "filameter", label: "FilaMeter", kind: SOURCE_GUIDES.filameter.kind, icon: "vendor/filameter", accept: ".json,.csv,application/json,text/csv", how: SOURCE_GUIDES.filameter.how },
-  { id: "filadex", label: "Filadex", kind: SOURCE_GUIDES.filadex.kind, icon: "vendor/filadex", accept: ".json,.csv,application/json,text/csv", how: SOURCE_GUIDES.filadex.how },
-  { id: "filamentdb", label: "FilamentDB", kind: SOURCE_GUIDES.filamentdb.kind, icon: "material-symbols:database-outline", accept: ".json,application/json", how: SOURCE_GUIDES.filamentdb.how },
-  {
-    id: "spoolmaster",
-    label: "SpoolMaster",
-    kind: SOURCE_GUIDES.spoolmaster.kind,
-    icon: "material-symbols:table-chart-outline",
-    accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    how: SOURCE_GUIDES.spoolmaster.how,
-  },
-  {
-    id: "spoolhoarder",
-    label: "Spool Hoarder",
-    kind: SOURCE_GUIDES.spoolhoarder.kind,
-    icon: "material-symbols:inventory-2-outline",
-    accept: ".csv,text/csv",
-    how: SOURCE_GUIDES.spoolhoarder.how,
-  },
-  {
-    id: "spoolapp",
-    label: "Spool",
-    kind: SOURCE_GUIDES.spoolapp.kind,
-    icon: "material-symbols:backup-outline",
-    accept: ".json,application/json",
-    how: SOURCE_GUIDES.spoolapp.how,
-  },
-  {
-    id: "spoolkeep",
-    label: "SpoolKeep",
-    kind: SOURCE_GUIDES.spoolkeep.kind,
-    icon: "material-symbols:backup-outline",
-    accept: ".json,application/json",
-    how: SOURCE_GUIDES.spoolkeep.how,
-  },
-];
+// Every panel except Spoolman (which has its own settings block) comes from the services registry.
+const fileSources = SERVICE_VIEWS.filter((service) => service.id !== "spoolman").map((service) => ({
+  id: service.id,
+  label: service.name,
+  kind: service.kind,
+  icon: service.icon,
+  image: serviceLogoSrc(service.id),
+  accept: service.accept,
+  how: service.how,
+  cloud: service.id === "tigertag",
+  api: service.id === "bambuddy",
+  readonly: !service.canWrite,
+  hasApiBadge: service.apiInBrowser,
+}));
+const dropAccept = acceptAllFiles();
+const spoolman = serviceView("spoolman");
 ---
 
-<BaseLayout title={`Load — ${SITE_TITLE}`} description="Load spool inventories from each service.">
+<BaseLayout
+  title={`Load — ${SITE_TITLE}`}
+  description={`Step 1 of 3: load spool inventories from any of ${SERVICE_COUNT_WORD} supported tools, then review and apply changes.`}
+>
   <Container class="py-10 sm:py-14">
     <FlowSteps current="load" class="mb-6" />
     <PageHeader
-      eyebrow="Step 1"
+      eyebrow="Step 1 of 3"
       title="Load inventories"
       description="Drop your export files or open a service to fetch from it. Nothing is modified yet, and loaded inventories clear when you close this tab."
     />
@@ -94,14 +46,14 @@ const fileSources = [
     <section id="tour-drop" class="app-card mt-8" aria-labelledby="smart-heading">
       <h2 id="smart-heading" class="text-xl font-bold">Drop your exports</h2>
       <p class="mt-1 text-sm text-muted-foreground">
-        Drop files from any supported service. SpoolSync works out which service each one belongs to; if a file could be
+        Drop files from any of the {SERVICE_COUNT_WORD} supported services. SpoolSync works out which service each one belongs to; if a file could be
         from several, it asks.
       </p>
       <label id="smart-drop" for="smart-file" class="dropzone mt-4">
         <Icon name="material-symbols:upload-file-outline-rounded" class="size-8 text-primary" aria-hidden="true" />
         <span class="font-medium text-foreground">Choose export files</span>
-        <span>or drop several at once (.json, .csv, .xlsx, .ttag)</span>
-        <input id="smart-file" type="file" multiple accept=".json,.csv,.xlsx,.ttag,application/json,text/csv" class="sr-only" />
+        <span>or drop several at once ({extensionList()})</span>
+        <input id="smart-file" type="file" multiple accept={dropAccept} class="sr-only" />
       </label>
       <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
       <p id="sample-prompt" class="mt-3 text-sm text-muted-foreground">
@@ -152,7 +104,7 @@ const fileSources = [
     </div>
 
     <div class="mt-4 grid items-start gap-4 md:grid-cols-2">
-      <SourcePanel id="spoolman" tourId="tour-load" label="Spoolman" kind="API, JSON or CSV" icon="vendor/spoolman" api open>
+      <SourcePanel id="spoolman" tourId="tour-load" label={spoolman.name} kind={spoolman.kind} icon={spoolman.icon} api open>
         <p id="spoolman-target" class="mb-3 break-all text-sm text-muted-foreground empty:hidden"></p>
         <div class="flex flex-wrap gap-3">
           <Button type="button" color="primary" id="spoolman-load">Fetch spools</Button>
@@ -178,7 +130,7 @@ const fileSources = [
           <Icon name="material-symbols:upload-file-outline-rounded" class="size-7 text-primary" aria-hidden="true" />
           <span class="font-medium text-foreground">Choose a JSON or CSV file</span>
           <span>or drop it here</span>
-          <input id="spoolman-file" type="file" accept=".json,.csv,application/json,text/csv" class="sr-only" />
+          <input id="spoolman-file" type="file" accept={spoolman.accept} class="sr-only" />
         </label>
       </SourcePanel>
 
@@ -190,8 +142,8 @@ const fileSources = [
             kind={source.kind}
             icon={source.icon}
             image={source.image}
-            api={Boolean(source.cloud || source.api || source.id === "filamentdb")}
-            readonly={!isWritableSource(source.id as SourceId)}
+            api={source.hasApiBadge}
+            readonly={source.readonly}
           >
             {source.cloud && (
               <div class="mb-3 flex flex-wrap items-center gap-3">
@@ -340,7 +292,7 @@ const fileSources = [
         Nothing loaded yet. Drop export files above or open a service below.
       </p>
       <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" icon="material-symbols:arrow-forward" iconPosition="right">
-        Continue to sync
+        Continue to review
       </Button>
     </div>
   </Container>
