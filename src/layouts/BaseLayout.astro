@@ -143,6 +143,8 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <a class="footer-link underline" href="/credits">
       Credits
     </a>
+    <span> · </span>
+    <button type="button" class="footer-link underline" data-open-shortcuts>Keyboard shortcuts</button>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, SpoolKeep or Bambu Lab. All names and logos are trademarks of their respective owners and are used only to identify compatibility.
     </span>
@@ -158,6 +160,9 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
 
 <script>
   import "~/scripts/tour";
+  import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
+
+  wireShortcutsHelp();
 
   // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
   const syncAria = (el: Element | null) => {

@@ -128,6 +128,16 @@ answers) so a spool linked across services is counted once; the service view can
 subtitle says a spool listed in several services counts in each. `--quiet` with `--watch` holds each
 run's output back and prints it only when it differs from the previous run.
 
+The chart also groups by brand and is drawn on the Sync page too, redrawn with every change so a
+spool you just linked is counted once. In Windows high-contrast (forced-colors) mode the bars are
+solid system-colored blocks (`theme.css`), since backgrounds would otherwise be replaced by the page
+color. `print.css` makes the Sync page printable: navigation, controls, and floating bars are hidden,
+disclosures are expanded, cards avoid page breaks, and transitions are disabled. "Copy plan summary"
+puts the per-service counts, open conflicts, and unanswered matches on the clipboard as plain text.
+`shortcuts-help.ts` opens a native `<dialog>` listing the keyboard shortcuts when "?" is pressed
+outside a text field, or from the footer button. Toasts sit above the sticky bars so they never cover
+their buttons.
+
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
 run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is

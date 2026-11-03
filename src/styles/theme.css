@@ -113,3 +113,19 @@
     }
   }
 }
+
+/*
+ * Windows high-contrast (forced-colors) replaces backgrounds with the page color, which would erase
+ * the chart's bars. Keep them as solid system-colored blocks and give the tooltip a visible border.
+ */
+@media (forced-colors: active) {
+  .chart-bar {
+    forced-color-adjust: none;
+    background: Highlight !important;
+  }
+  .chart-hit:focus,
+  .chart-hit:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}

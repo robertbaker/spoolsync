@@ -50,7 +50,7 @@ export function showToast(message: string, tone: Tone = "info", durationMs = 280
     container = h("div", {
       id: "toast-container",
       class:
-        "fixed bottom-24 right-5 z-[100] lg:bottom-5 flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0",
+        "fixed bottom-24 right-5 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0",
       role: "region",
       "aria-label": "Notifications",
     });

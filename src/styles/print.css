@@ -1,0 +1,49 @@
+/*
+ * Printing the Sync page should give a clean plan: no navigation, controls, or floating bars, with
+ * every disclosure expanded and cards kept whole across page breaks.
+ */
+@media print {
+  header,
+  footer,
+  nav,
+  button,
+  input,
+  #load-bar,
+  #sync-bar,
+  #suggestions-bulk,
+  #bulk,
+  #filters,
+  #download-all,
+  [data-print="hide"],
+  dialog {
+    display: none !important;
+  }
+
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .app-card,
+  article,
+  figure,
+  tr {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  details::details-content {
+    content-visibility: visible;
+  }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #444;
+  }
+}

@@ -638,3 +638,92 @@ test("the chart can group by material, counts linked spools once, and remembers 
     "PLA: 2,840 g remaining across 4 spools, 78% of the total",
   );
 });
+
+test("the chart can group by brand and also appears on Sync", async ({ page }) => {
+  await page.goto("/load");
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const chart = page.locator("#loaded-chart");
+  await chart.getByRole("button", { name: "By brand" }).click();
+  await expect(chart).toContainText("Remaining filament by brand");
+  await expect(chart.getByRole("img").first()).toHaveAccessibleName(
+    "Prusament: 2,880 g remaining across 4 spools, 48% of the total",
+  );
+  await expect(chart.getByRole("img")).toHaveCount(4);
+  await chart.getByText("View as table").click();
+  await expect(chart.locator("thead")).toContainText("Brand");
+
+  // The same chart, with the same remembered view, sits above the plan on Sync.
+  await page.goto("/sync");
+  const syncChart = page.locator("#sync-chart");
+  await expect(syncChart).toBeVisible();
+  await expect(syncChart).toContainText("Remaining filament by brand");
+  await expect(syncChart.getByRole("img").first()).toHaveAccessibleName(/^Prusament: 2,880 g/);
+});
+
+test("chart bars stay visible in forced-colors (high contrast) mode", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/load");
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const bar = page.locator("#loaded-chart .chart-bar").first();
+  await expect(bar).toBeVisible();
+  const { background, page: canvas } = await bar.evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    page: getComputedStyle(document.body).backgroundColor,
+  }));
+  expect(background).not.toBe("rgba(0, 0, 0, 0)");
+  expect(background).not.toBe(canvas);
+});
+
+test("printing the Sync page drops navigation and controls but keeps the plan", async ({
+  page,
+}) => {
+  await page.goto("/sync?sample=1");
+  await expect(page.locator("#suggestions article").first()).toBeVisible();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("header").first()).toBeHidden();
+  await expect(page.locator("footer").first()).toBeHidden();
+  await expect(page.getByRole("button", { name: "Same spool" }).first()).toBeHidden();
+  await expect(page.locator("#sync-summary")).toBeVisible();
+  await expect(page.locator("#suggestions article").first()).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+    .toBe("rgb(255, 255, 255)");
+});
+
+test("the question-mark key and footer button open a shortcuts list", async ({ page }) => {
+  await page.goto("/load");
+  await page.keyboard.press("?");
+  const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("Focus the search or filter on this page");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  // Typing a question mark into a field is just typing.
+  await page.getByLabel("Find a service").focus();
+  await page.keyboard.type("what?");
+  await expect(page.getByLabel("Find a service")).toHaveValue("what?");
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole("button", { name: "Keyboard shortcuts" }).click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toBeHidden();
+});
+
+test("the plan summary can be copied", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/sync?sample=1");
+  await page.getByRole("button", { name: "All 3 are the same spool" }).click();
+  await page.getByRole("button", { name: /Click again to confirm 3 pairs/ }).click();
+  await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
+  await page.getByRole("button", { name: "Add all missing to FilaMeter" }).click();
+  await page.locator("#copy-plan").click();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text.split("\n")).toEqual([
+    "SpoolSync plan: 2 changes",
+    "- Spoolio: 0 updates, 1 new",
+    "- FilaMeter: 0 updates, 1 new",
+    "1 spool has open conflicts left as they are",
+  ]);
+});

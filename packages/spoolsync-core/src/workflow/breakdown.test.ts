@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import type { LoadResult } from "../core/model";
 import { makeSpool } from "../core/testing";
-import { remainingByMaterial } from "./breakdown";
+import { remainingBy, remainingByMaterial } from "./breakdown";
 
 const none = { confirmed: [], rejected: [] };
 const result = (source: "spoolman" | "spoolio", spools: LoadResult["spools"]): LoadResult => ({
@@ -64,4 +64,24 @@ test("only suggested look-alikes are not merged, and the tail folds into Other",
   expect(rows.map((row) => row.material)).toEqual(["PLA", "PETG", "ABS", "Other"]);
   expect(rows.at(-1)).toEqual({ material: "Other", grams: 300, spools: 2 });
   expect(duplicatesRemoved).toBe(0);
+});
+
+test("groups by brand, ignoring case and folding missing brands", () => {
+  const { rows } = remainingBy(
+    "vendor",
+    [
+      result("spoolman", [
+        makeSpool("spoolman", "1", { vendor: "Prusament", name: "A", remainingWeight: 300 }),
+        makeSpool("spoolman", "2", { vendor: "prusament", name: "B", remainingWeight: 200 }),
+        makeSpool("spoolman", "3", { vendor: "Polymaker", name: "C", remainingWeight: 100 }),
+        makeSpool("spoolman", "4", { vendor: null, name: "D", remainingWeight: 50 }),
+      ]),
+    ],
+    none,
+  );
+  expect(rows).toEqual([
+    { material: "Prusament", grams: 500, spools: 2 },
+    { material: "Polymaker", grams: 100, spools: 1 },
+    { material: "Unknown brand", grams: 50, spools: 1 },
+  ]);
 });

@@ -4,7 +4,7 @@ import {
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
-import { remainingByMaterial, summarizeInventory } from "@spoolsync/core/workflow";
+import { remainingBy, summarizeInventory } from "@spoolsync/core/workflow";
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { local, read, write } from "~/lib/browser/storage/access";
@@ -12,7 +12,7 @@ import { local, read, write } from "~/lib/browser/storage/access";
 import { h } from "../dom";
 import { plural } from "./presentation";
 
-type View = "service" | "material";
+type View = "service" | "material" | "brand";
 
 interface Datum {
   label: string;
@@ -24,7 +24,17 @@ interface Datum {
 
 const VIEW_KEY = "spoolsync:chart-view";
 const TABLE_KEY = "spoolsync:chart-table-open";
-const VIEW_LABELS: Record<View, string> = { service: "By service", material: "By material" };
+const VIEW_LABELS: Record<View, string> = {
+  service: "By service",
+  material: "By material",
+  brand: "By brand",
+};
+/** The word for what each bar is, used in the title and the table heading. */
+const VIEW_NOUNS: Record<View, string> = {
+  service: "service",
+  material: "material",
+  brand: "brand",
+};
 
 const grams = (value: number) => `${value.toLocaleString()} g`;
 
@@ -60,22 +70,32 @@ export function renderLoadedChart(
   results: ReadonlyMap<SourceId, LoadResult>,
 ): void {
   const services = byService(results);
-  const breakdown = remainingByMaterial([...results.values()], loadMatchDecisions());
-  const materials: Datum[] = breakdown.rows.map((row) => ({
-    label: row.material,
-    grams: row.grams,
-    spools: row.spools,
-  }));
-  const available: View[] = [
-    ...(comparable(services) ? (["service"] as const) : []),
-    ...(comparable(materials) ? (["material"] as const) : []),
-  ];
+  const decisions = loadMatchDecisions();
+  const grouped = (field: "material" | "vendor") => {
+    const breakdown = remainingBy(field, [...results.values()], decisions);
+    return {
+      duplicatesRemoved: breakdown.duplicatesRemoved,
+      data: breakdown.rows.map((row) => ({
+        label: row.material,
+        grams: row.grams,
+        spools: row.spools,
+      })),
+    };
+  };
+  const views: Record<View, { data: Datum[]; duplicatesRemoved: number }> = {
+    service: { data: services, duplicatesRemoved: 0 },
+    material: grouped("material"),
+    brand: grouped("vendor"),
+  };
+  const available = (["service", "material", "brand"] as const).filter((candidate) =>
+    comparable(views[candidate].data),
+  );
   container.hidden = available.length === 0;
   if (!available.length) return container.replaceChildren();
 
   const stored = read(local, VIEW_KEY);
   const view: View = available.find((candidate) => candidate === stored) ?? (available[0] as View);
-  const data = view === "service" ? services : materials;
+  const { data, duplicatesRemoved } = views[view];
   const total = data.reduce((sum, datum) => sum + datum.grams, 0);
   const max = Math.max(...data.map((datum) => datum.grams), 0);
   const share = (datum: Datum) => (total ? Math.round((datum.grams / total) * 100) : 0);
@@ -86,7 +106,7 @@ export function renderLoadedChart(
   const subtitle =
     view === "service"
       ? `${grams(total)} across the loaded services, in grams. A spool listed in several services counts in each.`
-      : `${grams(total)} in total, in grams${breakdown.duplicatesRemoved ? `. ${plural(breakdown.duplicatesRemoved, "linked spool")} counted once.` : "."}`;
+      : `${grams(total)} in total, in grams${duplicatesRemoved ? `. ${plural(duplicatesRemoved, "linked spool")} counted once.` : "."}`;
 
   const bars = data.map((datum) => {
     const width = max ? Math.max((datum.grams / max) * 100, datum.grams > 0 ? 1.5 : 0) : 0;
@@ -143,9 +163,12 @@ export function renderLoadedChart(
       h(
         "tr",
         {},
-        ...[view === "service" ? "Service" : "Material", "Spools", "Remaining (g)", "Share"].map(
-          (heading) => h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading),
-        ),
+        ...[
+          VIEW_NOUNS[view].replace(/^./, (c) => c.toUpperCase()),
+          "Spools",
+          "Remaining (g)",
+          "Share",
+        ].map((heading) => h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading)),
       ),
     ),
     h(
@@ -225,7 +248,7 @@ export function renderLoadedChart(
         h(
           "p",
           { id: "loaded-chart-title", class: "text-sm font-semibold" },
-          `Remaining filament ${view === "service" ? "by service" : "by material"}`,
+          `Remaining filament by ${VIEW_NOUNS[view]}`,
         ),
         h("p", { class: "text-xs text-muted-foreground" }, subtitle),
       ),

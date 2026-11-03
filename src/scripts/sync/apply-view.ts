@@ -13,7 +13,7 @@ import { exportInventory } from "@spoolsync/core/workflow";
 
 import { saveLoadResult } from "~/lib/browser/storage";
 
-import { byId, h, notice } from "../dom";
+import { byId, h, notice, showToast } from "../dom";
 import { ApplyController } from "./apply-controller";
 import { counts, changeList, renderLog } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
@@ -85,6 +85,33 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
         (source !== "bambuddy" || changes.some((change) => change.kind === "create"))
       );
     });
+    const totalChanges = writable.reduce((sum, source) => sum + (plan.get(source) ?? []).length, 0);
+    if (totalChanges > 0) {
+      const copy = button("Copy plan summary", () => {
+        const lines = [
+          `SpoolSync plan: ${totalChanges} ${totalChanges === 1 ? "change" : "changes"}`,
+          ...writable.map(
+            (source) => `- ${SOURCE_LABELS[source]}: ${counts(plan.get(source) ?? [])}`,
+          ),
+          ...(unresolved
+            ? [
+                `${unresolved} ${unresolved === 1 ? "spool has" : "spools have"} open conflicts left as they are`,
+              ]
+            : []),
+          ...(match.suggestions.length
+            ? [
+                `${match.suggestions.length} possible ${match.suggestions.length === 1 ? "match" : "matches"} still to answer`,
+              ]
+            : []),
+        ];
+        navigator.clipboard.writeText(lines.join("\n")).then(
+          () => showToast("Plan summary copied", "success"),
+          () => showToast("Could not copy the summary", "error"),
+        );
+      });
+      copy.id = "copy-plan";
+      sections.push(h("div", { class: "flex justify-end" }, copy));
+    }
     if (downloadable.length > 1) {
       const allStatus = h("div", { class: "mt-3", "aria-live": "polite" });
       const downloadAll = button(

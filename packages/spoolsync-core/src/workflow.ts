@@ -5,7 +5,9 @@ export { detectInventorySources, type DetectedInventory } from "./workflow/detec
 export { combinedInventoryCsv } from "./workflow/combined";
 export { summarizeInventory, type InventorySummary } from "./workflow/summary";
 export {
+  remainingBy,
   remainingByMaterial,
+  type BreakdownField,
   type MaterialBreakdown,
   type MaterialShare,
 } from "./workflow/breakdown";

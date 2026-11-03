@@ -16,6 +16,7 @@ import {
 } from "~/lib/sample-data";
 
 import { byId, h, notice, showToast } from "./dom";
+import { renderLoadedChart } from "./load/loaded-chart";
 import { createApplyView } from "./sync/apply-view";
 import { createControlsView } from "./sync/controls-view";
 import { createGroupsView } from "./sync/groups-view";
@@ -66,6 +67,8 @@ const renderSuggestions = createSuggestionsView(
 function renderAll(): void {
   state.recompute();
   renderSummary();
+  // Redrawn with every change so a spool you just linked is counted once.
+  renderLoadedChart(byId("sync-chart"), loaded);
   renderSuggestions();
   renderFilters();
   renderBulk();
