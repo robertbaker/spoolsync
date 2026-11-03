@@ -1,6 +1,6 @@
 {
   "name": "spoolsync",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "CLI for comparing filament inventories across Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, and more, and syncing updates",
   "homepage": "https://spoolsync.com",
   "bugs": {
