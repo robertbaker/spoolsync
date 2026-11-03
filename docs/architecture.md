@@ -482,3 +482,37 @@ update", which posts `SKIP_WAITING`, and the page reloads once the new worker co
 worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
 The header's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
 is offline. Playwright runs with service workers enabled, matching production.
+
+## Sync page: bulk edits, history, and touch review
+
+**Bulk edits.** Core `core/comparison/edits.ts` defines `BulkEdit` (`location`, `note`, `tag`; a
+property left `undefined` is not edited, `null` clears the field, so only an explicit clear writes
+an empty value) and its sanitizer. `buildPlan` and `planSync` take an optional map of edits by group
+id: an edit overrides the resolved value for `location` and `comment` before the usual
+`SOURCE_FIELDS` check, so a service whose adapter has no place for the field is skipped, unknown
+fields and warning text are untouched, and created spools carry the edit too. A tag is a `#tag`
+word added once to each member's own note (services keep no separate tags), after any note
+replacement. Without edits the plan is identical, so the CLI is unchanged. `reconcileBulkEdits`
+carries edits across groups that grow or merge (merged groups keep only parts that agree).
+`SyncSession` owns the edits and the selection (selection is per visit; edits are in the undo history
+and saved per tab in `storage/bulk-edits.ts`, cleared with the resolutions when a connection
+changes). `bulk-edit-view.ts` is the panel above the Differences list; cards have a "Select for bulk
+edit" box. The plan preview marks fields that came from a bulk edit and can clear one per spool, and
+because the same plan feeds Apply, downloads and the CLI-command check, they all see the edits.
+"Copy as CLI command" cannot reproduce a bulk edit and says so through its existing caveat.
+
+**History.** `storage/sync-history.ts` keeps the last 100 applies and downloads under
+`spoolsync:sync-history`: time, service, API or download, planned updates and creations, succeeded
+and failed counts, and a short control-character-free error. Entries are sanitized on every read and
+never hold spool details. `ApplyController` (fifth constructor argument) and `DownloadController`
+(`record` dependency) call it when a run finishes; a cancelled or refused apply records nothing, and
+a failing recorder never hides the result. `history-view.ts` lists it newest first under Apply with
+"Copy summary" (`clipboard.ts`: async clipboard, then a legacy fallback) and "Clear history".
+
+**Touch.** `swipe.ts` holds a pure `SwipeTracker` and `attachSwipe`. In the one-at-a-time match
+review, a touch or pen swipe right answers "same spool" and left skips (it stays pending); the card
+keeps `touch-action: pan-y`, so a mostly vertical movement is left to scrolling, and mouse input and
+gestures that start on a control are ignored. Buttons and the S/D/N/Z keys remain, results are
+announced through the existing live region, and `prefers-reduced-motion` stops the card moving.
+`styles/sync-touch.css` makes Sync page controls, table choices, and previews at least 44px tall on
+coarse pointers or narrow screens.

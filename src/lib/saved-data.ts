@@ -87,6 +87,14 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     storage: "local",
   },
   {
+    id: "sync-history",
+    label: "Sync history",
+    description:
+      "When each apply or download happened, with counts per service and any error text. Never spool details. Kept on this device only and never exported.",
+    keys: ["spoolsync:sync-history"],
+    storage: "local",
+  },
+  {
     id: "answers",
     label: "Match answers",
     description: "Which possible matches you confirmed or rejected.",
@@ -98,7 +106,12 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     label: "Loaded inventories (this tab only)",
     description:
       "Spools you loaded and the choices made on the Sync page. They clear when the tab closes.",
-    keys: ["spoolsync:load:*", "spoolsync:resolutions", "spoolsync:spoolman-token"],
+    keys: [
+      "spoolsync:load:*",
+      "spoolsync:resolutions",
+      "spoolsync:bulk-edits",
+      "spoolsync:spoolman-token",
+    ],
     storage: "session",
   },
 ];

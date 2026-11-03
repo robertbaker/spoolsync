@@ -1,6 +1,7 @@
 import { deriveCliChoices } from "@spoolsync/core/cli-choices";
 import {
   changeParts,
+  type BulkEdit,
   omitExcluded,
   openConflicts,
   type GroupResolution,
@@ -26,6 +27,7 @@ import { counts, changeList, renderLog } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
 import { buildCliCommand } from "./cli-command";
 import { DownloadController } from "./download-controller";
+import { createHistoryView } from "./history-view";
 import { createJumpBar } from "./jump-bar";
 import { renderPreview } from "./plan-preview";
 import { button, download } from "./presentation";
@@ -36,6 +38,9 @@ export interface PlanState {
   excluded(): ReadonlySet<string>;
   setExcluded(key: string, excluded: boolean, label: string): void;
   decisions(): MatchDecisions;
+  /** Bulk edits to plan beside the resolutions; absent means none. */
+  bulkEdits?(): ReadonlyMap<string, BulkEdit>;
+  clearBulkEdit?(groupId: string): void;
 }
 
 export function createApplyView(
@@ -44,21 +49,28 @@ export function createApplyView(
   planState: PlanState,
 ) {
   const openPreviews = new Set<WritableSourceId>();
+  const history = createHistoryView();
+  history.container.className = "mt-8 border-t pt-4";
+  history.container.id = "sync-history";
   const controller = new ApplyController(
     createApplyServices(),
     { loaded, onApplied },
     saveLoadResult,
+    undefined,
+    history.record,
   );
   const downloads = new DownloadController({
     exportInventory,
     download,
     today: () => new Date().toISOString().slice(0, 10),
+    record: history.record,
   });
 
   const jumpBar = createJumpBar();
 
   function renderApply(match: MatchResult, resolutions: Map<string, GroupResolution>): void {
-    const fullPlan = planSync(match.groups, resolutions, match.suggestions);
+    const bulkEdits = planState.bulkEdits?.() ?? new Map<string, BulkEdit>();
+    const fullPlan = planSync(match.groups, resolutions, match.suggestions, bulkEdits);
     const excluded = planState.excluded();
     // Everything below (counts, Apply, downloads) sees only the changes that are still included.
     const plan = omitExcluded(fullPlan, excluded);
@@ -271,13 +283,18 @@ export function createApplyView(
                   else openPreviews.delete(name);
                 },
                 setExcluded: planState.setExcluded,
-              })
+                ...(planState.clearBulkEdit ? { clearBulkEdit: planState.clearBulkEdit } : {}),
+              }, bulkEdits)
             : null,
           status,
         ),
       );
     }
     byId("apply").replaceChildren(...sections);
+    if (!history.container.isConnected) {
+      byId("apply").after(history.container);
+      history.render();
+    }
     // A toggle redraws the plan; keep the keyboard on the checkbox that was used.
     if (focusedKey)
       byId("apply")

@@ -2,6 +2,8 @@ import type { PlannedChange } from "@spoolsync/core/core/compare";
 import type { LoadResult, WritableSourceId } from "@spoolsync/core/core/model";
 import type { exportInventory } from "@spoolsync/core/workflow";
 
+import { cleanErrorText, type SyncHistoryRecord } from "~/lib/browser/storage/sync-history";
+
 import { h, notice } from "../dom";
 import { downloadPresentation } from "./download-presentation";
 import { button, reportExportError } from "./presentation";
@@ -10,6 +12,8 @@ export interface DownloadDependencies {
   exportInventory: typeof exportInventory;
   download(filename: string, text: string, mediaType: string): void;
   today(): string;
+  /** Called once per finished download attempt, successful or not. */
+  record?(entry: SyncHistoryRecord): void;
 }
 
 export interface DownloadButtonOptions {
@@ -38,6 +42,23 @@ export class DownloadController {
     );
   }
 
+  private remember(source: WritableSourceId, changes: PlannedChange[], error?: string): void {
+    const updates = changes.filter((change) => change.kind === "update").length;
+    try {
+      this.dependencies.record?.({
+        source,
+        via: "download",
+        updates,
+        creations: changes.length - updates,
+        succeeded: error ? 0 : changes.length,
+        failed: error ? changes.length || 1 : 0,
+        ...(error ? { error: cleanErrorText(error) } : {}),
+      });
+    } catch {
+      // A history failure must never hide the result of the download itself.
+    }
+  }
+
   async run(
     source: WritableSourceId,
     inventory: () => LoadResult,
@@ -61,6 +82,7 @@ export class DownloadController {
         alternate?.text ?? result.text,
         mediaType,
       );
+      this.remember(source, changes);
       const message = presentation.describe(result);
       status.replaceChildren(
         notice(
@@ -71,6 +93,7 @@ export class DownloadController {
         ),
       );
     } catch (error) {
+      this.remember(source, changes, error instanceof Error ? error.message : String(error));
       reportExportError(status, error);
     }
   }

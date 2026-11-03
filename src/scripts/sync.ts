@@ -9,6 +9,7 @@ import {
   saveMatchDecisions,
   saveResolutions,
 } from "~/lib/browser/storage";
+import { loadBulkEdits, saveBulkEdits } from "~/lib/browser/storage/bulk-edits";
 import { readPreferences } from "~/lib/preferences";
 import {
   applySampleParam,
@@ -21,6 +22,7 @@ import { byId, h, notice, showToast } from "./dom";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { isTypingTarget } from "./shortcuts";
 import { createApplyView } from "./sync/apply-view";
+import { createBulkEditView } from "./sync/bulk-edit-view";
 import { createControlsView } from "./sync/controls-view";
 import { createGroupsView } from "./sync/groups-view";
 import { button } from "./sync/presentation";
@@ -38,16 +40,24 @@ const loaded = new Map(
     return result ? [[source, result] as const] : [];
   }),
 );
-const state = new SyncSession(loaded, loadMatchDecisions(), loadResolutions(), {
-  saveMatchDecisions,
-  saveResolutions,
-});
+const state = new SyncSession(
+  loaded,
+  loadMatchDecisions(),
+  loadResolutions(),
+  { saveMatchDecisions, saveResolutions, saveBulkEdits },
+  loadBulkEdits(),
+);
 // Come back to the same view of the differences list.
 state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
 const renderApply = createApplyView(loaded, renderAll, {
   excluded: () => state.excluded(),
   decisions: () => state.matchDecisions(),
+  bulkEdits: () => state.bulkEdits(),
+  clearBulkEdit: (groupId) => {
+    state.clearBulkEdit([groupId], undefined, "clearing a bulk edit");
+    renderAll();
+  },
   // Leaving a change out is part of the undo history, so Undo and Redo must reflect it.
   setExcluded: (key, exclude, label) => {
     if (!state.setExcluded(key, exclude, label)) return;
@@ -66,6 +76,8 @@ const { renderFilters, renderBulk, undoOrRedo } = createControlsView(
   renderAll,
   renderGroups,
 );
+
+const renderBulkEdit = createBulkEditView(state, { renderAll, renderGroups: () => renderGroups() });
 
 // Ctrl or Cmd + Z undoes a change to the plan; adding Shift (or pressing Y) redoes it.
 document.addEventListener("keydown", (event) => {
@@ -116,6 +128,7 @@ function renderAll(): void {
   renderSuggestions();
   renderFilters();
   renderBulk();
+  renderBulkEdit();
   renderGroups();
   renderApply(state.match, state.resolutions);
 }
