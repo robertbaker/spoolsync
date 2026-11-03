@@ -1,12 +1,18 @@
 import { beforeEach, expect, test } from "bun:test";
 
 import {
+  BACKUP_FORMAT,
+  BACKUP_LIMITS,
+  backupFilename,
+  createBackup,
   exportSettings,
   forgetEverything,
   forgetGroup,
   formatBytes,
   importSettings,
+  inspectBackup,
   listSavedData,
+  restoreBackup,
 } from "./saved-data";
 
 beforeEach(() => {
@@ -222,4 +228,103 @@ test("stock history and label options are listed, forgettable, and portable only
   );
   expect(result.imported).toEqual(["spoolsync:stock-history"]);
   expect(result.skipped.sort()).toEqual(["spoolsync:cost-view", "spoolsync:label-options"]);
+});
+
+test("a backup holds the new tare and shop link settings but never credentials", () => {
+  localStorage.setItem("spoolsync:weigh-in", '{"tares":{"bambulab":252}}');
+  localStorage.setItem("spoolsync:shop-template", "https://shop.example/s?q={brand}");
+  localStorage.setItem("spoolsync:saved-views", JSON.stringify([{ id: "a", name: "PLA", material: "PLA" }]));
+  localStorage.setItem("spoolsync:spoolman-token", "TOKEN");
+  localStorage.setItem("spoolsync:since-visit", "{}");
+  localStorage.setItem("spoolsync:inventory-snapshots", "{}");
+  const text = createBackup(new Date("2026-11-03T12:00:00Z"));
+  const document = JSON.parse(text);
+  expect(document).toMatchObject({ format: BACKUP_FORMAT, version: 1, exportedAt: "2026-11-03T12:00:00.000Z" });
+  expect(Object.keys(document.entries).sort()).toEqual([
+    "spoolsync:saved-views",
+    "spoolsync:shop-template",
+    "spoolsync:weigh-in",
+  ]);
+  expect(text).not.toContain("TOKEN");
+  expect(backupFilename(new Date("2026-11-03T23:00:00Z"))).toBe("spoolsync-backup-2026-11-03.json");
+});
+
+test("inspecting a backup reports what would be restored and why the rest is refused", () => {
+  const report = inspectBackup(
+    JSON.stringify({
+      format: BACKUP_FORMAT,
+      version: 1,
+      exportedAt: "2026-11-03T12:00:00Z",
+      entries: {
+        "spoolsync:low-stock-percent": "30",
+        "spoolsync:spoolman-token": "planted",
+        "spoolsync:shop-template": "http://insecure.example/{brand}",
+        "spoolsync:chart-view": 5,
+        "unknown-key": "x",
+      },
+    }),
+  );
+  expect(report.exportedAt).toBe("2026-11-03T12:00:00Z");
+  expect(report.accepted).toEqual([{ key: "spoolsync:low-stock-percent", group: "Preferences" }]);
+  const reasons = Object.fromEntries(report.skipped.map((skip) => [skip.key, skip.reason]));
+  expect(reasons["spoolsync:spoolman-token"]).toContain("never restored");
+  expect(reasons["spoolsync:shop-template"]).toContain("not in the form");
+  expect(reasons["spoolsync:chart-view"]).toContain("not text");
+  expect(reasons["unknown-key"]).toContain("Not a setting");
+  // Inspecting changes nothing.
+  expect(localStorage.getItem("spoolsync:low-stock-percent")).toBeNull();
+});
+
+test("merge keeps other settings while replace makes storage match the backup", () => {
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  localStorage.setItem("spoolsync:low-stock-percent", "25");
+  const backup = JSON.stringify({
+    format: BACKUP_FORMAT,
+    version: 1,
+    entries: { "spoolsync:low-stock-percent": "40" },
+  });
+  expect(restoreBackup(backup, "merge")).toMatchObject({ removed: [] });
+  expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("40");
+  expect(localStorage.getItem("spoolsync:chart-view")).toBe("brand");
+
+  const result = restoreBackup(backup, "replace");
+  expect(result.removed).toEqual(["spoolsync:chart-view"]);
+  expect(localStorage.getItem("spoolsync:chart-view")).toBeNull();
+  expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("40");
+});
+
+test("backups round trip, and the older settings export is accepted too", () => {
+  localStorage.setItem("spoolsync:weigh-in", '{"tares":{"esun":240}}');
+  const text = createBackup();
+  localStorage.clear();
+  expect(restoreBackup(text).accepted.map((entry) => entry.key)).toEqual(["spoolsync:weigh-in"]);
+  expect(localStorage.getItem("spoolsync:weigh-in")).toBe('{"tares":{"esun":240}}');
+  localStorage.clear();
+  localStorage.setItem("spoolsync:chart-view", "material");
+  const legacy = exportSettings();
+  localStorage.clear();
+  expect(inspectBackup(legacy).format).toBe("spoolsync-settings");
+  expect(restoreBackup(legacy).accepted).toHaveLength(1);
+  expect(localStorage.getItem("spoolsync:chart-view")).toBe("material");
+});
+
+test("files that are not backups are refused with a reason and change nothing", () => {
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  const tooMany = Object.fromEntries(
+    Array.from({ length: BACKUP_LIMITS.entries + 1 }, (_, index) => [`k${index}`, "x"]),
+  );
+  const cases: Array<[string, string]> = [
+    ["{oops", "not valid JSON"],
+    ["[]", "not a SpoolSync backup"],
+    [JSON.stringify({ format: "other", version: 1, entries: {} }), "not a SpoolSync backup"],
+    [JSON.stringify({ format: BACKUP_FORMAT, version: 9, entries: {} }), "version 9"],
+    [JSON.stringify({ format: BACKUP_FORMAT, version: 1 }), "no entries"],
+    [JSON.stringify({ format: BACKUP_FORMAT, version: 1, entries: [] }), "no entries"],
+    [
+      JSON.stringify({ format: BACKUP_FORMAT, version: 1, entries: tooMany }),
+      "more than SpoolSync ever writes",
+    ],
+  ];
+  for (const [text, message] of cases) expect(() => restoreBackup(text, "replace")).toThrow(message);
+  expect(localStorage.getItem("spoolsync:chart-view")).toBe("brand");
 });

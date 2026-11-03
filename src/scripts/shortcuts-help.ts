@@ -10,6 +10,7 @@ const SHORTCUTS: Array<[string, string]> = [
     "S · D · N · Z",
     "While reviewing possible matches on Sync: same, different, skip for now, undo",
   ],
+  ["[ · ]", "Step to the previous or next saved view of the spool table on the Load page"],
   ["Esc", "Close a dialog or the tour"],
 ];
 

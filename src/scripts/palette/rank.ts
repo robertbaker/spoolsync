@@ -5,6 +5,11 @@ export interface Rankable {
   subtitle?: string | undefined;
   /** Extra words that should find the entry but are not shown. */
   keywords?: string | undefined;
+  /**
+   * Other names people use for the same action ("dark mode" for the theme toggle). They find the
+   * entry like keywords do, and a match counts as much as one in the title.
+   */
+  aliases?: readonly string[] | undefined;
 }
 
 /** Lower case, accents removed, so "Prusament" and "prúsament" match each other. */
@@ -66,11 +71,15 @@ export function rankItems<T extends Rankable>(items: readonly T[], query: string
   if (!normalize(query).trim()) return items.slice(0, limit);
   const scored: Array<{ item: T; score: number; index: number }> = [];
   items.forEach((item, index) => {
-    const everything = [item.title, item.subtitle, item.keywords].filter(Boolean).join(" ");
+    const everything = [item.title, item.subtitle, item.keywords, ...(item.aliases ?? [])]
+      .filter(Boolean)
+      .join(" ");
     const overall = fuzzyScore(query, everything);
     if (overall === null) return;
-    const inTitle = fuzzyScore(query, item.title);
-    scored.push({ item, score: overall + (inTitle ?? 0) * 2, index });
+    // An alias is another title for the entry, so the best of them earns the title bonus.
+    const named = [item.title, ...(item.aliases ?? [])].map((name) => fuzzyScore(query, name));
+    const inTitle = Math.max(0, ...named.map((score) => score ?? 0));
+    scored.push({ item, score: overall + inTitle * 2, index });
   });
   scored.sort((a, b) => b.score - a.score || a.index - b.index);
   return scored.slice(0, limit).map(({ item }) => item);

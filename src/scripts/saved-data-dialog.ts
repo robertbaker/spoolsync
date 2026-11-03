@@ -7,6 +7,7 @@ import {
   listSavedData,
 } from "~/lib/saved-data";
 
+import { backupSection } from "./backup-section";
 import { displaySettingsSection } from "./display-settings";
 import { h } from "./dom";
 import { download } from "./sync/presentation";
@@ -156,6 +157,9 @@ function rebuild(body: HTMLElement): void {
       h("div", { class: "mt-2 flex flex-wrap gap-2" }, exportButton, importButton, fileInput),
       result,
     ),
+    backupSection(() => {
+      changed = true;
+    }),
     h(
       "div",
       { class: "mt-5 flex flex-wrap items-center justify-between gap-3" },

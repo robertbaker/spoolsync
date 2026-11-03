@@ -153,3 +153,45 @@ export function formatHistorySummary(history: readonly SyncHistoryEntry[]): stri
       .map((entry) => `- ${formatHistoryTime(entry.at)} ${describeHistoryEntry(entry)}`),
   ].join("\n");
 }
+
+// ---- Filtering and export ---------------------------------------------------------------------
+
+export interface SyncHistoryFilter {
+  /** A service, or `all` (the default). */
+  source?: SourceId | "all";
+  via?: SyncHistoryEntry["via"] | "all";
+  /** `failed` keeps entries with a failure or error; `succeeded` keeps the rest. */
+  outcome?: "all" | "failed" | "succeeded";
+  /** Words that must all appear in the entry's line, so a service name or error text finds it. */
+  query?: string;
+}
+
+export const hasFailed = (entry: SyncHistoryEntry): boolean => entry.failed > 0 || Boolean(entry.error);
+
+/** The entries that pass every part of the filter, in their original order. */
+export function filterSyncHistory(
+  history: readonly SyncHistoryEntry[],
+  filter: SyncHistoryFilter,
+): SyncHistoryEntry[] {
+  const words = (filter.query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  return history.filter((entry) => {
+    if (filter.source && filter.source !== "all" && entry.source !== filter.source) return false;
+    if (filter.via && filter.via !== "all" && entry.via !== filter.via) return false;
+    if (filter.outcome === "failed" && !hasFailed(entry)) return false;
+    if (filter.outcome === "succeeded" && hasFailed(entry)) return false;
+    if (!words.length) return true;
+    const line = `${formatHistoryTime(entry.at)} ${describeHistoryEntry(entry)}`.toLowerCase();
+    return words.every((word) => line.includes(word));
+  });
+}
+
+export const SYNC_HISTORY_EXPORT_FORMAT = "spoolsync-sync-history";
+
+/** The entries as a JSON document: counts and short errors only, as stored. Newest last. */
+export function syncHistoryJson(history: readonly SyncHistoryEntry[], now: Date = new Date()): string {
+  return `${JSON.stringify({ format: SYNC_HISTORY_EXPORT_FORMAT, version: 1, exportedAt: now.toISOString(), entries: history }, null, 2)}\n`;
+}
+
+/** `spoolsync-sync-history-2026-11-03.json` */
+export const syncHistoryFilename = (now: Date): string =>
+  `spoolsync-sync-history-${now.toISOString().slice(0, 10)}.json`;

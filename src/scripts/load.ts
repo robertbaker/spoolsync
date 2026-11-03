@@ -30,7 +30,9 @@ import { createInventoryTable } from "./load/inventory-table";
 import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
+import { wireInventoryReport } from "./load/report-panel";
 import { wireReorderPanel } from "./load/reorder-panel";
+import { wireSinceVisit } from "./load/since-visit-panel";
 import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { wireSpoolDrawer } from "./load/spool-drawer";
@@ -69,12 +71,16 @@ const views = viewsRoot
   : null;
 const reorderRoot = document.getElementById("reorder-panel");
 const reorder = reorderRoot ? wireReorderPanel(reorderRoot, state.results) : null;
+const inventoryReport = wireInventoryReport(state.results);
+const sinceVisit = wireSinceVisit(state.results, insights);
 const render = () => {
   insights.refresh();
   renderTable();
   drawer.update();
   views?.update();
   reorder?.update();
+  inventoryReport.update();
+  sinceVisit.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
   renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);

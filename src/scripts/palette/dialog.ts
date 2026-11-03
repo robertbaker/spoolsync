@@ -6,6 +6,8 @@ import type { PaletteItem } from "./items";
 import { pushRecent, resultsFor } from "./rank";
 
 const RECENT_KEY = "spoolsync:palette-recent";
+/** Recently chosen commands and spools remembered, shown first when the palette opens. */
+const MAX_RECENTS = 8;
 
 function readRecents(): string[] {
   try {
@@ -43,12 +45,19 @@ function setActive(index: number, scroll = true): void {
 }
 
 function renderList(): void {
-  shown = resultsFor(input.value, commands, spools, readRecents());
+  const recents = readRecents();
+  const browsing = input.value.trim() === "";
+  // With nothing typed, recently chosen spools sit beside the commands (spools are otherwise only
+  // found by searching), and everything recently chosen is listed first under "Recent".
+  const recentSpools = browsing ? spools.filter((spool) => recents.includes(spool.id)) : [];
+  shown = resultsFor(input.value, [...commands, ...recentSpools], spools, recents);
+  const recentIds = new Set(recents);
   const rows: Node[] = [];
   let group = "";
   shown.forEach((item, index) => {
-    if (item.group !== group) {
-      group = item.group;
+    const heading = browsing && recentIds.has(item.id) ? "Recent" : item.group;
+    if (heading !== group) {
+      group = heading;
       rows.push(
         h(
           "li",
@@ -97,7 +106,7 @@ function renderList(): void {
 }
 
 function choose(item: PaletteItem): void {
-  write(local, RECENT_KEY, JSON.stringify(pushRecent(readRecents(), item.id)));
+  write(local, RECENT_KEY, JSON.stringify(pushRecent(readRecents(), item.id, MAX_RECENTS)));
   const target = opener;
   dialog?.close();
   // Hand focus back first so an action that opens another dialog can take it afterwards.
@@ -193,13 +202,13 @@ export function closePalette(): void {
   dialog?.close();
 }
 
-export function openPalette(): void {
+export function openPalette(query = ""): void {
   const element = ensure();
   if (element.open) return;
   opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   commands = buildItems();
   spools = buildSpoolItems();
-  input.value = "";
+  input.value = query;
   renderList();
   element.showModal();
   input.focus();

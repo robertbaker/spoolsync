@@ -1,0 +1,147 @@
+/*
+ * Styles for the Load page tools: the inventory report (preview, download and print), the weigh-in
+ * calculator in the spool drawer, and the "Since your last visit" panel. The report sheet exists in
+ * the page only while printing, like the label sheet and the shopping list.
+ */
+
+/* ---- Inventory report --------------------------------------------------------------------- */
+
+.report-sheet {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.report-sheet h1 {
+  font-size: 1.25rem;
+}
+
+.report-sheet h2 {
+  margin-block: 1.25rem 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.report-sheet .notes {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.report-sheet ul.notes {
+  margin-block-start: 1rem;
+  padding-inline-start: 1.25rem;
+  list-style: disc;
+}
+
+.report-sheet dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+}
+
+.report-sheet dt {
+  color: var(--muted-foreground);
+}
+
+.report-sheet dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-sheet table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-sheet th,
+.report-sheet td {
+  padding: 0.3125rem 0.5rem;
+  border-block-end: 1px solid var(--border);
+  text-align: start;
+  font-weight: 400;
+}
+
+.report-sheet thead th {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.report-sheet tbody th {
+  font-weight: 500;
+}
+
+.report-sheet .num {
+  text-align: end;
+}
+
+.report-preview {
+  max-block-size: min(52dvh, 28rem);
+  margin-block-start: 0.75rem;
+  padding: 0.75rem 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--card);
+}
+
+#inventory-report-sheet {
+  display: none;
+}
+
+@page report {
+  margin: 14mm;
+}
+
+@media print {
+  body.printing-report > *:not(#inventory-report-sheet) {
+    display: none !important;
+  }
+
+  body.printing-report #inventory-report-sheet {
+    display: block !important;
+    page: report;
+    color: #000;
+    background: #fff;
+    font-size: 10.5pt;
+  }
+
+  #inventory-report-sheet * {
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+
+  #inventory-report-sheet h2,
+  #inventory-report-sheet table {
+    break-inside: avoid;
+  }
+
+  #inventory-report-sheet tr {
+    break-inside: avoid;
+  }
+}
+
+/* ---- Weigh-in ----------------------------------------------------------------------------- */
+
+[data-weigh-in] input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+[data-weigh-in] label {
+  display: grid;
+  gap: 0.125rem;
+}
+
+/* ---- Since your last visit ---------------------------------------------------------------- */
+
+#since-visit[hidden] {
+  display: none;
+}
+
+#since-visit li {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}

@@ -1,16 +1,24 @@
-import { expect, test } from "bun:test";
+import { beforeEach, expect, test } from "bun:test";
 
 import { makeSpool } from "@spoolsync/core/core/testing";
 import type { ReorderItem } from "@spoolsync/core/workflow";
 
 import {
+  MAX_SHOP_TEMPLATE,
+  SHOP_TEMPLATE_KEY,
+  expandShopTemplate,
   groupByBrand,
   itemLabel,
   reorderCsv,
+  readShopTemplate,
   reorderFilename,
+  saveShopTemplate,
   shopSearchUrl,
   spoolSearchUrl,
+  validateShopTemplate,
 } from "./reorder-list";
+
+beforeEach(() => localStorage.clear());
 
 const item = (
   id: string,
@@ -100,4 +108,56 @@ test("an empty list is just the header, and the filename carries the date", () =
     "brand,material,name,color,service,id,remaining_g,full_g,percent_left,location,search_url\r\n",
   );
   expect(reorderFilename(new Date("2026-11-03T23:59:00Z"))).toBe("spoolsync-reorder-2026-11-03.csv");
+});
+
+test("a shop template needs https, known placeholders, and none in the host name", () => {
+  const ok = validateShopTemplate("  https://shop.example/search?q={brand}+{material}+{color}  ");
+  expect(ok).toEqual({ ok: true, template: "https://shop.example/search?q={brand}+{material}+{color}" });
+  for (const bad of [
+    "",
+    "http://shop.example/?q={brand}",
+    "javascript:alert({brand})",
+    "https://shop.example/search",
+    "https://shop.example/?q={size}",
+    "https://{brand}.example/",
+    "https://shop.example/{brand",
+    "https://user:pw@shop.example/?q={brand}",
+    "https://shop.example/?q={brand}#{",
+    `https://shop.example/?q={brand}${"x".repeat(MAX_SHOP_TEMPLATE)}`,
+  ])
+    expect(validateShopTemplate(bad).ok).toBe(false);
+});
+
+test("template links encode each part so a name cannot change the address", () => {
+  const template = "https://shop.example/find/{brand}?material={material}&c={color}";
+  const url = new URL(
+    expandShopTemplate(template, { brand: "A&B /x", material: "PLA+", color: "Red #1" })!,
+  );
+  expect(url.origin).toBe("https://shop.example");
+  expect(url.pathname).toBe("/find/A%26B%20%2Fx");
+  expect(url.searchParams.get("material")).toBe("PLA+");
+  expect(url.searchParams.get("c")).toBe("Red #1");
+  expect(url.hash).toBe("");
+  expect(expandShopTemplate("http://nope/{brand}", { brand: "x", material: "", color: "" })).toBeNull();
+});
+
+test("spool, brand and CSV links use the template, and a bad one falls back to web search", () => {
+  const template = "https://shop.example/s?q={brand}%20{material}%20{color}";
+  const spool = makeSpool("spoolman", "1", { vendor: "Prusament", material: "PLA", name: "Black" });
+  expect(spoolSearchUrl(spool, template)).toBe("https://shop.example/s?q=Prusament%20PLA%20Black");
+  expect(spoolSearchUrl(spool, "https://shop.example/no-placeholders")).toContain("google.com");
+  const groups = groupByBrand([{ spool, fraction: 0.1 }], template);
+  expect(groups[0]!.searchUrl).toBe("https://shop.example/s?q=Prusament%20filament%20");
+  expect(reorderCsv(groups, template)).toContain("https://shop.example/s?q=Prusament%20PLA%20Black");
+});
+
+test("the saved template is validated on the way in and on the way out", () => {
+  expect(readShopTemplate()).toBeNull();
+  expect(saveShopTemplate("https://shop.example/s?q={brand}")).toBe(true);
+  expect(readShopTemplate()).toBe("https://shop.example/s?q={brand}");
+  expect(saveShopTemplate("http://insecure/{brand}")).toBe(false);
+  localStorage.setItem(SHOP_TEMPLATE_KEY, "javascript:alert({brand})");
+  expect(readShopTemplate()).toBeNull();
+  expect(saveShopTemplate(null)).toBe(true);
+  expect(localStorage.getItem(SHOP_TEMPLATE_KEY)).toBeNull();
 });

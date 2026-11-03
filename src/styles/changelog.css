@@ -1,0 +1,730 @@
+/*
+ * The changelog dialog. A native modal <dialog>: a centered card on wide screens and a bottom sheet
+ * on phones (safe-area aware). The header stays put while the release list scrolls under it, and
+ * the jump chips stick to the top of that list. Section kinds pair an icon with a label, so color
+ * is never the only signal. Entry and exit are CSS transitions that switch off for reduced motion.
+ */
+.cl-dialog {
+  --cl-radius: 1rem;
+  --cl-gutter: 1.25rem;
+  margin: auto;
+  padding: 0;
+  inline-size: min(100% - 2rem, 40rem);
+  max-block-size: min(86dvh, 52rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--cl-radius);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow:
+    0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 24px 48px -12px color-mix(in oklch, var(--foreground) 22%, transparent);
+}
+
+.cl-dialog[open] {
+  display: block;
+}
+
+.cl-shell {
+  display: flex;
+  flex-direction: column;
+  max-block-size: inherit;
+  block-size: min(86dvh, 52rem);
+}
+
+.cl-header {
+  position: relative;
+  flex: none;
+  padding: 1rem var(--cl-gutter) 0.75rem;
+  border-block-end: 1px solid var(--border);
+  background: color-mix(in oklch, var(--background) 92%, var(--primary));
+}
+
+.cl-grabber {
+  display: none;
+}
+
+.cl-titlebar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cl-heading {
+  font-size: 1.375rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.cl-heading:focus-visible {
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.cl-sub {
+  margin-block-start: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.cl-close {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  margin: -0.25rem -0.5rem 0 0;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cl-close:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.cl-status {
+  margin-block-start: 0.5rem;
+}
+
+.cl-status:has(.cl-badge[hidden]) {
+  display: none;
+}
+
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-badge-new {
+  background: color-mix(in oklch, var(--primary) 18%, var(--background));
+  color: var(--primary-text);
+}
+
+.cl-badge-new::before {
+  content: "";
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.cl-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-start: 0.75rem;
+}
+
+.cl-search {
+  flex: 1 1 11rem;
+  min-inline-size: 0;
+  min-block-size: 2.25rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--input);
+  border-radius: 0.625rem;
+  background: var(--background);
+  font-size: 0.875rem;
+}
+
+.cl-search::placeholder {
+  color: var(--muted-foreground);
+}
+
+.cl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.cl-chips[hidden] {
+  display: none;
+}
+
+.cl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  min-block-size: 2rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cl-chip:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.cl-chip[aria-pressed="true"] {
+  border-color: var(--kind, var(--primary));
+  background: color-mix(in oklch, var(--kind, var(--primary)) 14%, var(--background));
+  color: var(--foreground);
+}
+
+/* A pressed chip also gains a check mark, so the state is not carried by color alone. */
+.cl-chip[aria-pressed="true"]::after {
+  content: "✓";
+  font-size: 0.6875rem;
+}
+
+.cl-scroll {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block-start: 3rem;
+  scrollbar-gutter: stable;
+  padding: 0 var(--cl-gutter) calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.cl-scroll:focus-visible {
+  outline-offset: -3px;
+}
+
+.cl-nav {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  display: flex;
+  gap: 0.375rem;
+  margin-inline: calc(var(--cl-gutter) * -1);
+  padding: 0.5rem var(--cl-gutter);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  border-block-end: 1px solid var(--border);
+  background: color-mix(in oklch, var(--background) 94%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.cl-nav[hidden] {
+  display: none;
+}
+
+.cl-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.cl-nav-chip {
+  flex: none;
+  min-block-size: 2rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cl-nav-chip:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.cl-nav-chip[aria-current="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.cl-content {
+  padding-block-start: 0.75rem;
+}
+
+.cl-note {
+  margin-block-end: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+/* ---- Releases ---------------------------------------------------------------------------- */
+
+.cl-release {
+  border-block-end: 1px solid var(--border);
+}
+
+.cl-release-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  min-block-size: 3rem;
+  padding-block: 0.625rem;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 0.5rem;
+}
+
+.cl-release-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cl-release-title {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 0.625rem;
+  font-size: 1.0625rem;
+}
+
+.cl-version {
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-date {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.cl-release-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.cl-count {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-pill {
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.cl-pill-new {
+  background: color-mix(in oklch, var(--primary) 20%, var(--background));
+  color: var(--primary-text);
+}
+
+.cl-pill-current {
+  background: color-mix(in oklch, var(--success) 18%, var(--background));
+  color: var(--success-text);
+}
+
+.cl-chevron {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  color: var(--muted-foreground);
+  transition: rotate 0.2s ease;
+}
+
+.cl-release[open] > .cl-release-summary .cl-chevron {
+  rotate: 180deg;
+}
+
+.cl-release-body {
+  padding-block-end: 1rem;
+}
+
+.cl-compare {
+  margin-block-start: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.cl-icon {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Sections and items ------------------------------------------------------------------- */
+
+.cl-section {
+  --kind: var(--muted-foreground);
+  --kind-text: var(--muted-foreground);
+  margin-block-start: 0.75rem;
+}
+
+.cl-section[data-kind="breaking"],
+.cl-chip[data-kind="breaking"] {
+  --kind: var(--error);
+  --kind-text: var(--error-text);
+}
+
+.cl-section[data-kind="features"],
+.cl-chip[data-kind="features"] {
+  --kind: var(--primary);
+  --kind-text: var(--primary-text);
+}
+
+.cl-section[data-kind="fixes"],
+.cl-chip[data-kind="fixes"] {
+  --kind: var(--success);
+  --kind-text: var(--success-text);
+}
+
+.cl-section[data-kind="performance"],
+.cl-chip[data-kind="performance"] {
+  --kind: var(--info);
+  --kind-text: var(--info-text);
+}
+
+.cl-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--kind-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cl-section-count {
+  margin-inline-start: auto;
+  padding: 0 0.4375rem;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--kind) 14%, var(--background));
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-items {
+  margin: 0.375rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-inline-size: 65ch;
+  border-inline-start: 2px solid color-mix(in oklch, var(--kind) 35%, var(--border));
+}
+
+.cl-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.5rem;
+  padding: 0.3125rem 0 0.3125rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.cl-scope {
+  padding: 0 0.4375rem;
+  border-radius: 0.375rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+}
+
+.cl-text {
+  overflow-wrap: anywhere;
+}
+
+.cl-commits {
+  display: inline-flex;
+  gap: 0.375rem;
+}
+
+.cl-hash {
+  color: color-mix(in oklch, var(--muted-foreground) 85%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-decoration: none;
+}
+
+a.cl-hash:hover {
+  color: var(--foreground);
+  text-decoration: underline;
+}
+
+.cl-link {
+  color: var(--primary-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cl-link:hover {
+  text-decoration: none;
+}
+
+.cl-footer {
+  margin-block-start: 1rem;
+  font-size: 0.75rem;
+}
+
+.cl-muted {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+/* ---- Empty, error and loading states ------------------------------------------------------ */
+
+.cl-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.cl-error {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in oklch, var(--error) 40%, var(--border));
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--error) 8%, var(--background));
+}
+
+.cl-error-title {
+  font-weight: 700;
+}
+
+.cl-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.cl-button,
+.cl-link-button {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cl-button:hover {
+  background: var(--muted);
+}
+
+.cl-button-primary {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.cl-button-primary:hover {
+  background: color-mix(in oklch, var(--primary) 88%, black);
+}
+
+.cl-skeleton {
+  display: grid;
+  gap: 0.625rem;
+  padding-block: 1rem;
+  border-block-end: 1px solid var(--border);
+}
+
+.cl-skel-line {
+  block-size: 0.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in oklch, var(--muted) 60%, var(--background)) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.cl-skel-title {
+  inline-size: 40%;
+  block-size: 1rem;
+}
+
+.cl-skel-short {
+  inline-size: 65%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-skel-line {
+    animation: cl-shimmer 1.4s linear infinite;
+  }
+
+  @keyframes cl-shimmer {
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+/* ---- Entry and exit ----------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-dialog {
+    transition:
+      opacity 0.2s ease,
+      translate 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      scale 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      overlay 0.25s allow-discrete,
+      display 0.25s allow-discrete;
+    opacity: 0;
+    translate: 0 0.75rem;
+    scale: 0.98;
+  }
+
+  .cl-dialog[open] {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+
+  @starting-style {
+    .cl-dialog[open] {
+      opacity: 0;
+      translate: 0 0.75rem;
+      scale: 0.98;
+    }
+  }
+
+  .cl-dialog::backdrop {
+    transition:
+      opacity 0.25s ease,
+      overlay 0.25s allow-discrete,
+      display 0.25s allow-discrete;
+    opacity: 0;
+  }
+
+  .cl-dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    .cl-dialog[open]::backdrop {
+      opacity: 0;
+    }
+  }
+}
+
+/* ---- Phones: a bottom sheet --------------------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .cl-dialog {
+    --cl-gutter: 1rem;
+    inline-size: 100%;
+    max-inline-size: none;
+    margin: auto 0 0;
+    border-inline: 0;
+    border-block-end: 0;
+    border-radius: 1.25rem 1.25rem 0 0;
+    max-block-size: 92dvh;
+  }
+
+  .cl-shell {
+    block-size: 92dvh;
+    max-block-size: 92dvh;
+  }
+
+  .cl-header {
+    padding-block-start: 0.5rem;
+  }
+
+  .cl-grabber {
+    display: block;
+    inline-size: 2.5rem;
+    block-size: 0.3125rem;
+    margin: 0 auto 0.5rem;
+    border-radius: 9999px;
+    background: var(--border);
+  }
+
+  .cl-header,
+  .cl-scroll {
+    padding-inline-start: max(var(--cl-gutter), env(safe-area-inset-left, 0px));
+    padding-inline-end: max(var(--cl-gutter), env(safe-area-inset-right, 0px));
+  }
+
+  .cl-search,
+  .cl-chip,
+  .cl-nav-chip {
+    min-block-size: 2.75rem;
+  }
+
+  .cl-close {
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+  }
+
+  .cl-chips {
+    flex-wrap: nowrap;
+    inline-size: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .cl-chip {
+    flex: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cl-dialog {
+      translate: 0 100%;
+      scale: 1;
+    }
+
+    .cl-dialog[open] {
+      translate: 0 0;
+    }
+
+    @starting-style {
+      .cl-dialog[open] {
+        translate: 0 100%;
+        scale: 1;
+      }
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .cl-nav-chip[aria-current="true"],
+  .cl-chip[aria-pressed="true"] {
+    outline: 2px solid Highlight;
+  }
+
+  .cl-items {
+    border-inline-start-color: CanvasText;
+  }
+}

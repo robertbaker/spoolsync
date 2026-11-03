@@ -1,9 +1,12 @@
-import type { BulkEdit, BulkEditKey, GroupResolution } from "@spoolsync/core/core/compare";
 import {
+  BULK_EDIT_KEYS,
   isEmptyEdit,
   mergeBulkEdit,
   openConflicts,
   withoutBulkEditKeys,
+  type BulkEdit,
+  type BulkEditKey,
+  type GroupResolution,
 } from "@spoolsync/core/core/compare";
 import type {
   MatchDecisions,
@@ -155,7 +158,7 @@ export class SyncSession {
   /** Removes the named parts of the edits on these groups (all parts when none are named). */
   clearBulkEdit(
     groupIds: readonly string[],
-    keys: readonly BulkEditKey[] = ["location", "note", "tag"],
+    keys: readonly BulkEditKey[] = BULK_EDIT_KEYS,
     label = "clearing bulk edits",
   ): number {
     const next = new Map(this.edits);

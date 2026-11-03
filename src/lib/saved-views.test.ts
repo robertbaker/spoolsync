@@ -5,10 +5,15 @@ import { makeSpool } from "@spoolsync/core/core/testing";
 import {
   EMPTY_VIEW,
   MAX_VIEWS,
+  MAX_VIEW_PARAM,
+  VIEW_PARAM,
   MAX_VIEW_NAME,
   addView,
+  cycleView,
+  decodeViewParam,
   deleteView,
   describeSettings,
+  encodeViewParam,
   groupSpools,
   matchesRange,
   parseGrams,
@@ -19,6 +24,7 @@ import {
   sanitizeViews,
   saveViews,
   updateView,
+  viewShareUrl,
 } from "./saved-views";
 
 beforeEach(() => localStorage.clear());
@@ -185,4 +191,60 @@ test("describing and comparing settings", () => {
   ).toBe("10–20 g left, running low, by brand");
   expect(sameSettings(pla200, { ...pla200, search: "  " })).toBe(true);
   expect(sameSettings(pla200, EMPTY_VIEW)).toBe(false);
+});
+
+test("a view round-trips through its share parameter, including non-Latin text", () => {
+  const settings = {
+    ...EMPTY_VIEW,
+    search: "黒 galaxy",
+    lowOnly: true,
+    insight: "duplicates",
+    sort: { key: "remaining" as const, direction: "desc" as const },
+    group: "vendor" as const,
+    material: "PLA+",
+    minGrams: 10,
+    maxGrams: 250.5,
+  };
+  const encoded = encodeViewParam(settings);
+  expect(encoded).toMatch(/^[A-Za-z0-9_-]+$/);
+  expect(decodeViewParam(encoded)).toEqual(settings);
+  expect(decodeViewParam(encodeViewParam(EMPTY_VIEW))).toEqual(EMPTY_VIEW);
+});
+
+test("damaged, oversized or hostile share parameters decode to nothing or to a clean view", () => {
+  expect(decodeViewParam(null)).toBeNull();
+  expect(decodeViewParam("")).toBeNull();
+  expect(decodeViewParam("%%%")).toBeNull();
+  expect(decodeViewParam("bm90LWpzb24")).toBeNull();
+  expect(decodeViewParam("a".repeat(MAX_VIEW_PARAM + 1))).toBeNull();
+  const forge = (value: unknown) =>
+    btoa(JSON.stringify(value)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  expect(decodeViewParam(forge({ v: 2, s: "x" }))).toBeNull();
+  expect(decodeViewParam(forge([1, 2]))).toBeNull();
+  const hostile = decodeViewParam(
+    forge({ v: 1, s: "<img src=x onerror=1>", i: "__proto__", o: ["nope", "up"], g: "evil", a: 9e9, b: -4 }),
+  )!;
+  expect(hostile).toMatchObject({ insight: null, sort: null, group: "none", minGrams: null, maxGrams: null });
+});
+
+test("share links keep only the view parameter on the page's own path", () => {
+  const url = new URL(viewShareUrl("https://spoolsync.example/load?sample=1&view=old#top", pla200));
+  expect(url.origin + url.pathname).toBe("https://spoolsync.example/load");
+  expect([...url.searchParams.keys()]).toEqual([VIEW_PARAM]);
+  expect(url.hash).toBe("");
+  expect(decodeViewParam(url.searchParams.get(VIEW_PARAM))).toEqual(pla200);
+});
+
+test("stepping through views passes the no-view stop and wraps both ways", () => {
+  const views = [
+    { id: "a", name: "A", ...pla200 },
+    { id: "b", name: "B", ...pla200 },
+  ];
+  expect(cycleView(views, "", 1)).toBe("a");
+  expect(cycleView(views, "a", 1)).toBe("b");
+  expect(cycleView(views, "b", 1)).toBe("");
+  expect(cycleView(views, "", -1)).toBe("b");
+  expect(cycleView(views, "a", -1)).toBe("");
+  expect(cycleView(views, "gone", 1)).toBe("a");
+  expect(cycleView([], "", 1)).toBe("");
 });

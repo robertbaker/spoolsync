@@ -285,6 +285,95 @@ export function describeSettings(
   return parts.length ? parts.join(", ") : "all spools";
 }
 
+// ---- Sharing and cycling ----------------------------------------------------------------------
+
+/** The query parameter a shared view travels in. */
+export const VIEW_PARAM = "view";
+/** A shared view is a few hundred characters at most; anything longer is not one. */
+export const MAX_VIEW_PARAM = 1500;
+const SHARE_VERSION = 1;
+
+function toBase64Url(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64Url(value: string): string {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(padded);
+  return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+}
+
+/**
+ * A view's settings as a short URL-safe string: only the parts that differ from an empty view,
+ * as compact JSON in base64url. The name is not shared; the receiver sees "a shared view".
+ */
+export function encodeViewParam(settings: ViewSettings): string {
+  const clean = sanitizeSettings(settings);
+  const compact: Record<string, unknown> = { v: SHARE_VERSION };
+  if (clean.search) compact["s"] = clean.search;
+  if (clean.lowOnly) compact["l"] = 1;
+  if (clean.insight) compact["i"] = clean.insight;
+  if (clean.sort) compact["o"] = [clean.sort.key, clean.sort.direction];
+  if (clean.group !== "none") compact["g"] = clean.group;
+  if (clean.material) compact["m"] = clean.material;
+  if (clean.minGrams !== null) compact["a"] = clean.minGrams;
+  if (clean.maxGrams !== null) compact["b"] = clean.maxGrams;
+  return toBase64Url(JSON.stringify(compact));
+}
+
+/**
+ * Reads a shared view back. Everything goes through {@link sanitizeSettings}, so a hand-built or
+ * damaged link can only produce a valid view or `null`; it can never inject a value the table
+ * would not accept itself.
+ */
+export function decodeViewParam(value: string | null | undefined): ViewSettings | null {
+  if (!value || value.length > MAX_VIEW_PARAM || !/^[A-Za-z0-9_-]+$/.test(value)) return null;
+  try {
+    const raw = JSON.parse(fromBase64Url(value)) as Record<string, unknown> | null;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw["v"] !== SHARE_VERSION) return null;
+    const order = raw["o"];
+    return sanitizeSettings({
+      search: raw["s"],
+      lowOnly: raw["l"] === 1,
+      insight: raw["i"],
+      sort: Array.isArray(order) ? { key: order[0], direction: order[1] } : null,
+      group: raw["g"],
+      material: raw["m"],
+      minGrams: raw["a"],
+      maxGrams: raw["b"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** The address that opens the Load page with this view applied. `href` is the page's own address. */
+export function viewShareUrl(href: string, settings: ViewSettings): string {
+  const url = new URL(href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set(VIEW_PARAM, encodeViewParam(settings));
+  return url.toString();
+}
+
+/**
+ * The next stop when stepping through views with the keyboard: the saved views in order, with the
+ * "current filters" stop (an empty id) between the last and the first, wrapping in either direction.
+ */
+export function cycleView(
+  views: readonly SavedView[],
+  selectedId: string,
+  direction: 1 | -1,
+): string {
+  const stops = ["", ...views.map((view) => view.id)];
+  if (stops.length === 1) return "";
+  const index = Math.max(0, stops.indexOf(selectedId));
+  return stops[(index + direction + stops.length) % stops.length]!;
+}
+
 // ---- Storage --------------------------------------------------------------------------------
 
 export function readViews(): SavedView[] {

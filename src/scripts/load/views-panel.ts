@@ -4,7 +4,10 @@ import {
   EMPTY_VIEW,
   VIEW_GROUPS,
   VIEW_GROUP_LABELS,
+  VIEW_PARAM,
   addView,
+  cycleView,
+  decodeViewParam,
   deleteView,
   describeSettings,
   parseGrams,
@@ -13,6 +16,7 @@ import {
   sameSettings,
   saveViews,
   updateView,
+  viewShareUrl,
   type SavedView,
   type ViewGroup,
   type ViewResult,
@@ -20,6 +24,7 @@ import {
 } from "~/lib/saved-views";
 
 import { h, showToast } from "../dom";
+import { isTypingTarget } from "../shortcuts";
 
 const BUTTON =
   "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
@@ -61,6 +66,8 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   const rename = h("button", { type: "button", class: BUTTON }, "Rename");
   const remove = h("button", { type: "button", class: BUTTON }, "Delete");
   const clear = h("button", { type: "button", class: BUTTON }, "Clear filters");
+  const share = h("button", { type: "button", class: BUTTON, "data-action": "share-view" }, "Copy link");
+  share.title = "Copy a link that opens the Load page with these filters";
   const material = h("input", {
     id: "view-material",
     type: "text",
@@ -225,6 +232,47 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     announce("Filters cleared.");
     syncControls();
   });
+  share.addEventListener("click", () => {
+    const link = viewShareUrl(location.href, table.getViewSettings());
+    navigator.clipboard.writeText(link).then(
+      () => announce("Link copied. Anyone who opens it sees these filters on their own inventory."),
+      () => announce("Could not copy the link."),
+    );
+  });
+
+  // A shared link (?view=...) is applied once, the first time spools are on screen, so the
+  // filters act on real data. It is removed from the address so a reload does not reapply it.
+  let sharedView: ViewSettings | null = null;
+  const params = new URLSearchParams(location.search);
+  if (params.has(VIEW_PARAM)) {
+    sharedView = decodeViewParam(params.get(VIEW_PARAM));
+    params.delete(VIEW_PARAM);
+    const query = params.toString();
+    history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    if (!sharedView) showToast("That view link is damaged, so no filters were applied.", "warning");
+  }
+  function applyShared(): void {
+    if (!sharedView || !hasData()) return;
+    const settings = sharedView;
+    sharedView = null;
+    selectedId = "";
+    nameInput.value = "";
+    renderSelect();
+    table.applyViewSettings(settings);
+    announce(`Applied a shared view: ${describeSettings(settings, insightLabel)}.`);
+    syncControls();
+  }
+
+  // [ and ] step through the saved views (with "current filters" as one stop), outside text fields.
+  document.addEventListener("keydown", (event) => {
+    if ((event.key !== "[" && event.key !== "]") || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.defaultPrevented || isTypingTarget(document.activeElement)) return;
+    if (root.hidden || !views.length || document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    select.value = cycleView(views, selectedId, event.key === "]" ? 1 : -1);
+    select.dispatchEvent(new Event("change"));
+  });
+
   for (const input of [material, min, max]) input.addEventListener("input", applyRangeInputs);
   group.addEventListener("change", () => {
     table.applyViewSettings({ ...table.getViewSettings(), group: group.value as ViewGroup });
@@ -256,6 +304,7 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
         field("to", max),
         group,
         clear,
+        share,
       ),
       rangeError,
       status,
@@ -274,6 +323,7 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     update(): void {
       root.hidden = !hasData();
       syncControls();
+      applyShared();
     },
   };
 }

@@ -85,3 +85,24 @@ test("results list commands first, caps spools, and hides spools without a query
   const loadFirst = resultsFor("load", commands, spools, []);
   expect(loadFirst[0]!.id).toBe("c1");
 });
+
+test("aliases find an action by another name and rank like a title", () => {
+  const theme = { ...item("theme", "Toggle light or dark theme"), aliases: ["night mode", "appearance"] };
+  const units = { ...item("units", "Show weights in ounces", undefined, "mode"), aliases: ["imperial"] };
+  const items = [units, theme];
+  expect(rankItems(items, "imperial").map((entry) => entry.id)).toEqual(["units"]);
+  expect(rankItems(items, "night").map((entry) => entry.id)).toEqual(["theme"]);
+  // "night mode" is an alias of the theme toggle, so it outranks an entry that only has "mode".
+  expect(rankItems(items, "night mode")[0]!.id).toBe("theme");
+  expect(rankItems([theme], "zzz")).toEqual([]);
+});
+
+test("recently chosen spools lead an empty query alongside recent commands", () => {
+  const commands = [item("c1", "Go to Load"), item("c2", "Open panel")];
+  const spools = [item("spool:a", "PLA Teal"), item("spool:b", "PETG Red")];
+  const recents = ["spool:b", "c2"];
+  const recentSpools = spools.filter((entry) => recents.includes(entry.id));
+  expect(
+    resultsFor("", [...commands, ...recentSpools], spools, recents).map((entry) => entry.id),
+  ).toEqual(["spool:b", "c2", "c1"]);
+});

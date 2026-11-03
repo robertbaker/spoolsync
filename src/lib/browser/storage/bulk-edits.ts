@@ -1,4 +1,4 @@
-import { sanitizeBulkEdit, type BulkEdit } from "@spoolsync/core/core/compare";
+import { mergeBulkEdit, sanitizeBulkEdit, type BulkEdit } from "@spoolsync/core/core/compare";
 
 import { read, session, write } from "./access";
 
@@ -34,4 +34,23 @@ export function saveBulkEdits(edits: ReadonlyMap<string, BulkEdit>): void {
 
 export function clearBulkEdits(): void {
   write(session, KEY, null);
+}
+
+/**
+ * Adds a patch to the bulk edit stored for one group, as the Sync page's own form does, so the
+ * change shows up in the plan the next time that page opens. Returns the merged edit, or `null`
+ * when the patch held nothing usable or storage is unavailable.
+ */
+export function stageBulkEdit(groupId: string, patch: BulkEdit): BulkEdit | null {
+  if (!groupId) return null;
+  const edits = loadBulkEdits();
+  const merged = mergeBulkEdit(edits.get(groupId), patch);
+  if (!merged) return null;
+  edits.set(groupId, merged);
+  try {
+    session().setItem(KEY, JSON.stringify([...edits]));
+  } catch {
+    return null;
+  }
+  return merged;
 }

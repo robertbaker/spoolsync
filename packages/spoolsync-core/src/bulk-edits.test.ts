@@ -43,6 +43,34 @@ describe("sanitizeBulkEdit", () => {
   });
 });
 
+describe("remaining weight edits", () => {
+  test("accepts a sane weight, rounds to a tenth and refuses junk", () => {
+    expect(sanitizeBulkEdit({ remainingWeight: 412.34 })).toEqual({ remainingWeight: 412.3 });
+    expect(sanitizeBulkEdit({ remainingWeight: 0 })).toEqual({ remainingWeight: 0 });
+    expect(sanitizeBulkEdit({ remainingWeight: -1 })).toBeNull();
+    expect(sanitizeBulkEdit({ remainingWeight: Number.NaN })).toBeNull();
+    expect(sanitizeBulkEdit({ remainingWeight: "400" })).toBeNull();
+    expect(sanitizeBulkEdit({ remainingWeight: 1e9 })).toBeNull();
+    expect(describeBulkEdit({ remainingWeight: 300 })).toBe("remaining 300 g");
+  });
+
+  test("plans an update only where the weight differs", () => {
+    const [group] = groupOf(makeSpool("spoolman", "1", { remainingWeight: 500 }));
+    const edits = new Map<string, BulkEdit>([[group!.id, { remainingWeight: 320 }]]);
+    const plan = planSync([group!], new Map(), [], edits);
+    expect(plan.get("spoolman")?.[0]).toMatchObject({
+      changes: [{ field: "remainingWeight", from: 500, to: 320 }],
+    });
+    const same = planSync(
+      [group!],
+      new Map(),
+      [],
+      new Map<string, BulkEdit>([[group!.id, { remainingWeight: 500 }]]),
+    );
+    expect(same.get("spoolman")).toBeUndefined();
+  });
+});
+
 describe("notes and tags", () => {
   test("adds a tag once, case-insensitively, without touching other text", () => {
     expect(addTagToNote("dry me\n", "dry")).toBe("dry me #dry");
