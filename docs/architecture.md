@@ -162,9 +162,10 @@ document and imports one back, accepting only allow-listed keys whose values pas
 validators the pages use; credentials are never exported and a planted credential key is skipped
 and reported. `spoolsync --show-config` traces each option to the layer that supplied it.
 
-The Sync page keeps an undo and redo history of changes to the plan (`SyncSession.checkpoint`,
-`undo`, `redo`): each value pick, "add to" checkbox, bulk action, and reset takes a deep snapshot of
-the resolutions first (50 deep), the buttons show what they would reverse, and Ctrl or Cmd + Z
+The Sync page keeps an undo and redo history (`SyncSession.checkpoint`, `undo`, `redo`) of changes
+to the plan and of answers to possible matches: each value pick, "add to" checkbox, bulk action,
+reset, confirm, reject, bulk answer, and answer reset takes a deep snapshot of both the resolutions
+and the match answers first (50 deep), and restoring a step puts both back and saves the answers, the buttons show what they would reverse, and Ctrl or Cmd + Z
 and Shift + Z work outside text fields. The footer shows the running version (read from the CLI
 package at build time) and opens a "What's new" dialog that fetches the changelog from GitHub,
 parses it (`lib/changelog.ts`) into DOM without ever inserting HTML or following non-https links,

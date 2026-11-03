@@ -979,7 +979,10 @@ test("the saved-settings dialog shows what is remembered and can forget it", asy
   await page.goto("/load");
   await page.getByRole("button", { name: "Saved settings" }).click();
   const dialog = page.getByRole("dialog", { name: "Saved in this browser" });
-  await expect(dialog.locator("#saved-data-empty")).toBeVisible();
+  // A fresh browser has saved only the version it first saw (so a later update can be announced).
+  await expect(dialog).toContainText("Preferences");
+  await expect(dialog).toContainText("1 entry");
+  await expect(dialog).not.toContainText("File history");
   await dialog.getByRole("button", { name: "Close" }).click();
 
   await page.locator("#spoolio-file").setInputFiles(lowStockFile);
@@ -1012,7 +1015,10 @@ test("the saved-settings dialog shows what is remembered and can forget it", asy
     .getByRole("button", { name: "Close" })
     .click();
   await reloadedAgain;
-  expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
+  // Visiting again records the current version once more; nothing else comes back.
+  expect(
+    await page.evaluate(() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)]),
+  ).toEqual(["spoolsync:last-seen-version"]);
   await expect(page.locator("#load-bar")).toBeHidden();
 });
 
@@ -1097,7 +1103,8 @@ test("changes to the plan can be undone and redone from buttons and the keyboard
   await page.getByRole("button", { name: /Click again to confirm 3 pairs/ }).click();
   const undo = page.locator("#undo-choice");
   const redo = page.locator("#redo-choice");
-  await expect(undo).toBeDisabled();
+  // Confirming the pairs was the first step in the history.
+  await expect(undo).toContainText("Undo confirming 3 matches");
   await expect(redo).toBeDisabled();
 
   await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
@@ -1108,7 +1115,7 @@ test("changes to the plan can be undone and redone from buttons and the keyboard
   await undo.click();
   await expect(page.locator("#sync-bar")).toBeHidden();
   await expect(page.getByText("Undid adding all missing spools to Spoolio")).toBeVisible();
-  await expect(undo).toBeDisabled();
+  await expect(undo).toContainText("Undo confirming 3 matches");
   await expect(redo).toBeEnabled();
 
   await redo.click();
@@ -1138,4 +1145,48 @@ test("changes to the plan can be undone and redone from buttons and the keyboard
   await expect(page.locator("#sync-bar-summary")).toContainText(
     "2 changes ready across 2 services",
   );
+});
+
+test("answers to possible matches can be undone and redone", async ({ page }) => {
+  await page.goto("/sync?sample=1");
+  const undo = page.locator("#undo-choice");
+  const redo = page.locator("#redo-choice");
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  await expect(undo).toBeDisabled();
+
+  // The exact name picks a pair's own button, not the "All 3 are the same spool" bulk one.
+  await page.getByRole("button", { name: "Same spool", exact: true }).first().click();
+  await expect(page.locator("#suggestions article")).toHaveCount(2);
+  await expect(page.locator("#match-answers")).toContainText("1 same");
+  await expect(undo).toContainText("Undo confirming a match");
+
+  await undo.click();
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  await expect(page.locator("#match-answers")).toBeHidden();
+  await expect(page.getByText("Undid confirming a match")).toBeVisible();
+  await expect(redo).toContainText("Redo confirming a match");
+
+  await redo.click();
+  await expect(page.locator("#suggestions article")).toHaveCount(2);
+
+  // A bulk answer is one step, and so is resetting afterwards; Ctrl+Z walks back through both.
+  await page.getByRole("button", { name: "All 2 are different" }).click();
+  await page.getByRole("button", { name: /Click again to reject 2 pairs/ }).click();
+  await expect(page.locator("#suggestions-section")).toBeHidden();
+  await page.getByRole("button", { name: "Reset my match answers" }).click();
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+
+  await page.keyboard.press("Control+z");
+  await expect(page.locator("#suggestions-section")).toBeHidden();
+  await expect(page.locator("#match-answers")).toContainText("2 different");
+  await page.keyboard.press("Control+z");
+  await expect(page.locator("#suggestions article")).toHaveCount(2);
+  await expect(page.locator("#match-answers")).toContainText("1 same");
+
+  // The saved answers follow, so a reload keeps whatever the history left in place.
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:match-decisions")))
+    .toContain('"confirmed":["');
+  await page.reload();
+  await expect(page.locator("#suggestions article")).toHaveCount(2);
 });

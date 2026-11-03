@@ -192,3 +192,83 @@ test("snapshots are independent copies and the history is bounded", () => {
   while (state.undo() !== null) undone++;
   expect(undone).toBe(50);
 });
+
+function answerSession() {
+  return session(
+    new Map([
+      ["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1")])],
+      ["spoolio", snapshot("spoolio", [makeSpool("spoolio", "one")])],
+    ]),
+  );
+}
+
+test("a match answer can be undone and redone, and the saved answers follow", () => {
+  const { state, saveMatchDecisions } = answerSession();
+  state.recompute();
+  const suggestion = state.match.suggestions[0]!;
+  expect(state.undoLabel()).toBeNull();
+
+  state.decide(suggestion, true);
+  expect(state.decisionCounts()).toEqual({ same: 1, different: 0 });
+  expect(state.undoLabel()).toBe("confirming a match");
+
+  expect(state.undo()).toBe("confirming a match");
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 0 });
+  expect(saveMatchDecisions).toHaveBeenLastCalledWith({ confirmed: [], rejected: [] });
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(1);
+
+  expect(state.redo()).toBe("confirming a match");
+  expect(state.decisionCounts()).toEqual({ same: 1, different: 0 });
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(0);
+  expect(state.match.groups.filter((group) => group.status === "linked")).toHaveLength(1);
+});
+
+test("bulk answers and resets are single steps in the same history as plan changes", () => {
+  const { state } = answerSession();
+  state.recompute();
+  const group = state.match.groups[0]!;
+
+  state.checkpoint("adding a spool to Spoolio");
+  state.resolutionFor(group).createIn.push("spoolio");
+
+  expect(state.decideAll(false)).toBe(1);
+  expect(state.undoLabel()).toBe("rejecting 1 match");
+  // The page recomputes after every answer, which is when the answered pair stops being suggested.
+  state.recompute();
+  expect(state.decideAll(true)).toBe(0);
+  // Nothing was left to answer, so no empty step was recorded.
+  expect(state.undoLabel()).toBe("rejecting 1 match");
+
+  expect(state.resetDecisions()).toBe(1);
+  expect(state.undoLabel()).toBe("resetting match answers");
+  expect(state.resetDecisions()).toBe(0);
+  expect(state.undoLabel()).toBe("resetting match answers");
+
+  // Undo walks back through the reset, then the rejection, then the earlier plan change.
+  expect(state.undo()).toBe("resetting match answers");
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 1 });
+  expect(state.undo()).toBe("rejecting 1 match");
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 0 });
+  expect(state.resolutionFor(group).createIn).toEqual(["spoolio"]);
+  expect(state.undo()).toBe("adding a spool to Spoolio");
+  expect(state.resolutionFor(group).createIn).toEqual([]);
+  expect(state.undo()).toBeNull();
+});
+
+test("restoring a step restores answers and plan choices together", () => {
+  const { state } = answerSession();
+  state.recompute();
+  const group = state.match.groups[0]!;
+  state.checkpoint("pick");
+  state.resolutionFor(group).values["remainingWeight"] = 9;
+  state.decide(state.match.suggestions[0]!, false);
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 1 });
+
+  state.undo();
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 0 });
+  expect(state.resolutionFor(group).values["remainingWeight"]).toBe(9);
+  state.undo();
+  expect(state.resolutionFor(group).values["remainingWeight"]).toBeUndefined();
+});

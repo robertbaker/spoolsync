@@ -4,6 +4,7 @@ import { isTypingTarget } from "./shortcuts";
 const SHORTCUTS: Array<[string, string]> = [
   ["/", "Focus the search or filter on this page"],
   ["?", "Show this list of shortcuts"],
+  ["Ctrl/Cmd + Z", "Undo the last change on the Sync page; add Shift to redo"],
   ["Esc", "Close a dialog or the tour"],
 ];
 

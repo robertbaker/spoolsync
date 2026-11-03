@@ -21,9 +21,11 @@ import {
 
 const MAX_UNDO = 50;
 
+/** A point in the history: the plan's choices and the answers given to possible matches. */
 interface UndoEntry {
   label: string;
   resolutions: Map<string, GroupResolution>;
+  decisions: MatchDecisions;
 }
 
 export interface SyncPersistence {
@@ -72,6 +74,7 @@ export class SyncSession {
   }
 
   decide(suggestion: MatchSuggestion, same: boolean): void {
+    this.checkpoint(same ? "confirming a match" : "rejecting a match");
     this.decisions = decideMatch(this.decisions, suggestion, same);
     this.persistence.saveMatchDecisions(this.decisions);
   }
@@ -84,9 +87,25 @@ export class SyncSession {
    * mutating `resolutions`. A new change drops anything that could have been redone.
    */
   checkpoint(label: string): void {
-    this.undoStack.push({ label, resolutions: structuredClone(this.resolutions) });
+    this.undoStack.push(this.snapshot(label));
     if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
     this.redoStack = [];
+  }
+
+  private snapshot(label: string): UndoEntry {
+    return {
+      label,
+      resolutions: structuredClone(this.resolutions),
+      decisions: structuredClone(this.decisions),
+    };
+  }
+
+  /** Puts back a snapshot's choices and match answers, saving both. */
+  private restore(entry: UndoEntry): void {
+    this.resolutions = structuredClone(entry.resolutions);
+    this.decisions = structuredClone(entry.decisions);
+    this.persist();
+    this.persistence.saveMatchDecisions(this.decisions);
   }
 
   /** What undoing would reverse, or `null` when there is nothing to undo. */
@@ -102,18 +121,16 @@ export class SyncSession {
   undo(): string | null {
     const entry = this.undoStack.pop();
     if (!entry) return null;
-    this.redoStack.push({ label: entry.label, resolutions: structuredClone(this.resolutions) });
-    this.resolutions = structuredClone(entry.resolutions);
-    this.persist();
+    this.redoStack.push(this.snapshot(entry.label));
+    this.restore(entry);
     return entry.label;
   }
 
   redo(): string | null {
     const entry = this.redoStack.pop();
     if (!entry) return null;
-    this.undoStack.push({ label: entry.label, resolutions: structuredClone(this.resolutions) });
-    this.resolutions = structuredClone(entry.resolutions);
-    this.persist();
+    this.undoStack.push(this.snapshot(entry.label));
+    this.restore(entry);
     return entry.label;
   }
 
@@ -125,6 +142,7 @@ export class SyncSession {
   /** Forgets every saved match answer so those pairs are suggested again. */
   resetDecisions(): number {
     const { same, different } = this.decisionCounts();
+    if (same + different > 0) this.checkpoint("resetting match answers");
     this.decisions = { confirmed: [], rejected: [] };
     this.persistence.saveMatchDecisions(this.decisions);
     return same + different;
@@ -133,6 +151,10 @@ export class SyncSession {
   /** Answers every currently suggested pair the same way; the match is recomputed once afterwards. */
   decideAll(same: boolean): number {
     const suggestions = [...this.match.suggestions];
+    if (suggestions.length)
+      this.checkpoint(
+        `${same ? "confirming" : "rejecting"} ${suggestions.length} ${suggestions.length === 1 ? "match" : "matches"}`,
+      );
     for (const suggestion of suggestions)
       this.decisions = decideMatch(this.decisions, suggestion, same);
     this.persistence.saveMatchDecisions(this.decisions);
