@@ -102,3 +102,54 @@ test("TigerTag sign-in works from its panel and clears the password", async ({ p
   await page.locator("#tigertag-sign-out").click();
   await expect(page.locator("#tigertag-cloud")).toBeDisabled();
 });
+
+test("connected services can be fetched automatically when the page opens", async ({ page }) => {
+  const filament = { id: 10, name: "Black", material: "PLA", density: 1.25, diameter: 1.75 };
+  const fake = createFakeSpoolman({
+    filaments: [filament],
+    spools: [{ id: 51, filament, initial_weight: 1000, remaining_weight: 860, extra: {} }],
+  });
+  let spoolRequests = 0;
+  await page.route("http://auto.test:7912/**", async (route) => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const url = new URL(request.url());
+    if (url.pathname === "/api/v1/info")
+      return route.fulfill({ json: { version: "0.23.1" }, headers: cors });
+    if (url.pathname === "/api/v1/spool") spoolRequests++;
+    const response = await fake.fetchImpl(request.url(), { method: request.method() });
+    return route.fulfill({
+      status: response.status,
+      body: await response.text(),
+      headers: { ...cors, "content-type": "application/json" },
+    });
+  });
+
+  await page.goto("/load");
+  await expect(page.locator("#auto-fetch")).not.toBeChecked();
+  await page.locator("#spoolman-url").fill("http://auto.test:7912");
+  await page.getByRole("button", { name: "Save and test" }).click();
+  await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();
+
+  // Without the setting, a fresh page does nothing by itself. (Testing the connection made a
+  // request of its own, so compare with the count at this point.)
+  const afterTest = spoolRequests;
+  await page.reload();
+  await expect(page.locator("#spoolman-status")).toContainText("Not loaded");
+  expect(spoolRequests).toBe(afterTest);
+
+  await page.locator("#auto-fetch").check();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:prefs")))
+    .toContain('"autoFetch":true');
+  await page.reload();
+  await expect(page.locator("#auto-fetch")).toBeChecked();
+  await expect(page.locator("#spoolman-status")).toContainText("1 loaded");
+  expect(spoolRequests).toBeGreaterThan(afterTest);
+
+  // An already loaded service is not fetched again on a reload.
+  const before = spoolRequests;
+  await page.reload();
+  await expect(page.locator("#spoolman-status")).toContainText("1 loaded");
+  expect(spoolRequests).toBe(before);
+});

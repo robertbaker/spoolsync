@@ -90,9 +90,11 @@ export interface ConfigSettings {
   userConfig?: { path: string };
   /** Told when saved settings change what a run does, so the person is not surprised. */
   onNote?: (message: string) => void;
-  /** Which source options are allowed to be defaults (used for messages only). */
-  readText?: ConfigDependencies["readText"];
+  /** Reports each option a layer contributes, for `--show-config`. */
+  trace?: (entry: { layer: ConfigLayer; option: string }) => void;
 }
+
+export type ConfigLayer = "command line" | "--config file" | "settings file";
 
 /** Turns one config file into command-line options, skipping anything already given. */
 function optionsFromFile(
@@ -181,8 +183,12 @@ export function expandConfig(
   let result = rest;
   if (configFile !== undefined) {
     const config = readConfig(configFile, dependencies);
-    result = [...optionsFromFile(configFile, config, givenFlags(rest), false), ...rest];
+    const fromConfig = optionsFromFile(configFile, config, givenFlags(rest), false);
+    for (const option of fromConfig) settings.trace?.({ layer: "--config file", option });
+    result = [...fromConfig, ...rest];
   }
+
+  if (rest.length) settings.trace?.({ layer: "command line", option: rest.join(" ") });
 
   const user = useUserConfig ? settings.userConfig : undefined;
   if (user) {
@@ -198,6 +204,7 @@ export function expandConfig(
         settings.onNote?.(
           `Using the inventories saved in ${user.path} (--no-user-config ignores it).`,
         );
+      for (const option of expanded) settings.trace?.({ layer: "settings file", option });
       result = [...expanded, ...result];
     }
   }

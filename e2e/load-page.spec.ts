@@ -1015,3 +1015,76 @@ test("the saved-settings dialog shows what is remembered and can forget it", asy
   expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
   await expect(page.locator("#load-bar")).toBeHidden();
 });
+
+test("settings can be exported and imported into another browser, minus credentials", async ({
+  page,
+  browser,
+}) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  await page.locator("#low-threshold").selectOption("30");
+  await page.getByRole("button", { name: /^Brand/ }).click();
+  await page.evaluate(() => localStorage.setItem("spoolsync:spoolman-token", "SECRET-TOKEN"));
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:prefs")))
+    .toContain("tableSort");
+
+  await page.getByRole("button", { name: "Saved settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Saved in this browser" });
+  const downloadPromise = page.waitForEvent("download");
+  await dialog.getByRole("button", { name: "Export settings" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^spoolsync-settings-\d{4}-\d{2}-\d{2}\.json$/);
+  const chunks: Buffer[] = [];
+  for await (const chunk of await download.createReadStream()) chunks.push(Buffer.from(chunk));
+  const exported = Buffer.concat(chunks).toString("utf8");
+  expect(exported).toContain('"format": "spoolsync-settings"');
+  expect(exported).toContain("spoolsync:low-stock-percent");
+  expect(exported).not.toContain("SECRET-TOKEN");
+
+  // A fresh browser profile imports it.
+  const other = await browser.newContext();
+  const otherPage = await other.newPage();
+  await otherPage.goto("/load");
+  await otherPage.getByRole("button", { name: "Saved settings" }).click();
+  const otherDialog = otherPage.getByRole("dialog", { name: "Saved in this browser" });
+  await otherDialog.getByLabel("Settings file to import").setInputFiles({
+    name: "settings.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(exported),
+  });
+  await expect(otherDialog.locator("#import-settings-result")).toContainText("Imported");
+  const reloaded = otherPage.waitForEvent("load");
+  await otherDialog.getByRole("button", { name: "Close" }).click();
+  await reloaded;
+  expect(await otherPage.evaluate(() => localStorage.getItem("spoolsync:low-stock-percent"))).toBe(
+    "30",
+  );
+  expect(
+    await otherPage.evaluate(() => localStorage.getItem("spoolsync:spoolman-token")),
+  ).toBeNull();
+
+  // Credentials in a hand-edited file are skipped and reported; junk is refused.
+  await otherPage.getByRole("button", { name: "Saved settings" }).click();
+  await otherDialog.getByLabel("Settings file to import").setInputFiles({
+    name: "planted.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        format: "spoolsync-settings",
+        version: 1,
+        entries: { "spoolsync:spoolman-token": "planted", "spoolsync:chart-view": "brand" },
+      }),
+    ),
+  });
+  await expect(otherDialog.locator("#import-settings-result")).toContainText(
+    "Imported 1 setting; skipped 1",
+  );
+  await otherDialog.getByLabel("Settings file to import").setInputFiles({
+    name: "junk.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("not json at all"),
+  });
+  await expect(otherDialog.locator("#import-settings-result")).toContainText("not valid JSON");
+  await other.close();
+});

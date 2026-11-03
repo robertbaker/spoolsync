@@ -1,6 +1,13 @@
 import { beforeEach, expect, test } from "bun:test";
 
-import { forgetEverything, forgetGroup, formatBytes, listSavedData } from "./saved-data";
+import {
+  exportSettings,
+  forgetEverything,
+  forgetGroup,
+  formatBytes,
+  importSettings,
+  listSavedData,
+} from "./saved-data";
 
 beforeEach(() => {
   localStorage.clear();
@@ -50,4 +57,85 @@ test("forgetting everything clears all spoolsync keys, including ones no group n
 test("sizes are shown in plain units", () => {
   expect(formatBytes(512)).toBe("512 B");
   expect(formatBytes(2048)).toBe("2.0 KB");
+});
+
+test("exports portable settings only, never credentials or loaded inventories", () => {
+  localStorage.setItem("spoolsync:prefs", '{"lowOnly":true}');
+  localStorage.setItem("spoolsync:low-stock-percent", "30");
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  localStorage.setItem("spoolsync:match-decisions", '{"confirmed":["a|b"],"rejected":[]}');
+  localStorage.setItem("spoolsync:spoolman-connection", '{"baseUrl":"http://secret.local"}');
+  localStorage.setItem("spoolsync:spoolman-token", "TOKEN");
+  localStorage.setItem("spoolsync:tigertag-session", "SESSION");
+  sessionStorage.setItem("spoolsync:load:spoolio", "{}");
+  const text = exportSettings(new Date("2026-11-03T12:00:00Z"));
+  const document = JSON.parse(text);
+  expect(document).toMatchObject({
+    format: "spoolsync-settings",
+    version: 1,
+    exportedAt: "2026-11-03T12:00:00.000Z",
+  });
+  expect(Object.keys(document.entries).sort()).toEqual([
+    "spoolsync:chart-view",
+    "spoolsync:low-stock-percent",
+    "spoolsync:match-decisions",
+    "spoolsync:prefs",
+  ]);
+  for (const secret of ["secret.local", "TOKEN", "SESSION", "load:spoolio"])
+    expect(text).not.toContain(secret);
+});
+
+test("an export imports into a clean browser, round trip", () => {
+  localStorage.setItem("spoolsync:prefs", '{"syncFilter":"open"}');
+  localStorage.setItem("spoolsync:open-panels", '["spoolio"]');
+  const text = exportSettings();
+  localStorage.clear();
+  const result = importSettings(text);
+  expect(result.skipped).toEqual([]);
+  expect(result.imported.sort()).toEqual(["spoolsync:open-panels", "spoolsync:prefs"]);
+  expect(localStorage.getItem("spoolsync:prefs")).toBe('{"syncFilter":"open"}');
+  expect(localStorage.getItem("spoolsync:open-panels")).toBe('["spoolio"]');
+});
+
+test("import skips credentials, unknown keys, and invalid values, and names them", () => {
+  const result = importSettings(
+    JSON.stringify({
+      format: "spoolsync-settings",
+      version: 1,
+      entries: {
+        "spoolsync:low-stock-percent": "30",
+        "spoolsync:spoolman-token": "planted",
+        "spoolsync:tigertag-session": "planted",
+        "spoolsync:chart-view": "pie",
+        "spoolsync:prefs": '{"nonsense":true}',
+        "spoolsync:open-panels": "[1,2]",
+        "spoolsync:match-decisions": 42,
+        "other-app": "x",
+      },
+    }),
+  );
+  expect(result.imported).toEqual(["spoolsync:low-stock-percent"]);
+  expect(result.skipped.sort()).toEqual([
+    "other-app",
+    "spoolsync:chart-view",
+    "spoolsync:match-decisions",
+    "spoolsync:open-panels",
+    "spoolsync:prefs",
+    "spoolsync:spoolman-token",
+    "spoolsync:tigertag-session",
+  ]);
+  expect(localStorage.getItem("spoolsync:spoolman-token")).toBeNull();
+  expect(localStorage.getItem("other-app")).toBeNull();
+});
+
+test("files that are not a settings export are refused with a clear reason", () => {
+  expect(() => importSettings("{nope")).toThrow("not valid JSON");
+  expect(() => importSettings("[]")).toThrow("not a SpoolSync settings export");
+  expect(() => importSettings('{"format":"something-else"}')).toThrow(
+    "not a SpoolSync settings export",
+  );
+  expect(() => importSettings('{"format":"spoolsync-settings","version":9,"entries":{}}')).toThrow(
+    "version 9",
+  );
+  expect(() => importSettings('{"format":"spoolsync-settings","version":1}')).toThrow("no entries");
 });

@@ -116,6 +116,10 @@ const fileSources = [
         <h2 class="text-xl font-bold">Services</h2>
         <p id="source-count" class="text-sm text-muted-foreground" aria-live="polite"></p>
       </div>
+      <label class="flex items-center gap-2 text-xs text-muted-foreground" for="auto-fetch">
+        <input id="auto-fetch" type="checkbox" class="size-4" />
+        Fetch connected services when this page opens
+      </label>
       <search class="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         <input
           id="source-search"

@@ -57,6 +57,11 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     kind: "flag",
   },
   { flag: "--no-user-config", description: "Ignore the settings file for this run", kind: "flag" },
+  {
+    flag: "--show-config",
+    description: "Show which settings file or option supplies each default",
+    kind: "flag",
+  },
   { flag: "--config-path", description: "Print where the settings file lives", kind: "flag" },
   { flag: "--clear-config", description: "Delete the settings file", kind: "flag" },
   { flag: "--reorder", description: "Print spools that are running low", kind: "flag" },

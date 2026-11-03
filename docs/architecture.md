@@ -155,6 +155,13 @@ apply only when none are named; secrets and per-run options are never saved; wri
 private. Tests point `SPOOLSYNC_CONFIG_DIR` at a throwaway folder and pass it to spawned CLIs
 explicitly, because Bun does not forward runtime `process.env` changes to children.
 
+Opt-in auto-fetch (a preference) clicks the fetch buttons of connected services when the Load page
+opens, skipping any that are not connected or already loaded. Settings can move between browsers:
+the Saved settings dialog exports preferences, file history, and match answers as a versioned JSON
+document and imports one back, accepting only allow-listed keys whose values pass the same
+validators the pages use; credentials are never exported and a planted credential key is skipped
+and reported. `spoolsync --show-config` traces each option to the layer that supplied it.
+
 The threshold is a `LowStockRule` (share of full weight, plus fallback grams that scale with it) that
 every caller can pass; the web app saves the visitor's choice (`lib/low-stock.ts`, 10 to 50 percent)
 and the CLI takes `--low-threshold` or a numeric `low-threshold` config key. The chart also groups by

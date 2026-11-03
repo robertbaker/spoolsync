@@ -80,6 +80,8 @@ spoolsync --summary          # uses the saved inventories
 - **Never saved:** tokens and passwords, `--apply`, `--watch`, and per-run choices such as
   `--confirm`. The file is written atomically and readable only by you.
 - `--no-user-config` ignores the file for one run, and `--clear-config` deletes it.
+- `--show-config` prints what the settings file, `--config`, and the command line each contribute, to
+  see why an option has the value it has.
 
 Keep your usual options in a config file. Keys are the long option names without dashes, paths are
 relative to the file, and command-line options replace the same option from the file:

@@ -602,6 +602,19 @@ test("saved settings are remembered between runs and can be overridden, ignored,
   expect(remembered.stdout).toContain("spoolkeep: 1 spool");
   expect(remembered.stderr).toContain("Using the inventories saved in");
 
+  // --show-config says which layer supplies what.
+  const shown = await run("--show-config", "--summary");
+  expect(shown.code).toBe(0);
+  expect(shown.stdout).toContain(`Settings file: ${path.join(settingsDir, "config.json")}`);
+  expect(shown.stdout).toContain(`settings file:\n  --spoolkeep=${keep}\n  --low-threshold=30`);
+  expect(shown.stdout).toContain("command line:\n  --summary");
+  const overridden = await run("--show-config", "--low-threshold", "10", "--summary");
+  expect(overridden.stdout).not.toContain("--low-threshold=30");
+  expect(overridden.stdout).toContain("command line:\n  --low-threshold 10 --summary");
+  expect((await run("--show-config", "--no-user-config")).stdout).toContain(
+    "ignored by --no-user-config",
+  );
+
   // Naming an inventory means the saved set is left out.
   const other = await run("--spoolio", "spoolio.json", "--summary");
   expect(other.stdout).toContain("spoolio: 0 spools");

@@ -2,6 +2,7 @@
 
 import { version } from "../package.json";
 import { parseArgs } from "./args";
+import { expandConfig } from "./config";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
 import { clearUserConfig, savableSettings, saveUserConfig, userConfigPath } from "./user-config";
@@ -27,6 +28,24 @@ try {
     const configFile = userConfigPath();
     if (args.includes("--config-path")) {
       output.log(configFile);
+    } else if (args.includes("--show-config")) {
+      const lines: Record<string, string[]> = {};
+      expandConfig(
+        args.filter((arg) => arg !== "--show-config"),
+        undefined,
+        {
+          userConfig: { path: configFile },
+          trace: ({ layer, option }) => (lines[layer] ??= []).push(option),
+        },
+      );
+      output.log(
+        `Settings file: ${configFile}${args.includes("--no-user-config") ? " (ignored by --no-user-config)" : ""}`,
+      );
+      for (const layer of ["settings file", "--config file", "command line"] as const) {
+        output.log(`\n${layer}:`);
+        for (const option of lines[layer] ?? []) output.log(`  ${option}`);
+        if (!lines[layer]?.length) output.log("  (nothing)");
+      }
     } else if (args.includes("--clear-config")) {
       const removed = await clearUserConfig(configFile);
       output.log(removed ? `Removed ${configFile}` : `No saved settings at ${configFile}`);

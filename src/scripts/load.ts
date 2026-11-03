@@ -1,7 +1,8 @@
-import { SOURCE_IDS, type LoadResult } from "@spoolsync/core/core/model";
+import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
+import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 
 import { CONNECTION_CHANGED } from "./connections/events";
@@ -156,4 +157,26 @@ if (thresholdSelect) {
     saveLowStockPercent(Number(thresholdSelect.value));
     render();
   });
+}
+
+// Opt-in: a returning visitor with connected services lands on loaded data.
+const autoFetch = document.getElementById("auto-fetch") as HTMLInputElement | null;
+if (autoFetch) {
+  autoFetch.checked = readPreferences().autoFetch ?? false;
+  autoFetch.addEventListener("change", () =>
+    updatePreferences({ autoFetch: autoFetch.checked || undefined }),
+  );
+  if (autoFetch.checked) {
+    const fetchers: Array<[SourceId, string]> = [
+      ["spoolman", "spoolman-load"],
+      ["tigertag", "tigertag-cloud"],
+      ["bambuddy", "bambuddy-fetch"],
+      ["filamentdb", "filamentdb-fetch"],
+    ];
+    for (const [source, id] of fetchers) {
+      const button = document.getElementById(id) as HTMLButtonElement | null;
+      // Only services that are connected (their button is enabled) and not already loaded.
+      if (button && !button.disabled && !state.results.has(source)) button.click();
+    }
+  }
 }

@@ -45,6 +45,7 @@ Output:
   --reorder               Print a shopping list of spools that are running low
   --save-config           Save the given options (and inventory paths) as defaults in your settings file
   --no-user-config        Ignore the settings file for this run
+  --show-config           Show what the settings file, --config, and the command line each supply
   --config-path           Print where the settings file lives
   --clear-config          Delete the settings file
   --summary               Print counts for each loaded inventory instead of planning changes

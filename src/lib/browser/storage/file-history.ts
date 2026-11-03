@@ -15,7 +15,7 @@ export interface FileHistoryEntry {
 
 export type FileHistory = Partial<Record<SourceId, FileHistoryEntry>>;
 
-function sanitize(raw: unknown): FileHistory {
+export function sanitizeFileHistory(raw: unknown): FileHistory {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const result: FileHistory = {};
   for (const source of SOURCE_IDS) {
@@ -44,7 +44,7 @@ function sanitize(raw: unknown): FileHistory {
 
 export function readFileHistory(): FileHistory {
   try {
-    return sanitize(JSON.parse(read(local, KEY) ?? "{}"));
+    return sanitizeFileHistory(JSON.parse(read(local, KEY) ?? "{}"));
   } catch {
     return {};
   }

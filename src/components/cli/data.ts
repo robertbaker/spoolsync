@@ -121,6 +121,11 @@ export const output = [
     desc: "Save the options you give, and your inventory file paths, as defaults in your per-user settings file (~/.config/spoolsync/config.json). Tokens, --apply and per-run choices are never saved.",
   },
   {
+    flag: "--show-config",
+    copy: "--show-config",
+    desc: "Show what the settings file, --config, and the command line each contribute, to see where an option's value comes from.",
+  },
+  {
     flag: "--no-user-config",
     copy: "--no-user-config",
     desc: "Ignore the per-user settings file for this run.",

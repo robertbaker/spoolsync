@@ -19,6 +19,8 @@ export interface Preferences {
   tableSort?: { key: SortKey; direction: "asc" | "desc" };
   /** Show only spools that are running low. */
   lowOnly?: boolean;
+  /** Fetch connected services (Spoolman, TigerTag, ...) as soon as the Load page opens. */
+  autoFetch?: boolean;
   /** Which services the Load page list shows. */
   sourceFilter?: (typeof SOURCE_FILTERS)[number];
   /** Which groups the Sync page list shows. */
@@ -26,7 +28,7 @@ export interface Preferences {
 }
 
 /** Keeps only values of the right shape, so a damaged or hand-edited entry cannot break a page. */
-function sanitize(raw: unknown): Preferences {
+export function sanitizePreferences(raw: unknown): Preferences {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const input = raw as Record<string, unknown>;
   const result: Preferences = {};
@@ -39,6 +41,7 @@ function sanitize(raw: unknown): Preferences {
   )
     result.tableSort = { key: sort.key as SortKey, direction: sort.direction };
   if (typeof input["lowOnly"] === "boolean") result.lowOnly = input["lowOnly"];
+  if (typeof input["autoFetch"] === "boolean") result.autoFetch = input["autoFetch"];
   if (SOURCE_FILTERS.includes(input["sourceFilter"] as never))
     result.sourceFilter = input["sourceFilter"] as Preferences["sourceFilter"] & string;
   if (SYNC_FILTERS.includes(input["syncFilter"] as never))
@@ -48,7 +51,7 @@ function sanitize(raw: unknown): Preferences {
 
 export function readPreferences(): Preferences {
   try {
-    return sanitize(JSON.parse(read(local, KEY) ?? "{}"));
+    return sanitizePreferences(JSON.parse(read(local, KEY) ?? "{}"));
   } catch {
     return {};
   }
@@ -63,7 +66,7 @@ export function updatePreferences(patch: {
     if (value === undefined) delete next[key];
     else next[key] = value;
   }
-  const clean = sanitize(next);
+  const clean = sanitizePreferences(next);
   write(local, KEY, Object.keys(clean).length ? JSON.stringify(clean) : null);
 }
 

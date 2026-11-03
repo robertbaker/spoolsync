@@ -1,9 +1,22 @@
-import { forgetEverything, forgetGroup, formatBytes, listSavedData } from "~/lib/saved-data";
+import {
+  exportSettings,
+  forgetEverything,
+  forgetGroup,
+  formatBytes,
+  importSettings,
+  listSavedData,
+} from "~/lib/saved-data";
 
 import { h } from "./dom";
+import { download } from "./sync/presentation";
 
 let dialog: HTMLDialogElement | undefined;
 let changed = false;
+const importResult = h("p", {
+  id: "import-settings-result",
+  class: "mt-2 text-xs",
+  role: "status",
+});
 
 function rebuild(body: HTMLElement): void {
   const items = listSavedData();
@@ -64,6 +77,49 @@ function rebuild(body: HTMLElement): void {
     "Close",
   );
   close.addEventListener("click", () => dialog?.close());
+  const buttonClass =
+    "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary";
+  const exportButton = h("button", { type: "button", class: buttonClass }, "Export settings");
+  exportButton.addEventListener("click", () =>
+    download(
+      `spoolsync-settings-${new Date().toISOString().slice(0, 10)}.json`,
+      exportSettings(),
+      "application/json",
+    ),
+  );
+  const fileInput = h("input", {
+    type: "file",
+    accept: ".json,application/json",
+    class: "sr-only",
+    id: "import-settings-file",
+    "aria-label": "Settings file to import",
+  });
+  const importButton = h(
+    "label",
+    { class: `${buttonClass} cursor-pointer`, for: "import-settings-file" },
+    "Import settings",
+  );
+  const result = importResult;
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = "";
+    if (!file) return;
+    try {
+      const outcome = importSettings(await file.text());
+      changed = changed || outcome.imported.length > 0;
+      result.textContent =
+        `Imported ${outcome.imported.length} ${outcome.imported.length === 1 ? "setting" : "settings"}` +
+        (outcome.skipped.length
+          ? `; skipped ${outcome.skipped.length} that could not be used (such as credentials)`
+          : "") +
+        ". The page reloads when you close this.";
+      result.className = "mt-2 text-xs text-success-text";
+      if (outcome.imported.length) rebuild(body);
+    } catch (error) {
+      result.textContent = (error as Error).message;
+      result.className = "mt-2 text-xs text-error";
+    }
+  });
   body.replaceChildren(
     h(
       "h2",
@@ -86,6 +142,18 @@ function rebuild(body: HTMLElement): void {
           },
           "Nothing is saved.",
         ),
+    h(
+      "div",
+      { class: "mt-4 border-t pt-3" },
+      h("p", { class: "text-sm font-semibold" }, "Move to another browser"),
+      h(
+        "p",
+        { class: "text-xs text-muted-foreground" },
+        "Export your preferences, file history, and match answers to a file, then import it elsewhere. Connections and tokens are never included.",
+      ),
+      h("div", { class: "mt-2 flex flex-wrap gap-2" }, exportButton, importButton, fileInput),
+      result,
+    ),
     h(
       "div",
       { class: "mt-5 flex flex-wrap items-center justify-between gap-3" },
@@ -124,6 +192,7 @@ function ensureDialog(): HTMLDialogElement {
 export function openSavedData(): void {
   const element = ensureDialog();
   changed = false;
+  importResult.textContent = "";
   rebuild(element.firstElementChild as HTMLElement);
   if (!element.open) element.showModal();
 }
