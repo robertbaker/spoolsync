@@ -6,7 +6,7 @@ import { ExecutionError, executeWrites } from "./execution";
 import { prepareExports } from "./exports";
 import { loadInputs } from "./inputs";
 import { createCliPlan } from "./planning";
-import { reportWorkflow } from "./report";
+import { reportCsvOnly, reportWorkflow } from "./report";
 import type { CliDependencies, CliOutput } from "./runtime";
 
 export async function runWorkflow(
@@ -15,6 +15,13 @@ export async function runWorkflow(
   output: CliOutput,
 ): Promise<void> {
   const { loaded, services } = await loadInputs(options, dependencies);
+  if (options.exportCsv && loaded.size < 2) {
+    // A single inventory has nothing to compare; this is an export only.
+    const { staged } = await prepareExports(options, loaded, new Map(), dependencies);
+    const { written } = await executeWrites(staged);
+    reportCsvOnly(options, loaded, written, output);
+    return;
+  }
   const planning = createCliPlan(options, loaded);
   const { staged, exportWarnings } = await prepareExports(
     options,

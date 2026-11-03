@@ -87,6 +87,20 @@ describe("CLI arguments", () => {
     expect(pairArg("spoolapp:a,spoolkeep:b")).toBe(pairArg("spoolkeep:b,spoolapp:a"));
   });
 
+  test("--export-csv allows a single inventory but not comparison options", () => {
+    const options = parseArgs(["--spoolkeep", "keep.json", "--export-csv", "all.csv"]);
+    expect(options.exportCsv).toBe("all.csv");
+    expect(() => parseArgs(["--spoolkeep", "keep.json"])).toThrow("at least two");
+    expect(() => parseArgs(["--export-csv", "all.csv"])).toThrow("at least one inventory");
+    expect(() =>
+      parseArgs(["--spoolkeep", "keep.json", "--export-csv", "a.csv", "--output-dir", "out"]),
+    ).toThrow("single inventory");
+    expect(() =>
+      parseArgs(["--spoolkeep", "k.json", "--export-csv", "a.csv", "--export-csv", "b.csv"]),
+    ).toThrow("only be provided once");
+    expect(parseArgs([...files, "--export-csv", "all.csv"]).exportCsv).toBe("all.csv");
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(

@@ -96,6 +96,11 @@ export const output = [
     desc: "Write updated import files for file-loaded writable sources into this directory. Must differ from your input files.",
   },
   {
+    flag: "--export-csv <file>",
+    copy: "--export-csv",
+    desc: "Write every loaded spool to one CSV file, tagged by service. Works with a single inventory, and never overwrites an input file.",
+  },
+  {
     flag: "--apply",
     copy: "--apply",
     desc: "Apply planned changes directly to Spoolman. Requires --spoolman-url.",
@@ -135,6 +140,14 @@ export const examples = [
     body: "Use Spoolstock values to resolve conflicts, add missing spools to Spoolio, and save updated import files.",
     file: "update-files",
     code: "spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json --resolve material=spoolstock --create-in spoolio --output-dir ./updated",
+  },
+  {
+    title: "Export everything to a spreadsheet",
+    icon: "material-symbols:table-chart-outline",
+    effect: { label: "Writes ./inventory.csv", color: "info" },
+    body: "Combine any loaded inventories, even just one, into a single CSV for a spreadsheet or backup.",
+    file: "export-csv",
+    code: "spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv ./inventory.csv",
   },
   {
     title: "Update Spoolman directly",

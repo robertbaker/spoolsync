@@ -43,7 +43,7 @@ export async function validateOutputPaths(inputs: string[], outputs: string[]): 
     const id = await identity(filename);
     if (inputPaths.has(canonical) || (id && inputIds.has(id)))
       throw new Error(
-        `Output would overwrite an input inventory: ${filename}. Choose another --output-dir.`,
+        `Output would overwrite an input inventory: ${filename}. Choose another output location.`,
       );
   }
 }
@@ -123,6 +123,34 @@ export async function stageOutputFiles(
         throw new ExportCommitError(written, error);
       }
       return written;
+    },
+  };
+}
+
+/** Commits two staged outputs one after the other, reporting every file replaced so far. */
+export function combineStaged(
+  primary: StagedOutput | undefined,
+  secondary: StagedOutput,
+): StagedOutput {
+  if (!primary) return secondary;
+  return {
+    async commit(): Promise<string[]> {
+      const first = await primary.commit();
+      try {
+        return [...first, ...(await secondary.commit())];
+      } catch (error) {
+        throw new ExportCommitError(
+          [...first, ...(error instanceof ExportCommitError ? error.written : [])],
+          error instanceof ExportCommitError ? error.cause : error,
+        );
+      }
+    },
+    async cleanup(): Promise<void> {
+      try {
+        await primary.cleanup();
+      } finally {
+        await secondary.cleanup();
+      }
     },
   };
 }

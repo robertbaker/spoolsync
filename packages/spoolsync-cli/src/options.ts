@@ -15,5 +15,7 @@ export type Options = {
   confirm: string[];
   reject: string[];
   outputDir?: string;
+  /** Write every loaded spool to one CSV file. */
+  exportCsv?: string;
   json: boolean;
 };

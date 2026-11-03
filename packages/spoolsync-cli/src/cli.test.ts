@@ -131,6 +131,55 @@ test("compares a SpoolMaster .xlsx workbook against a writable file inventory", 
   });
 });
 
+test("--export-csv writes every loaded spool, alone or alongside a comparison", async () => {
+  await writeFile(
+    path.join(directory, "keep.json"),
+    JSON.stringify([{ id: "k1", brand: "Creality", family: "PLA", color: "Blue", newQuantity: 1 }]),
+  );
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+
+  const single = path.join(directory, "single.csv");
+  const alone = await run("--spoolkeep", path.join(directory, "keep.json"), "--export-csv", single);
+  expect(alone).toMatchObject({ code: 0, stderr: "" });
+  expect(alone.stdout).toContain(`Exported 1 spool to ${single}`);
+  const csv = await readFile(single, "utf8");
+  expect(csv).toContain("service,id,vendor,material,name");
+  expect(csv).toContain("SpoolKeep,k1,Creality,PLA,Blue");
+
+  const both = path.join(directory, "both.csv");
+  const combined = await run(
+    "--spoolkeep",
+    path.join(directory, "keep.json"),
+    "--spoolio",
+    path.join(directory, "spoolio.json"),
+    "--export-csv",
+    both,
+    "--json",
+  );
+  expect(combined).toMatchObject({ code: 0, stderr: "" });
+  expect(JSON.parse(combined.stdout).csvExport).toBe(both);
+  expect((await readFile(both, "utf8")).trim().split("\r\n")).toHaveLength(2);
+
+  // An export can never overwrite one of the inputs.
+  const refused = await run(
+    "--spoolkeep",
+    path.join(directory, "keep.json"),
+    "--export-csv",
+    path.join(directory, "keep.json"),
+  );
+  expect(refused.code).not.toBe(0);
+  expect(refused.stderr).toContain("would overwrite an input inventory");
+  expect(JSON.parse(await readFile(path.join(directory, "keep.json"), "utf8"))).toHaveLength(1);
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

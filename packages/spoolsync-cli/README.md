@@ -41,12 +41,19 @@ Start a new target inventory without a starter file:
 spoolsync --spoolio spoolio.json --empty filameter --create-in filameter --output-dir ./updated
 ```
 
+Export every loaded spool to one spreadsheet-friendly CSV, tagged by service. This also works with a
+single inventory, and it refuses to overwrite one of your input files:
+
+```sh
+spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv ./inventory.csv
+```
+
 ## Options
 
 - **Equals syntax:** options with values also accept `--spoolman=spoolman.json` or
   `--resolve=material=spoolstock`. Use it when a filename, directory, or token starts with a dash,
   such as `--spoolio=-inventory.json` or `--output-dir=-updated`.
-- **Single-use options:** connection options and `--output-dir` may only be supplied once;
+- **Single-use options:** connection options, `--output-dir`, and `--export-csv` may only be supplied once;
   `--spoolman-token` requires `--spoolman-url`.
 - **`--resolve`:** choose one source per field; conflicting repeated resolutions are rejected.
   Run `spoolsync --help` for valid fields and source names.

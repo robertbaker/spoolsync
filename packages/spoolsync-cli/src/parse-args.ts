@@ -31,6 +31,7 @@ const sourceFlags: Record<string, SourceId> = {
 
 const SINGLETON_FLAGS: string[] = [
   "--output-dir",
+  "--export-csv",
   "--spoolman-url",
   "--spoolman-token",
   "--filamentdb-url",
@@ -47,6 +48,7 @@ export function parseArgs(args: string[]): Options {
   const confirm: string[] = [];
   const reject: string[] = [];
   let outputDir: string | undefined;
+  let exportCsv: string | undefined;
   let spoolmanUrl: string | undefined;
   let spoolmanToken: string | undefined;
   let filamentdbUrl: string | undefined;
@@ -121,6 +123,8 @@ export function parseArgs(args: string[]): Options {
       }
     } else if (arg === "--output-dir") {
       outputDir = value(arg);
+    } else if (arg === "--export-csv") {
+      exportCsv = value(arg);
     } else if (arg === "--spoolman-url") {
       spoolmanUrl = value(arg);
     } else if (arg === "--spoolman-token") {
@@ -156,6 +160,7 @@ export function parseArgs(args: string[]): Options {
     ...(filadexUser ? { filadexUser } : {}),
     apply,
     ...(outputDir ? { outputDir } : {}),
+    ...(exportCsv ? { exportCsv } : {}),
     json,
   };
   validateOptions(options);

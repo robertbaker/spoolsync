@@ -7,8 +7,10 @@ import {
   type SourceId,
   type WritableSourceId,
 } from "@spoolsync/core/core/model";
+import { combinedInventoryCsv } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
+import { combineStaged } from "./output";
 import type { CliDependencies } from "./runtime";
 
 function outputBase(source: WritableSourceId): string {
@@ -61,8 +63,27 @@ export async function prepareExports(
       pendingFiles.map((file) => file.filename),
     );
   }
-  const staged = options.outputDir
+  let staged = options.outputDir
     ? await dependencies.stageOutputFiles(options.outputDir, pendingFiles)
     : undefined;
+  if (options.exportCsv) {
+    // Serialized with the other exports, so nothing is written if any of them fails.
+    try {
+      const { csv } = combinedInventoryCsv([...loaded.values()]);
+      await dependencies.validateOutputPaths(
+        [...options.inputs.values()],
+        [...pendingFiles.map((file) => file.filename), options.exportCsv],
+      );
+      staged = combineStaged(
+        staged,
+        await dependencies.stageOutputFiles(path.dirname(options.exportCsv), [
+          { filename: options.exportCsv, text: csv },
+        ]),
+      );
+    } catch (error) {
+      await staged?.cleanup();
+      throw error;
+    }
+  }
   return { staged, exportWarnings };
 }

@@ -23,6 +23,7 @@ export function validateOptions(options: Options): void {
     filadexUser,
     apply,
     outputDir,
+    exportCsv,
   } = options;
   if (spoolmanUrl && inputs.has("spoolman"))
     throw new Error("Use either --spoolman-url or --spoolman <file>, not both.");
@@ -47,15 +48,24 @@ export function validateOptions(options: Options): void {
       (source === "filadex" && filadexUrl)
     )
       throw new Error(`Use either --empty ${source} or a file/API input for ${source}, not both.`);
-  if (
+  const inventories =
     inputs.size +
-      empty.length +
-      (spoolmanUrl ? 1 : 0) +
-      (filamentdbUrl ? 1 : 0) +
-      (filadexUrl ? 1 : 0) <
-    2
-  )
-    throw new Error("Provide at least two inventories to compare.");
+    empty.length +
+    (spoolmanUrl ? 1 : 0) +
+    (filamentdbUrl ? 1 : 0) +
+    (filadexUrl ? 1 : 0);
+  if (inventories < 2) {
+    if (!exportCsv || inventories < 1)
+      throw new Error(
+        exportCsv
+          ? "Provide at least one inventory to export."
+          : "Provide at least two inventories to compare.",
+      );
+    if (apply || outputDir || createIn.length || resolves.length || confirm.length || reject.length)
+      throw new Error(
+        "With a single inventory, --export-csv only exports it; comparing, resolving, and writing need at least two inventories.",
+      );
+  }
   if (
     outputDir &&
     ![...inputs.keys(), ...empty].some((source) =>

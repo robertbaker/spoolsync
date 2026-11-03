@@ -25,8 +25,22 @@ export function reportWorkflow(
   output: CliOutput,
 ): void {
   const { spools, matches, summary } = planning;
+  const csvFile = options.exportCsv;
+  const inventoryFiles = written.filter((file) => file !== csvFile);
   if (options.json) {
-    output.log(JSON.stringify({ ...summary, applied, written, exportWarnings }, null, 2));
+    output.log(
+      JSON.stringify(
+        {
+          ...summary,
+          applied,
+          written: inventoryFiles,
+          ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
+          exportWarnings,
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     output.log(
       `${spools.length} spool${spools.length === 1 ? "" : "s"} in ${loaded.size} inventories; ${matches.groups.length} group${matches.groups.length === 1 ? "" : "s"}, ${matches.suggestions.length} match suggestion${matches.suggestions.length === 1 ? "" : "s"}.`,
@@ -57,16 +71,35 @@ export function reportWorkflow(
     for (const problem of matches.problems) output.warn(`Warning: ${problem}`);
     for (const warning of exportWarnings)
       output.warn(`Export warning (${warning.source}): ${warning.message}`);
-    if (written.length)
+    if (inventoryFiles.length)
       output.log(
-        `Wrote ${written.length} updated inventory file${written.length === 1 ? "" : "s"}:\n${written.map((file) => `  ${file}`).join("\n")}`,
+        `Wrote ${inventoryFiles.length} updated inventory file${inventoryFiles.length === 1 ? "" : "s"}:\n${inventoryFiles.map((file) => `  ${file}`).join("\n")}`,
       );
-    if (!options.apply && !written.length)
+    if (csvFile && written.includes(csvFile))
+      output.log(`Exported ${spools.length} spool${spools.length === 1 ? "" : "s"} to ${csvFile}`);
+    if (!options.apply && !inventoryFiles.length)
       output.log(
         "Dry run only. Add --output-dir <dir> to write inventory files, or --apply with a direct API connection to write to the service.",
       );
     else if (options.apply) output.log("Apply results:", applied);
   }
+}
+
+/** Reports an export-only run, where there is nothing to compare. */
+export function reportCsvOnly(
+  options: Options,
+  loaded: ReadonlyMap<SourceId, LoadResult>,
+  written: string[],
+  output: CliOutput,
+): void {
+  const spools = [...loaded.values()].reduce((total, result) => total + result.spools.length, 0);
+  if (options.json) {
+    output.log(JSON.stringify({ csvExport: options.exportCsv, spools, written }, null, 2));
+    return;
+  }
+  for (const [source, result] of loaded)
+    for (const warning of result.warnings) output.warn(`Warning (${source}): ${warning}`);
+  output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
 }
 
 export function reportError(error: unknown, json: boolean, output: CliOutput): void {
