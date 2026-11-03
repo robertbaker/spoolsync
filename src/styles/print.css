@@ -48,3 +48,112 @@
     color: #444;
   }
 }
+
+/*
+ * Spool labels. A label is fixed black on white so its QR code scans from either theme; its size
+ * comes from --label-w, --label-h and --label-qr set by the chosen preset. The sheet exists only
+ * while printing: on screen it is never shown, and other pages never have one.
+ */
+.spool-label {
+  box-sizing: border-box;
+  display: flex;
+  width: var(--label-w, 70mm);
+  height: var(--label-h, 40mm);
+  max-width: 100%;
+  overflow: hidden;
+  gap: calc(var(--label-h, 40mm) * 0.06);
+  padding: calc(var(--label-h, 40mm) * 0.06);
+  border: 0.2mm dashed #888;
+  border-radius: 1mm;
+  background: #fff;
+  color: #000;
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.15;
+  break-inside: avoid;
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.spool-label p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spool-label-swatch {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--label-h, 40mm) * 0.12);
+  border: 0.2mm solid #000;
+  border-radius: 0.8mm;
+  overflow: hidden;
+}
+
+.spool-label-swatch span {
+  flex: 1;
+}
+
+.spool-label-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.spool-label-brand {
+  font-size: calc(var(--label-h, 40mm) * 0.14);
+  font-weight: 800;
+}
+
+.spool-label-line {
+  font-size: calc(var(--label-h, 40mm) * 0.11);
+}
+
+.spool-label-weight {
+  font-size: calc(var(--label-h, 40mm) * 0.13);
+  font-weight: 700;
+}
+
+.spool-label-id {
+  font-family: ui-monospace, monospace;
+  font-size: calc(var(--label-h, 40mm) * 0.075);
+  color: #333;
+}
+
+.spool-label-qr {
+  flex: none;
+  align-self: center;
+  width: var(--label-qr, 30mm);
+  height: var(--label-qr, 30mm);
+  max-width: 40%;
+  background: #fff;
+}
+
+#label-sheet {
+  display: none;
+  page: labels;
+}
+
+@page labels {
+  margin: 8mm;
+}
+
+@media print {
+  /* Printing labels shows the sheet alone: every other part of the page is dropped. */
+  body.printing-labels > *:not(#label-sheet) {
+    display: none !important;
+  }
+
+  body.printing-labels #label-sheet {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+
+  body.printing-labels #label-sheet .spool-label {
+    box-shadow: none !important;
+  }
+}

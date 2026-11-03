@@ -10,6 +10,7 @@ import { loadMatchDecisions } from "~/lib/browser/storage";
 import { local, read, write } from "~/lib/browser/storage/access";
 
 import { h } from "../dom";
+import { barRow, viewSwitcher } from "./chart-parts";
 import { plural } from "./presentation";
 
 type View = "service" | "material" | "brand" | "color" | "location";
@@ -114,51 +115,15 @@ export function renderLoadedChart(
       ? `${grams(total)} across the loaded services, in grams. A spool listed in several services counts in each.`
       : `${grams(total)} in total, in grams${duplicatesRemoved ? `. ${plural(duplicatesRemoved, "linked spool")} counted once.` : "."}`;
 
-  const bars = data.map((datum) => {
-    const width = max ? Math.max((datum.grams / max) * 100, datum.grams > 0 ? 1.5 : 0) : 0;
-    const bar = h("div", {
-      class: "chart-bar h-4 rounded-r-[4px]",
-      style: `width:${width}%;background:var(--chart-mark)`,
-    });
-    const mark = h(
-      "div",
-      {
-        class: "chart-hit group relative flex min-w-0 flex-1 items-center gap-2 py-1 outline-none",
-        tabindex: "0",
-        role: "img",
-        "aria-label": description(datum),
-      },
-      h(
-        "div",
-        { class: "flex min-w-0 flex-1 items-center border-l border-border", "aria-hidden": "true" },
-        bar,
-        h(
-          "span",
-          { class: "ml-2 shrink-0 text-xs font-medium tabular-nums text-foreground" },
-          grams(datum.grams),
-        ),
-      ),
-      h(
-        "span",
-        {
-          class:
-            "pointer-events-none absolute left-0 top-full z-10 mt-0.5 hidden whitespace-nowrap rounded-md border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block group-focus:block",
-          "aria-hidden": "true",
-        },
-        `${datum.label}: ${grams(datum.grams)} (${share(datum)}%)`,
-      ),
-    );
-    return h(
-      "div",
-      { class: "flex items-center gap-3" },
-      h(
-        "span",
-        { class: "w-28 shrink-0 truncate text-right text-xs text-muted-foreground sm:w-36" },
-        datum.label,
-      ),
-      mark,
-    );
-  });
+  const bars = data.map((datum) =>
+    barRow({
+      label: datum.label,
+      widthPercent: max ? Math.max((datum.grams / max) * 100, datum.grams > 0 ? 1.5 : 0) : 0,
+      valueText: grams(datum.grams),
+      description: description(datum),
+      tooltip: `${datum.label}: ${grams(datum.grams)} (${share(datum)}%)`,
+    }),
+  );
 
   const table = h(
     "table",
@@ -218,28 +183,11 @@ export function renderLoadedChart(
   };
   const switcher =
     available.length > 1
-      ? h(
-          "div",
-          {
-            class: "mb-3 inline-flex rounded-lg border p-0.5",
-            role: "group",
-            "aria-label": "Group the chart",
-          },
-          ...available.map((option) => {
-            const button = h(
-              "button",
-              {
-                type: "button",
-                "data-view": option,
-                "aria-pressed": String(option === view),
-                class:
-                  "rounded-md px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-primary/15 aria-pressed:text-primary-text focus-visible:outline-2 focus-visible:outline-primary",
-              },
-              VIEW_LABELS[option],
-            );
-            button.addEventListener("click", () => choose(option));
-            return button;
-          }),
+      ? viewSwitcher(
+          available.map((id) => ({ id, label: VIEW_LABELS[id] })),
+          view,
+          "Group the chart",
+          choose,
         )
       : null;
 

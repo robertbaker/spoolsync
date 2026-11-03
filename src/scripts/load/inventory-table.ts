@@ -125,6 +125,8 @@ export function createInventoryTable(
   }
 
   let searchQuery = "";
+  /** The spools the table is showing now, in table order, for features such as label printing. */
+  let visible: CommonSpool[] = [];
   // Restored from the last visit; the table drops them again when they no longer apply.
   const saved = readPreferences();
   let lowOnly = saved.lowOnly ?? false;
@@ -209,6 +211,7 @@ export function createInventoryTable(
   function renderTable(): void {
     renderChips();
     const all = [...results.values()].flatMap((result) => result.spools);
+    visible = [];
     const container = byId("loaded-table");
     const counts = [...results.values()].map(
       (r) => `${SOURCE_LABELS[r.source]}: ${r.spools.length}`,
@@ -254,6 +257,7 @@ export function createInventoryTable(
     const narrowed =
       insights && insightFilter ? matching.filter((s) => insights.matches(s)) : matching;
     const filtered = sortSpools(lowOnly ? narrowed.filter(isLow) : narrowed, sort);
+    visible = filtered;
 
     byId("loaded-summary").textContent =
       searchQuery || lowOnly || insightFilter
@@ -409,5 +413,5 @@ export function createInventoryTable(
     );
   }
 
-  return renderTable;
+  return Object.assign(renderTable, { visibleSpools: (): readonly CommonSpool[] => visible });
 }

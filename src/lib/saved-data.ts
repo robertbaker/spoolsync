@@ -2,6 +2,8 @@ import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
 import { sanitizeFileHistory } from "./browser/storage/file-history";
 import { sanitizeWatchlist } from "./browser/storage/insights";
+import { sanitizeStockHistory } from "./browser/storage/stock-history";
+import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
 import { sanitizePreferences } from "./preferences";
 
 /**
@@ -36,7 +38,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "preferences",
     label: "Preferences",
     description:
-      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart view, and recently used services.",
+      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, and recently used services.",
     keys: [
       "spoolsync:prefs",
       "spoolsync:low-stock-percent",
@@ -44,6 +46,10 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:recent-sources",
       "spoolsync:chart-view",
       "spoolsync:chart-table-open",
+      "spoolsync:trend-table-open",
+      "spoolsync:cost-view",
+      "spoolsync:cost-table-open",
+      "spoolsync:label-options",
       "spoolsync:last-seen-version",
       "spoolsync:changelog-cache",
     ],
@@ -70,6 +76,14 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     label: "Watchlist",
     description: "The spools you pinned to watch for weight drops (service and id only).",
     keys: ["spoolsync:watchlist"],
+    storage: "local",
+  },
+  {
+    id: "history",
+    label: "Stock history",
+    description:
+      "The total remaining weight and spool count of each service at each load, for the trend chart. Never names or contents.",
+    keys: ["spoolsync:stock-history"],
     storage: "local",
   },
   {
@@ -170,9 +184,10 @@ export function formatBytes(bytes: number): string {
 const EXPORT_FORMAT = "spoolsync-settings";
 const EXPORT_VERSION = 1;
 /** The groups that are safe and useful to carry over. Connections hold credentials and stay put. */
-const PORTABLE_GROUPS = ["preferences", "files", "watchlist", "answers"] as const;
+const PORTABLE_GROUPS = ["preferences", "files", "watchlist", "history", "answers"] as const;
 
 const CHART_VIEWS = ["service", "material", "brand", "color", "location"];
+const COST_VIEWS = ["service", "material", "vendor"];
 
 const isStringList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -197,7 +212,20 @@ function isValidEntry(key: string, text: string): boolean {
       case "spoolsync:chart-view":
         return CHART_VIEWS.includes(text);
       case "spoolsync:chart-table-open":
+      case "spoolsync:trend-table-open":
+      case "spoolsync:cost-table-open":
         return text === "0" || text === "1";
+      case "spoolsync:cost-view":
+        return COST_VIEWS.includes(text);
+      case "spoolsync:stock-history":
+        return Object.keys(sanitizeStockHistory(JSON.parse(text))).length > 0;
+      case "spoolsync:label-options": {
+        const value = JSON.parse(text) as { preset?: unknown; selection?: unknown };
+        return (
+          LABEL_PRESETS.some((preset) => preset.id === value.preset) &&
+          LABEL_SELECTIONS.some((selection) => selection.id === value.selection)
+        );
+      }
       case "spoolsync:match-decisions": {
         const value = JSON.parse(text) as { confirmed?: unknown; rejected?: unknown };
         return isStringList(value.confirmed) && isStringList(value.rejected);

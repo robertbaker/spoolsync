@@ -78,6 +78,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   siteUrl={SITE_URL}
   image={image ?? DEFAULT_SOCIAL_IMAGE}
   imageAlt={imageAlt ?? DEFAULT_SOCIAL_IMAGE_ALT}
+  appleTouchIconHref="/icons/apple-touch-icon.png"
   twitterHandle={TWITTER_HANDLE}
   socialLinks={SOCIAL_LINKS}
   navLinks={navLinks}
@@ -96,6 +97,17 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <span>Spool<span class="text-primary-text">Sync</span></span>
   </span>
   <Fragment slot="header-actions">
+    <button
+      type="button"
+      data-install-app
+      hidden
+      data-print="hide"
+      class="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      title="Install SpoolSync as an app"
+    >
+      <Icon name="material-symbols:download-rounded" class="size-4" aria-hidden="true" />
+      Install
+    </button>
     <a
       href="https://github.com/robertbaker/spoolsync"
       target="_blank"
@@ -156,6 +168,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   </Fragment>
   <Fragment slot="head">
     <meta name="color-scheme" content="light dark" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preload" href="/fonts/inter-latin-variable-wghtOnly-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href={globalStylesheetHref} />
     <slot name="head" />
@@ -165,6 +178,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
 
 <script>
   import "~/scripts/tour";
+  import "~/scripts/pwa";
   import { announceUpdate, wireChangelog } from "~/scripts/changelog-dialog";
   import { wireSavedData } from "~/scripts/saved-data-dialog";
   import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
