@@ -9,6 +9,7 @@ import {
 
 import { help } from "./help";
 import type { Options } from "./options";
+import { closestOption } from "./suggest";
 import { validateOptions } from "./validate-options";
 
 const sourceFlags: Record<string, SourceId> = {
@@ -28,6 +29,33 @@ const sourceFlags: Record<string, SourceId> = {
   "--spool": "spoolapp",
   "--spoolkeep": "spoolkeep",
 };
+
+/** The command-line flag that selects a source, for pointing a user at the right one. */
+export function sourceFlag(source: SourceId): string | undefined {
+  return Object.entries(sourceFlags).find(([, id]) => id === source)?.[0];
+}
+
+const KNOWN_OPTIONS: readonly string[] = [
+  "--help",
+  "--version",
+  "--resolve",
+  "--confirm",
+  "--reject",
+  "--create-in",
+  "--empty",
+  "--output-dir",
+  "--export-csv",
+  "--summary",
+  "--apply",
+  "--json",
+  "--spoolman-url",
+  "--spoolman-token",
+  "--filamentdb-url",
+  "--filamentdb-token",
+  "--filadex-url",
+  "--filadex-user",
+  ...Object.keys(sourceFlags),
+];
 
 const SINGLETON_FLAGS: string[] = [
   "--output-dir",
@@ -56,6 +84,7 @@ export function parseArgs(args: string[]): Options {
   let filadexUrl: string | undefined;
   let filadexUser: string | undefined;
   let apply = false;
+  let summary = false;
   let json = false;
   const singletonFlags = new Set<string>();
   for (let i = 0; i < args.length; i++) {
@@ -141,8 +170,11 @@ export function parseArgs(args: string[]): Options {
       apply = true;
     } else if (arg === "--json") {
       json = true;
+    } else if (arg === "--summary") {
+      summary = true;
     } else {
-      throw new Error(`Unknown option: ${arg}`);
+      const suggestion = closestOption(arg, KNOWN_OPTIONS);
+      throw new Error(`Unknown option: ${arg}${suggestion ? `. Did you mean ${suggestion}?` : ""}`);
     }
   }
   const options: Options = {
@@ -159,6 +191,7 @@ export function parseArgs(args: string[]): Options {
     ...(filadexUrl ? { filadexUrl } : {}),
     ...(filadexUser ? { filadexUser } : {}),
     apply,
+    summary,
     ...(outputDir ? { outputDir } : {}),
     ...(exportCsv ? { exportCsv } : {}),
     json,

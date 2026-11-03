@@ -24,6 +24,7 @@ export function validateOptions(options: Options): void {
     apply,
     outputDir,
     exportCsv,
+    summary,
   } = options;
   if (spoolmanUrl && inputs.has("spoolman"))
     throw new Error("Use either --spoolman-url or --spoolman <file>, not both.");
@@ -54,16 +55,27 @@ export function validateOptions(options: Options): void {
     (spoolmanUrl ? 1 : 0) +
     (filamentdbUrl ? 1 : 0) +
     (filadexUrl ? 1 : 0);
+  const changeOptions = [
+    apply && "--apply",
+    outputDir && "--output-dir",
+    createIn.length && "--create-in",
+    resolves.length && "--resolve",
+    confirm.length && "--confirm",
+    reject.length && "--reject",
+  ].filter(Boolean);
+  if (summary && changeOptions.length)
+    throw new Error(
+      `--summary only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
+    );
   if (inventories < 2) {
-    if (!exportCsv || inventories < 1)
+    if (!(exportCsv || summary))
       throw new Error(
-        exportCsv
-          ? "Provide at least one inventory to export."
-          : "Provide at least two inventories to compare.",
+        "Provide at least two inventories to compare, for example --spoolman <file> --spoolio <file>. With a single inventory, use --summary to see what it holds or --export-csv <file> to export it.",
       );
-    if (apply || outputDir || createIn.length || resolves.length || confirm.length || reject.length)
+    if (inventories < 1) throw new Error("Provide at least one inventory to report on or export.");
+    if (changeOptions.length)
       throw new Error(
-        "With a single inventory, --export-csv only exports it; comparing, resolving, and writing need at least two inventories.",
+        `With a single inventory, comparing, resolving, and writing need at least two inventories; remove ${changeOptions.join(", ")}.`,
       );
   }
   if (

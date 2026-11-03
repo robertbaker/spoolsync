@@ -5,6 +5,7 @@ import {
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
+import { summarizeInventory } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
 import { ExecutionError } from "./execution";
@@ -85,21 +86,51 @@ export function reportWorkflow(
   }
 }
 
-/** Reports an export-only run, where there is nothing to compare. */
-export function reportCsvOnly(
+/** Reports a run that only summarizes or exports what is loaded, with nothing to compare. */
+export function reportInventoryOnly(
   options: Options,
   loaded: ReadonlyMap<SourceId, LoadResult>,
   written: string[],
   output: CliOutput,
 ): void {
-  const spools = [...loaded.values()].reduce((total, result) => total + result.spools.length, 0);
+  const summaries = SOURCE_IDS.flatMap((source) => {
+    const result = loaded.get(source);
+    return result ? [summarizeInventory(result)] : [];
+  });
+  const spools = summaries.reduce((total, summary) => total + summary.spools, 0);
   if (options.json) {
-    output.log(JSON.stringify({ csvExport: options.exportCsv, spools, written }, null, 2));
+    output.log(
+      JSON.stringify(
+        {
+          ...(options.summary ? { inventories: summaries } : { spools }),
+          ...(options.exportCsv && written.includes(options.exportCsv)
+            ? { csvExport: options.exportCsv }
+            : {}),
+          written,
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
   for (const [source, result] of loaded)
     for (const warning of result.warnings) output.warn(`Warning (${source}): ${warning}`);
-  output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
+  if (options.summary)
+    for (const summary of summaries) {
+      const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+      output.log(
+        `${summary.source}: ${plural(summary.spools, "spool")}` +
+          (summary.archived ? ` (${summary.archived} archived)` : "") +
+          `, ${plural(summary.brands, "brand")}, ${plural(summary.materials, "material")}, ` +
+          `${summary.remainingGrams.toLocaleString("en-US")} g remaining` +
+          (summary.unknownWeights
+            ? ` (${plural(summary.unknownWeights, "spool")} without a known weight)`
+            : ""),
+      );
+    }
+  if (options.exportCsv && written.includes(options.exportCsv))
+    output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
 }
 
 export function reportError(error: unknown, json: boolean, output: CliOutput): void {

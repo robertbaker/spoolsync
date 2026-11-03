@@ -37,6 +37,7 @@ Planning:
 
 Output:
   --output-dir <dir>      Write updated import files for loaded file sources (not read-only sources)
+  --summary               Print counts for each loaded inventory instead of planning changes
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
   --json                  Print the plan as JSON

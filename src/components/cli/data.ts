@@ -96,6 +96,11 @@ export const output = [
     desc: "Write updated import files for file-loaded writable sources into this directory. Must differ from your input files.",
   },
   {
+    flag: "--summary",
+    copy: "--summary",
+    desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams) instead of planning changes. Works with a single inventory.",
+  },
+  {
     flag: "--export-csv <file>",
     copy: "--export-csv",
     desc: "Write every loaded spool to one CSV file, tagged by service. Works with a single inventory, and never overwrites an input file.",
@@ -140,6 +145,14 @@ export const examples = [
     body: "Use Spoolstock values to resolve conflicts, add missing spools to Spoolio, and save updated import files.",
     file: "update-files",
     code: "spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json --resolve material=spoolstock --create-in spoolio --output-dir ./updated",
+  },
+  {
+    title: "See what an export holds",
+    icon: "material-symbols:summarize-outline",
+    effect: { label: "Writes nothing", color: "success" },
+    body: "Print counts for each file you give it, without planning anything. Handy for checking a new export.",
+    file: "summary",
+    code: "spoolsync --spoolkeep SpoolKeep.json --summary",
   },
   {
     title: "Export everything to a spreadsheet",

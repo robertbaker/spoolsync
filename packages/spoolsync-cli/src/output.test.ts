@@ -3,7 +3,7 @@ import { link, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { stageOutputFiles, validateOutputPaths } from "./output";
+import { assertPortableOutputName, stageOutputFiles, validateOutputPaths } from "./output";
 
 async function supportsLink(kind: "hard" | "directory"): Promise<boolean> {
   const probe = await mkdtemp(path.join(tmpdir(), "spoolsync-link-probe-"));
@@ -147,4 +147,32 @@ test("commit failures identify exports already replaced", async () => {
   } finally {
     await staged.cleanup();
   }
+});
+
+test("Windows rules treat differently cased spellings as the same file", async () => {
+  expect(validateOutputPaths(["Inventory.JSON"], ["inventory.json"], "win32")).rejects.toThrow(
+    "would overwrite an input inventory",
+  );
+  // On case-sensitive platforms these are different files.
+  await validateOutputPaths(["Inventory.JSON"], ["inventory.json"], "linux");
+});
+
+test("Windows device names, streams, and trailing dots are refused as output names", () => {
+  for (const name of ["NUL", "nul.csv", "out\\COM1.txt", "C:\\exports\\Aux", "LPT9.json"])
+    expect(() => assertPortableOutputName(name, "win32")).toThrow("reserved Windows device name");
+  for (const name of ["data.csv:hidden", "a<b.csv", 'q"x.csv', "who?.csv"])
+    expect(() => assertPortableOutputName(name, "win32")).toThrow("Windows does not allow");
+  for (const name of ["report.", "report "])
+    expect(() => assertPortableOutputName(name, "win32")).toThrow("dot or space");
+  for (const name of ["inventory.csv", "C:\\exports\\all.csv", "console.csv", "com10.csv"])
+    expect(() => assertPortableOutputName(name, "win32")).not.toThrow();
+  // The same names are ordinary file names elsewhere.
+  expect(() => assertPortableOutputName("NUL", "linux")).not.toThrow();
+  expect(() => assertPortableOutputName("a:b", "darwin")).not.toThrow();
+});
+
+test("a reserved Windows output name is rejected before any file is written", async () => {
+  expect(validateOutputPaths([], ["exports/NUL.csv"], "win32")).rejects.toThrow(
+    "reserved Windows device name",
+  );
 });

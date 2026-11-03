@@ -17,5 +17,7 @@ export type Options = {
   outputDir?: string;
   /** Write every loaded spool to one CSV file. */
   exportCsv?: string;
+  /** Report counts for what is loaded instead of planning changes. */
+  summary: boolean;
   json: boolean;
 };

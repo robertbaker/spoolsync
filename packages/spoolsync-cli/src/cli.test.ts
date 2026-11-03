@@ -180,6 +180,88 @@ test("--export-csv writes every loaded spool, alone or alongside a comparison", 
   expect(JSON.parse(await readFile(path.join(directory, "keep.json"), "utf8"))).toHaveLength(1);
 });
 
+test("--summary reports counts per inventory without planning changes", async () => {
+  await writeFile(
+    path.join(directory, "keep.json"),
+    JSON.stringify([
+      { id: "k1", brand: "Creality", family: "PLA", color: "Blue", newQuantity: 2 },
+      { id: "k2", brand: "Prusa", family: "PETG", color: "Red", newQuantity: 0, usedQuantity: 0 },
+    ]),
+  );
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  const text = await run("--spoolkeep", path.join(directory, "keep.json"), "--summary");
+  expect(text.code).toBe(0);
+  expect(text.stdout).toContain(
+    "spoolkeep: 3 spools (1 archived), 2 brands, 2 materials, 0 g remaining (3 spools without a known weight)",
+  );
+  expect(text.stdout).not.toContain("Dry run");
+
+  const json = await run(
+    "--spoolkeep",
+    path.join(directory, "keep.json"),
+    "--spoolio",
+    path.join(directory, "spoolio.json"),
+    "--summary",
+    "--json",
+  );
+  expect(json.code).toBe(0);
+  const report = JSON.parse(json.stdout);
+  expect(report.inventories.map((item: { source: string }) => item.source)).toEqual([
+    "spoolio",
+    "spoolkeep",
+  ]);
+
+  const conflict = await run(
+    "--spoolkeep",
+    path.join(directory, "keep.json"),
+    "--summary",
+    "--output-dir",
+    path.join(directory, "out"),
+  );
+  expect(conflict.code).not.toBe(0);
+  expect(conflict.stderr).toContain("--summary only reports what is loaded");
+});
+
+test("load failures say what to do: missing files, and files given to the wrong flag", async () => {
+  await writeFile(
+    path.join(directory, "keep.json"),
+    JSON.stringify([{ id: "k1", brand: "Creality", family: "PLA", newQuantity: 1 }]),
+  );
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stderr, code] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+    return { stderr, code };
+  };
+  const wrongFlag = await run(
+    "--spoolio",
+    path.join(directory, "keep.json"),
+    "--spoolman",
+    path.join(directory, "spoolman-spools.json"),
+  );
+  expect(wrongFlag.code).not.toBe(0);
+  expect(wrongFlag.stderr).toContain("looks like a SpoolKeep export; try --spoolkeep instead");
+
+  const missing = await run(
+    "--spoolio",
+    path.join(directory, "nope.json"),
+    "--spoolman",
+    path.join(directory, "spoolman-spools.json"),
+  );
+  expect(missing.code).not.toBe(0);
+  expect(missing.stderr).toContain("file not found. Check the path");
+
+  const typo = await run("--spolman", "a.json", "--spoolio", "b.json");
+  expect(typo.stderr).toContain("Unknown option: --spolman. Did you mean --spoolman?");
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

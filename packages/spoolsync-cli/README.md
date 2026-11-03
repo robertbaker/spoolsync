@@ -41,6 +41,13 @@ Start a new target inventory without a starter file:
 spoolsync --spoolio spoolio.json --empty filameter --create-in filameter --output-dir ./updated
 ```
 
+Check what an export holds without planning anything; this works with a single inventory and adds
+`--json` output for scripts:
+
+```sh
+spoolsync --spoolkeep SpoolKeep.json --summary
+```
+
 Export every loaded spool to one spreadsheet-friendly CSV, tagged by service. This also works with a
 single inventory, and it refuses to overwrite one of your input files:
 
@@ -61,6 +68,11 @@ spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv
   `--create-in` to copy missing spools into those targets. Empty inventories take part in dry runs
   and file exports, but cannot also be loaded from a file or API in the same run.
 - **`--json`:** machine-readable output.
+- **Helpful errors:** a misspelled option suggests the closest real one, a missing input file says so,
+  and a file passed to the wrong service flag names the service it looks like (for example
+  `--spoolio` given a SpoolKeep backup suggests `--spoolkeep`).
+- **Windows:** output names that Windows treats specially (`NUL`, `COM1`, `name:stream`, trailing
+  dots) are refused, and differently cased spellings of an input are recognised as the same file.
 
 ## Direct API access
 

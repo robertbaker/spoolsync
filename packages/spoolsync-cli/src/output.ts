@@ -1,20 +1,50 @@
 import { mkdir, mkdtemp, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-function normalize(filename: string): string {
-  return process.platform === "win32" ? filename.toLowerCase() : filename;
+function normalize(filename: string, platform: NodeJS.Platform): string {
+  // Windows file names are case-insensitive, so two spellings can name the same file.
+  return platform === "win32" ? filename.toLowerCase() : filename;
+}
+
+const WINDOWS_DEVICE_NAME =
+  /^(con|prn|aux|nul|com[0-9\u00b9\u00b2\u00b3]|lpt[0-9\u00b9\u00b2\u00b3])(\..*)?$/i;
+
+/**
+ * Windows treats some names specially: device names such as NUL or COM1 (even with an extension),
+ * `name:stream` alternate data streams, trailing dots or spaces, and reserved characters. Writing
+ * to them silently does something other than creating the file, so refuse them up front.
+ */
+export function assertPortableOutputName(
+  filename: string,
+  platform: NodeJS.Platform = process.platform,
+): void {
+  if (platform !== "win32") return;
+  const name = path.win32.basename(filename);
+  if (WINDOWS_DEVICE_NAME.test(name))
+    throw new Error(`"${name}" is a reserved Windows device name. Choose another file name.`);
+  if (/[<>:"|?*]/.test(name) || [...name].some((character) => character.charCodeAt(0) < 32))
+    throw new Error(
+      `"${name}" contains a character Windows does not allow in file names (< > : " | ? *). Choose another file name.`,
+    );
+  if (/[. ]$/.test(name))
+    throw new Error(
+      `"${name}" ends with a dot or space, which Windows removes. Choose another file name.`,
+    );
 }
 
 // Resolve existing ancestors too, so a new file inside a junction uses its actual directory.
-async function canonicalPath(filename: string): Promise<string> {
+async function canonicalPath(filename: string, platform: NodeJS.Platform): Promise<string> {
   const absolute = path.resolve(filename);
   try {
-    return normalize(await realpath(absolute));
+    return normalize(await realpath(absolute), platform);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     const parent = path.dirname(absolute);
     if (parent === absolute) throw error;
-    return path.join(await canonicalPath(parent), normalize(path.basename(absolute)));
+    return path.join(
+      await canonicalPath(parent, platform),
+      normalize(path.basename(absolute), platform),
+    );
   }
 }
 
@@ -30,16 +60,21 @@ async function identity(filename: string): Promise<string | undefined> {
 }
 
 /** Refuses exports that alias an input, including symlinks, junctions, and hard links. */
-export async function validateOutputPaths(inputs: string[], outputs: string[]): Promise<void> {
+export async function validateOutputPaths(
+  inputs: string[],
+  outputs: string[],
+  platform: NodeJS.Platform = process.platform,
+): Promise<void> {
   const inputPaths = new Set<string>();
   const inputIds = new Set<string>();
   for (const filename of inputs) {
-    inputPaths.add(await canonicalPath(filename));
+    inputPaths.add(await canonicalPath(filename, platform));
     const id = await identity(filename);
     if (id) inputIds.add(id);
   }
   for (const filename of outputs) {
-    const canonical = await canonicalPath(filename);
+    assertPortableOutputName(filename, platform);
+    const canonical = await canonicalPath(filename, platform);
     const id = await identity(filename);
     if (inputPaths.has(canonical) || (id && inputIds.has(id)))
       throw new Error(
