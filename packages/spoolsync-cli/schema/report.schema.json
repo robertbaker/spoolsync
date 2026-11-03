@@ -25,6 +25,70 @@
         "reasons": { "type": "array", "items": { "type": "string" } }
       }
     },
+    "cleanupChange": {
+      "type": "object",
+      "required": ["spool", "field", "before", "after", "rule", "confidence", "reason", "applicable"],
+      "properties": {
+        "spool": { "type": "string", "description": "The record key, source:id." },
+        "field": { "type": "string" },
+        "before": {},
+        "after": {},
+        "rule": { "type": "string" },
+        "confidence": { "enum": ["safe", "review"] },
+        "reason": { "type": "string" },
+        "applicable": {
+          "type": "boolean",
+          "description": "Whether the spool's service is writable and stores the field."
+        }
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "description": "Data cleanup (--cleanup, --cleanup-report). Only safe changes a service can take are added to the plan, and only with --cleanup.",
+      "required": ["rules", "counts", "applied", "warnings", "duplicatesAfterCleanup"],
+      "properties": {
+        "rules": { "type": "array", "items": { "type": "string" } },
+        "counts": {
+          "type": "object",
+          "required": ["proposals", "safe", "review", "applicable", "warnings"],
+          "properties": {
+            "proposals": { "type": "integer" },
+            "safe": { "type": "integer" },
+            "review": { "type": "integer" },
+            "applicable": { "type": "integer" },
+            "warnings": { "type": "integer" }
+          }
+        },
+        "applied": {
+          "type": "array",
+          "description": "Changes added to the plan; empty without --cleanup.",
+          "items": { "$ref": "#/$defs/cleanupChange" }
+        },
+        "proposals": {
+          "type": "array",
+          "description": "Every proposal, with --cleanup-report.",
+          "items": { "$ref": "#/$defs/cleanupChange" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["spool", "field", "rule", "message"],
+            "properties": {
+              "spool": { "type": "string" },
+              "field": { "type": "string" },
+              "rule": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        },
+        "duplicatesAfterCleanup": {
+          "type": "array",
+          "description": "Groups of record keys that look like duplicates once the applied changes are in place.",
+          "items": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
     "snapshotSpool": {
       "type": "object",
       "required": ["key", "label", "remainingGrams"],
@@ -125,6 +189,7 @@
             "properties": { "source": { "type": "string" }, "message": { "type": "string" } }
           }
         },
+        "cleanup": { "$ref": "#/$defs/cleanup" },
         "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }
       }
     },
@@ -189,6 +254,7 @@
           }
         },
         "spools": { "type": "integer" },
+        "cleanup": { "$ref": "#/$defs/cleanup" },
         "csvExport": { "type": "string" },
         "written": { "type": "array", "items": { "type": "string" } },
         "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }

@@ -5,6 +5,7 @@ import {
   omitExcluded,
   openConflicts,
   type GroupResolution,
+  type RecordEdits,
 } from "@spoolsync/core/core/compare";
 import type { MatchDecisions, MatchResult } from "@spoolsync/core/core/match";
 import {
@@ -40,6 +41,8 @@ export interface PlanState {
   decisions(): MatchDecisions;
   /** Bulk edits to plan beside the resolutions; absent means none. */
   bulkEdits?(): ReadonlyMap<string, BulkEdit>;
+  /** Accepted data cleanups by record key; absent means none. */
+  recordEdits?(): RecordEdits;
   clearBulkEdit?(groupId: string): void;
 }
 
@@ -70,7 +73,8 @@ export function createApplyView(
 
   function renderApply(match: MatchResult, resolutions: Map<string, GroupResolution>): void {
     const bulkEdits = planState.bulkEdits?.() ?? new Map<string, BulkEdit>();
-    const fullPlan = planSync(match.groups, resolutions, match.suggestions, bulkEdits);
+    const recordEdits = planState.recordEdits?.() ?? new Map();
+    const fullPlan = planSync(match.groups, resolutions, match.suggestions, bulkEdits, recordEdits);
     const excluded = planState.excluded();
     // Everything below (counts, Apply, downloads) sees only the changes that are still included.
     const plan = omitExcluded(fullPlan, excluded);
@@ -96,6 +100,23 @@ export function createApplyView(
             "p",
             { class: "mt-1" },
             `SpoolSync can compare its ${source === "spoolstock" ? "CSV exports" : "exports"} and use their values to update other services, but ${label} does not accept imports.`,
+          ),
+        ),
+      );
+    }
+    const cleanups = [...recordEdits.values()].reduce(
+      (sum, edit) => sum + Object.keys(edit).length,
+      0,
+    );
+    if (cleanups) {
+      sections.push(
+        notice(
+          "info",
+          `${cleanups} accepted data ${cleanups === 1 ? "cleanup is" : "cleanups are"} in this plan`,
+          h(
+            "p",
+            { class: "mt-1" },
+            "You accepted these under Clean up data on the Load page. Each shows as a field change below and can be left out. The copied CLI command does not include them; use its --cleanup option for the safe ones.",
           ),
         ),
       );

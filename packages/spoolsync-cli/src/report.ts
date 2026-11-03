@@ -16,6 +16,7 @@ import {
 } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
+import { cleanupLines, cleanupSection, runCleanup } from "./cleanup";
 import { ExecutionError } from "./execution";
 import {
   REPORT_SCHEMA_VERSION,
@@ -66,6 +67,7 @@ export function reportWorkflow(
       report: "compare",
       ...summary,
       pendingMatches: pendingMatches(matches.suggestions),
+      ...(planning.cleanup ? { cleanup: cleanupSection(planning.cleanup, options) } : {}),
       applied,
       written: inventoryFiles,
       ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
@@ -90,6 +92,11 @@ export function reportWorkflow(
       output.log(
         `${summary.unresolved.length} field conflict${summary.unresolved.length === 1 ? " remains" : "s remain"} unresolved; those values will be left as-is.`,
       );
+    if (planning.cleanup) {
+      const text = cleanupLines(planning.cleanup, options);
+      output.log(text.lines.join("\n"));
+      for (const warning of text.warnings) output.warn(warning);
+    }
     for (const suggestion of matches.suggestions)
       output.log(
         `Match suggestion: ${suggestion.pair.join(",")} (score ${suggestion.score}; ${suggestion.reasons.join("; ")})`,
@@ -135,6 +142,7 @@ export function reportInventoryOnly(
   const reorder = options.reorder
     ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] }, rule)
     : [];
+  const cleanup = options.cleanupReport ? runCleanup(options, loaded) : undefined;
   if (options.json) {
     const report: InventoryReport = {
       schemaVersion: REPORT_SCHEMA_VERSION,
@@ -154,6 +162,7 @@ export function reportInventoryOnly(
           }
         : {}),
       ...(options.summary || options.reorder ? {} : { spools }),
+      ...(cleanup ? { cleanup: cleanupSection(cleanup, options) } : {}),
       ...(options.exportCsv && written.includes(options.exportCsv)
         ? { csvExport: options.exportCsv }
         : {}),
@@ -180,6 +189,11 @@ export function reportInventoryOnly(
       );
     }
   if (options.reorder) output.log(formatReorderList(reorder));
+  if (cleanup) {
+    const text = cleanupLines(cleanup, options);
+    output.log(text.lines.join("\n"));
+    for (const warning of text.warnings) output.warn(warning);
+  }
   if (options.exportCsv && written.includes(options.exportCsv))
     output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
   changeLines(changes, output);

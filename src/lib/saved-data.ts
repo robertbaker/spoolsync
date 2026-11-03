@@ -40,7 +40,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "preferences",
     label: "Preferences",
     description:
-      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, and recently used services.",
+      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, which data-cleanup rules are on, and recently used services.",
     keys: [
       "spoolsync:prefs",
       "spoolsync:low-stock-percent",
@@ -58,6 +58,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:display",
       "spoolsync:setup-dismissed",
       "spoolsync:palette-recent",
+      "spoolsync:cleanup-settings",
     ],
     storage: "local",
   },
@@ -116,6 +117,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:load:*",
       "spoolsync:resolutions",
       "spoolsync:bulk-edits",
+      "spoolsync:cleanup-accepted",
       "spoolsync:spoolman-token",
     ],
     storage: "session",
@@ -254,6 +256,8 @@ function isValidEntry(key: string, text: string): boolean {
       }
       case "spoolsync:saved-views":
         return sanitizeViews(JSON.parse(text)).length > 0;
+      case "spoolsync:cleanup-settings":
+        return isStringList((JSON.parse(text) as { enabled?: unknown }).enabled);
       case "spoolsync:match-decisions": {
         const value = JSON.parse(text) as { confirmed?: unknown; rejected?: unknown };
         return isStringList(value.confirmed) && isStringList(value.rejected);

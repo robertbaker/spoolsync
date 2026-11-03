@@ -1,3 +1,4 @@
+import { CLEANUP_RULE_IDS } from "@spoolsync/core/core/cleanup";
 import { COMPARABLE_FIELDS, SOURCE_IDS } from "@spoolsync/core/core/model";
 
 export function help(): void {
@@ -52,6 +53,10 @@ Output:
   --config-path           Print where the settings file lives
   --clear-config          Delete the settings file
   --summary               Print counts for each loaded inventory instead of planning changes
+  --cleanup[=<rules>]     Apply safe data cleanups (whitespace, casing, color codes, number formats) to the plan
+                          before comparing; changes that need a person to look are listed, not applied.
+                          <rules> is a comma list of: ${CLEANUP_RULE_IDS.join(", ")} (or all, -rule to leave one out)
+  --cleanup-report[=<rules>] List every proposed cleanup and warning (alone it plans nothing and works with one inventory)
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)

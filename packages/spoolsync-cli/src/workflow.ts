@@ -19,7 +19,9 @@ export async function runWorkflow(
 ): Promise<InventorySnapshot> {
   const { loaded, services } = await loadInputs(options, dependencies);
   const loadedSpools = [...loaded.values()].flatMap((result) => result.spools);
-  if (options.summary || options.reorder || (options.exportCsv && loaded.size < 2)) {
+  // `--cleanup-report` on its own lists proposals for what is loaded and plans nothing.
+  const cleanupOnly = options.cleanupReport && !options.cleanup;
+  if (options.summary || options.reorder || cleanupOnly || (options.exportCsv && loaded.size < 2)) {
     // Nothing to compare: a report of what is loaded, an export of it, or both.
     const { staged } = await prepareExports(options, loaded, new Map(), dependencies);
     const { written } = await executeWrites(staged);

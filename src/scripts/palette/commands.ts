@@ -146,6 +146,18 @@ function actionItems(): PaletteItem[] {
     keywords: "wizard first run getting started help import",
     run: openSetupGuide,
   });
+  add({
+    id: "action:cleanup",
+    title: "Clean up data",
+    subtitle: "Load page",
+    keywords: "cleanup normalize tidy fix whitespace casing vendor material price weight duplicates",
+    run: () => {
+      // The panel is a native <details data-panel="cleanup"> on the Load page, so the shared
+      // ?panel= landing handling opens it after a redirect.
+      if (isLoadPath(location.pathname)) openPanel("cleanup");
+      else location.assign("/load?panel=cleanup");
+    },
+  });
   if (available("#download-combined"))
     add({
       id: "action:download-combined",

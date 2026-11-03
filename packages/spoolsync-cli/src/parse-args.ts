@@ -1,3 +1,4 @@
+import { parseRuleSelection, type CleanupRuleId } from "@spoolsync/core/core/cleanup";
 import {
   COMPARABLE_FIELDS,
   SOURCE_IDS,
@@ -65,6 +66,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--no-user-config",
   "--summary",
   "--reorder",
+  "--cleanup",
+  "--cleanup-report",
   "--watch",
   "--quiet",
   "--apply",
@@ -80,6 +83,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
 ];
 
 const SINGLETON_FLAGS: string[] = [
+  "--cleanup",
+  "--cleanup-report",
   "--output-dir",
   "--low-threshold",
   "--export-csv",
@@ -111,6 +116,9 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let apply = false;
   let summary = false;
   let reorder = false;
+  let cleanup = false;
+  let cleanupReport = false;
+  let cleanupRules: CleanupRuleId[] | undefined;
   let saveConfig = false;
   let lowThreshold: number | undefined;
   let watch = false;
@@ -219,6 +227,22 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       summary = true;
     } else if (arg === "--reorder") {
       reorder = true;
+    } else if (arg === "--cleanup" || arg === "--cleanup-report") {
+      if (arg === "--cleanup") cleanup = true;
+      else cleanupReport = true;
+      if (inline !== undefined) {
+        const selection = parseRuleSelection(inline);
+        if (!selection.ok) throw new Error(`${arg}: ${selection.error}`);
+        if (
+          cleanupRules &&
+          (cleanupRules.length !== selection.enabled.length ||
+            cleanupRules.some((rule, index) => rule !== selection.enabled[index]))
+        )
+          throw new Error(
+            "--cleanup and --cleanup-report name different rules. Give the rules once, or name the same ones.",
+          );
+        cleanupRules = selection.enabled;
+      }
     } else if (arg === "--save-config") {
       saveConfig = true;
     } else if (arg === "--low-threshold") {
@@ -257,6 +281,9 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     apply,
     summary,
     reorder,
+    cleanup,
+    cleanupReport,
+    ...(cleanupRules ? { cleanupRules } : {}),
     saveConfig,
     ...(lowThreshold !== undefined ? { lowThreshold } : {}),
     watch,

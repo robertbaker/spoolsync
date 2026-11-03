@@ -1,4 +1,5 @@
 import type { SpoolGroup } from "../match";
+import { recordKey } from "../matching/keys";
 import {
   WRITABLE_SOURCE_IDS,
   type CommonSpool,
@@ -9,6 +10,7 @@ import {
 import { applyEditToValues, editedField, type BulkEdit } from "./edits";
 import { SOURCE_FIELDS } from "./fields";
 import { defaultResolution, mergedValues, presentSources } from "./groups";
+import { strictValuesEqual, type RecordEdits } from "./record-edits";
 import type { FieldValue, FieldChange, GroupResolution, PlannedChange } from "./types";
 import { valuesEqual } from "./values";
 
@@ -100,6 +102,7 @@ export function buildPlan(
   resolutions: ReadonlyMap<string, GroupResolution>,
   pendingGroupIds: ReadonlySet<string> = new Set(),
   edits: ReadonlyMap<string, BulkEdit> = new Map(),
+  recordEdits: RecordEdits = new Map(),
 ): Map<SourceId, PlannedChange[]> {
   const plan = new Map<SourceId, PlannedChange[]>();
   const push = (change: PlannedChange) => {
@@ -119,6 +122,15 @@ export function buildPlan(
       const targets = new Map(
         Object.entries(resolution.values) as Array<[ComparableField, FieldValue]>,
       );
+      // Accepted record edits (data cleanup) fill fields the person did not resolve themselves.
+      const own = recordEdits.get(recordKey(member));
+      const ownFields = new Set<ComparableField>();
+      if (own)
+        for (const [field, to] of Object.entries(own) as Array<[ComparableField, FieldValue]>) {
+          if (to === undefined || targets.has(field)) continue;
+          targets.set(field, to);
+          ownFields.add(field);
+        }
       // A bulk edit overrides the resolved value; a tag is added to the resolved or member's note.
       for (const field of ["location", "comment"] as const) {
         const edited = editedField(edit, field, targets.has(field) ? targets.get(field)! : member[field]);
@@ -126,7 +138,12 @@ export function buildPlan(
       }
       for (const [field, to] of targets) {
         if (!SOURCE_FIELDS[source].has(field)) continue;
-        if (!valuesEqual(field, member[field], to))
+        // A cleanup must register even when it only changes case or spacing.
+        const same =
+          ownFields.has(field) && targets.get(field) === own?.[field]
+            ? strictValuesEqual(member[field], to)
+            : valuesEqual(field, member[field], to);
+        if (!same)
           changes.push({ field, from: structuredClone(member[field]), to: structuredClone(to) });
       }
       const memberLinks = missingLinks(member, links, source);

@@ -1,4 +1,5 @@
 import type { MatchSuggestion } from "@spoolsync/core/core/match";
+import { recordEditsFromAccepted } from "@spoolsync/core/core/cleanup";
 import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 
 import {
@@ -10,6 +11,7 @@ import {
   saveResolutions,
 } from "~/lib/browser/storage";
 import { loadBulkEdits, saveBulkEdits } from "~/lib/browser/storage/bulk-edits";
+import { loadAcceptedCleanups } from "~/lib/browser/storage/cleanup";
 import { readPreferences } from "~/lib/preferences";
 import {
   applySampleParam,
@@ -47,6 +49,11 @@ const state = new SyncSession(
   { saveMatchDecisions, saveResolutions, saveBulkEdits },
   loadBulkEdits(),
 );
+// Cleanups accepted on the Load page; any that no longer match the loaded values are left out.
+const cleanupEdits = recordEditsFromAccepted(
+  loadAcceptedCleanups(),
+  [...loaded.values()].flatMap((result) => result.spools),
+).edits;
 // Come back to the same view of the differences list.
 state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
@@ -54,6 +61,7 @@ const renderApply = createApplyView(loaded, renderAll, {
   excluded: () => state.excluded(),
   decisions: () => state.matchDecisions(),
   bulkEdits: () => state.bulkEdits(),
+  recordEdits: () => cleanupEdits,
   clearBulkEdit: (groupId) => {
     state.clearBulkEdit([groupId], undefined, "clearing a bulk edit");
     renderAll();

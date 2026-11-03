@@ -26,6 +26,8 @@ export function validateOptions(options: Options): void {
     exportCsv,
     summary,
     reorder,
+    cleanup,
+    cleanupReport,
     saveConfig,
     lowThreshold,
     watch,
@@ -81,18 +83,29 @@ export function validateOptions(options: Options): void {
     confirm.length && "--confirm",
     reject.length && "--reject",
   ].filter(Boolean);
-  const reportOnly = summary || reorder;
+  const countsLow = summary || reorder;
+  if ((cleanup || cleanupReport) && countsLow)
+    throw new Error(
+      `--${cleanup ? "cleanup" : "cleanup-report"} cannot be combined with --summary or --reorder, which only report what is loaded.`,
+    );
+  // `--cleanup-report` alone only lists proposals; with `--cleanup` it adds them to the comparison.
+  const cleanupOnly = cleanupReport && !cleanup;
+  const reportOnly = countsLow || cleanupOnly;
   if (saveConfig && (apply || watch || summary || reorder || exportCsv))
     throw new Error(
       "--save-config only saves defaults, so it cannot be combined with --apply, --watch, --summary, --reorder, or --export-csv.",
     );
-  if (lowThreshold !== undefined && !reportOnly && !saveConfig)
+  if (lowThreshold !== undefined && !countsLow && !saveConfig)
     throw new Error(
       "--low-threshold applies to --summary and --reorder, the reports that count low spools.",
     );
   if (reportOnly && changeOptions.length)
     throw new Error(
-      `--${summary ? "summary" : "reorder"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
+      `--${summary ? "summary" : reorder ? "reorder" : "cleanup-report"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
+    );
+  if (cleanup && inventories < 2 && !saveConfig)
+    throw new Error(
+      "--cleanup adds changes to the plan between inventories, so it needs at least two. Use --cleanup-report to list the proposals for a single inventory.",
     );
   // Saving defaults does not run a comparison, so it needs no inventories at all.
   if (inventories < 2 && !saveConfig) {

@@ -159,11 +159,52 @@ spoolsync --completion zsh > ~/.zfunc/_spoolsync   # zsh, with ~/.zfunc on your 
   stderr); `--json` is the same thing. Reports are versioned and described by
   [`schema/report.schema.json`](schema/report.schema.json), also importable as
   `spoolsync/report.schema.json`. See [JSON reports](#json-reports).
+- **`--cleanup[=rules]` and `--cleanup-report[=rules]`:** data cleanup, described in
+  [Data cleanup](#data-cleanup). `--cleanup` needs two inventories; `--cleanup-report` also works
+  with one.
 - **Helpful errors:** a misspelled option suggests the closest real one, a missing input file says so,
   and a file passed to the wrong service flag names the service it looks like (for example
   `--spoolio` given a SpoolKeep backup suggests `--spoolkeep`).
 - **Windows:** output names that Windows treats specially (`NUL`, `COM1`, `name:stream`, trailing
   dots) are refused, and differently cased spellings of an input are recognised as the same file.
+
+## Data cleanup
+
+SpoolSync can propose tidier values for what you loaded: extra or invisible whitespace, ALL CAPS
+or all-lowercase names, brand spellings (`Prusament Inc` to `Prusament`), materials (`pla plus` to
+`PLA+`, `Nylon` to `PA`), diameters (`1,75`), color codes (`#f00` to `FF0000`), prices written with
+symbols (`€ 1.299,00`), weights with units, temperatures, barcodes, and purchase dates. Each
+proposal names the rule that made it and is either **safe** (only form changes) or **review**
+(an alias, a unit conversion, or a value moved between fields).
+
+```sh
+spoolsync --spoolman spoolman.json --spoolio spoolio.json --cleanup --output-dir updated
+spoolsync --spoolio spoolio.json --cleanup-report            # one inventory, nothing planned
+spoolsync --spoolman a.json --spoolio b.json --cleanup=whitespace,casing
+spoolsync --spoolman a.json --spoolio b.json --cleanup=all,-vendor-alias
+```
+
+- **`--cleanup[=rules]`** adds the **safe** proposals to the plan as updates to the record they came
+  from, so they appear in `plannedChanges`, in written files, and with `--apply`. Review proposals
+  are never applied; they are counted and, with `--cleanup-report`, listed. A change is planned only
+  where the service is writable and stores the field. Matching still uses the values as loaded.
+- **`--cleanup-report[=rules]`** prints every proposal (with its rule, confidence and reason) and
+  every warning. On its own it plans and writes nothing and works with a single inventory; it
+  cannot be combined with `--summary`, `--reorder`, or options that change something.
+- **Rules** are `whitespace`, `casing`, `vendor-alias`, `material`, `material-variant`,
+  `diameter`, `color-hex`, `price`, `weight`, `temperature`, `barcode`, and `date`. Name some
+  (`--cleanup=casing,whitespace`), say `all`, or leave one out (`all,-casing` or `-casing`). With
+  no list, every rule runs. Both options accept a list only after `=`.
+- **Warnings** (negative or zero prices, a remaining weight above the full weight, a net weight
+  that looks like kilograms, diameters that are not 1.75/2.85/3, temperatures out of range,
+  barcodes mangled by a spreadsheet) are reported but never changed. Warnings print to stderr.
+- A **possible duplicates after cleanup** line names spools in one service that would look like
+  duplicates once the safe changes are applied. Nothing is merged.
+- In `--config` or the settings file, `"cleanup": true` (or text such as `"casing,whitespace"`) and
+  `"cleanup-report"` work like the options. `--save-config` does not save them.
+- JSON reports gain a `cleanup` object: `rules`, `counts`, `applied` (changes added to the plan),
+  `proposals` (with `--cleanup-report`), `warnings`, and `duplicatesAfterCleanup`. With
+  `--cleanup-report` alone the report is `"inventory"` with a `cleanup` object.
 
 ## Direct API access
 

@@ -594,3 +594,65 @@ On small screens the header's `bottom-nav` mobile variant (already enabled in
 `config/ui/header.ts`) provides the bottom navigation. `styles/touch.css` raises the Load page's table
 buttons, links, filter chips, and toolbar buttons to at least 44 px on coarse pointers and narrow
 windows without touching `inventory-table.ts`.
+
+## Data cleanup
+
+Core's cleanup engine (`core/cleanup/`, public entry `core/cleanup.ts`) is pure and deterministic: it
+reads `CommonSpool` records and returns proposals and warnings, and never changes a spool. A rule is
+`{ id, label, description, run }`. Rules run in a fixed order (`CLEANUP_RULE_IDS`: whitespace,
+casing, vendor-alias, material, material-variant, diameter, color-hex, price, weight, temperature,
+barcode, date) and each sees what the earlier ones produced, so a field ends with one proposal whose
+`before` is the stored value and whose `after` is the end of the chain. Turning a rule off removes its
+step. A proposal carries `id` (`source:sourceId#field`), spool key, field, before, after, the deciding
+`rule` plus every rule that touched it, `confidence`, `reason`, an optional `bundle`, and `applicable`.
+
+- **safe** means only form changes (case, spacing, punctuation, a format with one reading, rounding
+  noise); **review** means a judgement (alias, unit conversion, `Nylon` to `PA`, a snapped
+  diameter, a finish moved from material to name, a reversed temperature range). Bundled proposals
+  (a finish moved to the name; swapped min/max temperatures) share the most cautious confidence and
+  are accepted or rejected together.
+- Casing only rewrites text that is entirely one case, so `PolyMaker` and `eSUN` are never
+  "fixed" by it. Brand spellings come from `vendors.ts` (an extensible alias table matched ignoring
+  case, accents, punctuation and legal suffixes; `CleanupOptions.vendorAliases` overrides it) and
+  material words from `materials.ts` (`PLA+`, `PETG-CF`, `ABS-GF`, `PA12`, `TPU 95A`; unknown or
+  blended materials are never touched).
+- Prices, weights, diameters, temperatures, colors, barcodes and dates are parsed by `numbers.ts`,
+  which returns `null` rather than guessing (`1.299` with no decimal context is flagged as
+  ambiguous and needs review). Colors are written `RRGGBB`; an alpha channel is dropped, with review
+  when it was not fully opaque. Currency is read but SpoolSync stores only the amount.
+- Values that look wrong but have no single fix (negative or zero price, remaining above full,
+  a net weight under 10 g that looks like kilograms, odd diameters, temperatures out of range,
+  spreadsheet-mangled barcodes, future purchase dates when `today` is given) are `warnings`, never
+  proposals. Empty strings and `null` are never converted into each other, notes keep their line
+  breaks, and the engine reads no field outside `COMPARABLE_FIELDS`, so unknown source fields and
+  cross-service IDs stay untouched.
+
+Accepted proposals reach the plan through a sibling of bulk edits, `RecordEdits`
+(`comparison/record-edits.ts`): field values keyed by record key (`source:sourceId`) because a
+cleanup belongs to one service's record, not to a matched group. `buildPlan`/`planSync` take it as an
+optional last argument. A record edit fills a field only when the person has not resolved that field,
+is written only where the service is writable and stores the field (`SOURCE_FIELDS`), and is
+compared exactly (`strictValuesEqual`), because the comparison's `valuesEqual` ignores case and spacing
+and would otherwise drop `esun` to `eSUN`. A bulk edit tag is added on top of a cleaned note.
+`AcceptedCleanup` (`spoolKey`, `field`, `before`, `after`) is what is stored; `recordEditsFromAccepted`
+drops entries whose spool is gone, whose value changed since, or whose service cannot take the field.
+`workflow/cleanup.ts` reuses the Load page's duplicate detection on a copy with accepted changes
+applied and reports groups that only appear afterwards (report only; nothing is merged).
+
+The Load page's "Clean up data" panel (`load/cleanup-view.ts`, `#cleanup-panel`, a
+`details[data-panel="cleanup"]` so the palette's `?panel=cleanup` landing opens it) is a view over
+`CleanupController`, which owns the rule toggles, the filters (rule, confidence), per-item
+accept/reject/reset, "Select all safe", and undo. It reads and writes storage through a
+`CleanupStore`: rule toggles in `spoolsync:cleanup-settings` (localStorage, a preference), accepted
+changes in `spoolsync:cleanup-accepted` (sessionStorage, like the Sync choices), both through
+`lib/browser/storage/cleanup.ts` and registered in `lib/saved-data.ts`. Choices for services that are
+not loaded right now are held, not discarded. Weights and prices are shown with `lib/units.ts`. The
+Sync page reads the accepted list once at startup, plans it with the rest, shows a notice with the
+count, and each change can still be left out like any other.
+
+In the CLI, `--cleanup[=rules]` runs the engine over the loaded spools and passes the safe,
+applicable proposals to `planSync` as record edits (`cleanup.ts`, `planning.ts`), so exports and
+`--apply` follow the plan unchanged; `--cleanup-report[=rules]` prints every proposal and warning
+and, on its own, plans nothing and accepts a single inventory (the `"inventory"` report gains a
+`cleanup` object, as does the `"compare"` report). Rule lists share `parseRuleSelection`. Matching
+still uses the values as loaded, so cleanup can change what a later run matches.

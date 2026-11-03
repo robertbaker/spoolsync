@@ -166,6 +166,16 @@ export const output = [
     desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams, and how many are running low) instead of planning changes. Works with a single inventory.",
   },
   {
+    flag: "--cleanup[=<rules>]",
+    copy: "--cleanup",
+    desc: "Apply safe data cleanups (extra spaces, capitalization, color codes, number formats) as planned changes on the record they came from, before comparing. Anything that needs a look (aliases, unit conversions, moved finishes) is listed, not applied. Name rules with --cleanup=casing,whitespace, or leave one out with --cleanup=all,-casing. Also a config key (true, or text naming rules).",
+  },
+  {
+    flag: "--cleanup-report[=<rules>]",
+    copy: "--cleanup-report",
+    desc: "List every proposed cleanup and every value that looks wrong (negative weights, odd diameters, damaged barcodes) with the rule and a reason. On its own it changes and plans nothing and works with a single inventory; with --cleanup it adds the full list to the comparison.",
+  },
+  {
     flag: "--export-csv <file>",
     copy: "--export-csv",
     desc: "Write every loaded spool to one CSV file, tagged by service. Works with a single inventory, and never overwrites an input file.",

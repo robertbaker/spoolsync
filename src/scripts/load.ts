@@ -20,6 +20,7 @@ import { CONNECTION_CHANGED } from "./connections/events";
 import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
+import { wireCleanupPanel } from "./load/cleanup-view";
 import { wireConnectionPanels } from "./load/connection-panels";
 import { renderCostChart } from "./load/cost-chart";
 import { renderFileHistory } from "./load/file-history-view";
@@ -69,12 +70,15 @@ const views = viewsRoot
   : null;
 const reorderRoot = document.getElementById("reorder-panel");
 const reorder = reorderRoot ? wireReorderPanel(reorderRoot, state.results) : null;
+const cleanupRoot = document.getElementById("cleanup-panel");
+const cleanup = cleanupRoot ? wireCleanupPanel(cleanupRoot, state.results) : null;
 const render = () => {
   insights.refresh();
   renderTable();
   drawer.update();
   views?.update();
   reorder?.update();
+  cleanup?.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
   renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);

@@ -29,5 +29,6 @@ export {
   type BulkEdit,
   type BulkEditKey,
 } from "./comparison/edits";
+export { strictValuesEqual, type RecordEdits } from "./comparison/record-edits";
 export { PAIR_FIELDS, comparePair, type PairRow, type PairStatus } from "./comparison/pair";
 export { changeParts, omitExcluded, type ChangePart } from "./comparison/exclusions";

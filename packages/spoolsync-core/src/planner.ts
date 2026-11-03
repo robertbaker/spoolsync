@@ -7,6 +7,7 @@ import {
   defaultResolution,
   type GroupResolution,
   type PlannedChange,
+  type RecordEdits,
 } from "./core/compare";
 import {
   matchSpools,
@@ -175,9 +176,10 @@ export function planSync(
   resolutions: ReadonlyMap<string, GroupResolution>,
   suggestions: MatchSuggestion[],
   edits: ReadonlyMap<string, BulkEdit> = new Map(),
+  recordEdits: RecordEdits = new Map(),
 ): Map<SourceId, PlannedChange[]> {
   const pendingGroupIds = new Set(suggestions.flatMap((suggestion) => suggestion.groupIds));
-  return buildPlan(groups, resolutions, pendingGroupIds, edits);
+  return buildPlan(groups, resolutions, pendingGroupIds, edits, recordEdits);
 }
 
 export function findMatches(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {

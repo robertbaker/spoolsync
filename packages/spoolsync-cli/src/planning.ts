@@ -4,6 +4,7 @@ import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core
 import { planSync, resolutionsFromChoices } from "@spoolsync/core/planner";
 
 import { pairArg, type Options } from "./args";
+import { runCleanup } from "./cleanup";
 
 /** Pure CLI decisions and plan construction; no files or remote writes. */
 export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, LoadResult>) {
@@ -37,7 +38,15 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
       );
   }
   const resolutions = resolutionsFromChoices(matches.groups, options.resolves, options.createIn);
-  const plan = planSync(matches.groups, resolutions, matches.suggestions);
+  // Safe cleanups become planned updates on the record they came from; nothing else is applied.
+  const cleanup = options.cleanup ? runCleanup(options, loaded) : undefined;
+  const plan = planSync(
+    matches.groups,
+    resolutions,
+    matches.suggestions,
+    undefined,
+    cleanup?.edits,
+  );
   const plannedChanges = Object.fromEntries(
     SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [
       source,
@@ -79,5 +88,5 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
     plannedChanges,
   };
 
-  return { spools, matches, resolutions, plan, summary };
+  return { spools, matches, resolutions, plan, summary, cleanup };
 }

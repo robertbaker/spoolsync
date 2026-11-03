@@ -31,7 +31,15 @@ const STRING_KEYS = new Set<string>([
 const NUMBER_KEYS = new Set(["low-threshold"]);
 const LIST_KEYS = new Set(["resolve", "confirm", "reject", "create-in", "empty"]);
 const BOOLEAN_KEYS = new Set(["apply", "json", "summary"]);
-const ALLOWED_KEYS = [...STRING_KEYS, ...NUMBER_KEYS, ...LIST_KEYS, ...BOOLEAN_KEYS];
+/** Boolean, or text naming the rules to run. */
+const CLEANUP_KEYS = ["cleanup", "cleanup-report"];
+const ALLOWED_KEYS = [
+  ...STRING_KEYS,
+  ...NUMBER_KEYS,
+  ...LIST_KEYS,
+  ...BOOLEAN_KEYS,
+  ...CLEANUP_KEYS,
+];
 
 /** Flags that name the same source, so a command-line flag replaces its config counterpart. */
 const ALIASES: Record<string, string> = {
@@ -127,7 +135,13 @@ function optionsFromFile(
     if (given.has(canonical(key))) continue;
     if (skipInputs && INPUT_KEYS.has(key)) continue;
     const resolvePath = (text: string) => (path.isAbsolute(text) ? text : path.join(base, text));
-    if (BOOLEAN_KEYS.has(key)) {
+    if (key === "cleanup" || key === "cleanup-report") {
+      // true turns it on with every rule; text names the rules, like `--cleanup=casing,whitespace`.
+      if (typeof value === "string" && value) expanded.push(`--${key}=${value}`);
+      else if (typeof value !== "boolean")
+        fail(configFile, `"${key}" must be true, false, or a list of cleanup rules as text.`);
+      else if (value) expanded.push(`--${key}`);
+    } else if (BOOLEAN_KEYS.has(key)) {
       if (typeof value !== "boolean") fail(configFile, `"${key}" must be true or false.`);
       if (value) expanded.push(`--${key}`);
     } else if (NUMBER_KEYS.has(key)) {

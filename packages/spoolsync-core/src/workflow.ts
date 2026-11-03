@@ -24,6 +24,7 @@ export {
   type SnapshotSpool,
 } from "./workflow/changes";
 export { duplicateKeys, findDuplicateSpools, type DuplicateGroup } from "./workflow/duplicates";
+export { applyCleanupToResults, duplicatesAfterCleanup } from "./workflow/cleanup";
 export {
   checkInventoryHealth,
   HEALTH_ISSUES,

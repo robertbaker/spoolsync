@@ -86,6 +86,16 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   { flag: "--clear-config", description: "Delete the settings file", kind: "flag" },
   { flag: "--reorder", description: "Print spools that are running low", kind: "flag" },
   { flag: "--summary", description: "Print counts instead of planning changes", kind: "flag" },
+  {
+    flag: "--cleanup",
+    description: "Apply safe data cleanups to the plan (--cleanup=rule,rule to choose)",
+    kind: "flag",
+  },
+  {
+    flag: "--cleanup-report",
+    description: "List proposed data cleanups and warnings",
+    kind: "flag",
+  },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
   {
     flag: "--json",
