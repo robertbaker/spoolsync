@@ -2,12 +2,30 @@
 
 Compare and sync filament inventories from your terminal. `spoolsync` uses the same matching,
 planning, and export adapters as the [SpoolSync web app](https://spoolsync.com), and works across
-Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, FilamentDB, and
-Filadex. Read-only inputs also include SpoolMaster (`--spoolmaster`, `.xlsx`), Spool Hoarder
-(`--spoolhoarder`), the Spool app (`--spool`), and SpoolKeep (`--spoolkeep`).
+<!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:cli-names-inline:end -->.
 
-> Spoolstock CSV exports are read-only inputs. For a walkthrough of the browser app's
-> Load → Sync flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
+> <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end --> For a walkthrough of the browser
+> app's Load, Review, and Apply flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
+
+Each service has its own input option:
+
+<!-- services:cli-inputs:start -->
+| Service                 | File option      | API option         | Reads files |
+| ----------------------- | ---------------- | ------------------ | ----------- |
+| Spoolman / Spoolman-NG  | `--spoolman`     | `--spoolman-url`   | JSON, CSV   |
+| Spoolstock              | `--spoolstock`   | None               | CSV         |
+| Spoolio                 | `--spoolio`      | None               | JSON        |
+| TigerTag                | `--tigertag`     | None               | .ttag, JSON |
+| 3DFilamentProfiles      | `--three-dfp`    | None               | CSV, JSON   |
+| Bambuddy                | `--bambuddy`     | None               | CSV, JSON   |
+| FilaMeter               | `--filameter`    | None               | JSON, CSV   |
+| Filadex                 | `--filadex`      | `--filadex-url`    | JSON, CSV   |
+| FilamentDB              | `--filamentdb`   | `--filamentdb-url` | JSON        |
+| SpoolMaster             | `--spoolmaster`  | None               | Excel       |
+| Spool Hoarder           | `--spoolhoarder` | None               | CSV         |
+| Spool (Mac and iOS app) | `--spool`        | None               | JSON        |
+| SpoolKeep               | `--spoolkeep`    | None               | JSON        |
+<!-- services:cli-inputs:end -->
 
 ## Install
 
@@ -251,18 +269,20 @@ Terminal match suggestions include the record pair and matching reasons, ready t
 ## Writing output
 
 Updated import files are written only when `--output-dir` is supplied, and only to supported
-targets. Spoolman is written only with `--apply`. Spoolstock can provide values but is never a write
-target.
+targets. Spoolman is written only with `--apply`. Read-only sources can provide values but are never
+a write target.
 
-| Inventory source                     | How it receives changes       |
-| ------------------------------------ | ----------------------------- |
-| File inventory                       | Output file in `--output-dir` |
-| `--empty` target                     | Output file in `--output-dir` |
-| Direct Spoolman, FilamentDB, Filadex | `--apply`                     |
-| Spoolstock                           | Read-only                     |
+<!-- services:cli-writing:start -->
+| Inventory source                                             | How it receives changes       |
+| ------------------------------------------------------------ | ----------------------------- |
+| File inventory                                               | Output file in `--output-dir` |
+| `--empty` target                                             | Output file in `--output-dir` |
+| Direct Spoolman, Filadex, and FilamentDB                     | `--apply`                     |
+| Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep | Read-only                     |
+<!-- services:cli-writing:end -->
 
 `--output-dir` requires a writable file inventory or `--empty` target. A directly loaded Spoolman
-inventory and read-only Spoolstock input alone do not produce file exports.
+inventory and read-only inputs alone do not produce file exports.
 
 ### Safety
 

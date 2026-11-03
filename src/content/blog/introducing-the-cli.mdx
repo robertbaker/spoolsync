@@ -10,6 +10,8 @@ tags:
   - Releases
 ---
 
+import { SERVICE_COUNT_WORD } from "~/lib/services";
+
 SpoolSync started as a browser app: export your inventory from each tool, load the files, review the matches, and write the changes back. The same engine now ships as an npm package, **`spoolsync`**, built for terminals, scripts, and scheduled jobs.
 
 ## Install
@@ -27,7 +29,7 @@ It needs Node.js 20 or newer.
 
 ## Preview before you write
 
-By default the CLI only prints a plan. Point it at an export from each tool:
+By default the CLI only prints a plan. It reads all {SERVICE_COUNT_WORD} tools SpoolSync supports; point it at an export from each one you use:
 
 ```sh
 spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json
@@ -37,7 +39,7 @@ You get a summary of updates, creates, unresolved field conflicts, and match sug
 
 ## Write the result
 
-Add `--output-dir` to generate updated import files for every writable source, or `--apply` with `--spoolman-url` to update Spoolman directly over the network. Everything is staged before anything is written, and output paths that would overwrite an input file are rejected.
+Add `--output-dir` to generate updated import files for every writable source, or `--apply` with `--spoolman-url`, `--filamentdb-url`, or `--filadex-url` to update Spoolman, FilamentDB, or Filadex directly over the network. Everything is staged before anything is written, and output paths that would overwrite an input file are rejected.
 
 ```sh
 spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json \

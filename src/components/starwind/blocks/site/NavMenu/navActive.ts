@@ -18,3 +18,13 @@ export function isLinkActive(
   if (activeMatch === "exact" || path === "/") return current === path;
   return current === path || current.startsWith(`${path}/`);
 }
+
+/** Active when the link's own path matches, or any of its `matchPaths` does. */
+export function isNavItemActive(
+  item: { href: string; matchPaths?: readonly string[] },
+  currentPath: string,
+  activeMatch: NavActiveMatch = "startsWith",
+): boolean {
+  if (isLinkActive(item.href, currentPath, activeMatch)) return true;
+  return item.matchPaths?.some((path) => isLinkActive(path, currentPath, activeMatch)) ?? false;
+}

@@ -8,11 +8,14 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 ---
 
-<BaseLayout title={`Sync — ${SITE_TITLE}`} description="Match spools across services, resolve differences, and apply them.">
+<BaseLayout
+  title={`Sync — ${SITE_TITLE}`}
+  description="Steps 2 and 3 of 3: match spools across your loaded inventories, resolve differences, then apply or download the changes."
+>
   <Container class="py-10 sm:py-14">
     <FlowSteps current="sync" class="mb-6" />
     <PageHeader
-      eyebrow="Step 2"
+      eyebrow="Steps 2 and 3 of 3"
       title="Sync"
       titleId="tour-sync"
       description="Spools are matched across your loaded inventories. Pick a value wherever services disagree, then apply or download your changes."
@@ -29,7 +32,7 @@ import { SITE_TITLE } from "~/config";
           Load at least two services to match spools and compare differences side by side.
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
-          <Button href="/load" color="primary" icon="material-symbols:arrow-forward" iconPosition="right">Go to Load</Button>
+          <Button href="/load" color="primary" icon="material-symbols:arrow-forward" iconPosition="right">Back to Load</Button>
           <Button type="button" variant="outline" id="try-sample-sync" hidden>Try sample data</Button>
         </div>
       </div>

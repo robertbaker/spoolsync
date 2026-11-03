@@ -4,8 +4,12 @@ import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.ast
 import PageHeader from "~/components/PageHeader.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
-import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
-import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
+import ServiceMark from "~/components/ServiceMark.astro";
+import { SERVICE_VIEWS, allServiceNames } from "~/lib/services";
+
+// Tools that ship a bundled logo are credited here; the 3DFilamentProfiles icon has its own license text.
+const logoCredits = SERVICE_VIEWS.filter((service) => service.creditBy && service.vendorUrl);
+const genericIconTools = SERVICE_VIEWS.filter((service) => !service.creditBy && service.id !== "threeDfp");
 ---
 
 <BaseLayout
@@ -42,112 +46,35 @@ import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
         </p>
       </section>
 
-      <section class="app-card flex flex-col" aria-labelledby="credit-spoolman-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/spoolman" color="primary" />
-          <h3 id="credit-spoolman-heading" class="text-xl font-semibold">Spoolman / Spoolman-NG</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of the open-source <a
-            href="https://github.com/Donkie/Spoolman"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Spoolman</a> project by Donkie, used to identify compatibility.
-        </p>
-      </section>
+      {
+        logoCredits.map((service) => (
+          <section class="app-card flex flex-col" aria-labelledby={`credit-${service.id}-heading`}>
+            <div class="flex items-center gap-3">
+              <IconAvatar color="primary">
+                <ServiceMark id={service.id} class="size-7" slot="icon" />
+              </IconAvatar>
+              <h3 id={`credit-${service.id}-heading`} class="text-xl font-semibold">{service.fullName}</h3>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Logo courtesy of <a
+                href={service.vendorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="underline hover:text-foreground"
+              >{service.creditBy}</a>, used to identify compatibility.
+            </p>
+          </section>
+        ))
+      }
 
-      <section class="app-card flex flex-col" aria-labelledby="credit-spoolstock-heading">
+      <section class="app-card flex flex-col" aria-labelledby="credit-generic-heading">
         <div class="flex items-center gap-3">
-          <IconAvatar color="primary">
-            <img slot="icon" src={spoolstockLogo.src} alt="" class="size-7 object-contain" />
-          </IconAvatar>
-          <h3 id="credit-spoolstock-heading" class="text-xl font-semibold">Spoolstock</h3>
+          <IconAvatar icon="material-symbols:inventory-2-outline" color="primary" />
+          <h3 id="credit-generic-heading" class="text-xl font-semibold">Other tools</h3>
         </div>
         <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of <a
-            href="https://spoolstock.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Spoolstock</a>, used to identify compatibility.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-spoolio-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/spoolio" color="primary" />
-          <h3 id="credit-spoolio-heading" class="text-xl font-semibold">Spoolio</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of <a
-            href="https://spoolio.net"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Spoolio</a>, used to identify compatibility.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-tigertag-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/tigertag" color="primary" />
-          <h3 id="credit-tigertag-heading" class="text-xl font-semibold">TigerTag</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of <a
-            href="https://tigertag.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >TigerTag</a> (Tiger Studio), used to identify compatibility.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-bambuddy-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar color="primary">
-            <img slot="icon" src={bambuddyLogo.src} alt="" class="size-7 object-contain" />
-          </IconAvatar>
-          <h3 id="credit-bambuddy-heading" class="text-xl font-semibold">Bambuddy</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of the open-source <a
-            href="https://github.com/maziggy/bambuddy"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Bambuddy</a> project, used to identify compatibility.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-filameter-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/filameter" color="primary" />
-          <h3 id="credit-filameter-heading" class="text-xl font-semibold">FilaMeter</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of the open-source <a
-            href="https://github.com/SiloCityLabs/filameter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >FilaMeter</a> project by Silo City Labs, used to identify compatibility.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-filadex-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/filadex" color="primary" />
-          <h3 id="credit-filadex-heading" class="text-xl font-semibold">Filadex</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          Logo courtesy of the open-source <a
-            href="https://github.com/the-luap/filadex"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Filadex</a> project by the-luap, used to identify compatibility.
+          {allServiceNames(genericIconTools.map((service) => service.id))} are shown with generic Google Material Symbols
+          icons rather than their own logos.
         </p>
       </section>
 
@@ -180,7 +107,7 @@ import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
     <section class="app-card mt-10" aria-labelledby="disclaimer-heading">
       <h3 id="disclaimer-heading" class="text-lg font-semibold">Trademarks & Compatibility Notice</h3>
       <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-        SpoolSync is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, or Bambu Lab. All brand names, registered trademarks, and logos are property of their respective owners and are used strictly to identify compatibility.
+        SpoolSync is an independent open-source project and is not affiliated with, endorsed by, or sponsored by {allServiceNames(undefined, "or", ["Bambu Lab"])}. All brand names, registered trademarks, and logos are property of their respective owners and are used strictly to identify compatibility.
       </p>
     </section>
   </Container>

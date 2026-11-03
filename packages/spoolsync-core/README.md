@@ -5,7 +5,8 @@ SpoolSync browser app and CLI. It is a private TypeScript workspace package.
 
 Use `loadInventoryFile(source, text)` to read files. It handles UTF-8 byte-order marks, empty
 files, and duplicate native IDs before matching. `createEmptyInventory(source)` creates a
-file-backed target for any writable service; Spoolstock is a read-only source.
+file-backed target for any writable service; read-only sources
+(<!-- services:readonly-names-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:readonly-names-inline:end -->) cannot be targets.
 
 Pass the loaded spools to `matchSpools`. Suggested matches stay separate until confirmed.
 Use `ensureResolution` to obtain a group's field choices and creation targets, then call
@@ -55,3 +56,11 @@ bun run test:cli
 
 The package check covers both workspace packages independently of the browser application's
 type check. The CLI integration suite runs against the built JavaScript using Node.
+
+## Services registry
+
+`src/core/services.ts` is the single source of truth for supported tools: each `SourceId` has one
+entry with its vendor URL, platforms, capabilities, file formats, API clients, and CLI options
+(TypeScript refuses to compile when an id lacks an entry). `SERVICE_CAPABILITIES` and `SOURCE_LABELS`
+in `core/model.ts` derive from it. Counts, capability tables, website panels, and Markdown docs are
+generated from it; after editing the registry run `bun run docs:services` from the repository root.

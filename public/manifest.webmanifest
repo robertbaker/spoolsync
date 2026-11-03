@@ -22,6 +22,6 @@
   ],
   "shortcuts": [
     { "name": "Load inventories", "url": "/load" },
-    { "name": "Sync", "url": "/sync" }
+    { "name": "Review and apply", "url": "/sync" }
   ]
 }

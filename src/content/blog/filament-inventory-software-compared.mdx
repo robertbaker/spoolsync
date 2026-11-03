@@ -10,9 +10,11 @@ tags:
   - Integrations
 ---
 
+import { SERVICE_COUNT_WORD } from "~/lib/services";
+
 Filament trackers differ mostly in where your data lives and what they do with it. Some run on your home server and talk to your printer. Some run on your phone. One is mainly a database of filaments other people have measured.
 
-This post covers the seven services [SpoolSync](/load) can read from: what each does well, where it falls short, and who it suits. It is based on each project's own documentation and on the export formats we handle in SpoolSync's adapters. Features change, so check a project's site before committing to it.
+[SpoolSync](/load) reads from {SERVICE_COUNT_WORD} tools, and the [supported tools matrix](/#supported-tools) lists them all. This post covers seven of the most widely used: what each does well, where it falls short, and who it suits. Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are supported too, but are not compared here. It is based on each project's own documentation and on the export formats we handle in SpoolSync's adapters. Features change, so check a project's site before committing to it.
 
 ## Spoolman
 

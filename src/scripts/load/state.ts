@@ -1,5 +1,12 @@
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 
+/** Fired on `document` when an inventory is stored or unloaded; the workflow stepper listens. */
+export const INVENTORIES_CHANGED_EVENT = "spoolsync:inventories-changed";
+
+function announceChange(): void {
+  if (typeof document !== "undefined") document.dispatchEvent(new Event(INVENTORIES_CHANGED_EVENT));
+}
+
 export interface InventoryStorage {
   readLoadResult(source: SourceId): LoadResult | null;
   saveLoadResult(result: LoadResult): boolean;
@@ -30,13 +37,16 @@ export class LoadState {
 
   store(result: LoadResult): boolean {
     this.results.set(result.source, result);
-    return this.storage.saveLoadResult(result);
+    const saved = this.storage.saveLoadResult(result);
+    announceChange();
+    return saved;
   }
 
   unload(source: SourceId): void {
     this.nextRevision(source);
     this.storage.clearLoadResult(source);
     this.results.delete(source);
+    announceChange();
   }
 }
 

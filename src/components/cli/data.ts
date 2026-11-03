@@ -1,44 +1,23 @@
+import { formatPhrase } from "@spoolsync/core/core/services";
+import { READ_ONLY_VIEWS, SERVICE_VIEWS, allServiceNames, joinNames } from "~/lib/services";
+
 export const NPM_URL = "https://www.npmjs.com/package/spoolsync";
 export const REPO_URL = "https://github.com/robertbaker/spoolsync/tree/main/packages/spoolsync-cli";
 
+/** One file option per service, generated from the services registry. */
+const fileInputs = SERVICE_VIEWS.map((service) => {
+  const aliases = service.cliAliases.length > 0 ? ` (alias: ${service.cliAliases.join(", ")})` : "";
+  const access = service.canWrite ? "" : " (read-only source)";
+  const kind = `${formatPhrase(service.formats)} export`;
+  return {
+    flag: `${service.cliFlag} <file>`,
+    copy: service.cliFlag,
+    desc: `${service.name} ${kind}${access}${aliases}.`,
+  };
+});
+
 export const inputs = [
-  { flag: "--spoolman <file>", copy: "--spoolman", desc: "Spoolman JSON or CSV export." },
-  {
-    flag: "--spoolstock <file>",
-    copy: "--spoolstock",
-    desc: "Spoolstock CSV export (read-only source).",
-  },
-  { flag: "--spoolio <file>", copy: "--spoolio", desc: "Spoolio JSON export." },
-  { flag: "--tigertag <file>", copy: "--tigertag", desc: "TigerTag .ttag backup or JSON export." },
-  {
-    flag: "--three-dfp <file>",
-    copy: "--three-dfp",
-    desc: "3DFilamentProfiles CSV or JSON export (alias: --3dfp).",
-  },
-  {
-    flag: "--bambuddy <file>",
-    copy: "--bambuddy",
-    desc: "Bambuddy inventory CSV or API JSON export.",
-  },
-  { flag: "--filameter <file>", copy: "--filameter", desc: "FilaMeter JSON backup or CSV export." },
-  { flag: "--filadex <file>", copy: "--filadex", desc: "Filadex JSON or CSV export." },
-  { flag: "--filamentdb <file>", copy: "--filamentdb", desc: "FilamentDB spools JSON." },
-  {
-    flag: "--spoolmaster <file>",
-    copy: "--spoolmaster",
-    desc: "SpoolMaster Excel (.xlsx) export (read-only source).",
-  },
-  {
-    flag: "--spoolhoarder <file>",
-    copy: "--spoolhoarder",
-    desc: "Spool Hoarder inventory or HueForge CSV (read-only source; alias: --spool-hoarder).",
-  },
-  { flag: "--spool <file>", copy: "--spool", desc: "Spool app JSON backup (read-only source)." },
-  {
-    flag: "--spoolkeep <file>",
-    copy: "--spoolkeep",
-    desc: "SpoolKeep JSON backup (read-only source).",
-  },
+  ...fileInputs,
   {
     flag: "--filamentdb-url <url>",
     copy: "--filamentdb-url",
@@ -85,7 +64,7 @@ export const planning = [
   {
     flag: "--create-in <sources>",
     copy: "--create-in",
-    desc: "Create missing spools in loaded writable sources (comma-separated; excludes Spoolstock).",
+    desc: "Create missing spools in loaded writable sources (comma-separated; read-only sources are never targets).",
   },
 ];
 
@@ -330,7 +309,7 @@ export const safety = [
 export const quickSteps = [
   {
     title: "Export",
-    body: "Export your inventory from at least two supported tools (Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, or SpoolKeep).",
+    body: `Export your inventory from at least two supported tools (${allServiceNames(undefined, "or")}).`,
   },
   {
     title: "Preview",
@@ -363,7 +342,7 @@ export const noteGroups = [
     icon: "material-symbols:edit-document-outline",
     items: [
       "Writes are staged first, then each file replaces its destination by rename. Multi-file exports aren't a transaction: on failure, JSON output lists <code>written</code> files and <code>applied</code> Spoolman results. If an apply succeeds but the refresh fails, reload Spoolman before retrying.",
-      "Spoolstock is read-only: its CSV is used as an input, and no Spoolstock file is generated. The output folder receives import files for writable sources (both CSV and JSON variants when supported).",
+      `Read-only sources (${joinNames(READ_ONLY_VIEWS.map((service) => service.name))}) are used as inputs, and no file is generated for them. The output folder receives import files for writable sources (both CSV and JSON variants when supported).`,
       "Duplicate native record IDs in file inventories are rejected before matching, and input protection follows symlinks, junctions, and hard links.",
       "Import and export warnings go to stderr, and appear in <code>--json</code> output under each inventory and in <code>exportWarnings</code>.",
       "The CLI exits with a non-zero code if an option is invalid or any Spoolman apply step fails.",

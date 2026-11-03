@@ -30,6 +30,8 @@ export interface NavLink {
   color?: ColorVariant;
   description?: string;
   children?: NavLink[];
+  /** Extra paths that also mark this link active, for one entry that spans several routes. */
+  matchPaths?: readonly string[];
 }
 
 /** Image props supporting both static imports and public paths */

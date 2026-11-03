@@ -1,0 +1,37 @@
+---
+/**
+ * `/inventory` is the stable address for the combined Load and Sync workflow. It sends people to
+ * Review when two or more inventories are already loaded in this tab and to Load otherwise. With
+ * scripting off, the meta refresh and links still reach Load.
+ */
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { NOINDEX_ROBOTS } from "~/config/seo";
+import { SITE_TITLE } from "~/config";
+---
+
+<BaseLayout
+  title={`Inventory — ${SITE_TITLE}`}
+  description="Load, review, and apply changes to your spool inventories."
+  robots={NOINDEX_ROBOTS}
+>
+  <meta slot="head" http-equiv="refresh" content="3;url=/load" />
+  <Container class="py-16 sm:py-24">
+    <div class="mx-auto max-w-xl text-center" role="status">
+      <h1 class="text-3xl font-bold tracking-tight">Opening your inventory</h1>
+      <p class="mt-3 text-muted-foreground">
+        Taking you to the right step. If nothing happens, choose one:
+      </p>
+      <p class="mt-4 flex flex-wrap justify-center gap-4 text-sm font-medium">
+        <a class="inline-flex min-h-11 items-center text-primary-text underline underline-offset-2" href="/load">1. Load inventories</a>
+        <a class="inline-flex min-h-11 items-center text-primary-text underline underline-offset-2" href="/sync">2. Review and apply</a>
+      </p>
+    </div>
+  </Container>
+</BaseLayout>
+
+<script>
+  import { countLoaded } from "~/scripts/workflow-steps";
+
+  location.replace(countLoaded() >= 2 ? "/sync" : "/load");
+</script>
