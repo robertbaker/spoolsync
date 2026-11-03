@@ -1,6 +1,18 @@
 import { expect, test } from "bun:test";
 
-import { findRelease, isOlderThanLatest, parseChangelog } from "./changelog";
+import {
+  compareVersions,
+  countItems,
+  filterReleases,
+  findRelease,
+  isOlderThanLatest,
+  parseChangelog,
+  presentKinds,
+  releasesSince,
+  safeUrl,
+  sectionKind,
+  shortHash,
+} from "./changelog";
 
 const sample = `# Changelog
 
@@ -75,4 +87,54 @@ test("finds a release and tells whether the running version is behind", () => {
   expect(isOlderThanLatest(releases, "0.3.0")).toBe(false);
   expect(isOlderThanLatest(releases, "0.10.0")).toBe(false);
   expect(isOlderThanLatest([], "0.1.0")).toBe(false);
+});
+
+test("rejects links with credentials, other schemes, and malformed addresses", () => {
+  expect(safeUrl("https://github.com/a/b")).toBe("https://github.com/a/b");
+  expect(safeUrl("https://user:pw@github.com/a")).toBeNull();
+  expect(safeUrl("http://github.com/a")).toBeNull();
+  expect(safeUrl("javascript:alert(1)")).toBeNull();
+  expect(safeUrl("https://")).toBeNull();
+  expect(safeUrl("https://a b")).toBeNull();
+  expect(safeUrl(undefined)).toBeNull();
+});
+
+test("compares versions numerically and finds releases newer than the last one seen", () => {
+  expect(compareVersions("0.10.0", "0.9.0")).toBeGreaterThan(0);
+  expect(compareVersions("v1.0", "1.0.0")).toBe(0);
+  expect(compareVersions("0.2.0", "0.3.0")).toBeLessThan(0);
+  const releases = parseChangelog(sample);
+  expect(releasesSince(releases, "0.2.0").map((release) => release.version)).toEqual(["0.3.0"]);
+  expect(releasesSince(releases, "0.3.0")).toEqual([]);
+  expect(releasesSince(releases, null)).toEqual([]);
+  expect(releasesSince(releases, "0.0.1")).toHaveLength(2);
+});
+
+test("classifies section titles into kinds", () => {
+  expect(sectionKind("Features")).toBe("features");
+  expect(sectionKind("Bug Fixes")).toBe("fixes");
+  expect(sectionKind("Performance Improvements")).toBe("performance");
+  expect(sectionKind("BREAKING CHANGES")).toBe("breaking");
+  expect(sectionKind("Documentation")).toBe("docs");
+  expect(sectionKind("Code Refactoring")).toBe("maintenance");
+  expect(sectionKind("Miscellany")).toBe("other");
+  expect(presentKinds(parseChangelog(sample))).toEqual(["features", "fixes"]);
+});
+
+test("filters by section kind and search words, dropping empty sections and releases", () => {
+  const releases = parseChangelog(sample);
+  const fixes = filterReleases(releases, { kinds: ["fixes"] });
+  expect(fixes.map((release) => release.version)).toEqual(["0.3.0", "0.2.0"]);
+  expect(fixes[0]!.sections.map((section) => section.title)).toEqual(["Bug Fixes"]);
+  const search = filterReleases(releases, { query: "SpoolMaster sources" });
+  expect(search).toHaveLength(1);
+  expect(countItems(search[0]!)).toBe(1);
+  expect(filterReleases(releases, { query: "cli csv", kinds: ["fixes"] })).toEqual([]);
+  expect(filterReleases(releases, {})).toHaveLength(2);
+  // The source is left untouched.
+  expect(countItems(releases[0]!)).toBe(3);
+});
+
+test("shortens commit hashes", () => {
+  expect(shortHash("351dac8a80e9ae9f")).toBe("351dac8");
 });

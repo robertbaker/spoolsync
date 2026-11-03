@@ -221,7 +221,17 @@ and Shift + Z work outside text fields. The footer shows the running version (re
 package at build time) and opens a "What's new" dialog that fetches the changelog from GitHub,
 parses it (`lib/changelog.ts`) into DOM without ever inserting HTML or following non-https links,
 keeps a saved copy for offline use, and notes when the running version is behind. The first visit
-after the version changes shows a one-time toast. `bun run release` builds the changelog with
+after the version changes shows a one-time toast. The dialog (`scripts/changelog-dialog.ts`,
+styled by `styles/changelog.css`) is a native modal `<dialog>` with light-dismiss: a fixed header
+with the "N new since vX" badge (`spoolsync:changelog-read` remembers the version it was last opened
+at), a search box and section-type chips (`lib/changelog.ts` classifies titles with `sectionKind`
+and filters with `filterReleases`), sticky version chips that scroll-spy the list, and collapsible
+releases (the newest two and any unseen release start open). Section kinds pair an icon with a
+label so colour is never the only signal, scopes are pills, and commit links are short muted hashes.
+It shows a skeleton while loading, an error panel with retry and a GitHub link, and the saved copy
+with a note when offline; on phones it is a bottom sheet with safe-area insets, and its motion
+switches off under `prefers-reduced-motion`. `safeUrl` accepts only https links without
+credentials. `bun run release` builds the changelog with
 `release-it` and conventional commits: every `feat` and `fix` commit since the last release tag,
 across the whole repository (not just the CLI), is listed with its scope and commit link.
 `--export-settings` and `--import-settings` read and write the same `spoolsync-settings` document
@@ -571,9 +581,14 @@ view builds a plain `#reorder-sheet` and sets `body.printing-reorder`, which `pr
 the sheet alone, as it does for labels.
 ## Sync page: bulk edits, history, and touch review
 
-**Bulk edits.** Core `core/comparison/edits.ts` defines `BulkEdit` (`location`, `note`, `tag`; a
-property left `undefined` is not edited, `null` clears the field, so only an explicit clear writes
-an empty value) and its sanitizer. `buildPlan` and `planSync` take an optional map of edits by group
+**Bulk edits.** Core `core/comparison/edits.ts` defines `BulkEdit` (`location`, `note`, `tag`,
+`remainingWeight`; a property left `undefined` is not edited, `null` clears the field, so only an
+explicit clear writes an empty value) and its sanitizer. `remainingWeight` is a finite number of
+grams from 0 to `MAX_EDIT_GRAMS`; it can set a weight but never clear one, and it is not in the
+Sync page's bulk-edit form: only the Load page's weigh-in calculator stages it (see "Load-page
+tools" below). Like the other keys it is written only to services whose adapter stores
+`remainingWeight` (`SOURCE_FIELDS`), is compared with the field's usual tolerance, and shows in
+`describeBulkEdit` as `remaining 320 g`. `buildPlan` and `planSync` take an optional map of edits by group
 id: an edit overrides the resolved value for `location` and `comment` before the usual
 `SOURCE_FIELDS` check, so a service whose adapter has no place for the field is skipped, unknown
 fields and warning text are untouched, and created spools carry the edit too. A tag is a `#tag`
@@ -707,3 +722,65 @@ applicable proposals to `planSync` as record edits (`cleanup.ts`, `planning.ts`)
 and, on its own, plans nothing and accepts a single inventory (the `"inventory"` report gains a
 `cleanup` object, as does the `"compare"` report). Rule lists share `parseRuleSelection`. Matching
 still uses the values as loaded, so cleanup can change what a later run matches.
+## Load-page tools, backup, and shared styles
+
+**Weigh-in calculator.** The spool drawer has a "Weigh in" section (`load/weigh-in-panel.ts`, pure rules
+in `lib/weigh-in.ts`). The visitor types the scale reading and the empty-spool weight (both in the
+display unit, converted with `units.ts`); the result is the remaining grams, the percentage of the
+full weight, and the difference from the recorded weight, with a warning above the full weight. The
+empty weight starts from the visitor's saved value for the brand, then the empty weight the
+inventory records for the spool, then a typical value from a small brand table (`KNOWN_TARES`,
+rounded and labelled as typical). Saved values live under `spoolsync:weigh-in` as `{ tares: {
+brandKey: grams } }`, validated by `sanitizeTares`. "Stage as edit for Sync" calls
+`stageBulkEdit` (`storage/bulk-edits.ts`), which merges `{ remainingWeight }` into the session-stored
+bulk edit of the spool's match group (`SpoolDetail.groupId`); the Sync page then plans it like any
+bulk edit. The button is disabled when no member is in a service that stores a remaining weight
+(`SpoolDetail.canStageWeight`). Nothing is written to a service from the Load page.
+
+**Inventory report.** `lib/inventory-report.ts` builds the report from `uniqueSpools` (a spool linked
+across services counts once): totals, percent left, a split by material and by brand, spools running
+low under the current threshold, and spend and remaining value from recorded prices (no currency
+conversion). Weights and money are formatted through an injected `ReportFormat` built from
+`units.ts`, and the CSV names its unit in the headers and defuses formula cells. `load/report-panel.ts`
+adds an "Inventory report" button beside the combined CSV button, a dialog preview, and print (a
+body-level `#inventory-report-sheet` shown only under `body.printing-report`, like the label sheet),
+HTML (the same DOM serialized into a standalone document), Markdown and CSV downloads.
+
+**Since your last visit.** `LoadInsights.fileLoaded` already diffs a freshly loaded file against the
+snapshot of the previous one. `lib/since-visit.ts` turns that diff into a compact `VisitSummary` per
+service (counts plus up to 40 listed spools), keeps it under `spoolsync:since-visit` so the panel
+survives a reload, and drops it as soon as the service holds a different inventory than the one it
+describes (`currentVisits`). `load/since-visit-panel.ts` draws the panel above the insights: filament
+used or added back, the biggest movers (opening the spool drawer), additions and removals, and a
+copyable text summary. It holds ids, names and weights only, like the snapshots, and is listed with
+them in the saved-data dialog and never exported.
+
+**Backup and restore.** `lib/saved-data.ts` adds `createBackup`, `inspectBackup` and `restoreBackup`
+(`spoolsync-backup`, version 1; files from the older `spoolsync-settings` export also restore). The
+file holds the same portable groups as the settings export, and every entry is validated by key with
+`isValidEntry` both when written and when read; connections, tokens, snapshots, since-visit data,
+sync history and tab-only inventories are never included or restored. The reader checks the outer
+shape and size limits (`BACKUP_LIMITS`), reports what would be restored and why entries are skipped,
+and only then writes, merging into or replacing the portable settings. `scripts/backup-section.ts`
+is the dialog section: download, choose a file, review, confirm.
+
+**Smaller additions.** Saved views can be shared as `?view=` (compact JSON in base64url, parsed with
+`decodeViewParam` through `sanitizeSettings`, applied once when spools are first on screen, then
+removed from the address) and stepped with `[` and `]` (`cycleView`). The reorder list accepts a
+shop link template (`validateShopTemplate`: https only, `{brand}`, `{material}` and `{color}`, none
+in the host name; each part is percent-encoded by `expandShopTemplate`), stored under
+`spoolsync:shop-template`, and falls back to web search when it is missing or invalid. The command
+palette ranks `aliases` like titles, lists recently chosen commands and spools first under "Recent"
+when opened empty, and has actions for the report, weigh-in, since-last-visit, the reorder list, view
+links, history export and backup or restore. Sync history can be filtered by service, method,
+result and words (`filterSyncHistory`) and exported as `spoolsync-sync-history` JSON, counts and
+short errors only.
+
+**Shared styles.** `styles/modern.css` gives the modal dialogs one radius, shadow, backdrop and
+scroll containment, and a shared entry and exit transition (`@starting-style` with `allow-discrete`
+for `display` and `overlay`) behind `prefers-reduced-motion: no-preference`. It also sets
+`color-scheme`, balanced and pretty text wrapping, tabular numbers, toast safe areas and tone edges,
+and the `.skeleton` and `.empty-state` blocks that Load-page panels use. `styles/features.css`
+holds the report, weigh-in and since-visit styles. The new storage keys (`spoolsync:weigh-in`,
+`spoolsync:shop-template`, `spoolsync:changelog-read`, `spoolsync:since-visit`) are registered in
+`SAVED_GROUPS`.

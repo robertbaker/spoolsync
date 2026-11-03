@@ -17,6 +17,7 @@ export { LINKABLE_IDS, buildPlan } from "./comparison/plan";
 export {
   BULK_EDIT_KEYS,
   BULK_EDIT_LIMITS,
+  MAX_EDIT_GRAMS,
   addTagToNote,
   describeBulkEdit,
   editReachesGroup,

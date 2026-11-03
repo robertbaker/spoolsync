@@ -132,7 +132,7 @@ export function buildPlan(
           ownFields.add(field);
         }
       // A bulk edit overrides the resolved value; a tag is added to the resolved or member's note.
-      for (const field of ["location", "comment"] as const) {
+      for (const field of ["location", "comment", "remainingWeight"] as const) {
         const edited = editedField(edit, field, targets.has(field) ? targets.get(field)! : member[field]);
         if (edited !== undefined) targets.set(field, edited);
       }

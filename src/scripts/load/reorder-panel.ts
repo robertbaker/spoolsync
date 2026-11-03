@@ -5,11 +5,15 @@ import { reorderItems } from "@spoolsync/core/workflow";
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { currentLowStockRule } from "~/lib/low-stock";
 import {
+  SHOP_TEMPLATE_EXAMPLE,
   groupByBrand,
   itemLabel,
+  readShopTemplate,
   reorderCsv,
   reorderFilename,
+  saveShopTemplate,
   spoolSearchUrl,
+  validateShopTemplate,
   type BrandGroup,
 } from "~/lib/reorder-list";
 import { DISPLAY_CHANGED, formatWeight } from "~/lib/units";
@@ -33,6 +37,61 @@ function shopLink(url: string, text: string, label: string): HTMLElement {
     "a",
     { href: url, target: "_blank", rel: "noopener noreferrer", class: LINK, "aria-label": label },
     text,
+  );
+}
+
+/**
+ * A small form to point the "Find to buy" links at a favourite shop instead of web search. The
+ * address must be https and may use {brand}, {material} and {color}; it is checked before saving.
+ */
+function shopTemplateEditor(current: string | null, rebuild: () => void): HTMLElement {
+  const input = h("input", {
+    id: "shop-template",
+    type: "url",
+    class: "field-input mt-1 w-full text-xs",
+    placeholder: SHOP_TEMPLATE_EXAMPLE,
+    maxlength: "300",
+    autocomplete: "off",
+    spellcheck: "false",
+    "aria-describedby": "shop-template-help shop-template-status",
+  });
+  input.value = current ?? "";
+  const status = h("p", { id: "shop-template-status", class: "mt-1 min-h-5 text-xs", role: "status", "aria-live": "polite" });
+  const save = h("button", { type: "button", class: BUTTON }, "Save shop link");
+  const reset = h("button", { type: "button", class: BUTTON }, "Use web search");
+  save.addEventListener("click", () => {
+    const checked = validateShopTemplate(input.value);
+    if (!checked.ok) {
+      status.textContent = checked.error;
+      status.className = "mt-1 min-h-5 text-xs text-error-text";
+      input.setAttribute("aria-invalid", "true");
+      input.focus();
+      return;
+    }
+    if (!saveShopTemplate(checked.template)) {
+      showToast("Could not save the shop link in this browser", "error");
+      return;
+    }
+    showToast("Shop link saved", "success");
+    rebuild();
+  });
+  reset.addEventListener("click", () => {
+    saveShopTemplate(null);
+    showToast("Shop links use web search again", "info");
+    rebuild();
+  });
+  return h(
+    "details",
+    { class: "mt-3 rounded-lg border p-3", ...(current ? { open: "" } : {}) },
+    h("summary", { class: "cursor-pointer text-xs font-medium" }, current ? "Shop link: custom" : "Shop link: web search"),
+    h(
+      "p",
+      { id: "shop-template-help", class: "mt-2 text-xs text-muted-foreground" },
+      "Send the links to your own shop. Use {brand}, {material} and {color} in an https address; names are encoded for you.",
+    ),
+    h("label", { class: "mt-2 block text-xs font-medium", for: "shop-template" }, "Shop address", input),
+    status,
+    h("div", { class: "mt-2 flex flex-wrap gap-2" }, save, current ? reset : null),
   );
 }
 
@@ -99,11 +158,12 @@ export function wireReorderPanel(
   };
 
   function build(): void {
+    const template = readShopTemplate();
     let groups: BrandGroup[];
     let total: number;
     try {
       const items = reorderItems([...results.values()], loadMatchDecisions(), currentLowStockRule());
-      groups = groupByBrand(items);
+      groups = groupByBrand(items, template);
       total = items.length;
     } catch {
       content.replaceChildren(
@@ -114,7 +174,12 @@ export function wireReorderPanel(
     summary.textContent = `Reorder list (${total} ${total === 1 ? "spool" : "spools"} running low)`;
     if (!total) {
       content.replaceChildren(
-        h("p", { class: "text-sm text-muted-foreground" }, "Nothing is running low."),
+        h(
+          "div",
+          { class: "empty-state" },
+          h("strong", {}, "Nothing is running low"),
+          h("p", {}, "Spools under your low-stock threshold appear here, grouped by brand."),
+        ),
       );
       return;
     }
@@ -122,7 +187,7 @@ export function wireReorderPanel(
     csvButton.addEventListener("click", () => {
       try {
         // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
-        download(reorderFilename(new Date()), `﻿${reorderCsv(groups)}`, "text/csv");
+        download(reorderFilename(new Date()), `﻿${reorderCsv(groups, template)}`, "text/csv");
       } catch {
         showToast("Could not create the CSV", "error");
       }
@@ -153,6 +218,7 @@ export function wireReorderPanel(
         "Low spools by brand, once each even when several services list them. Shop links open a web search in a new tab; SpoolSync does not send your inventory anywhere.",
       ),
       h("div", { class: "mt-3 flex flex-wrap gap-2" }, csvButton, printButton),
+      shopTemplateEditor(template, build),
       ...groups.map((group, index) => {
         const headingId = `reorder-brand-${index}`;
         return h(
@@ -170,7 +236,7 @@ export function wireReorderPanel(
             "ul",
             { class: "mt-1 divide-y text-sm" },
             ...group.items.map(({ spool, fraction }) => {
-              const url = spoolSearchUrl(spool);
+              const url = spoolSearchUrl(spool, template);
               return h(
                 "li",
                 { class: "flex flex-wrap items-center justify-between gap-2 py-1.5" },

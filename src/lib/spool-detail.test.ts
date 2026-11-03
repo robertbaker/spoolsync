@@ -122,3 +122,9 @@ test("history combines the latest weight change with the service's last few tota
   expect(spoolHistory(spool, new Map(), {})).toEqual({ change: null, serviceTrail: [] });
   expect(recordTitle(spool)).toBe("Spoolman 12");
 });
+
+test("reports the match group and whether a changed weight could be staged for it", () => {
+  const detail = findSpoolDetail([makeSpool("spoolman", "12", { remainingWeight: 300 })], "spoolman:12", none)!;
+  expect(detail.groupId).toBeTruthy();
+  expect(detail.canStageWeight).toBe(true);
+});

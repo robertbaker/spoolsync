@@ -20,6 +20,7 @@ import { DISPLAY_CHANGED, formatMoney, formatWeight } from "~/lib/units";
 import { h, showToast } from "../dom";
 import type { LoadInsights } from "./insights";
 import { printLabelSheet } from "./label-sheet";
+import { createWeighInSection, type WeighInMemory } from "./weigh-in-panel";
 
 const BUTTON =
   "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50";
@@ -82,6 +83,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
   let body: HTMLElement;
   let currentKey: string | null = null;
   let opener: HTMLElement | null = null;
+  const weighMemory: WeighInMemory = new Map();
 
   const allSpools = (): CommonSpool[] => [...results.values()].flatMap((result) => result.spools);
 
@@ -350,6 +352,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
         })(),
       ),
       actions(detail),
+      section("Weigh in", "drawer-weigh-heading", createWeighInSection(detail, weighMemory)),
       section("Fields by service", "drawer-fields-heading", fieldTable(detail)),
       section("Linked ids", "drawer-ids-heading", idsList(detail)),
       section("History", "drawer-history-heading", historyList(detail)),

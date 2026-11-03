@@ -2,12 +2,16 @@ import { beforeEach, expect, test } from "bun:test";
 
 import {
   MAX_SYNC_HISTORY,
+  SYNC_HISTORY_EXPORT_FORMAT,
   appendSyncHistory,
   clearSyncHistory,
+  filterSyncHistory,
   formatHistorySummary,
   readSyncHistory,
   recordSyncHistory,
   sanitizeSyncHistory,
+  syncHistoryFilename,
+  syncHistoryJson,
   type SyncHistoryRecord,
 } from "./sync-history";
 
@@ -82,4 +86,43 @@ test("the summary is plain text, newest first, with totals", () => {
     "- 2026-11-03 12:30 UTC FilamentDB downloaded as a file: 1 update, 0 new; file ready to import",
     "- 2026-11-03 12:00 UTC Spoolman applied through the API: 2 updates, 1 new; 2 succeeded, 1 failed",
   ]);
+});
+
+function sampleHistory() {
+  let history = appendSyncHistory([], record({ failed: 1, succeeded: 2, error: "Timeout talking to server" }), at(0));
+  history = appendSyncHistory(history, record({ source: "filamentdb", via: "download", failed: 0 }), at(10));
+  history = appendSyncHistory(history, record({ source: "spoolman", via: "api", failed: 0, succeeded: 3 }), at(20));
+  return history;
+}
+
+test("filters by service, method, outcome and words, keeping the original order", () => {
+  const history = sampleHistory();
+  expect(filterSyncHistory(history, {})).toHaveLength(3);
+  expect(filterSyncHistory(history, { source: "all", via: "all", outcome: "all" })).toHaveLength(3);
+  expect(filterSyncHistory(history, { source: "filamentdb" })).toHaveLength(1);
+  expect(filterSyncHistory(history, { via: "api" }).map((entry) => entry.source)).toEqual(["spoolman", "spoolman"]);
+  expect(filterSyncHistory(history, { outcome: "failed" })).toHaveLength(1);
+  expect(filterSyncHistory(history, { outcome: "succeeded" })).toHaveLength(2);
+  expect(filterSyncHistory(history, { query: "timeout SPOOLMAN" })).toHaveLength(1);
+  expect(filterSyncHistory(history, { query: "no such words" })).toEqual([]);
+  expect(filterSyncHistory(history, { source: "spoolman", outcome: "succeeded", via: "api" })).toHaveLength(1);
+});
+
+test("an entry with an error counts as failed even when no change failed", () => {
+  const history = appendSyncHistory([], record({ failed: 0, error: "Could not connect" }), at(0));
+  expect(filterSyncHistory(history, { outcome: "failed" })).toHaveLength(1);
+});
+
+test("the JSON export carries a format marker and only what is stored", () => {
+  const history = sampleHistory();
+  const parsed = JSON.parse(syncHistoryJson(history, new Date("2026-11-03T13:00:00Z")));
+  expect(parsed).toMatchObject({
+    format: SYNC_HISTORY_EXPORT_FORMAT,
+    version: 1,
+    exportedAt: "2026-11-03T13:00:00.000Z",
+  });
+  expect(parsed.entries).toEqual(history);
+  expect(sanitizeSyncHistory(parsed.entries)).toEqual(history);
+  expect(syncHistoryFilename(new Date("2026-11-03T23:00:00Z"))).toBe("spoolsync-sync-history-2026-11-03.json");
+  expect(JSON.parse(syncHistoryJson([])).entries).toEqual([]);
 });

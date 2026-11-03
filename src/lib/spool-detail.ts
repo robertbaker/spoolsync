@@ -1,3 +1,4 @@
+import { editReachesGroup } from "@spoolsync/core/core/compare";
 import { pairKey, type MatchDecisions } from "@spoolsync/core/core/match";
 import {
   SOURCE_IDS,
@@ -50,6 +51,10 @@ export interface SpoolDetail {
   /** Every loaded record of this spool, one per service, the opened one first. */
   columns: CommonSpool[];
   candidates: Candidate[];
+  /** The match group the spool sits in; bulk edits are staged against it. `null` when unmatched. */
+  groupId: string | null;
+  /** Whether some member is in a service that can store a changed remaining weight. */
+  canStageWeight: boolean;
 }
 
 export const CROSS_ID_LABELS: Record<keyof CrossIds, string> = {
@@ -128,7 +133,14 @@ export function findSpoolDetail(
         because: ["You confirmed these are the same spool."],
       });
   }
-  return { key, spool, columns, candidates };
+  return {
+    key,
+    spool,
+    columns,
+    candidates,
+    groupId: group?.id ?? null,
+    canStageWeight: group ? editReachesGroup(group, { remainingWeight: 0 }) : false,
+  };
 }
 
 /** The decisions after saying two records are different spools; replaces an earlier "same". */

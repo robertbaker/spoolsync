@@ -3,19 +3,25 @@ import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 import { navLinks } from "~/config/navigation";
 import { WORKFLOW_STEPS } from "~/config/site";
 import { readLoadResult } from "~/lib/browser/storage/inventories";
+import { backupFilename, createBackup } from "~/lib/saved-data";
 import { readDisplaySettings, updateDisplaySettings } from "~/lib/units";
 
+import { showToast } from "../dom";
 import { isLoadPath, openSetupGuide } from "../setup/launch";
+import { download } from "../sync/presentation";
 import { spoolItems, type PaletteItem } from "./items";
 
 /** Fired on `document` to open a spool's detail drawer. Another module listens for it. */
 export const OPEN_SPOOL_EVENT = "spoolsync:open-spool";
 
+/** Fired on `document` with `{ query }` to reopen the palette with a search already typed. */
+export const OPEN_PALETTE_EVENT = "spoolsync:open-palette";
+
 const here = () => location.pathname.replace(/\/+$/, "") || "/";
 
 function clickVisible(selector: string): boolean {
   const target = document.querySelector<HTMLElement>(selector);
-  if (!target || target.hidden || (target as HTMLButtonElement).disabled) return false;
+  if (!target || target.closest("[hidden]") || (target as HTMLButtonElement).disabled) return false;
   target.click();
   return true;
 }
@@ -23,7 +29,7 @@ function clickVisible(selector: string): boolean {
 /** Whether a page control exists and is currently usable (hidden buttons are not offered). */
 function available(selector: string): boolean {
   const target = document.querySelector<HTMLElement>(selector);
-  return Boolean(target && !target.hidden && !(target as HTMLButtonElement).disabled);
+  return Boolean(target && !target.closest("[hidden]") && !(target as HTMLButtonElement).disabled);
 }
 
 export function openPanel(source: string): boolean {
@@ -114,6 +120,7 @@ function actionItems(): PaletteItem[] {
       id: "action:theme",
       title: "Toggle light or dark theme",
       keywords: "appearance mode dark light color",
+      aliases: ["dark mode", "light mode", "night mode", "theme"],
       run: () => void clickVisible("[data-theme-toggle]"),
     });
   add({
@@ -121,6 +128,7 @@ function actionItems(): PaletteItem[] {
     title: `Show weights in ${unit === "g" ? "ounces" : "grams"}`,
     subtitle: `Currently ${unit === "g" ? "grams" : "ounces"}`,
     keywords: "units weight grams ounces oz g metric imperial display",
+    aliases: ["metric", "imperial", "grams", "ounces", "switch units"],
     run: () => void updateDisplaySettings({ weightUnit: unit === "g" ? "oz" : "g" }),
   });
   if (available("[data-open-shortcuts]"))
@@ -128,6 +136,7 @@ function actionItems(): PaletteItem[] {
       id: "action:shortcuts",
       title: "Show keyboard shortcuts",
       keywords: "help keys hotkeys",
+      aliases: ["hotkeys", "keys", "key bindings"],
       run: () => void clickVisible("[data-open-shortcuts]"),
     });
   if (available("[data-open-saved-data]"))
@@ -135,6 +144,7 @@ function actionItems(): PaletteItem[] {
       id: "action:saved",
       title: "Open saved settings",
       keywords: "preferences storage forget export import display units currency",
+      aliases: ["settings", "preferences", "forget data", "privacy"],
       run: () => void clickVisible("[data-open-saved-data]"),
     });
   if (available("[data-open-changelog]"))
@@ -142,6 +152,7 @@ function actionItems(): PaletteItem[] {
       id: "action:changelog",
       title: "What is new (changelog)",
       keywords: "release notes version updates",
+      aliases: ["release notes", "whats new", "updates", "version"],
       run: () => void clickVisible("[data-open-changelog]"),
     });
   if (available("[data-tour-launcher]"))
@@ -149,6 +160,7 @@ function actionItems(): PaletteItem[] {
       id: "action:tour",
       title: "Take the tour",
       keywords: "guide walkthrough help intro",
+      aliases: ["help", "walkthrough", "tutorial"],
       run: () => void clickVisible("[data-tour-launcher]"),
     });
   add({
@@ -156,6 +168,7 @@ function actionItems(): PaletteItem[] {
     title: "Open the setup guide",
     subtitle: "Where to find each app's export",
     keywords: "wizard first run getting started help import",
+    aliases: ["getting started", "first run", "onboarding"],
     run: openSetupGuide,
   });
   add({
@@ -176,7 +189,96 @@ function actionItems(): PaletteItem[] {
       title: "Download all spools as one CSV",
       subtitle: "Load page",
       keywords: "export combined csv inventory",
+      aliases: ["export csv", "export inventory", "combined csv"],
       run: () => void clickVisible("#download-combined"),
+    });
+  // Inventory tools added with the report, weigh-in, backup and history features.
+  if (available("#open-inventory-report"))
+    add({
+      id: "action:inventory-report",
+      title: "Open the inventory report",
+      subtitle: "Print, HTML, Markdown or CSV",
+      keywords: "totals material brand low stock value cost summary print download",
+      aliases: ["report", "print inventory", "summary", "export report"],
+      run: () => void clickVisible("#open-inventory-report"),
+    });
+  if (isLoadPath(location.pathname) && SOURCE_IDS.some((source) => readLoadResult(source)))
+    add({
+      id: "action:weigh-in",
+      title: "Weigh in a spool",
+      subtitle: "Pick a spool, then use its Weigh in section",
+      keywords: "scale tare remaining filament left weight calculator",
+      aliases: ["scale", "tare", "weigh", "how much is left"],
+      run: () => document.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT, { detail: { query: "weigh " } })),
+    });
+  if (document.getElementById("since-visit") && !document.getElementById("since-visit")?.hidden)
+    add({
+      id: "action:since-visit",
+      title: "Show what changed since your last visit",
+      subtitle: "Load page",
+      keywords: "changes used added removed compare previous file snapshot",
+      aliases: ["changes", "what changed", "recent changes", "diff"],
+      run: () => {
+        const panel = document.getElementById("since-visit");
+        panel?.scrollIntoView({ block: "start", behavior: "smooth" });
+        panel?.querySelector<HTMLElement>("h3")?.setAttribute("tabindex", "-1");
+        panel?.querySelector<HTMLElement>("h3")?.focus({ preventScroll: true });
+      },
+    });
+  if (available("#reorder-panel details"))
+    add({
+      id: "action:reorder",
+      title: "Open the reorder list",
+      subtitle: "Load page",
+      keywords: "shopping list low stock buy shop link",
+      aliases: ["shopping list", "buy filament", "low stock"],
+      run: () => {
+        const details = document.querySelector<HTMLDetailsElement>("#reorder-panel details");
+        if (details) details.open = true;
+        details?.scrollIntoView({ block: "start", behavior: "smooth" });
+        details?.querySelector<HTMLElement>("summary")?.focus({ preventScroll: true });
+      },
+    });
+  if (available('[data-action="share-view"]'))
+    add({
+      id: "action:share-view",
+      title: "Copy a link to the current table view",
+      subtitle: "Load page",
+      keywords: "saved view filters share url link",
+      aliases: ["share view", "view link"],
+      run: () => void clickVisible('[data-action="share-view"]'),
+    });
+  if (available("#sync-history-export"))
+    add({
+      id: "action:export-history",
+      title: "Export sync history as JSON",
+      subtitle: "Sync page",
+      keywords: "download applies downloads log",
+      aliases: ["history", "export log"],
+      run: () => void clickVisible("#sync-history-export"),
+    });
+  add({
+    id: "action:backup",
+    title: "Download a backup of saved settings",
+    subtitle: "Never includes connections or tokens",
+    keywords: "export settings preferences views file history watchlist",
+    aliases: ["backup", "export settings", "save settings"],
+    run: () => {
+      try {
+        download(backupFilename(new Date()), createBackup(), "application/json");
+      } catch {
+        showToast("Could not create the backup", "error");
+      }
+    },
+  });
+  if (available("[data-open-saved-data]"))
+    add({
+      id: "action:restore",
+      title: "Restore settings from a backup",
+      subtitle: "Opens saved settings",
+      keywords: "import settings backup file merge replace",
+      aliases: ["restore", "import settings"],
+      run: () => void clickVisible("[data-open-saved-data]"),
     });
   if (available("#unload-all"))
     add({
@@ -184,6 +286,7 @@ function actionItems(): PaletteItem[] {
       title: "Unload all services",
       subtitle: "Load page",
       keywords: "clear reset remove inventories",
+      aliases: ["clear all", "reset", "unload everything"],
       run: () => void clickVisible("#unload-all"),
     });
   return items;
