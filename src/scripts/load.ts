@@ -29,11 +29,14 @@ import { createInventoryTable } from "./load/inventory-table";
 import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
+import { wireReorderPanel } from "./load/reorder-panel";
 import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
+import { wireSpoolDrawer } from "./load/spool-drawer";
 import { LoadState } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
 import { renderTrendChart } from "./load/trend-chart";
+import { wireViewsPanel } from "./load/views-panel";
 import { button, download } from "./sync/presentation";
 
 const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
@@ -58,9 +61,19 @@ const labels = wireLabelPrinting({
   results: state.results,
   visibleSpools: () => renderTable.visibleSpools(),
 });
+const drawer = wireSpoolDrawer({ results: state.results, insights, onChange: () => render() });
+const viewsRoot = document.getElementById("saved-views");
+const views = viewsRoot
+  ? wireViewsPanel(viewsRoot, renderTable, () => state.results.size > 0)
+  : null;
+const reorderRoot = document.getElementById("reorder-panel");
+const reorder = reorderRoot ? wireReorderPanel(reorderRoot, state.results) : null;
 const render = () => {
   insights.refresh();
   renderTable();
+  drawer.update();
+  views?.update();
+  reorder?.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
   renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);

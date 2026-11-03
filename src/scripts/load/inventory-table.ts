@@ -9,6 +9,14 @@ import { HEALTH_ISSUES, HEALTH_LABELS, spoolKey } from "@spoolsync/core/workflow
 
 import { currentLowStockRule } from "~/lib/low-stock";
 import { readPreferences, updatePreferences, type SortKey } from "~/lib/preferences";
+import {
+  EMPTY_VIEW,
+  groupSpools,
+  matchesRange,
+  sanitizeSettings,
+  type ViewSettings,
+} from "~/lib/saved-views";
+import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 
 import { byId, h } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
@@ -137,6 +145,14 @@ export function createInventoryTable(
     updatePreferences({ lowOnly: lowOnly || undefined });
     renderTable();
   });
+  // Part of a saved view: material and weight range filters and grouping (not remembered alone).
+  let extra = {
+    material: EMPTY_VIEW.material,
+    minGrams: EMPTY_VIEW.minGrams,
+    maxGrams: EMPTY_VIEW.maxGrams,
+    group: EMPTY_VIEW.group,
+  };
+  const renderListeners = new Set<() => void>();
   const searchWrap = document.getElementById("loaded-filter-wrap");
   const searchInput = document.getElementById("spool-search-input") as HTMLInputElement | null;
 
@@ -169,6 +185,22 @@ export function createInventoryTable(
       document.querySelector<HTMLElement>(`[data-watch="${CSS.escape(key)}"]`)?.focus();
     });
     return button;
+  }
+
+  /** The spool's name as a button, which opens the detail drawer for keyboard and screen reader users. */
+  function detailsButton(key: string, name: string | null): HTMLElement {
+    return h(
+      "button",
+      {
+        type: "button",
+        "data-open-spool": key,
+        "aria-haspopup": "dialog",
+        class:
+          "text-left underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-primary",
+      },
+      name ?? "—",
+      h("span", { class: "sr-only" }, " (open details)"),
+    );
   }
 
   /** One-click filter chips: duplicates, watched spools, and each health check that found something. */
@@ -209,6 +241,44 @@ export function createInventoryTable(
   }
 
   function renderTable(): void {
+    draw();
+    for (const listener of renderListeners) listener();
+  }
+
+  /** The table's filters, sort and grouping as one saved-view value. */
+  function getViewSettings(): ViewSettings {
+    return sanitizeSettings({
+      search: searchQuery,
+      lowOnly,
+      insight: insights?.activeFilter ?? null,
+      sort,
+      ...extra,
+    });
+  }
+
+  /** Replaces the table's filters, sort and grouping, then redraws once. */
+  function applyViewSettings(next: ViewSettings): void {
+    const settings = sanitizeSettings(next);
+    searchQuery = settings.search;
+    if (searchInput) searchInput.value = settings.search;
+    lowOnly = settings.lowOnly;
+    sort = settings.sort;
+    updatePreferences({ lowOnly: lowOnly || undefined, tableSort: sort ?? undefined });
+    extra = {
+      material: settings.material,
+      minGrams: settings.minGrams,
+      maxGrams: settings.maxGrams,
+      group: settings.group,
+    };
+    // A check that found nothing in the current inventory is dropped, as the table already does.
+    const filter = settings.insight as InsightFilter | null;
+    const usable = filter !== null && insights !== undefined && insights.countFor(filter) > 0;
+    // Setting the filter redraws through its listener; the redraw below covers the other cases.
+    insights?.setFilter(usable ? filter : null);
+    renderTable();
+  }
+
+  function draw(): void {
     renderChips();
     const all = [...results.values()].flatMap((result) => result.spools);
     visible = [];
@@ -256,24 +326,32 @@ export function createInventoryTable(
     const insightFilter = insights?.activeFilter ?? null;
     const narrowed =
       insights && insightFilter ? matching.filter((s) => insights.matches(s)) : matching;
-    const filtered = sortSpools(lowOnly ? narrowed.filter(isLow) : narrowed, sort);
-    visible = filtered;
+    const ranged = narrowed.filter((s) => matchesRange(s, extra));
+    const rangeActive = Boolean(
+      extra.material || extra.minGrams !== null || extra.maxGrams !== null,
+    );
+    const filtered = sortSpools(lowOnly ? ranged.filter(isLow) : ranged, sort);
+    // Grouping lists each group together, so the order the table shows is the grouped order.
+    const sections = groupSpools(filtered, extra.group);
+    visible = sections.flatMap((section) => section.spools);
 
     byId("loaded-summary").textContent =
-      searchQuery || lowOnly || insightFilter
+      searchQuery || lowOnly || insightFilter || rangeActive
         ? `Showing ${filtered.length} of ${all.length} spools (${counts.join(" · ")})`
         : counts.join(" · ");
 
-    if ((searchQuery || lowOnly || insightFilter) && !filtered.length) {
+    if ((searchQuery || lowOnly || insightFilter || rangeActive) && !filtered.length) {
       container.replaceChildren(
         h(
           "p",
           { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
           searchQuery
             ? `No spools matching "${searchQuery}".`
-            : insightFilter
-              ? `No spools match "${FILTER_LABELS[insightFilter]}".`
-              : "No spools are running low.",
+            : rangeActive
+              ? "No spools match the material and weight filters."
+              : insightFilter
+                ? `No spools match "${FILTER_LABELS[insightFilter]}".`
+                : "No spools are running low.",
         ),
       );
       return;
@@ -302,11 +380,11 @@ export function createInventoryTable(
             ...(insights.health.byKey.get(key) ?? []).map((issue) => HEALTH_LABELS[issue]),
           ].filter(Boolean)
         : [];
-      return h(
+      const row = h(
         "tr",
         {
           class:
-            `${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
+            `cursor-pointer hover:bg-muted/40 ${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
           ...(flags.length ? { title: flags.join("; ") } : {}),
         },
         h("td", { class: "whitespace-nowrap font-medium" }, SOURCE_LABELS[spool.source]),
@@ -317,7 +395,7 @@ export function createInventoryTable(
         ),
         h("td", {}, spool.vendor ?? "—"),
         h("td", {}, spool.material ?? "—"),
-        h("td", {}, spool.name ?? "—", spool.archived ? " (archived)" : ""),
+        h("td", {}, detailsButton(key, spool.name), spool.archived ? " (archived)" : ""),
         h("td", {}, swatches(spool.colors)),
         h(
           "td",
@@ -348,7 +426,36 @@ export function createInventoryTable(
         h("td", { class: "text-xs" }, links(spool)),
         insights ? h("td", {}, watchButton(key, spool, watching)) : null,
       );
+      // A click anywhere on the row opens the detail drawer, except on other controls and while
+      // the visitor is selecting text. The name button is the keyboard route to the same action.
+      row.addEventListener("click", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const control = target?.closest("button, a, input, select, textarea, label");
+        if (control && !control.hasAttribute("data-open-spool")) return;
+        if (!control && window.getSelection()?.toString()) return;
+        document.dispatchEvent(new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key } }));
+      });
+      return row;
     });
+    const rowOf = new Map(filtered.map((spool, index) => [spool, rows[index]!]));
+    const bodyRows = sections.flatMap((section) => [
+      section.label
+        ? h(
+            "tr",
+            { class: "spool-group-row" },
+            h(
+              "th",
+              {
+                scope: "colgroup",
+                colspan: String(headers.length),
+                class: "bg-muted/40 text-left text-sm font-semibold",
+              },
+              `${section.label} (${section.spools.length})`,
+            ),
+          )
+        : null,
+      ...section.spools.map((spool) => rowOf.get(spool)!),
+    ]);
 
     container.replaceChildren(
       h(
@@ -407,11 +514,19 @@ export function createInventoryTable(
               }),
             ),
           ),
-          h("tbody", {}, ...rows),
+          h("tbody", {}, ...bodyRows),
         ),
       ),
     );
   }
 
-  return Object.assign(renderTable, { visibleSpools: (): readonly CommonSpool[] => visible });
+  return Object.assign(renderTable, {
+    visibleSpools: (): readonly CommonSpool[] => visible,
+    getViewSettings,
+    applyViewSettings,
+    /** Runs after every redraw, so the saved-views panel can show whether a view is modified. */
+    onRender(listener: () => void): void {
+      renderListeners.add(listener);
+    },
+  });
 }

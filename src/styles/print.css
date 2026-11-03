@@ -157,3 +157,47 @@
     box-shadow: none !important;
   }
 }
+
+/*
+ * The shopping list from the Load page's reorder panel prints alone, like the label sheet. The
+ * sheet holds plain text with tick boxes, so it needs no controls or link addresses.
+ */
+@media print {
+  body.printing-reorder > *:not(#reorder-sheet) {
+    display: none !important;
+  }
+
+  body.printing-reorder #reorder-sheet {
+    display: block !important;
+    padding: 0;
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+  }
+
+  #reorder-sheet h1 {
+    font-size: 16pt;
+    font-weight: 700;
+  }
+
+  #reorder-sheet h2 {
+    margin-top: 1rem;
+    font-size: 12pt;
+    font-weight: 700;
+  }
+
+  #reorder-sheet ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.25rem 0 0;
+  }
+
+  #reorder-sheet li {
+    padding: 0.2rem 0;
+    break-inside: avoid;
+  }
+
+  #reorder-sheet .reorder-brand {
+    break-inside: avoid;
+  }
+}

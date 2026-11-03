@@ -5,6 +5,7 @@ import { sanitizeWatchlist } from "./browser/storage/insights";
 import { sanitizeStockHistory } from "./browser/storage/stock-history";
 import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
 import { sanitizePreferences } from "./preferences";
+import { sanitizeViews } from "./saved-views";
 
 /**
  * What SpoolSync keeps in this browser, grouped in plain words, so the visitor can see it and take
@@ -38,7 +39,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "preferences",
     label: "Preferences",
     description:
-      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, and recently used services.",
+      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, and recently used services.",
     keys: [
       "spoolsync:prefs",
       "spoolsync:low-stock-percent",
@@ -50,6 +51,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:cost-view",
       "spoolsync:cost-table-open",
       "spoolsync:label-options",
+      "spoolsync:saved-views",
       "spoolsync:last-seen-version",
       "spoolsync:changelog-cache",
     ],
@@ -226,6 +228,8 @@ function isValidEntry(key: string, text: string): boolean {
           LABEL_SELECTIONS.some((selection) => selection.id === value.selection)
         );
       }
+      case "spoolsync:saved-views":
+        return sanitizeViews(JSON.parse(text)).length > 0;
       case "spoolsync:match-decisions": {
         const value = JSON.parse(text) as { confirmed?: unknown; rejected?: unknown };
         return isStringList(value.confirmed) && isStringList(value.rejected);

@@ -482,3 +482,39 @@ update", which posts `SKIP_WAITING`, and the page reloads once the new worker co
 worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
 The header's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
 is offline. Playwright runs with service workers enabled, matching production.
+
+## Spool drawer, saved views, and reorder list
+
+**Spool detail drawer** (`load/spool-drawer.ts`, logic in `lib/spool-detail.ts`). Clicking a table row,
+or its name button for keyboard users, dispatches `spoolsync:open-spool` on `document` with
+`{ key }` (a `spoolKey`); anything else, such as a command palette, can dispatch the same event.
+The drawer is a native modal `<dialog>` docked right, so focus is trapped, Esc closes it, and focus
+returns to the row's name button (found again by `data-open-spool`, since the table is redrawn).
+`findSpoolDetail` uses the Sync page's matching (`findMatches`, honouring saved answers) to collect
+every loaded record of the spool, then `detailRows` lays out each field by service and flags rows where
+the services disagree. Weights go through `formatWeight` and prices through `formatMoney`, and the
+drawer redraws on `DISPLAY_CHANGED`. History is what is actually stored: the weight change since the
+previous file load (from `LoadInsights.changes`) and the last few per-service totals from stock
+history; no per-spool history is kept. "Mark as different" lists same-service duplicates, pending
+match suggestions, and answers the visitor confirmed; it writes the pair to the shared match
+decisions (`markDifferent` removes an earlier "same" answer), which only stops suggestions. Printing
+a label reuses `printLabelSheet` from `label-sheet.ts`.
+
+**Saved views** (`load/views-panel.ts`, logic in `lib/saved-views.ts`). A view is a named
+`ViewSettings`: search text, running-low, insight filter, sort, grouping, a material substring, and a
+minimum and maximum remaining weight in grams (always grams, whatever the display unit; spools with
+no weight fail any weight bound). The table exposes `getViewSettings`, `applyViewSettings`, and
+`onRender`, so the panel never touches table state directly. Views live under `spoolsync:saved-views`
+(at most 30, names unique ignoring case, 60 characters), are sanitized on every read, and are part of
+the Preferences group in Saved settings and settings export. Grouping inserts a header row per group
+and keeps the chosen sort inside each group. If storage is blocked the panel keeps the views for the
+visit and says so.
+
+**Reorder list** (`load/reorder-panel.ts`, logic in `lib/reorder-list.ts`). Built from core's
+`reorderItems`, so it uses the same low-stock rule and linked-spool matching as "Copy reorder list",
+then grouped by brand (case-insensitive, no-brand last). Search links are
+`https://www.google.com/search?tbm=shop&q=brand+material+name`, built with `URLSearchParams` and opened
+with `rel="noopener noreferrer"`; nothing from the inventory is sent until the visitor clicks. The CSV
+neutralizes cells that start with a formula character like `combinedInventoryCsv` does. The printable
+view builds a plain `#reorder-sheet` and sets `body.printing-reorder`, which `print.css` uses to print
+the sheet alone, as it does for labels.

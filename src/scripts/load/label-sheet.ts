@@ -99,6 +99,26 @@ export function labelElement(label: Label, preset: LabelPreset): HTMLElement {
   return element;
 }
 
+/** Prints a sheet of labels for the given spools in the given (or remembered) label size. */
+export function printLabelSheet(spools: readonly CommonSpool[], presetId?: string): void {
+  if (!spools.length) return;
+  const preset = labelPreset(presetId ?? readOptions().preset);
+  document.getElementById("label-sheet")?.remove();
+  const sheet = h(
+    "section",
+    { id: "label-sheet", "aria-label": "Spool labels", "data-labels": String(spools.length) },
+    ...spools.map((spool) => labelElement(buildLabel(spool), preset)),
+  );
+  document.body.append(sheet);
+  document.body.classList.add("printing-labels");
+  const finish = () => {
+    document.body.classList.remove("printing-labels");
+    sheet.remove();
+  };
+  window.addEventListener("afterprint", finish, { once: true });
+  window.print();
+}
+
 interface Inputs {
   results: ReadonlyMap<SourceId, LoadResult>;
   /** The spools the loaded-spools table is showing. */
@@ -161,23 +181,7 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
   }
 
   function print(): void {
-    const spools = chosen();
-    if (!spools.length) return;
-    const preset = labelPreset(options.preset);
-    document.getElementById("label-sheet")?.remove();
-    const sheet = h(
-      "section",
-      { id: "label-sheet", "aria-label": "Spool labels", "data-labels": String(spools.length) },
-      ...spools.map((spool) => labelElement(buildLabel(spool), preset)),
-    );
-    document.body.append(sheet);
-    document.body.classList.add("printing-labels");
-    const finish = () => {
-      document.body.classList.remove("printing-labels");
-      sheet.remove();
-    };
-    window.addEventListener("afterprint", finish, { once: true });
-    window.print();
+    printLabelSheet(chosen(), options.preset);
   }
 
   function radioGroup(): HTMLElement {
