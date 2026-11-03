@@ -1,6 +1,7 @@
 import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
 import { sanitizeFileHistory } from "./browser/storage/file-history";
+import { sanitizeWatchlist } from "./browser/storage/insights";
 import { sanitizePreferences } from "./preferences";
 
 /**
@@ -54,6 +55,21 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     description:
       "The name, size, and date of the last file used for each service. Never the contents.",
     keys: ["spoolsync:file-history"],
+    storage: "local",
+  },
+  {
+    id: "snapshots",
+    label: "Previous inventory summaries",
+    description:
+      "For each service, the id, remaining weight, and name of every spool in the last file you loaded, so the next load can show what changed. Kept on this device only and never exported.",
+    keys: ["spoolsync:inventory-snapshots"],
+    storage: "local",
+  },
+  {
+    id: "watchlist",
+    label: "Watchlist",
+    description: "The spools you pinned to watch for weight drops (service and id only).",
+    keys: ["spoolsync:watchlist"],
     storage: "local",
   },
   {
@@ -154,7 +170,7 @@ export function formatBytes(bytes: number): string {
 const EXPORT_FORMAT = "spoolsync-settings";
 const EXPORT_VERSION = 1;
 /** The groups that are safe and useful to carry over. Connections hold credentials and stay put. */
-const PORTABLE_GROUPS = ["preferences", "files", "answers"] as const;
+const PORTABLE_GROUPS = ["preferences", "files", "watchlist", "answers"] as const;
 
 const CHART_VIEWS = ["service", "material", "brand", "color", "location"];
 
@@ -171,6 +187,8 @@ function isValidEntry(key: string, text: string): boolean {
       }
       case "spoolsync:file-history":
         return Object.keys(sanitizeFileHistory(JSON.parse(text))).length > 0;
+      case "spoolsync:watchlist":
+        return sanitizeWatchlist(JSON.parse(text)).length > 0;
       case "spoolsync:low-stock-percent":
         return isLowStockPercent(Number(text));
       case "spoolsync:open-panels":

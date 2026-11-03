@@ -15,7 +15,7 @@ const MAX_FILE_BYTES = 20 * 1024 * 1024;
  * download every format's code (and TigerTag's reference tables) up front. They throw for a file
  * that is not theirs.
  */
-export function wireFileSource(source: SourceId, { state, store }: LoadContext): void {
+export function wireFileSource(source: SourceId, { state, store, fileLoaded }: LoadContext): void {
   const fileInput = byId<HTMLInputElement>(`${source}-file`);
   const dropZone = byId(`${source}-drop`);
   const message = byId(`${source}-message`);
@@ -38,7 +38,7 @@ export function wireFileSource(source: SourceId, { state, store }: LoadContext):
     }
   });
 
-  const read = (file: File) => readInventoryFile(source, file, { state, store });
+  const read = (file: File) => readInventoryFile(source, file, { state, store, fileLoaded });
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
@@ -66,7 +66,7 @@ export function wireFileSource(source: SourceId, { state, store }: LoadContext):
 export async function readInventoryFile(
   source: SourceId,
   file: File,
-  { state, store }: LoadContext,
+  { state, store, fileLoaded }: LoadContext,
 ): Promise<void> {
   const message = byId(`${source}-message`);
   const current = state.nextRevision(source);
@@ -120,4 +120,5 @@ export async function readInventoryFile(
     spools: result.spools.length,
     loadedAt: new Date().toISOString(),
   });
+  fileLoaded?.(result);
 }

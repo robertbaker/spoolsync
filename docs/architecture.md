@@ -361,3 +361,43 @@ site through Wrangler on port 4324. See [CONTRIBUTING.md](../CONTRIBUTING.md) fo
 
 The Sync sticky bar (`sync/jump-bar.ts`) shows `Pending matches (N)` next to the ready-changes count, with
 "Review matches" and "Jump to apply" links that each hide while their target is on screen.
+
+## Load-page inventory insights
+
+Three report-only checks run over the loaded inventories. None of them modifies, merges, or
+exports anything.
+
+- **Rules** live in `packages/spoolsync-core/src/workflow/` and are exported from `workflow.ts`:
+  `duplicates.ts` (likely duplicates within one service), `health.ts` (missing fields and
+  impossible weights), `changes.ts` (per-spool fingerprints and the diff between two loads), and
+  `spool-key.ts` (the `source:id` key shared by all three). They are pure functions with
+  deterministic ordering; internal modules import each other directly.
+- **Duplicates** are only sought inside one service; cross-service pairs remain the Sync page's
+  job. Brand, material, and colour family must agree, remaining weights must be near-identical
+  (within 5 g or 2%), and the name, purchase date, or lot number must also match. Archived and
+  active spools are never paired. Each group carries plain-language reasons that hold for every
+  linked pair.
+- **Health** flags no remaining weight, no color, brand, material, or location, negative or
+  non-finite weights, and remaining weight above the full weight. `null` stays "unknown" and zero
+  is a valid weight.
+- **Changes since last time** compare a reloaded _file_ with a compact snapshot kept in
+  `localStorage` under `spoolsync:inventory-snapshots`: per service, `[id, remaining grams, name]`
+  for each spool, never the full record, notes, prices, or cross-service ids.
+  `src/lib/browser/storage/insights.ts` validates the entry on every read and caps it at 2000
+  spools per service and about 400 KB in total; an inventory over the cap is not remembered, and the
+  panel says so, rather than storing a partial snapshot that would later report spools as added.
+  API loads and sample data neither read nor write snapshots. The comparison result is held in
+  memory (`LoadInsights`) and dropped when the service is unloaded or replaced by a newer load.
+- **Watchlist** pins are `source:id` keys in `spoolsync:watchlist` (validated, capped at 200).
+  A pinned spool whose weight dropped in the latest reload is highlighted in the table and listed
+  in the watchlist panel with the text "Dropped N g", not by colour alone.
+- **Saved data**: `src/lib/saved-data.ts` lists both keys as "Previous inventory summaries" and
+  "Watchlist" so the saved-settings dialog can show and forget them. The watchlist is portable in a
+  settings export and validated on import; snapshots hold inventory contents and are excluded.
+- **Browser wiring**: `LoadInsights` (`src/scripts/load/insights.ts`) receives its storage as an
+  `InsightsStorage` interface, recomputes reports on each render, and owns the table filter
+  (duplicates, watched, or one health check). `insights-view.ts` renders the four panels as real
+  tables and lists under `h3` headings, the changes panel as a polite live region.
+  `inventory-table.ts` renders the filter chips (`aria-pressed` buttons) and the Watch toggles.
+  Files report completion through the optional `LoadContext.fileLoaded` callback, called only after
+  the inventory passed the request-revision check and was stored.

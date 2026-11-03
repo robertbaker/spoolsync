@@ -22,3 +22,13 @@ export {
   loadFilamentDbConnection,
   saveFilamentDbConnection,
 } from "./storage/api-connections";
+export type { InventorySnapshot, InventorySnapshots } from "./storage/insights";
+export {
+  clearSnapshots,
+  clearWatchlist,
+  forgetSnapshot,
+  readSnapshot,
+  readWatchlist,
+  saveSnapshot,
+  toggleWatched,
+} from "./storage/insights";

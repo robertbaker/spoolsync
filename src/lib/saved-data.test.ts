@@ -158,3 +158,31 @@ test("a settings export from the CLI imports here, using the shared low-stock se
   expect(result).toEqual({ imported: ["spoolsync:low-stock-percent"], skipped: [] });
   expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("25");
 });
+
+test("the watchlist is listed, forgettable, and portable, but inventory summaries never leave", () => {
+  localStorage.setItem("spoolsync:watchlist", '["spoolio:1"]');
+  localStorage.setItem(
+    "spoolsync:inventory-snapshots",
+    '{"spoolio":{"savedAt":"2026-11-03T10:00:00Z","spools":[["1",10,"Secret Blue"]]}}',
+  );
+  expect(listSavedData().map((item) => item.group.id)).toEqual(["snapshots", "watchlist"]);
+  const text = exportSettings();
+  expect(Object.keys(JSON.parse(text).entries)).toEqual(["spoolsync:watchlist"]);
+  expect(text).not.toContain("Secret Blue");
+  expect(forgetGroup("snapshots")).toBe(1);
+  expect(forgetGroup("watchlist")).toBe(1);
+  expect(listSavedData()).toEqual([]);
+});
+
+test("importing a watchlist keeps only valid values and refuses snapshots", () => {
+  const document = (entries: Record<string, string>) =>
+    JSON.stringify({ format: "spoolsync-settings", version: 1, entries });
+  const result = importSettings(
+    document({ "spoolsync:watchlist": '["spoolio:1"]', "spoolsync:inventory-snapshots": "{}" }),
+  );
+  expect(result.imported).toEqual(["spoolsync:watchlist"]);
+  expect(result.skipped).toEqual(["spoolsync:inventory-snapshots"]);
+  expect(importSettings(document({ "spoolsync:watchlist": '["nowhere:1"]' })).skipped).toEqual([
+    "spoolsync:watchlist",
+  ]);
+});
