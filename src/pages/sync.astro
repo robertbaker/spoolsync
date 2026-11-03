@@ -63,10 +63,20 @@ import { SITE_TITLE } from "~/config";
         <div id="groups" class="mt-4 grid gap-4"></div>
       </section>
 
-      <section id="tour-apply" class="app-card mt-12" aria-labelledby="apply-heading">
+      <section id="tour-apply" class="app-card mt-12 scroll-mt-24" aria-labelledby="apply-heading">
         <h2 id="apply-heading" class="text-2xl">Apply</h2>
         <div id="apply" class="mt-4 grid gap-6"></div>
       </section>
+      <div
+        id="sync-bar"
+        hidden
+        class="sticky bottom-40 z-10 mt-6 flex flex-nowrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-2.5 pl-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:p-3 sm:pl-5 md:bottom-4 md:pr-36"
+      >
+        <p id="sync-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite"></p>
+        <Button href="#tour-apply" color="primary" size="sm" class="shrink-0" icon="material-symbols:arrow-downward-rounded" iconPosition="right">
+          Jump to apply
+        </Button>
+      </div>
     </div>
   </Container>
 </BaseLayout>

@@ -18,6 +18,7 @@ import { ApplyController } from "./apply-controller";
 import { counts, changeList, renderLog } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
 import { DownloadController } from "./download-controller";
+import { createJumpBar } from "./jump-bar";
 import { button, download } from "./presentation";
 import { sourceActions } from "./source-actions";
 
@@ -33,8 +34,15 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
     today: () => new Date().toISOString().slice(0, 10),
   });
 
+  const jumpBar = createJumpBar();
+
   function renderApply(match: MatchResult, resolutions: Map<string, GroupResolution>): void {
     const plan = planSync(match.groups, resolutions, match.suggestions);
+    const withChanges = [...plan.values()].filter((changes) => changes.length > 0);
+    jumpBar.update(
+      withChanges.reduce((total, changes) => total + changes.length, 0),
+      withChanges.length,
+    );
     const sections: HTMLElement[] = [];
     const unresolved = match.groups.filter(
       (g) => openConflicts(g, ensureResolution(resolutions, g)).length,

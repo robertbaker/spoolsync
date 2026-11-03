@@ -215,6 +215,11 @@ test("one button downloads every updated file", async ({ page }) => {
   await expect(page.locator("#download-all")).toHaveCount(0);
   await page.getByRole("button", { name: "Add all missing to Spoolio" }).click();
   await page.getByRole("button", { name: "Add all missing to FilaMeter" }).click();
+  await expect(page.locator("#sync-bar")).toBeVisible();
+  await expect(page.locator("#sync-bar-summary")).toHaveText("2 changes ready across 2 services");
+  await page.getByRole("link", { name: "Jump to apply" }).click();
+  await expect(page.locator("#sync-bar")).toBeHidden();
+  await expect(page.locator("#tour-apply")).toBeInViewport();
   const downloads: string[] = [];
   page.on("download", (download) => downloads.push(download.suggestedFilename()));
   await page.getByRole("button", { name: "Download all 2 updated files" }).click();
