@@ -51,3 +51,40 @@
   font-size: 0.875rem;
   border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
+
+/*
+ * Side-by-side comparison of a possible match and the plan preview. A row that differs is marked
+ * with the text "Differs" and a bar, never by color alone; the bar and bold text also survive
+ * forced-colors and print, where backgrounds are dropped.
+ */
+.pair-table tr[data-differs="true"] > * {
+  background-color: color-mix(in oklch, var(--warning) 14%, transparent);
+  font-weight: 600;
+}
+
+.pair-table tr[data-differs="true"] > th {
+  border-inline-start: 4px solid var(--warning-text, var(--warning));
+}
+
+.plan-item[data-excluded="true"] .plan-item-text {
+  text-decoration: line-through;
+}
+
+@media (forced-colors: active) {
+  .pair-table tr[data-differs="true"] > * {
+    background-color: transparent;
+  }
+  .pair-table tr[data-differs="true"] > th {
+    border-inline-start-color: Highlight;
+  }
+}
+
+@media print {
+  .pair-table tr[data-differs="true"] > * {
+    background-color: transparent !important;
+    font-weight: 700;
+  }
+  .pair-table tr[data-differs="true"] > th {
+    border-inline-start: 4px solid #000;
+  }
+}

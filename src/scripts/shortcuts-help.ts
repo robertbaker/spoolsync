@@ -5,6 +5,10 @@ const SHORTCUTS: Array<[string, string]> = [
   ["/", "Focus the search or filter on this page"],
   ["?", "Show this list of shortcuts"],
   ["Ctrl/Cmd + Z", "Undo the last change on the Sync page; add Shift to redo"],
+  [
+    "S · D · N · Z",
+    "While reviewing possible matches on Sync: same, different, skip for now, undo",
+  ],
   ["Esc", "Close a dialog or the tour"],
 ];
 

@@ -1,5 +1,11 @@
-import { openConflicts, type GroupResolution } from "@spoolsync/core/core/compare";
-import type { MatchResult } from "@spoolsync/core/core/match";
+import { deriveCliChoices } from "@spoolsync/core/cli-choices";
+import {
+  changeParts,
+  omitExcluded,
+  openConflicts,
+  type GroupResolution,
+} from "@spoolsync/core/core/compare";
+import type { MatchDecisions, MatchResult } from "@spoolsync/core/core/match";
 import {
   isWritableSource,
   SOURCE_IDS,
@@ -7,6 +13,7 @@ import {
   WRITABLE_SOURCE_IDS,
   type SourceId,
   type LoadResult,
+  type WritableSourceId,
 } from "@spoolsync/core/core/model";
 import { ensureResolution, planSync } from "@spoolsync/core/planner";
 import { exportInventory } from "@spoolsync/core/workflow";
@@ -17,12 +24,26 @@ import { byId, h, notice, showToast } from "../dom";
 import { ApplyController } from "./apply-controller";
 import { counts, changeList, renderLog } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
+import { buildCliCommand } from "./cli-command";
 import { DownloadController } from "./download-controller";
 import { createJumpBar } from "./jump-bar";
+import { renderPreview } from "./plan-preview";
 import { button, download } from "./presentation";
 import { sourceActions } from "./source-actions";
 
-export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: () => void) {
+/** The plan's exclusions and match answers, owned by the session so they can be undone. */
+export interface PlanState {
+  excluded(): ReadonlySet<string>;
+  setExcluded(key: string, excluded: boolean, label: string): void;
+  decisions(): MatchDecisions;
+}
+
+export function createApplyView(
+  loaded: Map<SourceId, LoadResult>,
+  onApplied: () => void,
+  planState: PlanState,
+) {
+  const openPreviews = new Set<WritableSourceId>();
   const controller = new ApplyController(
     createApplyServices(),
     { loaded, onApplied },
@@ -37,7 +58,11 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
   const jumpBar = createJumpBar();
 
   function renderApply(match: MatchResult, resolutions: Map<string, GroupResolution>): void {
-    const plan = planSync(match.groups, resolutions, match.suggestions);
+    const fullPlan = planSync(match.groups, resolutions, match.suggestions);
+    const excluded = planState.excluded();
+    // Everything below (counts, Apply, downloads) sees only the changes that are still included.
+    const plan = omitExcluded(fullPlan, excluded);
+    const focusedKey = document.activeElement?.getAttribute("data-change-key");
     const withChanges = [...plan.values()].filter((changes) => changes.length > 0);
     jumpBar.update({
       changes: withChanges.reduce((total, changes) => total + changes.length, 0),
@@ -111,7 +136,53 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
         );
       });
       copy.id = "copy-plan";
-      sections.push(h("div", { class: "flex justify-end" }, copy));
+      const copyCli = button("Copy as CLI command", () => {
+        const choices = deriveCliChoices(
+          match.groups,
+          resolutions,
+          planState.decisions(),
+          match.suggestions,
+          plan,
+          SOURCE_IDS.filter((source) => loaded.has(source)),
+        );
+        const command = buildCliCommand({
+          loaded,
+          choices,
+          plan,
+          excludedCount: [...fullPlan.values()]
+            .flat()
+            .flatMap((change) => changeParts(change))
+            .filter((part) => excluded.has(part.key)).length,
+        });
+        navigator.clipboard.writeText(command.text).then(
+          () =>
+            showToast(
+              command.caveats.length
+                ? "CLI command copied; it differs from this plan (see the note)"
+                : "CLI command copied",
+              command.caveats.length ? "warning" : "success",
+            ),
+          () => showToast("Could not copy the command", "error"),
+        );
+        cliNote.replaceChildren(
+          ...command.caveats.map((caveat) => h("span", { class: "block" }, caveat)),
+          ...(command.caveats.length
+            ? []
+            : [
+                "The command reproduces this plan. Addresses, files and the output folder are placeholders; tokens come from environment variables.",
+              ]),
+        );
+      });
+      copyCli.id = "copy-cli";
+      const cliNote = h("p", {
+        id: "cli-note",
+        class: "mt-2 text-right text-xs text-muted-foreground",
+        "aria-live": "polite",
+      });
+      sections.push(
+        h("div", { class: "flex flex-wrap justify-end gap-2" }, copy, copyCli),
+        cliNote,
+      );
     }
     if (downloadable.length > 1) {
       const allStatus = h("div", { class: "mt-3", "aria-live": "polite" });
@@ -192,11 +263,26 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
           ),
           note ? h("p", { class: "mt-1 text-xs text-muted-foreground" }, note) : null,
           changes.length ? changeList(changes) : null,
+          (fullPlan.get(source) ?? []).length
+            ? renderPreview(source, fullPlan.get(source) ?? [], excluded, {
+                isOpen: (name) => openPreviews.has(name),
+                setOpen: (name, open) => {
+                  if (open) openPreviews.add(name);
+                  else openPreviews.delete(name);
+                },
+                setExcluded: planState.setExcluded,
+              })
+            : null,
           status,
         ),
       );
     }
     byId("apply").replaceChildren(...sections);
+    // A toggle redraws the plan; keep the keyboard on the checkbox that was used.
+    if (focusedKey)
+      byId("apply")
+        .querySelector<HTMLElement>(`[data-change-key="${CSS.escape(focusedKey)}"]`)
+        ?.focus();
   }
 
   return renderApply;

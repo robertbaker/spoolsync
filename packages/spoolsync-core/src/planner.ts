@@ -1,5 +1,6 @@
 import {
   buildPlan,
+  compareGroup,
   defaultResolution,
   type GroupResolution,
   type PlannedChange,
@@ -18,7 +19,9 @@ import {
   COMPARABLE_FIELDS,
   WRITABLE_SOURCE_IDS,
   type CommonSpool,
+  type ComparableField,
   type SourceId,
+  type WritableSourceId,
 } from "./core/model";
 
 export function ensureResolution(
@@ -86,6 +89,29 @@ export function reconcileResolutions(
     }
   }
   return next;
+}
+
+/**
+ * Resolutions from the CLI's global choices: `--resolve field=source` takes that source's value for
+ * every group that has one, and `--create-in` adds every spool a service lacks. Shared so the
+ * website can check what a CLI command would plan.
+ */
+export function resolutionsFromChoices(
+  groups: SpoolGroup[],
+  resolves: ReadonlyArray<readonly [ComparableField, SourceId]>,
+  createIn: readonly WritableSourceId[],
+): Map<string, GroupResolution> {
+  const resolutions = new Map<string, GroupResolution>();
+  for (const group of groups) {
+    const resolution = ensureResolution(resolutions, group);
+    for (const [field, source] of resolves) {
+      const comparison = compareGroup(group).find((item) => item.field === field);
+      const option = comparison?.options.find((candidate) => candidate.sources.includes(source));
+      if (option) resolution.values[field] = option.value;
+    }
+    for (const source of createIn) if (!group.members[source]) resolution.createIn.push(source);
+  }
+  return resolutions;
 }
 
 export function decideMatch(

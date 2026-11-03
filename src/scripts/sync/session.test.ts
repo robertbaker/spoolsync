@@ -272,3 +272,19 @@ test("restoring a step restores answers and plan choices together", () => {
   state.undo();
   expect(state.resolutionFor(group).values["remainingWeight"]).toBeUndefined();
 });
+
+test("excluding a planned change is undoable, redoable and restored after clearing", () => {
+  const { state } = answerSession();
+  expect(state.setExcluded("k", true, "excluding a")).toBe(true);
+  expect(state.setExcluded("k", true, "again")).toBe(false);
+  expect(state.undoLabel()).toBe("excluding a");
+  expect(state.undo()).toBe("excluding a");
+  expect(state.excluded().has("k")).toBe(false);
+  expect(state.redo()).toBe("excluding a");
+  expect(state.excluded().has("k")).toBe(true);
+  state.checkpoint("reset");
+  state.clearExclusions();
+  expect(state.excluded().size).toBe(0);
+  state.undo();
+  expect(state.excluded().has("k")).toBe(true);
+});
