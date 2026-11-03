@@ -56,6 +56,7 @@ const search = `${label} ${kind} ${api ? "api connect" : ""} ${readonly ? "read-
     />
   </summary>
   <div class="flex flex-col border-t px-4 pb-5 pt-4 sm:px-5" aria-labelledby={`load-${id}-heading`} role="group">
+    <div id={`${id}-actions`} class="mb-3 flex justify-end empty:hidden"></div>
     <slot />
     <div id={`${id}-message`} class="mt-4 empty:mt-0" aria-live="polite"></div>
   </div>

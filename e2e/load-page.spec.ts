@@ -127,7 +127,7 @@ test("services can be searched and filtered, and panels open when they report", 
   await page.getByRole("button", { name: "Loaded" }).click();
   await expect(page.locator("details[data-panel]:not([hidden])")).toHaveCount(1);
 
-  // Unloading from the summary must not collapse or toggle the panel.
+  // Unload sits in the panel body, so using it must not collapse the panel.
   await page.getByRole("button", { name: "Unload SpoolKeep" }).click();
   await expect(panel).toHaveJSProperty("open", true);
   await expect(page.locator("#load-bar-summary")).toContainText("Nothing loaded yet");

@@ -183,7 +183,7 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
           class: "spool-table-wrapper",
           tabindex: "0",
           role: "region",
-          "aria-labelledby": "loaded-heading",
+          "aria-label": "Loaded spools table (scrollable)",
         },
         h(
           "table",

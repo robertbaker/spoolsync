@@ -17,6 +17,7 @@ export function createLoadStatusView(state: LoadState, renderTable: () => void) 
             ? " from API"
             : "";
     const container = byId(`${source}-status`);
+    document.getElementById(`${source}-actions`)?.replaceChildren();
     if (!result) {
       container.replaceChildren(badge("Not loaded", "neutral"));
       return;
@@ -26,23 +27,24 @@ export function createLoadStatusView(state: LoadState, renderTable: () => void) 
       {
         type: "button",
         class:
-          "ml-1.5 text-xs text-muted-foreground hover:text-foreground underline transition-colors",
+          "rounded-md border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
         title: `Unload ${SOURCE_LABELS[source]}`,
         "aria-label": `Unload ${SOURCE_LABELS[source]}`,
       },
       "Unload",
     );
-    clearBtn.addEventListener("click", (event) => {
-      // The status sits inside the panel summary; do not toggle the panel.
-      event.preventDefault();
-      event.stopPropagation();
+    clearBtn.addEventListener("click", () => {
       state.unload(source);
       setStatus(source);
       renderTable();
       byId(`${source}-message`).replaceChildren();
       showToast(`Unloaded ${SOURCE_LABELS[source]}`, "info");
     });
-    container.replaceChildren(badge(`${result.spools.length} loaded${from}`, "success"), clearBtn);
+    container.replaceChildren(badge(`${result.spools.length} loaded${from}`, "success"));
+    // The summary is a disclosure control, so the Unload button lives in the panel body.
+    const actions = document.getElementById(`${source}-actions`);
+    if (actions) actions.replaceChildren(clearBtn);
+    else container.append(clearBtn);
   }
 
   function store(result: LoadResult): void {
