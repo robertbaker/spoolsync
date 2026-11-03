@@ -1,0 +1,85 @@
+/*
+ * Touch comfort for the Sync page: every control and every row of answers is at least 44 by 44 CSS
+ * pixels where a finger is the likely pointer (coarse pointer) or the screen is narrow. Mouse users
+ * on wide screens keep the denser layout. Scoped to #sync-app so no other page changes.
+ */
+@media (pointer: coarse), (max-width: 40rem) {
+  #sync-app button,
+  #sync-app [role="button"],
+  #sync-app summary,
+  #sync-app a.button,
+  #sync-app select,
+  #sync-app input:not([type="checkbox"], [type="radio"]),
+  .touch-target {
+    min-block-size: 44px;
+  }
+
+  #sync-app button,
+  #sync-app [role="button"] {
+    min-inline-size: 44px;
+  }
+
+  /* Choices in the comparison table, plan preview, and "add to" rows: the whole label is the target. */
+  #sync-app table label,
+  #sync-app .plan-item label,
+  #sync-app #groups label[for],
+  #sync-app #bulk-edit label {
+    min-block-size: 44px;
+    align-items: center;
+  }
+
+  #sync-app input[type="checkbox"],
+  #sync-app input[type="radio"] {
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+  }
+
+  #sync-app table td,
+  #sync-app table th {
+    padding-block: 0.25rem;
+  }
+
+  /* Keep the sticky bar's buttons from wrapping into a tall block on small screens. */
+  #sync-bar a,
+  #sync-bar button {
+    min-block-size: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Swipe-to-answer cards in the one-at-a-time match review. */
+.swipe-card {
+  /* The browser keeps vertical scrolling; horizontal movement reaches the swipe handler. */
+  touch-action: pan-y;
+  position: relative;
+  transition: transform 0.18s ease-out;
+}
+
+.swipe-card[data-swipe="right"] {
+  outline: 3px solid var(--success, currentColor);
+  outline-offset: 2px;
+}
+
+.swipe-card[data-swipe="left"] {
+  outline: 3px solid var(--warning, currentColor);
+  outline-offset: 2px;
+}
+
+/* The hint only matters where a finger is the pointer. */
+.swipe-hint {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .swipe-hint {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-card {
+    transition: none;
+    transform: none !important;
+  }
+}

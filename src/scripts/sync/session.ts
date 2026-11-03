@@ -1,5 +1,10 @@
-import type { GroupResolution } from "@spoolsync/core/core/compare";
-import { openConflicts } from "@spoolsync/core/core/compare";
+import type { BulkEdit, BulkEditKey, GroupResolution } from "@spoolsync/core/core/compare";
+import {
+  isEmptyEdit,
+  mergeBulkEdit,
+  openConflicts,
+  withoutBulkEditKeys,
+} from "@spoolsync/core/core/compare";
 import type {
   MatchDecisions,
   MatchResult,
@@ -16,6 +21,7 @@ import {
   decideMatch,
   ensureResolution,
   findMatches,
+  reconcileBulkEdits,
   reconcileResolutions,
 } from "@spoolsync/core/planner";
 
@@ -27,11 +33,13 @@ interface UndoEntry {
   resolutions: Map<string, GroupResolution>;
   decisions: MatchDecisions;
   excluded: Set<string>;
+  bulkEdits: Map<string, BulkEdit>;
 }
 
 export interface SyncPersistence {
   saveResolutions(resolutions: ReadonlyMap<string, GroupResolution>): void;
   saveMatchDecisions(decisions: MatchDecisions): void;
+  saveBulkEdits?(edits: ReadonlyMap<string, BulkEdit>): void;
 }
 
 export class SyncSession {
@@ -43,6 +51,7 @@ export class SyncSession {
     private decisions: MatchDecisions,
     public resolutions: Map<string, GroupResolution>,
     private readonly persistence: SyncPersistence,
+    private edits: Map<string, BulkEdit> = new Map(),
   ) {}
 
   loadedSources() {
@@ -62,6 +71,7 @@ export class SyncSession {
   }
   persist() {
     this.persistence.saveResolutions(this.resolutions);
+    this.persistence.saveBulkEdits?.(this.edits);
   }
 
   recompute(): void {
@@ -71,6 +81,9 @@ export class SyncSession {
     );
     // Keep choices when a group gains a member after a match or remote creation.
     this.resolutions = reconcileResolutions(this.match.groups, this.resolutions);
+    this.edits = reconcileBulkEdits(this.match.groups, this.edits);
+    const groupIds = new Set(this.match.groups.map((group) => group.id));
+    this.selectedIds = new Set([...this.selectedIds].filter((id) => groupIds.has(id)));
     this.persist();
   }
 
@@ -104,6 +117,65 @@ export class SyncSession {
     this.excludedKeys.clear();
   }
 
+  /** Groups ticked in the Differences list; kept only for this visit and not part of the undo. */
+  private selectedIds = new Set<string>();
+
+  selected(): ReadonlySet<string> {
+    return this.selectedIds;
+  }
+
+  setSelected(ids: Iterable<string>, on: boolean): void {
+    for (const id of ids) {
+      if (on) this.selectedIds.add(id);
+      else this.selectedIds.delete(id);
+    }
+  }
+
+  /** Planned bulk edits by group id; they feed the plan beside the resolutions. */
+  bulkEdits(): ReadonlyMap<string, BulkEdit> {
+    return this.edits;
+  }
+
+  /** Lays an edit over each group's current one. Returns how many groups were changed. */
+  applyBulkEdit(groupIds: readonly string[], patch: BulkEdit, label: string): number {
+    const known = new Set(this.match.groups.map((group) => group.id));
+    const targets = groupIds.filter((id) => known.has(id));
+    const next = new Map(this.edits);
+    for (const id of targets) {
+      const merged = mergeBulkEdit(next.get(id), patch);
+      if (merged) next.set(id, merged);
+    }
+    if (JSON.stringify([...next]) === JSON.stringify([...this.edits])) return 0;
+    this.checkpoint(label);
+    this.edits = next;
+    this.persist();
+    return targets.length;
+  }
+
+  /** Removes the named parts of the edits on these groups (all parts when none are named). */
+  clearBulkEdit(
+    groupIds: readonly string[],
+    keys: readonly BulkEditKey[] = ["location", "note", "tag"],
+    label = "clearing bulk edits",
+  ): number {
+    const next = new Map(this.edits);
+    let cleared = 0;
+    for (const id of groupIds) {
+      const before = next.get(id);
+      if (!before) continue;
+      const after = withoutBulkEditKeys(before, keys);
+      if (JSON.stringify(after) === JSON.stringify(before)) continue;
+      if (after && !isEmptyEdit(after)) next.set(id, after);
+      else next.delete(id);
+      cleared++;
+    }
+    if (!cleared) return 0;
+    this.checkpoint(label);
+    this.edits = next;
+    this.persist();
+    return cleared;
+  }
+
   private undoStack: UndoEntry[] = [];
   private redoStack: UndoEntry[] = [];
 
@@ -123,6 +195,7 @@ export class SyncSession {
       resolutions: structuredClone(this.resolutions),
       decisions: structuredClone(this.decisions),
       excluded: new Set(this.excludedKeys),
+      bulkEdits: structuredClone(this.edits),
     };
   }
 
@@ -131,6 +204,7 @@ export class SyncSession {
     this.resolutions = structuredClone(entry.resolutions);
     this.decisions = structuredClone(entry.decisions);
     this.excludedKeys = new Set(entry.excluded);
+    this.edits = structuredClone(entry.bulkEdits);
     this.persist();
     this.persistence.saveMatchDecisions(this.decisions);
   }

@@ -6,6 +6,7 @@ import {
   type CrossIds,
   type SourceId,
 } from "../model";
+import { applyEditToValues, editedField, type BulkEdit } from "./edits";
 import { SOURCE_FIELDS } from "./fields";
 import { defaultResolution, mergedValues, presentSources } from "./groups";
 import type { FieldValue, FieldChange, GroupResolution, PlannedChange } from "./types";
@@ -98,6 +99,7 @@ export function buildPlan(
   groups: SpoolGroup[],
   resolutions: ReadonlyMap<string, GroupResolution>,
   pendingGroupIds: ReadonlySet<string> = new Set(),
+  edits: ReadonlyMap<string, BulkEdit> = new Map(),
 ): Map<SourceId, PlannedChange[]> {
   const plan = new Map<SourceId, PlannedChange[]>();
   const push = (change: PlannedChange) => {
@@ -109,13 +111,20 @@ export function buildPlan(
   for (const group of groups) {
     const resolution = resolutions.get(group.id) ?? defaultResolution(group);
     const links = groupLinks(group);
+    const edit = edits.get(group.id);
     for (const source of WRITABLE_SOURCE_IDS) {
       const member = group.members[source];
       if (!member) continue;
       const changes: FieldChange[] = [];
-      for (const [field, to] of Object.entries(resolution.values) as Array<
-        [ComparableField, FieldValue]
-      >) {
+      const targets = new Map(
+        Object.entries(resolution.values) as Array<[ComparableField, FieldValue]>,
+      );
+      // A bulk edit overrides the resolved value; a tag is added to the resolved or member's note.
+      for (const field of ["location", "comment"] as const) {
+        const edited = editedField(edit, field, targets.has(field) ? targets.get(field)! : member[field]);
+        if (edited !== undefined) targets.set(field, edited);
+      }
+      for (const [field, to] of targets) {
         if (!SOURCE_FIELDS[source].has(field)) continue;
         if (!valuesEqual(field, member[field], to))
           changes.push({ field, from: structuredClone(member[field]), to: structuredClone(to) });
@@ -139,7 +148,7 @@ export function buildPlan(
         kind: "create",
         source,
         groupId: group.id,
-        values: mergedValues(group, resolution),
+        values: applyEditToValues(mergedValues(group, resolution), edit),
         links: missingLinks(undefined, links, source),
         groupIds: links,
       });

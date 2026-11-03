@@ -5,6 +5,7 @@ import { isTypingTarget } from "../shortcuts";
 import { button } from "./presentation";
 import { pairAnnouncement, resultAnnouncement, ReviewQueue, suggestionId } from "./review-queue";
 import type { SyncSession } from "./session";
+import { attachSwipe } from "./swipe";
 import { describePair, suggestionCard, suggestionRecords } from "./suggestion-card";
 
 export interface ReviewDependencies {
@@ -143,6 +144,11 @@ export function createReviewMode(dependencies: ReviewDependencies) {
         { class: "mt-2 text-xs text-muted-foreground" },
         "Shortcuts: S same spool, D different spools, N skip for now (it stays pending), Z undo, Esc exit. They are off while you type in a field.",
       ),
+      h(
+        "p",
+        { class: "swipe-hint mt-1 text-xs text-muted-foreground" },
+        "On a touch screen you can also swipe the card: right for same spool, left to skip for now. The buttons do the same.",
+      ),
       suggestion
         ? null
         : h(
@@ -164,20 +170,21 @@ export function createReviewMode(dependencies: ReviewDependencies) {
             ),
           ),
     );
-    byId("suggestions").replaceChildren(
-      panel,
-      ...(suggestion
-        ? [
-            suggestionCard(suggestion, groupsById, {
-              same: () => act("same"),
-              different: () => act("different"),
-              skip: () => act("skip"),
-              undo: () => act("undo"),
-              canUndo: state.undoLabel() !== null,
-            }),
-          ]
-        : []),
-    );
+    const card = suggestion
+      ? suggestionCard(suggestion, groupsById, {
+          same: () => act("same"),
+          different: () => act("different"),
+          skip: () => act("skip"),
+          undo: () => act("undo"),
+          canUndo: state.undoLabel() !== null,
+        })
+      : null;
+    // Touch shortcut for the same answers the buttons and keys give: right is "same", left skips.
+    if (card)
+      attachSwipe(card, {
+        onSwipe: (direction) => act(direction === "right" ? "same" : "skip"),
+      });
+    byId("suggestions").replaceChildren(panel, ...(card ? [card] : []));
     if (suggestion) {
       const description = describePair(suggestionRecords(suggestion, groupsById).members);
       announce(`${result} ${pairAnnouncement(view, description)}`.trim());

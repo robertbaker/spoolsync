@@ -1,5 +1,6 @@
 import {
   compareGroup,
+  describeBulkEdit,
   openConflicts,
   type FieldComparison,
   type FieldValue,
@@ -9,6 +10,7 @@ import { SOURCE_IDS, SOURCE_LABELS, type CommonSpool } from "@spoolsync/core/cor
 
 import { byId, h } from "../dom";
 import { wireSlashFocus } from "../shortcuts";
+import { SELECTION_CHANGED } from "./bulk-edit-view";
 import { comparisonRow } from "./comparison-row";
 import { button, sourceTag, spoolTitle, swatches } from "./presentation";
 import type { SyncSession } from "./session";
@@ -55,6 +57,19 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     const sources = state.loadedSources().filter((source) => group.members[source]);
     const first = groupTitle(group);
     const resolution = state.resolutionFor(group);
+    const bulkEdit = state.bulkEdits().get(group.id);
+    const selectId = `select-${group.id}`;
+    const select = h("input", {
+      type: "checkbox",
+      id: selectId,
+      class: "size-4 shrink-0",
+      "data-select-group": group.id,
+    });
+    select.checked = state.selected().has(group.id);
+    select.addEventListener("change", () => {
+      state.setSelected([group.id], select.checked);
+      document.dispatchEvent(new CustomEvent(SELECTION_CHANGED));
+    });
 
     const card = h(
       "article",
@@ -69,7 +84,23 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
         h(
           "div",
           {},
+          h(
+            "label",
+            {
+              for: selectId,
+              class: "touch-target mb-1 flex w-fit cursor-pointer items-center gap-2 text-xs text-muted-foreground",
+            },
+            select,
+            "Select for bulk edit",
+          ),
           h("h3", { class: "text-lg" }, spoolTitle(first), " ", swatches(first.colors)),
+          bulkEdit
+            ? h(
+                "p",
+                { class: "mt-1 text-xs text-primary-text", "data-bulk-edit": group.id },
+                `Bulk edit: ${describeBulkEdit(bulkEdit)}`,
+              )
+            : null,
           h(
             "div",
             { class: "mt-1 flex flex-wrap gap-1" },

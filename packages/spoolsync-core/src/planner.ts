@@ -1,5 +1,8 @@
 import {
+  BULK_EDIT_KEYS,
   buildPlan,
+  sanitizeBulkEdit,
+  type BulkEdit,
   compareGroup,
   defaultResolution,
   type GroupResolution,
@@ -36,6 +39,56 @@ export function ensureResolution(
   return resolution;
 }
 
+/**
+ * IDs of every group this one could have grown from. At most one member per source: enumerate its
+ * possible ancestor groups (at most 127). Splitting the group ID is unsafe because native record
+ * IDs may themselves contain '+'.
+ */
+function ancestorGroupIds(group: SpoolGroup): Set<string> {
+  const ancestorIds = new Set([""]);
+  for (const key of Object.values(group.members)
+    .map((spool) => groupKey([recordKey(spool)]))
+    .sort()) {
+    // Snapshot before inserting; iterating the live Set would revisit newly added subsets.
+    const previousAncestors = Array.from(ancestorIds);
+    for (const ancestor of previousAncestors)
+      ancestorIds.add(ancestor ? `${ancestor}+${key}` : key);
+  }
+  ancestorIds.delete("");
+  return ancestorIds;
+}
+
+/**
+ * Carries bulk edits over to the current groups. An edit follows its group when it grows; when
+ * several groups merge, a part is kept only if every contributing edit agrees on it. Edits for
+ * groups that no longer exist are dropped.
+ */
+export function reconcileBulkEdits(
+  groups: SpoolGroup[],
+  previous: ReadonlyMap<string, BulkEdit>,
+): Map<string, BulkEdit> {
+  const next = new Map<string, BulkEdit>();
+  for (const group of groups) {
+    const kept = previous.get(group.id);
+    if (kept) {
+      next.set(group.id, { ...kept });
+      continue;
+    }
+    const ancestors = ancestorGroupIds(group);
+    const contributors = [...previous].filter(([id]) => ancestors.has(id)).map(([, edit]) => edit);
+    if (!contributors.length) continue;
+    const merged: Record<string, unknown> = {};
+    for (const key of BULK_EDIT_KEYS) {
+      const values = contributors.map((edit) => edit[key]);
+      if (values.every((value) => value !== undefined && value === values[0]))
+        merged[key] = values[0];
+    }
+    const edit = sanitizeBulkEdit(merged);
+    if (edit) next.set(group.id, edit);
+  }
+  return next;
+}
+
 /** Keeps prior choices when a group grows after a spool is added or a match is confirmed. */
 export function reconcileResolutions(
   groups: SpoolGroup[],
@@ -54,18 +107,7 @@ export function reconcileResolutions(
       });
       continue;
     }
-    // At most one member per source: enumerate its possible ancestor groups (at most 127).
-    // Splitting the group ID is unsafe because native record IDs may themselves contain '+'.
-    const ancestorIds = new Set([""]);
-    for (const key of Object.values(group.members)
-      .map((spool) => groupKey([recordKey(spool)]))
-      .sort()) {
-      // Snapshot before inserting; iterating the live Set would revisit newly added subsets.
-      const previousAncestors = Array.from(ancestorIds);
-      for (const ancestor of previousAncestors)
-        ancestorIds.add(ancestor ? `${ancestor}+${key}` : key);
-    }
-    ancestorIds.delete("");
+    const ancestorIds = ancestorGroupIds(group);
     const contributors: GroupResolution[] = [];
     for (const [id, resolution] of previous) {
       if (ancestorIds.has(id)) contributors.push(resolution);
@@ -132,9 +174,10 @@ export function planSync(
   groups: SpoolGroup[],
   resolutions: ReadonlyMap<string, GroupResolution>,
   suggestions: MatchSuggestion[],
+  edits: ReadonlyMap<string, BulkEdit> = new Map(),
 ): Map<SourceId, PlannedChange[]> {
   const pendingGroupIds = new Set(suggestions.flatMap((suggestion) => suggestion.groupIds));
-  return buildPlan(groups, resolutions, pendingGroupIds);
+  return buildPlan(groups, resolutions, pendingGroupIds, edits);
 }
 
 export function findMatches(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {
