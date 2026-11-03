@@ -64,6 +64,32 @@ export function createSuggestionsView(
     );
   }
 
+  /** Where keyboard focus sits in the list before it is redrawn: the pair's position, or -1. */
+  function focusedPosition(): number {
+    const active = document.activeElement;
+    if (!active) return -1;
+    const cards = [...byId("suggestions").children];
+    const index = cards.findIndex((card) => card.contains(active));
+    if (index >= 0) return index;
+    return byId("suggestions-bulk").contains(active) || byId("match-answers").contains(active)
+      ? 0
+      : -1;
+  }
+
+  /**
+   * Redrawing removes the button that was pressed, so hand focus to the next pair, or on to the
+   * list below.
+   */
+  function restoreFocus(position: number): void {
+    if (position < 0) return;
+    const cards = [...byId("suggestions").children];
+    const next = cards[Math.min(position, cards.length - 1)]?.querySelector("button");
+    if (next) return next.focus();
+    const heading = byId("differences-heading");
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: false });
+  }
+
   function renderSuggestions(): void {
     renderAnswers();
     byId("suggestions-section").hidden = state.match.suggestions.length === 0;
@@ -145,5 +171,9 @@ export function createSuggestionsView(
     );
   }
 
-  return renderSuggestions;
+  return () => {
+    const position = focusedPosition();
+    renderSuggestions();
+    restoreFocus(position);
+  };
 }

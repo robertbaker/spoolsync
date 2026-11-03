@@ -1207,3 +1207,18 @@ test("the sticky bar counts unanswered matches and jumps to them", async ({ page
   await page.locator("#tour-apply").scrollIntoViewIfNeeded();
   await expect(summary).toContainText("Pending matches (2)");
 });
+
+test("answering a possible match keeps keyboard focus in the list", async ({ page }) => {
+  await page.goto("/sync?sample=1");
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  await page
+    .locator("#suggestions article")
+    .first()
+    .getByRole("button", { name: "Same spool" })
+    .focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#suggestions article")).toHaveCount(2);
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.closest("#suggestions") !== null))
+    .toBe(true);
+});
