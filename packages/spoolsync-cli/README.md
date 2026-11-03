@@ -82,6 +82,13 @@ so a service is never written on every save:
 spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --watch
 ```
 
+Add `--quiet` to `--watch` to print a run only when its output differs from the previous one, so a
+terminal left open stays readable while you keep saving:
+
+```sh
+spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --watch --quiet
+```
+
 Enable tab completion for options, source names, and fields:
 
 ```sh

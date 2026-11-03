@@ -26,6 +26,7 @@ export function validateOptions(options: Options): void {
     exportCsv,
     summary,
     watch,
+    quiet,
   } = options;
   if (spoolmanUrl && inputs.has("spoolman"))
     throw new Error("Use either --spoolman-url or --spoolman <file>, not both.");
@@ -56,6 +57,10 @@ export function validateOptions(options: Options): void {
     (spoolmanUrl ? 1 : 0) +
     (filamentdbUrl ? 1 : 0) +
     (filadexUrl ? 1 : 0);
+  if (quiet && !watch)
+    throw new Error(
+      "--quiet only applies with --watch, where it hides runs that print the same thing.",
+    );
   if (watch) {
     if (apply)
       throw new Error(

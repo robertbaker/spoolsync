@@ -370,6 +370,47 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
   expect(await child.exited).toBe(0);
 });
 
+test("--watch --quiet stays silent when a save does not change the result", async () => {
+  const keep = path.join(directory, "keep.json");
+  const spools = [{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }];
+  await writeFile(keep, JSON.stringify(spools));
+  const child = Bun.spawn([runtime, cli, "--spoolkeep", keep, "--summary", "--watch", "--quiet"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  let stdout = "";
+  let stderr = "";
+  const pump = async (stream: ReadableStream<Uint8Array>, append: (text: string) => void) => {
+    const decoder = new TextDecoder();
+    for await (const chunk of stream) append(decoder.decode(chunk, { stream: true }));
+  };
+  void pump(child.stdout, (text) => (stdout += text));
+  void pump(child.stderr, (text) => (stderr += text));
+  const until = async (condition: () => boolean, what: string) => {
+    const deadline = Date.now() + 15_000;
+    while (!condition()) {
+      if (Date.now() > deadline)
+        throw new Error(`Timed out waiting for ${what}.\n${stdout}\n${stderr}`);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+  try {
+    await until(() => stdout.includes("spoolkeep: 1 spool"), "the first run");
+    // Same content, rewritten: the run happens but prints nothing.
+    await writeFile(keep, JSON.stringify(spools, null, 2));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(stdout.split("spoolkeep:").length).toBe(2);
+    expect(stderr).not.toContain("changed; running again");
+    // A real change is printed.
+    await writeFile(keep, JSON.stringify([...spools, { id: "k2", brand: "B", family: "PETG" }]));
+    await until(() => stdout.includes("spoolkeep: 2 spools"), "the changed result");
+    expect(stderr).toContain("keep.json changed; running again");
+  } finally {
+    child.kill("SIGINT");
+  }
+  expect(await child.exited).toBe(0);
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

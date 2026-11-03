@@ -120,6 +120,14 @@ tip, a hover and focus tooltip, an accessible name, and a row in a "View as tabl
 mark color is `--chart-mark` (theme.css): the brand orange in light mode and a slightly darker step in
 dark mode, both validated for lightness band, chroma, and 3:1 contrast against the card surface.
 
+The chart can group by service or by material. Each view is offered only when it has at least two
+things to compare, the choice and the table disclosure are remembered in localStorage, and the
+toggle hands keyboard focus to the new button after the chart redraws. The material view comes from
+core's `remainingByMaterial`, which uses the same matching as the Sync page (honouring saved
+answers) so a spool linked across services is counted once; the service view cannot do that, so its
+subtitle says a spool listed in several services counts in each. `--quiet` with `--watch` holds each
+run's output back and prints it only when it differs from the previous run.
+
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
 run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is

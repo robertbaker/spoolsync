@@ -21,5 +21,7 @@ export type Options = {
   summary: boolean;
   /** Run again whenever an input file changes. */
   watch: boolean;
+  /** With --watch, print a run only when its output changed. */
+  quiet: boolean;
   json: boolean;
 };

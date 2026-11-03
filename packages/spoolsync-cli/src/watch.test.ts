@@ -122,3 +122,37 @@ test("stopping waits for a run in progress and reports its exit code", async () 
   await done;
   expect(h.exitCode()).toBe(1);
 });
+
+test("quiet mode prints a run only when its output differs from the previous run", async () => {
+  const h = harness();
+  const logged: string[] = [];
+  h.output.log = (...values) => logged.push(values.join(" "));
+  let report = "plan A";
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (output) => output.log(report),
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+    quiet: true,
+  });
+  await wait(20);
+  expect(logged).toEqual(["plan A"]);
+
+  // Saved again with the same result: nothing new is printed, not even the status line.
+  const statusLines = () =>
+    h.lines.filter((line) => line.includes("changed; running again")).length;
+  h.handlers.get("/d")!("a.json");
+  await wait(30);
+  expect(logged).toEqual(["plan A"]);
+  expect(statusLines()).toBe(0);
+
+  report = "plan B";
+  h.handlers.get("/d")!("a.json");
+  await wait(30);
+  expect(logged).toEqual(["plan A", "plan B"]);
+  expect(statusLines()).toBe(1);
+
+  h.stop.abort();
+  await done;
+});

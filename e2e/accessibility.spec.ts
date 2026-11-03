@@ -55,6 +55,18 @@ for (const colorScheme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
+    test("load page chart has no detectable violations in either view", async ({ page }) => {
+      await page.goto("/load");
+      await page.getByRole("button", { name: "Try it with sample data" }).click();
+      const chart = page.locator("#loaded-chart");
+      await expect(chart).toBeVisible();
+      await chart.getByText("View as table").click();
+      expect(await violations(page)).toEqual([]);
+      await chart.getByRole("button", { name: "By material" }).click();
+      await expect(chart).toContainText("by material");
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("sync page has no detectable violations with matches to review", async ({ page }) => {
       await loadTwoServices(page);
       await page.goto("/sync");

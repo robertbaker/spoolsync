@@ -111,6 +111,11 @@ export const output = [
     desc: "Run again whenever an input file changes (handles editors that save by replacing the file). Needs file inputs; refused with --apply and --*-url, so a service is never written on every save. Press Ctrl+C to stop.",
   },
   {
+    flag: "--quiet",
+    copy: "--quiet",
+    desc: "With --watch, print a run only when its output differs from the previous run. Errors that differ are still shown.",
+  },
+  {
     flag: "--summary",
     copy: "--summary",
     desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams) instead of planning changes. Works with a single inventory.",

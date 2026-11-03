@@ -31,6 +31,7 @@ try {
         files: [...options.inputs.values()],
         output,
         signal: stop.signal,
+        quiet: options.quiet,
         run: async (runOutput) => {
           try {
             await runWorkflow(options, defaultDependencies, runOutput);

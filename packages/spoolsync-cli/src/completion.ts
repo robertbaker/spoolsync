@@ -45,6 +45,7 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   { flag: "--export-csv", description: "Write every loaded spool to one CSV", kind: "file" },
   { flag: "--config", description: "Read default options from a JSON file", kind: "file" },
   { flag: "--watch", description: "Run again whenever an input file changes", kind: "flag" },
+  { flag: "--quiet", description: "With --watch, print only when output changes", kind: "flag" },
   { flag: "--summary", description: "Print counts instead of planning changes", kind: "flag" },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
   { flag: "--json", description: "Print machine-readable output", kind: "flag" },

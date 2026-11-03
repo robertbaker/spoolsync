@@ -118,6 +118,13 @@ describe("CLI arguments", () => {
     );
   });
 
+  test("--quiet only applies with --watch", () => {
+    const fileInputs = ["--spoolio", "a.json", "--spoolkeep", "b.json"];
+    expect(parseArgs([...fileInputs, "--watch", "--quiet"]).quiet).toBe(true);
+    expect(parseArgs(fileInputs).quiet).toBe(false);
+    expect(() => parseArgs([...fileInputs, "--quiet"])).toThrow("only applies with --watch");
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(

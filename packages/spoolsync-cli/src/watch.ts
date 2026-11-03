@@ -32,6 +32,8 @@ export interface WatchRequest {
   output: CliOutput;
   signal: AbortSignal;
   dependencies?: WatchDependencies;
+  /** Print a run only when its output differs from the previous run. */
+  quiet?: boolean;
 }
 
 /**
@@ -40,7 +42,14 @@ export interface WatchRequest {
  * stderr so machine-readable results on stdout stay clean. The exit code is that of the last run.
  */
 export async function runWatch(request: WatchRequest): Promise<void> {
-  const { files, run, output, signal, dependencies = defaultWatchDependencies } = request;
+  const {
+    files,
+    run,
+    output,
+    signal,
+    quiet = false,
+    dependencies = defaultWatchDependencies,
+  } = request;
   const targets = new Map<string, Map<string, string>>();
   for (const file of files) {
     const absolute = path.resolve(file);
@@ -51,7 +60,18 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   }
 
   let exitCode = 0;
-  const runOutput: CliOutput = { ...output, setExitCode: (code) => (exitCode = code) };
+  type Entry = { channel: "log" | "warn" | "error"; values: unknown[] };
+  let entries: Entry[] = [];
+  let lastSignature: string | undefined;
+  // In quiet mode a run's output is held back until it is known to differ from the last one.
+  const runOutput: CliOutput = quiet
+    ? {
+        log: (...values) => entries.push({ channel: "log", values }),
+        warn: (...values) => entries.push({ channel: "warn", values }),
+        error: (...values) => entries.push({ channel: "error", values }),
+        setExitCode: (code) => (exitCode = code),
+      }
+    : { ...output, setExitCode: (code) => (exitCode = code) };
   const changed = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let running: Promise<void> | undefined;
@@ -63,9 +83,19 @@ export async function runWatch(request: WatchRequest): Promise<void> {
       again = false;
       const names = [...changed];
       changed.clear();
-      if (names.length) output.error(`[${stamp()}] ${names.join(", ")} changed; running again`);
+      const header = names.length ? `[${stamp()}] ${names.join(", ")} changed; running again` : "";
+      if (!quiet && header) output.error(header);
       exitCode = 0;
+      entries = [];
       await run(runOutput);
+      if (quiet) {
+        const signature = JSON.stringify(entries);
+        if (signature !== lastSignature) {
+          if (header) output.error(header);
+          for (const entry of entries) output[entry.channel](...entry.values);
+        }
+        lastSignature = signature;
+      }
     } while (again);
   }
 

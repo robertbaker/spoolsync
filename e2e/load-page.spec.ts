@@ -570,7 +570,7 @@ test("remaining filament is charted as ranked bars with a table view", async ({ 
   const chart = page.locator("#loaded-chart");
   await expect(chart).toBeVisible();
   await expect(chart).toContainText("Remaining filament by service");
-  await expect(chart).toContainText("5,980 g in total");
+  await expect(chart).toContainText("5,980 g across the loaded services");
   const bars = chart.getByRole("img");
   await expect(bars).toHaveCount(2);
   // Ranked largest first, each with a full accessible description.
@@ -594,4 +594,47 @@ test("remaining filament is charted as ranked bars with a table view", async ({ 
   await expect(rows.first()).toContainText("FilaMeter");
   await expect(rows.first()).toContainText("3,320");
   await expect(rows.first()).toContainText("56%");
+});
+
+test("the chart can group by material, counts linked spools once, and remembers its settings", async ({
+  page,
+}) => {
+  await page.goto("/load");
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const chart = page.locator("#loaded-chart");
+  await expect(chart).toContainText("Remaining filament by service");
+
+  const byMaterial = chart.getByRole("button", { name: "By material" });
+  await byMaterial.click();
+  // Redrawing the chart must not drop keyboard focus.
+  await expect(chart.getByRole("button", { name: "By material" })).toBeFocused();
+  await expect(chart).toContainText("Remaining filament by material");
+  await expect(chart).toContainText("5,980 g in total");
+  await expect(chart.getByRole("img").first()).toHaveAccessibleName(
+    "PLA: 4,340 g remaining across 6 spools, 73% of the total",
+  );
+  await expect(chart.getByRole("img").nth(1)).toHaveAccessibleName(
+    "PETG: 1,640 g remaining across 2 spools, 27% of the total",
+  );
+
+  // Both settings survive a reload.
+  await chart.getByText("View as table").click();
+  // The browser reports the toggle asynchronously, so wait until it has been saved.
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:chart-table-open")))
+    .toBe("1");
+  await page.reload();
+  await expect(chart).toContainText("Remaining filament by material");
+  await expect(chart.locator("details")).toHaveJSProperty("open", true);
+
+  // Linking the sample pairs on Sync means each linked spool is one spool, not two.
+  await page.goto("/sync");
+  await page.getByRole("button", { name: "All 3 are the same spool" }).click();
+  await page.getByRole("button", { name: /Click again to confirm 3 pairs/ }).click();
+  await page.goto("/load");
+  await expect(chart).toContainText("3,660 g in total");
+  await expect(chart).toContainText("3 linked spools counted once");
+  await expect(chart.getByRole("img").first()).toHaveAccessibleName(
+    "PLA: 2,840 g remaining across 4 spools, 78% of the total",
+  );
 });

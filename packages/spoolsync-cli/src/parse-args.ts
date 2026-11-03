@@ -51,6 +51,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--completion",
   "--summary",
   "--watch",
+  "--quiet",
   "--apply",
   "--json",
   "--spoolman-url",
@@ -92,6 +93,7 @@ export function parseArgs(argv: string[]): Options {
   let apply = false;
   let summary = false;
   let watch = false;
+  let quiet = false;
   let json = false;
   const singletonFlags = new Set<string>();
   for (let i = 0; i < args.length; i++) {
@@ -190,6 +192,8 @@ export function parseArgs(argv: string[]): Options {
       summary = true;
     } else if (arg === "--watch") {
       watch = true;
+    } else if (arg === "--quiet") {
+      quiet = true;
     } else {
       const suggestion = closestOption(arg, KNOWN_OPTIONS);
       throw new Error(`Unknown option: ${arg}${suggestion ? `. Did you mean ${suggestion}?` : ""}`);
@@ -211,6 +215,7 @@ export function parseArgs(argv: string[]): Options {
     apply,
     summary,
     watch,
+    quiet,
     ...(outputDir ? { outputDir } : {}),
     ...(exportCsv ? { exportCsv } : {}),
     json,
