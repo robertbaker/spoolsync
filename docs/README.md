@@ -1,6 +1,6 @@
 # SpoolSync documentation
 
-- [Project overview and service support](../README.md): browser workflow, connections, formats, and limitations.
+- [Project overview and service support](../README.md): browser workflow, connection setup, formats, and limitations.
 - [Contributing](../CONTRIBUTING.md): local setup, checks, fixtures, formatting, and pull requests.
 - [Agent guidance](../AGENTS.md): repository boundaries, behavior invariants, and verification commands.
 - [Architecture](architecture.md): shared package boundaries and the inventory lifecycle.

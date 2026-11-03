@@ -83,12 +83,12 @@ const fileSources = [
   <Container class="py-10 sm:py-14">
     <FlowSteps current="load" class="mb-6" />
     <PageHeader
-      eyebrow="Step 2"
+      eyebrow="Step 1"
       title="Load inventories"
       description="Drop your export files or open a service to fetch from it. Nothing is modified yet, and loaded inventories clear when you close this tab."
     />
 
-    <section class="app-card mt-8" aria-labelledby="smart-heading">
+    <section id="tour-drop" class="app-card mt-8" aria-labelledby="smart-heading">
       <h2 id="smart-heading" class="text-xl font-bold">Drop your exports</h2>
       <p class="mt-1 text-sm text-muted-foreground">
         Drop files from any supported service. SpoolSync works out which service each one belongs to; if a file could be
@@ -103,7 +103,7 @@ const fileSources = [
       <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
     </section>
 
-    <div class="mt-10 flex flex-wrap items-end justify-between gap-4">
+    <div id="tour-services" class="mt-10 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h2 class="text-xl font-bold">Services</h2>
         <p id="source-count" class="text-sm text-muted-foreground" aria-live="polite"></p>

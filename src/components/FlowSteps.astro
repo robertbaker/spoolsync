@@ -1,16 +1,15 @@
 ---
-/** Connect → Load → Sync progress strip shown at the top of the three app pages. */
+/** Load → Sync progress strip shown at the top of the two app pages. */
 import { Icon } from "astro-icon/components";
 
 interface Props {
-  current: "connections" | "load" | "sync";
+  current: "load" | "sync";
   class?: string;
 }
 
 const { current, class: className } = Astro.props;
 
 const steps = [
-  { id: "connections", label: "Connect", href: "/connections", icon: "material-symbols:link" },
   { id: "load", label: "Load", href: "/load", icon: "material-symbols:upload-file-outline-rounded" },
   { id: "sync", label: "Sync", href: "/sync", icon: "material-symbols:sync" },
 ] as const;
@@ -35,14 +34,13 @@ const currentIndex = steps.findIndex((step) => step.id === current);
                     : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
               ]}
             >
-              {index < currentIndex && step.id !== "connections" ? (
+              {index < currentIndex ? (
                 <Icon name="material-symbols:check-circle-rounded" class="size-4 text-success" aria-hidden="true" />
               ) : (
                 <Icon name={step.icon} class="size-4" aria-hidden="true" />
               )}
               <span>
                 <span class="hidden text-muted-foreground sm:inline">{index + 1}.</span> {step.label}
-                {step.id === "connections" && <span class="hidden text-xs font-normal text-muted-foreground lg:inline">(optional)</span>}
               </span>
             </a>
           </li>

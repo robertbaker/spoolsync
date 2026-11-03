@@ -7,7 +7,7 @@ Filadex. Read-only inputs also include SpoolMaster (`--spoolmaster`, `.xlsx`), S
 (`--spoolhoarder`), the Spool app (`--spool`), and SpoolKeep (`--spoolkeep`).
 
 > Spoolstock CSV exports are read-only inputs. For a walkthrough of the browser app's
-> Connect → Load → Sync flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
+> Load → Sync flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
 
 ## Install
 

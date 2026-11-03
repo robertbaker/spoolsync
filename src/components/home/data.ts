@@ -2,14 +2,8 @@ import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
 
 export const steps = [
   {
-    title: "Connect",
-    body: "Point SpoolSync at your Spoolman server or TigerTag account.",
-    href: "/connections",
-    ready: true,
-  },
-  {
     title: "Load",
-    body: "Fetch from connected services or drop in export files.",
+    body: "Drop in export files, or fetch from Spoolman, TigerTag, Bambuddy, or FilamentDB.",
     href: "/load",
     ready: true,
   },
@@ -58,8 +52,8 @@ export const services = [
     how: "Direct over your local network, or via export file",
     read: "API or JSON/CSV file",
     write: "API or JSON file",
-    actionText: "Configure connection →",
-    actionHref: "/connections",
+    actionText: "Load inventories →",
+    actionHref: "/load",
   },
   {
     name: "Spoolstock",

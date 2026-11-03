@@ -46,7 +46,7 @@ test("tour parsing preserves existing integer-prefix handling and range checks",
 test("tour startup replaces an incorrect route before rendering", () => {
   const f = fixture("https://test/?tour=1");
   f.controller.start();
-  expect(f.events).toEqual(["replace:/connections?tour=1"]);
+  expect(f.events).toEqual(["replace:/load?tour=1"]);
 });
 
 test("tour navigation updates same-page steps and assigns cross-page steps", () => {

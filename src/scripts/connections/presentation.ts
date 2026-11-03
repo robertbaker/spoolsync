@@ -23,10 +23,7 @@ export const wirePasswordToggle = (btnId: string, inputId: string) => {
   });
 };
 
-export function loadInventoriesLink(): HTMLElement {
-  return h(
-    "p",
-    { class: "mt-2" },
-    h("a", { href: "/load", class: "font-medium underline" }, "Load inventories →"),
-  );
+/** Points at the fetch control in the same panel, now that settings and loading share a page. */
+export function nextStepHint(text: string): HTMLElement {
+  return h("p", { class: "mt-2 text-sm" }, text);
 }

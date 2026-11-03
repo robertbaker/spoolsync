@@ -9,8 +9,8 @@ test("tour navigation, same-page steps, Back and Finish preserve URLs and focus"
   await expect(dialog.getByRole("heading")).toHaveText("Welcome to SpoolSync");
   await expect(dialog.getByRole("button", { name: "Back", exact: true })).toBeDisabled();
   for (const title of [
-    "Connect Spoolman or TigerTag",
-    "Load your inventories",
+    "Drop your exports",
+    "Or connect to a service",
     "Review matches",
     "Resolve differences",
     "Apply or export",
@@ -32,7 +32,9 @@ test("tour navigation, same-page steps, Back and Finish preserve URLs and focus"
 test("connection password toggles and unsupported URL validation retain their behavior", async ({
   page,
 }) => {
-  await page.goto("/connections");
+  await page.goto("/load");
+  await page.locator("#tigertag-panel > summary").click();
+  await page.locator("#tigertag-settings > summary").click();
   for (const [toggle, input] of [
     ["#toggle-spoolman-token", "#spoolman-token"],
     ["#toggle-tigertag-password", "#tigertag-password"],
@@ -48,4 +50,17 @@ test("connection password toggles and unsupported URL validation retain their be
   await expect(page.locator("#spoolman-result")).toContainText("Check the address");
   await expect(page.locator("#spoolman-url")).toBeFocused();
   await expect(page.locator("#spoolman-test")).toBeEnabled();
+});
+
+test("the tour walks the Load page through to Sync and the old Connections link redirects", async ({
+  page,
+}) => {
+  await page.goto("/?tour=1");
+  const dialog = page.getByRole("dialog");
+  await expect(page).toHaveURL(/\/load\?tour=1$/);
+  await expect(dialog.getByRole("heading")).toHaveText("Drop your exports");
+  await expect(page.locator(".spoolsync-tour-highlight")).toHaveCount(1);
+  const response = await page.request.get("/connections", { maxRedirects: 0 });
+  expect(response.status()).toBe(301);
+  expect(response.headers()["location"]).toContain("/load");
 });

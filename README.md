@@ -73,13 +73,13 @@ Spoolman usually runs on your local network over plain `http://`. To let SpoolSy
    ```
 
    On Spoolman-NG, also include the Spoolman host in `SPOOLMAN_ALLOWED_HOSTS` if configured, and enter your
-   `SPOOLMAN_API_TOKEN` on the Connections page if you use one.
+   `SPOOLMAN_API_TOKEN` in the Spoolman panel on the Load page if you use one.
 
 2. Use **Chrome, Edge, or another Chromium browser (version 142+)**. When prompted to let the site
    access devices on your local network, choose **Allow**. Firefox and Safari block `http://` calls
    from an `https://` page; to use them, serve Spoolman over `https://` instead.
 
-The Connections page tests your setup and pinpoints any missing step.
+The Spoolman panel on the Load page (Connection settings → Save and test) tests your setup and pinpoints any missing step.
 When a CORS block is detected, the alert expands with setup commands for Docker Compose / Portainer, `docker run`,
 standalone Linux (`systemd`), and manual/source installs using your exact origin. Note that Docker Compose requires `docker compose up -d` to recreate the container—a plain `restart`
 does not apply new environment variables. Keep any `--env-file` and `-f` options your deployment uses.
@@ -89,7 +89,7 @@ For standalone Linux installs, update your `.env` file and restart the service
 
 ## TigerTag
 
-- **Cloud:** Sign in with your TigerTag email and password on the Connections page. SpoolSync uses
+- **Cloud:** Sign in with your TigerTag email and password in the TigerTag panel on the Load page (Account sign-in). SpoolSync uses
   TigerTag's documented REST endpoints for third-party clients and stores only the session token, never
   your password. Accounts created with Google sign-in need a password set in the TigerTag app first.
 - **Files:** Use Export in the inventory toolbar for a `.ttag` file, or Settings → Data → Download JSON. UID-keyed JSON,
@@ -181,7 +181,7 @@ npm release credentials and a clean working tree; running the CLI or its build d
 - `packages/spoolsync-core`: the `@spoolsync/core` workspace library, with the common spool model,
   matching, sync planning, inventory import/export workflows, and API adapters for each service.
 - `src/lib/browser`: browser-only session and preference storage.
-- `src/scripts/*`: the client scripts behind the Connections, Load and Sync pages.
+- `src/scripts/*`: the client scripts behind the Load and Sync pages.
 - `packages/spoolsync-cli`: public npm CLI package, built from the shared sync library.
 - `tools/tigertag/spoolman-to-ttag.ts`: standalone converter that turns a Spoolman inventory into a `.ttag`.
 - `docs/architecture.md`: current code organization and inventory lifecycle.

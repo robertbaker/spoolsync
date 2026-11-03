@@ -95,6 +95,8 @@ export default defineConfig({
   // Pages build to `connections.html` etc., which Workers assets serve at `/connections` with no
   // trailing-slash redirect.
   trailingSlash: "never",
+  // The Connections page moved into the Load page; keep old links working in dev and builds.
+  redirects: { "/connections": "/load" },
   build: {
     format: "file",
     inlineStylesheets: "auto",

@@ -8,7 +8,6 @@ export const FOOTER_UI_CONFIG: SiteFooterConfig = {
       id: "app",
       title: "App",
       links: [
-        { href: "/connections", label: "Connections" },
         { href: "/load", label: "Load" },
         { href: "/sync", label: "Sync" },
         { href: "/cli", label: "CLI" },

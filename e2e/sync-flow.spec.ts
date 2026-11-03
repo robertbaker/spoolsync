@@ -89,7 +89,7 @@ test("connect, load, resolve, apply to Spoolman and show Spoolstock as read-only
 }) => {
   const fake = await routeSpoolman(page);
 
-  await page.goto("/connections");
+  await page.goto("/load");
   await page.getByLabel("Spoolman address").fill(SPOOLMAN);
   await page.getByRole("button", { name: "Save and test" }).click();
   await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();

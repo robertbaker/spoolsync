@@ -7,7 +7,7 @@ import type {
 } from "~/lib/browser/storage";
 
 import { byId, h, notice, showToast } from "../dom";
-import { badge, loadInventoriesLink } from "./presentation";
+import { badge, nextStepHint } from "./presentation";
 export interface TigertagConnectionDependencies {
   signIn: typeof signIn;
   clearTigertagSession: typeof clearTigertagSession;
@@ -51,7 +51,11 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
       );
       showToast("Signed in to TigerTag", "success");
       tigertagResult.replaceChildren(
-        notice("success", "Signed in to TigerTag", loadInventoriesLink()),
+        notice(
+          "success",
+          "Signed in to TigerTag",
+          nextStepHint("Use Fetch from TigerTag cloud above to load your inventory."),
+        ),
       );
       showTigertag();
     } catch (error) {

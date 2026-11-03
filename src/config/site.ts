@@ -11,12 +11,6 @@ export const SOCIAL_LINKS: Record<string, string> = {};
 export const NAV_LINKS = [
   { href: "/", label: "Overview", text: "Overview", icon: "material-symbols:home-outline-rounded" },
   {
-    href: "/connections",
-    label: "Connections",
-    text: "Connections",
-    icon: "material-symbols:link",
-  },
-  {
     href: "/load",
     label: "Load",
     text: "Load",

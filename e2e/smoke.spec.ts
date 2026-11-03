@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Smoke", () => {
-  for (const path of ["/", "/connections", "/load"]) {
+  for (const path of ["/", "/load", "/sync"]) {
     test(`${path} loads`, async ({ page }) => {
       const response = await page.goto(path);
       expect(response?.status()).toBe(200);
@@ -9,8 +9,11 @@ test.describe("Smoke", () => {
     });
   }
 
-  test("connections shows the CORS line for this origin", async ({ page, baseURL }) => {
-    await page.goto("/connections");
+  test("load shows the CORS line for this origin in the Spoolman setup help", async ({
+    page,
+    baseURL,
+  }) => {
+    await page.goto("/load");
     await expect(page.locator("#cors-line")).toHaveText(
       `SPOOLMAN_CORS_ORIGIN=${new URL(baseURL!).origin}`,
     );

@@ -12,7 +12,7 @@ import type {
 
 import { byId, h, notice, showToast } from "../dom";
 import { connectionDiagnosisNotice } from "../spoolman-help";
-import { badge, loadInventoriesLink } from "./presentation";
+import { badge, nextStepHint } from "./presentation";
 export interface SpoolmanConnectionDependencies {
   browserEnvironment: typeof browserEnvironment;
   diagnoseConnection: typeof diagnoseConnection;
@@ -78,7 +78,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       if (diagnosis.code === "ok") {
         updateSpoolmanBadge(true);
         showToast("Spoolman connection verified", "success");
-        result.append(loadInventoriesLink());
+        result.append(nextStepHint("Ready. Use Fetch spools above to load this server."));
       } else {
         spoolmanBadge.replaceChildren(badge("Check setup", "warning"));
       }

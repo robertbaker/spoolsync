@@ -73,11 +73,13 @@ async function routeGoogle(page: Page) {
 test("sign in to TigerTag, fetch the cloud inventory and apply a change", async ({ page }) => {
   const writes = await routeGoogle(page);
 
-  await page.goto("/connections");
+  await page.goto("/load");
+  await page.locator("#tigertag-panel > summary").click();
+  await page.locator("#tigertag-settings > summary").click();
   await page.locator("#tigertag-email-input").fill("me@example.com");
   await page.locator("#tigertag-password").fill("not-a-real-password");
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByText("Signed in as me@example.com")).toBeVisible();
+  await page.locator("#tigertag-sign-in").click();
+  await expect(page.locator("#tigertag-cloud-hint")).toHaveText("Signed in as me@example.com");
 
   await page.goto("/load");
   await page.locator("#tigertag-panel > summary").click();
