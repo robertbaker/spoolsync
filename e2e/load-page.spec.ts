@@ -1190,3 +1190,20 @@ test("answers to possible matches can be undone and redone", async ({ page }) =>
   await page.reload();
   await expect(page.locator("#suggestions article")).toHaveCount(2);
 });
+
+test("the sticky bar counts unanswered matches and jumps to them", async ({ page }) => {
+  await page.goto("/sync?sample=1");
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  const bar = page.locator("#sync-bar");
+  const summary = page.locator("#sync-bar-summary");
+
+  await page.locator("#tour-apply").scrollIntoViewIfNeeded();
+  await expect(bar).toBeVisible();
+  await expect(summary).toContainText("Pending matches (3)");
+  await page.getByRole("link", { name: "Review matches" }).click();
+  await expect(page.locator("#suggestions-section")).toBeInViewport();
+
+  await page.getByRole("button", { name: "Same spool", exact: true }).first().click();
+  await page.locator("#tour-apply").scrollIntoViewIfNeeded();
+  await expect(summary).toContainText("Pending matches (2)");
+});

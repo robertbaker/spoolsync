@@ -39,10 +39,11 @@ export function createApplyView(loaded: Map<SourceId, LoadResult>, onApplied: ()
   function renderApply(match: MatchResult, resolutions: Map<string, GroupResolution>): void {
     const plan = planSync(match.groups, resolutions, match.suggestions);
     const withChanges = [...plan.values()].filter((changes) => changes.length > 0);
-    jumpBar.update(
-      withChanges.reduce((total, changes) => total + changes.length, 0),
-      withChanges.length,
-    );
+    jumpBar.update({
+      changes: withChanges.reduce((total, changes) => total + changes.length, 0),
+      services: withChanges.length,
+      pending: match.suggestions.length,
+    });
     const sections: HTMLElement[] = [];
     const unresolved = match.groups.filter(
       (g) => openConflicts(g, ensureResolution(resolutions, g)).length,

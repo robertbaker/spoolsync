@@ -68,7 +68,7 @@ nothing is guessed. `smart-drop.ts` loads the chosen source through the same `re
 path as each service's own picker, so request revisions and persistence are shared.
 
 Services are native `<details>` panels (`SourcePanel.astro`) that open when they report a message.
-`source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar
+`source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar (and the count of unanswered possible matches)
 in step with what is loaded; it enables once two services are loaded.
 
 On the Sync page, a bulk answer for the pending possible matches (`SyncSession.decideAll`) saves
@@ -358,3 +358,6 @@ Shared package tests cover matching, planning, adapters, and workflow behavior. 
 tests also live under `src/`, with their environment configured by `tests/setup.ts` and `bunfig.toml`.
 CLI integration tests exercise the built JavaScript under Node. Playwright runs against the built
 site through Wrangler on port 4324. See [CONTRIBUTING.md](../CONTRIBUTING.md) for commands.
+
+The Sync sticky bar (`sync/jump-bar.ts`) shows `Pending matches (N)` next to the ready-changes count, with
+"Review matches" and "Jump to apply" links that each hide while their target is on screen.

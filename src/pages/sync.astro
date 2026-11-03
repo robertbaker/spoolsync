@@ -43,7 +43,7 @@ import { SITE_TITLE } from "~/config";
 
       <div id="match-answers" class="mt-6" hidden></div>
 
-      <section id="suggestions-section" class="mt-12" aria-labelledby="suggestions-heading" hidden>
+      <section id="suggestions-section" class="mt-12 scroll-mt-24" aria-labelledby="suggestions-heading" hidden>
         <h2 id="suggestions-heading" class="text-2xl">Possible matches</h2>
         <p class="mt-1 text-sm text-muted-foreground">
           These spools look similar but don't share an ID. Confirm or reject each pair—SpoolSync remembers your choice.
@@ -78,9 +78,14 @@ import { SITE_TITLE } from "~/config";
         class="sticky bottom-40 z-10 mt-6 flex flex-nowrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-2.5 pl-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:p-3 sm:pl-5 md:bottom-4 md:pr-36"
       >
         <p id="sync-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite"></p>
-        <Button href="#tour-apply" color="primary" size="sm" class="shrink-0" icon="material-symbols:arrow-downward-rounded" iconPosition="right">
-          Jump to apply
-        </Button>
+        <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <Button id="sync-bar-review" href="#suggestions-section" color="warning" size="sm" class="shrink-0" icon="material-symbols:arrow-upward-rounded" iconPosition="right" hidden>
+            Review matches
+          </Button>
+          <Button id="sync-bar-apply" href="#tour-apply" color="primary" size="sm" class="shrink-0" icon="material-symbols:arrow-downward-rounded" iconPosition="right" hidden>
+            Jump to apply
+          </Button>
+        </div>
       </div>
     </div>
   </Container>
