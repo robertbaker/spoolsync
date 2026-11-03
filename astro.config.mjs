@@ -9,6 +9,7 @@ import browserslist from "browserslist";
 import { browserslistToTargets } from "lightningcss";
 
 import { SITE_URL } from "./src/config/site.ts";
+import { serviceWorker } from "./tools/pwa/integration.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IS_DEV = process.env["NODE_ENV"] === "development";
@@ -152,6 +153,8 @@ export default defineConfig({
     icon({
       iconDir: "src/assets/logos",
     }),
+    // Writes dist/sw.js after the build, listing the files it saves for offline use.
+    serviceWorker(),
   ],
   vite: {
     plugins: [

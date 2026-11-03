@@ -1,6 +1,8 @@
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import { summarizeInventory } from "@spoolsync/core/workflow";
 
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
+import { recordStockPoint } from "~/lib/browser/storage/stock-history";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
@@ -10,15 +12,18 @@ import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
+import { renderCostChart } from "./load/cost-chart";
 import { renderFileHistory } from "./load/file-history-view";
 import { wireFileSource } from "./load/file-source";
 import { createInventoryTable } from "./load/inventory-table";
+import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
 import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { LoadState } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
+import { renderTrendChart } from "./load/trend-chart";
 import { button, download } from "./sync/presentation";
 
 const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
@@ -29,11 +34,20 @@ const unloadAll = document.getElementById("unload-all");
 const downloadCombined = document.getElementById("download-combined");
 const loadedStats = document.getElementById("loaded-stats");
 const loadedChart = document.getElementById("loaded-chart");
+const loadedTrend = document.getElementById("loaded-trend");
+const loadedCost = document.getElementById("loaded-cost");
+const labels = wireLabelPrinting({
+  results: state.results,
+  visibleSpools: () => renderTable.visibleSpools(),
+});
 const render = () => {
   renderTable();
   renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);
   if (loadedChart) renderLoadedChart(loadedChart, state.results);
+  if (loadedTrend) renderTrendChart(loadedTrend, state.results.size > 0);
+  if (loadedCost) renderCostChart(loadedCost, state.results);
+  labels.update();
   panels.refresh();
   actionBar.update();
   if (unloadAll) unloadAll.hidden = state.results.size === 0;
@@ -50,6 +64,12 @@ const { store, setStatus } = createLoadStatusView(state, render);
 const context = {
   state,
   store(result: LoadResult) {
+    // Totals only, so the trend chart can show change between visits.
+    recordStockPoint(result.source, {
+      at: new Date().toISOString(),
+      totalGrams: summarizeInventory(result).remainingGrams,
+      spoolCount: result.spools.length,
+    });
     store(result);
     panels.markUsed(result.source);
   },

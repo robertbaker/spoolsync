@@ -123,6 +123,14 @@
     forced-color-adjust: none;
     background: Highlight !important;
   }
+  .chart-line {
+    forced-color-adjust: none;
+    stroke: Highlight !important;
+  }
+  .chart-point {
+    forced-color-adjust: none;
+    fill: Highlight !important;
+  }
   .chart-hit:focus,
   .chart-hit:focus-visible {
     outline: 2px solid Highlight;

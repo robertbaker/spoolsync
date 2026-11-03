@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "SpoolSync",
+  "short_name": "SpoolSync",
+  "description": "Compare and sync 3D-printing filament inventories between services, in your browser.",
+  "start_url": "/load",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fcfaf6",
+  "theme_color": "#f97316",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Load inventories", "url": "/load" },
+    { "name": "Sync", "url": "/sync" }
+  ]
+}

@@ -281,6 +281,14 @@ const fileSources = [
           </button>
           <button
             type="button"
+            id="print-labels"
+            hidden
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Print labels
+          </button>
+          <button
+            type="button"
             id="download-combined"
             hidden
             class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -308,6 +316,8 @@ const fileSources = [
       </div>
       <div id="loaded-stats" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" hidden></div>
       <div id="loaded-chart" class="mt-5 rounded-xl border p-4" hidden></div>
+      <div id="loaded-trend" class="mt-5 rounded-xl border p-4" hidden></div>
+      <div id="loaded-cost" class="mt-5 rounded-xl border p-4" hidden></div>
       <div id="loaded-table" class="mt-4"></div>
     </section>
 

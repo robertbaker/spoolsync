@@ -361,3 +361,50 @@ site through Wrangler on port 4324. See [CONTRIBUTING.md](../CONTRIBUTING.md) fo
 
 The Sync sticky bar (`sync/jump-bar.ts`) shows `Pending matches (N)` next to the ready-changes count, with
 "Review matches" and "Jump to apply" links that each hide while their target is on screen.
+
+## Labels, trend and cost charts, and the installable app
+
+**Labels.** `lib/labels/qr.ts` is a self-contained QR encoder (byte mode, error correction level M,
+versions 1 to 10, so up to 213 bytes), with no dependency and no network. `lib/labels/labels.ts`
+holds the pure rules: size presets, which spools are selected (all, those the table shows, or running
+low; one label per linked spool by default), the label model, and the QR payload. The payload is only
+`<service>:<id>` (for example `spoolman:12`), never names, weights, URLs, or credentials. The Load
+page's `load/label-sheet.ts` owns the dialog and builds `#label-sheet` only while printing; the
+`body.printing-labels` rules in `styles/print.css` then show that sheet alone. The sheet is
+`display: none` otherwise, so Sync printing is unchanged. Labels are fixed black on white so codes scan
+from either theme. The last size and selection are remembered under `spoolsync:label-options`.
+
+**Trend.** Inventories live in session storage and clear with the tab, so the trend keeps only totals.
+Each file or API load records `(timestamp, totalGrams, spoolCount)` per service in
+`spoolsync:stock-history` (`lib/browser/storage/stock-history.ts`). Entries are validated on every
+read, capped at 120 points per service, and an unchanged total is not repeated within six hours.
+Sample data is not recorded. `lib/stock-trend.ts` sums each service's latest point at every moment, so
+a spool listed in several services counts in each, as in the by-service chart. The history is a
+"Stock history" group in `lib/saved-data.ts`, so it can be forgotten, exported, and imported with the
+other portable settings (imports are validated).
+
+**Cost per kilogram.** `CommonSpool.price` is a whole-spool purchase price in the service's own
+currency. `costPerKg` in `@spoolsync/core/workflow` divides total price by total full weight per
+service, material, or brand (linked spools counted once for the last two) and reports how many spools
+could not be priced. When nothing carries a price the chart says why instead of hiding. There is no
+currency conversion.
+
+Both charts follow `load/loaded-chart.ts`: one hue from `--chart-mark`, no legend, a tooltip and an
+accessible name per mark, a "View as table" alternative, and system colors under `forced-colors`.
+`load/chart-parts.ts` holds the shared bar row and view switcher.
+
+**Installable app.** `public/manifest.webmanifest` and the PNG icons in `public/icons/` (generated
+from `public/favicon.svg` by `bun tools/generate-pwa-icons.ts`; commit the output) make the site
+installable. `tools/pwa/integration.ts` is an Astro integration that, after the build, fills
+`tools/pwa/sw.js` with a content-hash version and the list of shell pages, scripts, styles, fonts, and
+icons, and writes it to `dist/sw.js`. `public/_headers` already serves `/sw.js` and the manifest with
+`no-cache`, and Workers assets serve both with the site's CSP (`worker-src` falls back to
+`script-src 'self'`). The worker only handles same-origin GET requests, so Spoolman, TigerTag, the
+changelog, and any other cross-origin request bypass it; responses with `Set-Cookie`, `no-store`, or
+an `Authorization` request are never stored. Pages are network-first with the saved copy (or
+`/offline`) as fallback; hashed files are cache-first; each build uses its own cache name and
+`activate` deletes older ones. A new worker waits: `scripts/pwa/controller.ts` shows "Reload to
+update", which posts `SKIP_WAITING`, and the page reloads once the new worker controls it. The
+worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
+The header's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
+is offline. Playwright runs with service workers enabled, matching production.

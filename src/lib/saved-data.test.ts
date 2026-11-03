@@ -158,3 +158,40 @@ test("a settings export from the CLI imports here, using the shared low-stock se
   expect(result).toEqual({ imported: ["spoolsync:low-stock-percent"], skipped: [] });
   expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("25");
 });
+
+test("stock history and label options are listed, forgettable, and portable only when valid", () => {
+  const history = JSON.stringify({
+    spoolman: [{ at: "2026-11-01T00:00:00.000Z", totalGrams: 900, spoolCount: 3 }],
+  });
+  localStorage.setItem("spoolsync:stock-history", history);
+  localStorage.setItem(
+    "spoolsync:label-options",
+    JSON.stringify({ preset: "small", selection: "low" }),
+  );
+  localStorage.setItem("spoolsync:cost-view", "vendor");
+  expect(listSavedData().map((item) => item.group.id)).toEqual(["preferences", "history"]);
+
+  const exported = JSON.parse(exportSettings()) as { entries: Record<string, string> };
+  expect(Object.keys(exported.entries).sort()).toEqual([
+    "spoolsync:cost-view",
+    "spoolsync:label-options",
+    "spoolsync:stock-history",
+  ]);
+
+  expect(forgetGroup("history")).toBe(1);
+  expect(localStorage.getItem("spoolsync:stock-history")).toBeNull();
+
+  const result = importSettings(
+    JSON.stringify({
+      format: "spoolsync-settings",
+      version: 1,
+      entries: {
+        "spoolsync:stock-history": history,
+        "spoolsync:label-options": JSON.stringify({ preset: "huge", selection: "low" }),
+        "spoolsync:cost-view": "nonsense",
+      },
+    }),
+  );
+  expect(result.imported).toEqual(["spoolsync:stock-history"]);
+  expect(result.skipped.sort()).toEqual(["spoolsync:cost-view", "spoolsync:label-options"]);
+});

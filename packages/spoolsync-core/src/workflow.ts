@@ -13,3 +13,4 @@ export {
 } from "./workflow/breakdown";
 export { uniqueSpools, type UniqueSpool } from "./workflow/breakdown";
 export { formatReorderList, reorderItems, type ReorderItem } from "./workflow/reorder";
+export { costPerKg, type CostBreakdown, type CostGrouping, type CostShare } from "./workflow/cost";
