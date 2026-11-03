@@ -42,3 +42,10 @@ export {
 } from "./workflow/inventory-changes";
 export { spoolKey } from "./workflow/spool-key";
 export { costPerKg, type CostBreakdown, type CostGrouping, type CostShare } from "./workflow/cost";
+export {
+  buildImportReport,
+  importReportCsv,
+  isCleanImport,
+  type ImportReport,
+  type ImportReportEntry,
+} from "./workflow/import-report";

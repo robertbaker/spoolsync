@@ -8,6 +8,7 @@ import { detectInventorySources, type DetectedInventory } from "@spoolsync/core/
 
 import { h } from "../dom";
 import { readInventoryFile } from "./file-source";
+import { importReportView } from "./import-report-view";
 import { plural } from "./presentation";
 import type { LoadContext } from "./state";
 
@@ -111,7 +112,7 @@ export function wireSmartDrop(context: LoadContext): void {
       "success",
       `${file.name} → ${SOURCE_LABELS[source]} (${plural(loaded.spools.length, "spool")})`,
     );
-    outcome.append(preview(loaded));
+    outcome.append(preview(loaded), importReportView(loaded, file.name));
     row.replaceWith(outcome);
   }
 

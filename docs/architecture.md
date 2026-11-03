@@ -482,3 +482,47 @@ update", which posts `SKIP_WAITING`, and the page reloads once the new worker co
 worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
 The header's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
 is offline. Playwright runs with service workers enabled, matching production.
+
+## Command palette, display units, setup guide, and import reports
+
+`src/scripts/palette/` is mounted from `BaseLayout.astro` and opens with Ctrl/Cmd+K (or the footer
+button). `rank.ts` holds the pure ranking: normalized (accent- and case-insensitive) fuzzy scoring in
+which every word must match, title matches counting double, ties keeping their original order,
+recent choices first for an empty query, and spools listed only when a query is typed. `items.ts`
+turns loaded inventories (read with `readLoadResult`, so it works on any page) into entries, and
+`commands.ts` lists pages, Load panels, and actions. Actions click the controls that already exist
+(theme toggle, `[data-open-shortcuts]`, `[data-open-saved-data]`, `[data-open-changelog]`,
+`[data-tour-launcher]`, `#download-combined`, `#unload-all`) and are omitted when the current page
+does not offer them or the control is hidden. Choosing a spool dispatches `spoolsync:open-spool`
+with `{ key }` on `document`; from another page the palette goes to `/load?spool=<key>` and
+dispatches the event once the page has loaded. `/load?panel=<id>` opens a service panel the same
+way. The dialog is a native `<dialog>` with a `combobox` input and `listbox` results
+(`aria-activedescendant`), and returns focus to the element that opened it.
+
+`src/lib/units.ts` stores the weight unit (g or oz) and a price display symbol under
+`spoolsync:display` and fires `spoolsync:display-changed`. The controls live in the Saved settings
+dialog (`scripts/display-settings.ts`). Stock cards, the remaining-weight chart, the trend chart, and
+the cost chart format through it, and `load.ts` re-renders on the event. Weights are always stored and
+computed in grams. The currency setting is only a display symbol: prices stay in each service's own
+currency and are never converted, and the setting says so.
+
+The first-run setup guide (`scripts/setup/`) is a dialog on the Load page that opens when nothing is
+loaded, it has not been dismissed (`spoolsync:setup-dismissed`), and the URL has no purpose of its
+own (`?sample`, `?tour`, `?spool`, `?panel`). Browser automation (`navigator.webdriver`) never gets it
+unprompted, so end-to-end tests are not blocked by a modal; `/load?setup=1`, the footer link, and the
+palette open it on request. Step one picks apps, then one page per app shows that service's export
+instructions, and the last step opens the page's `#smart-file` multi-file picker so detection and
+request revisions are shared with every other load. The instructions come from
+`src/lib/source-guides.ts`, which `load.astro` also reads, so the wording lives in one place.
+
+`buildImportReport` (core `workflow/import-report.ts`) classifies a `LoadResult`'s existing warnings
+into skipped rows (with row or record location and reason), values the importer filled in, and
+file-wide notes, and counts rows read. It only reads warnings, so adapters, warning text, and the
+`LoadResult` shape are unchanged. The Load page shows it as a collapsed "Import report" under each
+loaded file (`load/import-report-view.ts`) with a CSV download whose cells that start with `=`, `+`,
+`-`, `@`, tab, or carriage return are prefixed with an apostrophe.
+
+On small screens the header's `bottom-nav` mobile variant (already enabled in
+`config/ui/header.ts`) provides the bottom navigation. `styles/touch.css` raises the Load page's table
+buttons, links, filter chips, and toolbar buttons to at least 44 px on coarse pointers and narrow
+windows without touching `inventory-table.ts`.

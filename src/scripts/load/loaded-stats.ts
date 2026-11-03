@@ -7,6 +7,7 @@ import {
 import { summarizeInventory } from "@spoolsync/core/workflow";
 
 import { currentLowStockRule } from "~/lib/low-stock";
+import { formatWeight } from "~/lib/units";
 
 import { h } from "../dom";
 import { plural } from "./presentation";
@@ -50,7 +51,7 @@ export function renderLoadedStats(
         h(
           "p",
           { class: "mt-0.5 text-xs text-muted-foreground" },
-          `${summary.remainingGrams.toLocaleString()} g remaining`,
+          `${formatWeight(summary.remainingGrams)} remaining`,
           summary.unknownWeights
             ? ` (${summary.unknownWeights.toLocaleString()} without a weight)`
             : "",

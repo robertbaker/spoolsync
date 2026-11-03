@@ -14,6 +14,7 @@ import { recordStockPoint } from "~/lib/browser/storage/stock-history";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
+import { DISPLAY_CHANGED } from "~/lib/units";
 
 import { CONNECTION_CHANGED } from "./connections/events";
 import { h, notice, showToast } from "./dom";
@@ -111,6 +112,12 @@ for (const source of SOURCE_IDS) {
   setStatus(source);
 }
 render();
+
+// Weight unit and price symbol changes redraw the charts and stats; setup guide is lazy.
+document.addEventListener(DISPLAY_CHANGED, render);
+void import("./setup/wizard").then(({ wireSetupGuide }) =>
+  wireSetupGuide({ loadedCount: () => state.results.size }),
+);
 
 // Saving a different connection invalidates that service's fetched snapshot in storage; mirror it
 // here so the page never shows (or syncs) an inventory that came from the previous server or account.

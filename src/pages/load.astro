@@ -11,6 +11,7 @@ import SpoolmanConnectionForm from "~/components/connections/SpoolmanConnectionF
 import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro";
 import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
 import { isWritableSource, type SourceId } from "@spoolsync/core/core/model";
+import { SOURCE_GUIDES } from "~/lib/source-guides";
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
 import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 
@@ -18,65 +19,65 @@ const fileSources = [
   {
     id: "spoolstock",
     label: "Spoolstock",
-    kind: "CSV",
+    kind: SOURCE_GUIDES.spoolstock.kind,
     icon: "material-symbols:inventory-2-outline",
     image: spoolstockLogo.src,
     accept: ".csv,text/csv",
-    how: "Spoolstock is export-only. In the app, open Inventory and tap the CSV export icon, then choose or drop the file here. SpoolSync compares its values against other services, though Spoolstock itself does not accept imports.",
+    how: SOURCE_GUIDES.spoolstock.how,
   },
   {
     id: "spoolio",
     label: "Spoolio",
-    kind: "JSON",
+    kind: SOURCE_GUIDES.spoolio.kind,
     icon: "vendor/spoolio",
     accept: ".json,application/json",
-    how: "On spoolio.net, open Settings and export your data, then choose or drop the JSON file here.",
+    how: SOURCE_GUIDES.spoolio.how,
   },
   {
     id: "tigertag",
     label: "TigerTag",
-    kind: ".ttag or JSON",
+    kind: SOURCE_GUIDES.tigertag.kind,
     icon: "vendor/tigertag",
     accept: ".ttag,.json,application/json",
-    how: "Use Export in Tiger Studio Manager's inventory toolbar for a .ttag file, or Settings → Data → Download JSON. When importing the updated file back into Studio, choose Restore to preserve remaining weights.",
+    how: SOURCE_GUIDES.tigertag.how,
     cloud: true,
   },
-  { id: "threeDfp", label: "3DFilamentProfiles", kind: "CSV or JSON", icon: "vendor/3dfilamentprofiles", accept: ".csv,.json,text/csv,application/json", how: "Export your My Spools list as CSV or JSON from 3DFilamentProfiles, then choose or drop the file here." },
-  { id: "bambuddy", label: "Bambuddy", kind: "CSV or JSON", icon: "material-symbols:inventory-2-outline", image: bambuddyLogo.src, accept: ".csv,.json,text/csv,application/json", how: "Fetch directly with your Bambuddy API key, load a saved inventory API response as JSON, or export an inventory CSV. Bambuddy's CSV importer only adds new entries, so review the download before importing.", api: true },
-  { id: "filameter", label: "FilaMeter", kind: "JSON or CSV", icon: "vendor/filameter", accept: ".json,.csv,application/json,text/csv", how: "Open Settings → Import/Export to download a JSON backup or export your filament CSV, then choose or drop it here." },
-  { id: "filadex", label: "Filadex", kind: "JSON or CSV", icon: "vendor/filadex", accept: ".json,.csv,application/json,text/csv", how: "Download JSON or CSV from Filadex's export menu (or GET /api/filaments?export=json), then choose or drop the file here." },
-  { id: "filamentdb", label: "FilamentDB", kind: "JSON", icon: "material-symbols:database-outline", accept: ".json,application/json", how: "Save the response of GET /api/spools from FilamentDB, or a single spool file from its data/spools folder. Extract ZIP exports first, or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token." },
+  { id: "threeDfp", label: "3DFilamentProfiles", kind: SOURCE_GUIDES.threeDfp.kind, icon: "vendor/3dfilamentprofiles", accept: ".csv,.json,text/csv,application/json", how: SOURCE_GUIDES.threeDfp.how },
+  { id: "bambuddy", label: "Bambuddy", kind: SOURCE_GUIDES.bambuddy.kind, icon: "material-symbols:inventory-2-outline", image: bambuddyLogo.src, accept: ".csv,.json,text/csv,application/json", how: SOURCE_GUIDES.bambuddy.how, api: true },
+  { id: "filameter", label: "FilaMeter", kind: SOURCE_GUIDES.filameter.kind, icon: "vendor/filameter", accept: ".json,.csv,application/json,text/csv", how: SOURCE_GUIDES.filameter.how },
+  { id: "filadex", label: "Filadex", kind: SOURCE_GUIDES.filadex.kind, icon: "vendor/filadex", accept: ".json,.csv,application/json,text/csv", how: SOURCE_GUIDES.filadex.how },
+  { id: "filamentdb", label: "FilamentDB", kind: SOURCE_GUIDES.filamentdb.kind, icon: "material-symbols:database-outline", accept: ".json,application/json", how: SOURCE_GUIDES.filamentdb.how },
   {
     id: "spoolmaster",
     label: "SpoolMaster",
-    kind: "Excel (.xlsx)",
+    kind: SOURCE_GUIDES.spoolmaster.kind,
     icon: "material-symbols:table-chart-outline",
     accept: ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    how: "SpoolMaster (Mac and iOS) is export-only here. Export your stock as an Excel workbook, then choose or drop the .xlsx file. The Stock sheet is read; the Shopping List sheet is ignored. SpoolMaster does not accept imports.",
+    how: SOURCE_GUIDES.spoolmaster.how,
   },
   {
     id: "spoolhoarder",
     label: "Spool Hoarder",
-    kind: "CSV",
+    kind: SOURCE_GUIDES.spoolhoarder.kind,
     icon: "material-symbols:inventory-2-outline",
     accept: ".csv,text/csv",
-    how: "Export your inventory CSV from Spool Hoarder (Mac and iOS), or its HueForge library export, then choose or drop the file here. Spool Hoarder does not accept imports from SpoolSync.",
+    how: SOURCE_GUIDES.spoolhoarder.how,
   },
   {
     id: "spoolapp",
     label: "Spool",
-    kind: "JSON backup",
+    kind: SOURCE_GUIDES.spoolapp.kind,
     icon: "material-symbols:backup-outline",
     accept: ".json,application/json",
-    how: "In the Spool app (Mac and iOS), create a JSON backup, then choose or drop the file here. Only the spools list is read; prints, printers, and business records are ignored. The app does not accept imports from SpoolSync.",
+    how: SOURCE_GUIDES.spoolapp.how,
   },
   {
     id: "spoolkeep",
     label: "SpoolKeep",
-    kind: "JSON backup",
+    kind: SOURCE_GUIDES.spoolkeep.kind,
     icon: "material-symbols:backup-outline",
     accept: ".json,application/json",
-    how: "Export a JSON backup from SpoolKeep (Mac and iOS), then choose or drop the file here. SpoolKeep counts spools instead of weighing them, so each counted spool loads with an unknown remaining weight. SpoolKeep does not accept imports from SpoolSync.",
+    how: SOURCE_GUIDES.spoolkeep.how,
   },
 ];
 ---

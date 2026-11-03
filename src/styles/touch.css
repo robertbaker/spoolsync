@@ -1,0 +1,54 @@
+/*
+ * Touch targets for the Load page. On touch screens and narrow windows every control in the spool
+ * table and its filter chips is at least 44 by 44 CSS pixels (WCAG 2.5.5), without changing the
+ * desktop layout. The mobile bottom navigation already comes from the header's "bottom-nav" variant.
+ */
+@media (pointer: coarse), (max-width: 40rem) {
+  #loaded-table .spool-table-wrapper button,
+  #loaded-table .spool-table-wrapper a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    padding-inline: 0.75rem;
+  }
+
+  #loaded-table .spool-table-wrapper thead th {
+    padding-block: 0.25rem;
+  }
+
+  #loaded-table .spool-table-wrapper tbody td {
+    padding-block: 0.25rem;
+  }
+
+  #loaded-table .spool-table-wrapper th button {
+    justify-content: flex-start;
+    padding-inline: 0;
+  }
+
+  /* Filter chips and toolbar buttons above the table. */
+  #insight-chips button,
+  [data-source-filter],
+  #low-only,
+  #copy-reorder,
+  #print-labels,
+  #download-combined,
+  #unload-all {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+    padding-inline: 1rem;
+  }
+
+  #spool-search-input,
+  #source-search,
+  #low-threshold {
+    min-block-size: 44px;
+  }
+
+  #loaded-table [role="checkbox"],
+  #loaded-table input[type="checkbox"] {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+}
