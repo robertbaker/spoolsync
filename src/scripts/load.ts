@@ -1,9 +1,9 @@
-import { SOURCE_IDS } from "@spoolsync/core/core/model";
+import { SOURCE_IDS, type LoadResult } from "@spoolsync/core/core/model";
 
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
 
 import { CONNECTION_CHANGED } from "./connections/events";
-import { showToast } from "./dom";
+import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
@@ -13,20 +13,34 @@ import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { LoadState } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
+import { download } from "./sync/presentation";
 
 const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
 const renderTable = createInventoryTable(state.results);
 const panels = wireSourcePanels(state);
 const actionBar = createActionBar(state);
 const unloadAll = document.getElementById("unload-all");
+const downloadCombined = document.getElementById("download-combined");
 const render = () => {
   renderTable();
   panels.refresh();
   actionBar.update();
   if (unloadAll) unloadAll.hidden = state.results.size === 0;
+  if (downloadCombined) downloadCombined.hidden = state.results.size === 0;
+  // Sample data would replace real inventories in the same services, so offer it only when empty.
+  const samplePrompt = document.getElementById("sample-prompt");
+  if (samplePrompt) samplePrompt.hidden = state.results.size > 0;
 };
 const { store, setStatus } = createLoadStatusView(state, render);
-const context = { state, store };
+// Services loaded from this page are remembered so the next visit lists them first. Sample data
+// uses the plain `store` and is deliberately left out.
+const context = {
+  state,
+  store(result: LoadResult) {
+    store(result);
+    panels.markUsed(result.source);
+  },
+};
 wireApiSources(context);
 wireConnectionPanels();
 wireSmartDrop(context);
@@ -58,4 +72,38 @@ unloadAll?.addEventListener("click", () => {
   }
   render();
   showToast(`Unloaded ${sources.length} ${sources.length === 1 ? "service" : "services"}`, "info");
+});
+
+downloadCombined?.addEventListener("click", async () => {
+  const { combinedInventoryCsv } = await import("@spoolsync/core/workflow");
+  const { csv } = combinedInventoryCsv([...state.results.values()]);
+  // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
+  download(
+    `spoolsync-inventory-${new Date().toISOString().slice(0, 10)}.csv`,
+    `\uFEFF${csv}`,
+    "text/csv",
+  );
+});
+
+document.getElementById("try-sample")?.addEventListener("click", async () => {
+  const { sampleInventories } = await import("~/lib/sample-data");
+  if (state.results.size > 0) return;
+  const samples = await sampleInventories();
+  for (const result of samples) {
+    state.nextRevision(result.source);
+    store(result);
+  }
+  document
+    .getElementById("smart-message")
+    ?.replaceChildren(
+      notice(
+        "info",
+        "Sample data loaded",
+        h(
+          "p",
+          { class: "mt-1" },
+          "Two invented inventories (Spoolio and FilaMeter) so you can try matching and syncing. Nothing here is real; use Unload all to clear it.",
+        ),
+      ),
+    );
 });

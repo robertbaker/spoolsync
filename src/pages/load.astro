@@ -103,6 +103,12 @@ const fileSources = [
         <input id="smart-file" type="file" multiple accept=".json,.csv,.xlsx,.ttag,application/json,text/csv" class="sr-only" />
       </label>
       <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
+      <p id="sample-prompt" class="mt-3 text-sm text-muted-foreground">
+        No files handy?
+        <button type="button" id="try-sample" class="font-medium text-primary-text underline underline-offset-2 hover:no-underline">
+          Try it with sample data
+        </button>
+      </p>
     </section>
 
     <div id="tour-services" class="mt-10 flex flex-wrap items-end justify-between gap-4">
@@ -240,6 +246,14 @@ const fileSources = [
           <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground"></p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            id="download-combined"
+            hidden
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Download all as CSV
+          </button>
           <button
             type="button"
             id="unload-all"

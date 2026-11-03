@@ -91,6 +91,14 @@ Match answers are saved in localStorage so the same question is not asked twice.
 shows how many answers are saved and offers "Reset my match answers" (`SyncSession.resetDecisions`),
 so a mistaken answer can be taken back. The Load page has "Unload all" for clearing every service.
 
+`combinedInventoryCsv` (core `workflow/combined.ts`) writes every loaded spool to one CSV tagged by
+service; cells that spreadsheets would read as formulas are prefixed with an apostrophe because
+inventory files are untrusted, and the browser adds a UTF-8 byte-order mark for Excel. The Load page
+lists the four most recently loaded services first on the next visit (ordered once at startup so
+the list never shifts under the cursor). `src/lib/sample-data.ts` provides two invented inventories
+for first-time visitors; they are offered only when nothing is loaded, so they can never replace a
+real inventory, and they are not counted as recently used.
+
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
 primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
 without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the

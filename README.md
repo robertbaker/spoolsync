@@ -62,6 +62,9 @@ initial weight must be resolved before export.
 | Spool (Mac/iOS app)    | JSON backup (`spools` list)                     | Read-only (the app does not accept imports)         |
 | SpoolKeep              | JSON backup                                     | Read-only (SpoolKeep does not accept imports)       |
 
+SpoolSync can also export every loaded spool as one CSV (Load → Download all as CSV) and offers
+sample data for a first look at matching and syncing.
+
 ## Connecting your Spoolman
 
 Spoolman usually runs on your local network over plain `http://`. To let SpoolSync reach it:

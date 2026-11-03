@@ -378,3 +378,94 @@ test("Unload all clears every loaded service in one step", async ({ page }) => {
   await page.reload();
   await expect(page.locator("#spoolkeep-status")).toContainText("Not loaded");
 });
+
+test("all loaded spools download as one spreadsheet-safe CSV", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#download-combined")).toBeHidden();
+  await page.locator("#smart-file").setInputFiles([
+    {
+      name: "spoolio.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          version: 1,
+          filaments: [{ id: "a", type: "PLA", brand: "Prusa", colorName: "=SUM(1+1)" }],
+        }),
+      ),
+    },
+    {
+      name: "keep.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify([{ id: "k", brand: "Café", family: "PLA", color: "Blue", newQuantity: 1 }]),
+      ),
+    },
+  ]);
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#download-combined").click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^spoolsync-inventory-\d{4}-\d{2}-\d{2}\.csv$/);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const bytes = Buffer.concat(chunks);
+  expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+  const text = bytes.toString("utf8");
+  expect(text).toContain("service,id,vendor,material,name");
+  expect(text).toContain("Café");
+  expect(text).toContain("'=SUM(1+1)");
+  expect(text.trim().split("\r\n")).toHaveLength(3);
+});
+
+test("services used last time are listed first on the next visit", async ({ page }) => {
+  await page.goto("/load");
+  const order = () =>
+    page
+      .locator("details[data-panel]")
+      .evaluateAll((panels) => panels.map((panel) => (panel as HTMLElement).dataset["panel"]));
+  expect((await order())[0]).toBe("spoolman");
+  await page.locator("#spoolkeep-file").setInputFiles({
+    name: "keep.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify([{ id: "k", brand: "B", family: "PLA", newQuantity: 1 }])),
+  });
+  await expect(page.locator("#spoolkeep-status")).toContainText("1 loaded");
+  await page.locator("#spoolmaster-file").setInputFiles({
+    name: "none.xlsx",
+    mimeType: "application/vnd.ms-excel",
+    buffer: Buffer.from("not a workbook"),
+  });
+  await page.reload();
+  // Only successful loads count, newest first.
+  expect((await order()).slice(0, 2)).toEqual(["spoolkeep", "spoolman"]);
+});
+
+test("sample data lets a first-time visitor try matching, and never replaces real data", async ({
+  page,
+}) => {
+  await page.goto("/sync");
+  await page.getByRole("button", { name: "Try sample data" }).click();
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+  await expect(page.locator("#sync-summary")).toContainText("8");
+
+  await page.goto("/load");
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await expect(page.locator("#sample-prompt")).toBeHidden();
+  await page.locator("#unload-all").click();
+  await expect(page.locator("#sample-prompt")).toBeVisible();
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  await expect(page.locator("#smart-message")).toContainText("Sample data loaded");
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+
+  // With a real inventory loaded the sample is not offered on Sync either.
+  await page.locator("#unload-all").click();
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "real.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "r", brand: "Real" }] })),
+  });
+  await expect(page.locator("#sample-prompt")).toBeHidden();
+  await page.goto("/sync");
+  await expect(page.getByRole("button", { name: "Try sample data" })).toBeHidden();
+});

@@ -4,6 +4,7 @@ import {
   loadMatchDecisions,
   loadResolutions,
   readLoadResult,
+  saveLoadResult,
   saveMatchDecisions,
   saveResolutions,
 } from "~/lib/browser/storage";
@@ -64,6 +65,19 @@ function renderAll(): void {
 
 if (loaded.size < 2) {
   byId("sync-empty").hidden = false;
+  if (loaded.size === 0) {
+    const sample = byId<HTMLButtonElement>("try-sample-sync");
+    sample.hidden = false;
+    sample.addEventListener("click", async () => {
+      const { sampleInventories } = await import("~/lib/sample-data");
+      const results = await sampleInventories();
+      if (!results.every((result) => saveLoadResult(result))) {
+        showToast("Browser storage is unavailable, so sample data cannot be kept.", "error");
+        return;
+      }
+      location.reload();
+    });
+  }
   if (loaded.size) {
     byId("sync-empty-title").textContent =
       `Only ${SOURCE_LABELS[state.loadedSources()[0]!]} is loaded`;

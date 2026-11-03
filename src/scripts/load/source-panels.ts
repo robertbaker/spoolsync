@@ -6,6 +6,20 @@ import { wireSlashFocus } from "../shortcuts";
 import type { LoadState } from "./state";
 
 const OPEN_KEY = "spoolsync:open-panels";
+const RECENT_KEY = "spoolsync:recent-sources";
+const MAX_RECENT = 4;
+
+/** Services the visitor loaded most recently, newest first. */
+function readRecent(): SourceId[] {
+  try {
+    const parsed: unknown = JSON.parse(read(local, RECENT_KEY) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is SourceId => SOURCE_IDS.includes(value as SourceId))
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 /** Which panels the visitor left open, remembered per browser. `null` means no choice yet. */
 function readOpenPanels(): Set<string> | null {
@@ -28,7 +42,10 @@ type Filter = "all" | "loaded" | "api" | "readonly";
  * has something to say, with search and filter chips on top. Everything degrades to plain
  * open/closed details when this script does not run.
  */
-export function wireSourcePanels(state: LoadState): { refresh(): void } {
+export function wireSourcePanels(state: LoadState): {
+  refresh(): void;
+  markUsed(source: SourceId): void;
+} {
   const panels = SOURCE_IDS.flatMap((source) => {
     const element = document.querySelector(`[data-panel="${source}"]`);
     return element instanceof HTMLDetailsElement ? [{ source, element }] : [];
@@ -38,6 +55,16 @@ export function wireSourcePanels(state: LoadState): { refresh(): void } {
   const empty = document.getElementById("source-empty");
   const count = document.getElementById("source-count");
   let filter: Filter = "all";
+
+  // Put the services used last time first. This runs once at startup so the list never shifts
+  // while the visitor is working with it.
+  const container = panels[0]?.element.parentElement;
+  const recent = readRecent().slice(0, MAX_RECENT);
+  if (container && recent.length) {
+    const byService = new Map(panels.map((panel) => [panel.source, panel.element]));
+    const first = recent.flatMap((source) => byService.get(source) ?? []);
+    container.prepend(...first);
+  }
 
   // Restore the visitor's own open/closed choices; the page defaults apply until they make one.
   const remembered = readOpenPanels();
@@ -99,5 +126,15 @@ export function wireSourcePanels(state: LoadState): { refresh(): void } {
       refresh();
     });
   refresh();
-  return { refresh };
+  function markUsed(source: SourceId): void {
+    write(
+      local,
+      RECENT_KEY,
+      JSON.stringify(
+        [source, ...readRecent().filter((entry) => entry !== source)].slice(0, MAX_RECENT),
+      ),
+    );
+  }
+
+  return { refresh, markUsed };
 }
