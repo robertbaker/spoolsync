@@ -1,9 +1,19 @@
 import { COMPARABLE_FIELDS, WRITABLE_SOURCE_IDS } from "@spoolsync/core/core/model";
 
+import { OUTPUT_FORMATS } from "./json-report";
+
 export const COMPLETION_SHELLS = ["bash", "zsh", "fish"] as const;
 export type CompletionShell = (typeof COMPLETION_SHELLS)[number];
 
-type Kind = "file" | "directory" | "writable-sources" | "resolution" | "shell" | "text" | "flag";
+type Kind =
+  | "file"
+  | "directory"
+  | "writable-sources"
+  | "resolution"
+  | "shell"
+  | "format"
+  | "text"
+  | "flag";
 
 interface OptionSpec {
   flag: string;
@@ -77,7 +87,12 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   { flag: "--reorder", description: "Print spools that are running low", kind: "flag" },
   { flag: "--summary", description: "Print counts instead of planning changes", kind: "flag" },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
-  { flag: "--json", description: "Print machine-readable output", kind: "flag" },
+  {
+    flag: "--json",
+    description: "Print machine-readable output (same as --format json)",
+    kind: "flag",
+  },
+  { flag: "--format", description: "Output format: text or json", kind: "format" },
   { flag: "--spoolman-url", description: "Load Spoolman directly", kind: "text" },
   { flag: "--spoolman-token", description: "Spoolman API token", kind: "text" },
   { flag: "--filamentdb-url", description: "Load FilamentDB directly", kind: "text" },
@@ -90,6 +105,7 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
 ];
 
 const writable = WRITABLE_SOURCE_IDS.join(" ");
+const formats = OUTPUT_FORMATS.join(" ");
 const resolutions = COMPARABLE_FIELDS.map((field) => `${field}=`).join(" ");
 
 function bash(): string {
@@ -109,6 +125,8 @@ _spoolsync() {
       COMPREPLY=($(compgen -W "${resolutions}" -- "$cur")); compopt -o nospace 2>/dev/null; return ;;
     --completion)
       COMPREPLY=($(compgen -W "${COMPLETION_SHELLS.join(" ")}" -- "$cur")); return ;;
+    --format)
+      COMPREPLY=($(compgen -W "${formats}" -- "$cur")); return ;;
     ${byKind("directory")})
       COMPREPLY=($(compgen -d -- "$cur")); return ;;
     ${byKind("file")})
@@ -135,6 +153,7 @@ function zsh(): string {
       "writable-sources": `:source:_values -s , source ${writable}`,
       resolution: `:field=source:(${resolutions})`,
       shell: `:shell:(${COMPLETION_SHELLS.join(" ")})`,
+      format: `:format:(${formats})`,
       text: ":value:",
       flag: "",
     }[spec.kind];
@@ -162,6 +181,7 @@ function fish(): string {
       "writable-sources": `-x -a '${writable}'`,
       resolution: `-x -a '${resolutions}'`,
       shell: `-x -a '${COMPLETION_SHELLS.join(" ")}'`,
+      format: `-x -a '${formats}'`,
       text: "-x",
       flag: "",
     }[spec.kind];

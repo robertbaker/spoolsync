@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { version } from "../package.json";
 import { parseArgs } from "./args";
 import { expandConfig } from "./config";
+import { requestsJson } from "./json-report";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
 import { buildExportDocument, parseImportDocument } from "./settings-transfer";
@@ -104,11 +105,12 @@ try {
           output,
           signal: stop.signal,
           quiet: options.quiet,
-          run: async (runOutput) => {
+          run: async (runOutput, previous) => {
             try {
-              await runWorkflow(options, defaultDependencies, runOutput);
+              return await runWorkflow(options, defaultDependencies, runOutput, previous);
             } catch (error) {
               reportError(error, options.json, runOutput);
+              return undefined;
             }
           },
         });
@@ -116,5 +118,5 @@ try {
     }
   }
 } catch (error) {
-  reportError(error, process.argv.slice(2).includes("--json"), output);
+  reportError(error, requestsJson(process.argv.slice(2)), output);
 }

@@ -33,7 +33,9 @@ export function reorderItems(
       (a, b) =>
         (a.fraction ?? 1) - (b.fraction ?? 1) ||
         (a.spool.remainingWeight ?? 0) - (b.spool.remainingWeight ?? 0) ||
-        (a.spool.vendor ?? "").localeCompare(b.spool.vendor ?? ""),
+        (a.spool.vendor ?? "").localeCompare(b.spool.vendor ?? "") ||
+        (a.spool.source < b.spool.source ? -1 : a.spool.source > b.spool.source ? 1 : 0) ||
+        (a.spool.sourceId < b.spool.sourceId ? -1 : a.spool.sourceId > b.spool.sourceId ? 1 : 0),
     );
 }
 

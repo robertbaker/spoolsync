@@ -17,11 +17,16 @@
   },
   "files": [
     "dist/cli.js",
+    "schema/report.schema.json",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
   ],
   "type": "module",
+  "exports": {
+    "./report.schema.json": "./schema/report.schema.json",
+    "./package.json": "./package.json"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -56,12 +56,12 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
   );
   const summary = {
     inventories: Object.fromEntries(
-      [...loaded].map(([source, result]) => [
+      SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [
         source,
         {
           file: options.inputs.get(source),
-          spools: result.spools.length,
-          warnings: result.warnings,
+          spools: loaded.get(source)!.spools.length,
+          warnings: loaded.get(source)!.warnings,
         },
       ]),
     ),

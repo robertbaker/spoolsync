@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 
+import { snapshotInventory, type InventorySnapshot } from "@spoolsync/core/workflow";
+
 import type { CliOutput } from "./runtime";
 import { runWatch, type WatchDependencies } from "./watch";
 
@@ -155,4 +157,29 @@ test("quiet mode prints a run only when its output differs from the previous run
 
   h.stop.abort();
   await done;
+});
+
+test("each run receives the snapshot of the last successful run", async () => {
+  const h = harness();
+  const seen: Array<InventorySnapshot | undefined> = [];
+  const snapshots = [snapshotInventory([]), undefined, snapshotInventory([])];
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (_output, previous) => {
+      seen.push(previous);
+      return snapshots[seen.length - 1];
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get("/d")!("a.json");
+  await wait(30);
+  h.handlers.get("/d")!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await done;
+  // The failed second run does not erase the first run's snapshot.
+  expect(seen).toEqual([undefined, snapshots[0], snapshots[0]]);
 });

@@ -6,10 +6,23 @@ import {
   type SourceId,
 } from "@spoolsync/core/core/model";
 import { lowStockRule } from "@spoolsync/core/core/stock";
-import { formatReorderList, reorderItems, summarizeInventory } from "@spoolsync/core/workflow";
+import {
+  formatChanges,
+  formatReorderList,
+  hasChanges,
+  reorderItems,
+  summarizeInventory,
+  type InventoryChanges,
+} from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
 import { ExecutionError } from "./execution";
+import {
+  REPORT_SCHEMA_VERSION,
+  type CompareReport,
+  type InventoryReport,
+  type PendingMatch,
+} from "./json-report";
 import type { createCliPlan } from "./planning";
 import type { CliOutput } from "./runtime";
 
@@ -19,30 +32,47 @@ export interface WorkflowReport {
   applied: ApplyLogEntry[] | undefined;
   written: string[];
   exportWarnings: Array<{ source: SourceId; message: string }>;
+  /** With `--watch`, what differs from the previous run. */
+  changes?: InventoryChanges;
 }
+
+/** Pending possible matches in the shape reports use. */
+export function pendingMatches(
+  suggestions: ReturnType<typeof createCliPlan>["matches"]["suggestions"],
+): PendingMatch[] {
+  return suggestions.map((suggestion) => ({
+    pair: [suggestion.pair[0], suggestion.pair[1]],
+    answerWith: suggestion.pair.join(","),
+    score: suggestion.score,
+    reasons: suggestion.reasons,
+  }));
+}
+
+const changeLines = (changes: InventoryChanges | undefined, output: CliOutput) => {
+  if (changes && hasChanges(changes)) output.log(formatChanges(changes).join("\n"));
+};
 
 export function reportWorkflow(
   options: Options,
-  { loaded, planning, applied, written, exportWarnings }: WorkflowReport,
+  { loaded, planning, applied, written, exportWarnings, changes }: WorkflowReport,
   output: CliOutput,
 ): void {
   const { spools, matches, summary } = planning;
   const csvFile = options.exportCsv;
   const inventoryFiles = written.filter((file) => file !== csvFile);
   if (options.json) {
-    output.log(
-      JSON.stringify(
-        {
-          ...summary,
-          applied,
-          written: inventoryFiles,
-          ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
-          exportWarnings,
-        },
-        null,
-        2,
-      ),
-    );
+    const report: CompareReport = {
+      schemaVersion: REPORT_SCHEMA_VERSION,
+      report: "compare",
+      ...summary,
+      pendingMatches: pendingMatches(matches.suggestions),
+      applied,
+      written: inventoryFiles,
+      ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
+      exportWarnings,
+      ...(changes && hasChanges(changes) ? { changesSinceLastRun: changes } : {}),
+    } as CompareReport;
+    output.log(JSON.stringify(report, null, 2));
   } else {
     output.log(
       `${spools.length} spool${spools.length === 1 ? "" : "s"} in ${loaded.size} inventories; ${matches.groups.length} group${matches.groups.length === 1 ? "" : "s"}, ${matches.suggestions.length} match suggestion${matches.suggestions.length === 1 ? "" : "s"}.`,
@@ -84,6 +114,7 @@ export function reportWorkflow(
         "Dry run only. Add --output-dir <dir> to write inventory files, or --apply with a direct API connection to write to the service.",
       );
     else if (options.apply) output.log("Apply results:", applied);
+    changeLines(changes, output);
   }
 }
 
@@ -93,6 +124,7 @@ export function reportInventoryOnly(
   loaded: ReadonlyMap<SourceId, LoadResult>,
   written: string[],
   output: CliOutput,
+  changes?: InventoryChanges,
 ): void {
   const rule = lowStockRule((options.lowThreshold ?? 20) as number);
   const summaries = SOURCE_IDS.flatMap((source) => {
@@ -104,33 +136,31 @@ export function reportInventoryOnly(
     ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] }, rule)
     : [];
   if (options.json) {
-    output.log(
-      JSON.stringify(
-        {
-          ...(options.summary ? { inventories: summaries } : {}),
-          ...(options.reorder
-            ? {
-                reorder: reorder.map(({ spool, fraction }) => ({
-                  service: spool.source,
-                  id: spool.sourceId,
-                  vendor: spool.vendor,
-                  material: spool.material,
-                  name: spool.name,
-                  remainingGrams: spool.remainingWeight,
-                  fraction,
-                })),
-              }
-            : {}),
-          ...(options.summary || options.reorder ? {} : { spools }),
-          ...(options.exportCsv && written.includes(options.exportCsv)
-            ? { csvExport: options.exportCsv }
-            : {}),
-          written,
-        },
-        null,
-        2,
-      ),
-    );
+    const report: InventoryReport = {
+      schemaVersion: REPORT_SCHEMA_VERSION,
+      report: "inventory",
+      ...(options.summary ? { inventories: summaries } : {}),
+      ...(options.reorder
+        ? {
+            reorder: reorder.map(({ spool, fraction }) => ({
+              service: spool.source,
+              id: spool.sourceId,
+              vendor: spool.vendor,
+              material: spool.material,
+              name: spool.name,
+              remainingGrams: spool.remainingWeight,
+              fraction,
+            })),
+          }
+        : {}),
+      ...(options.summary || options.reorder ? {} : { spools }),
+      ...(options.exportCsv && written.includes(options.exportCsv)
+        ? { csvExport: options.exportCsv }
+        : {}),
+      written,
+      ...(changes && hasChanges(changes) ? { changesSinceLastRun: changes } : {}),
+    };
+    output.log(JSON.stringify(report, null, 2));
     return;
   }
   for (const [source, result] of loaded)
@@ -152,6 +182,7 @@ export function reportInventoryOnly(
   if (options.reorder) output.log(formatReorderList(reorder));
   if (options.exportCsv && written.includes(options.exportCsv))
     output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);
+  changeLines(changes, output);
 }
 
 export function reportError(error: unknown, json: boolean, output: CliOutput): void {

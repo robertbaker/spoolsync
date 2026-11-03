@@ -113,7 +113,7 @@ export const output = [
   {
     flag: "--quiet",
     copy: "--quiet",
-    desc: "With --watch, print a run only when its output differs from the previous run. Errors that differ are still shown.",
+    desc: "With --watch, print a run only when its output differs from the previous run. Errors that differ are still shown. Each --watch run after the first also lists what changed since the previous run: spools added or removed, remaining-weight changes, and new possible matches (a changesSinceLastRun object with --format json).",
   },
   {
     flag: "--save-config",
@@ -176,9 +176,14 @@ export const output = [
     desc: "Apply planned changes directly to Spoolman. Requires --spoolman-url.",
   },
   {
+    flag: "--format <text|json>",
+    copy: "--format json",
+    desc: 'Choose text (the default) or json. JSON prints one versioned report (schemaVersion, report: "compare" or "inventory") on stdout only, in a fixed order, with a pendingMatches list for comparisons. Also works with --summary and --reorder, in a --config or settings file, and in --watch.',
+  },
+  {
     flag: "--json",
     copy: "--json",
-    desc: 'Print the plan as JSON, including warnings, written files, and apply results. Errors are returned as {"error": {"message"}}.',
+    desc: 'Same as --format json: the plan as JSON, including warnings, written files, and apply results. Errors are returned as {"error": {"message"}}.',
   },
   {
     flag: "-V, --version",

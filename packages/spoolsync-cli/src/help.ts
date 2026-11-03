@@ -41,6 +41,7 @@ Output:
   --completion <shell>    Print a shell completion script (bash, zsh, or fish)
   --watch                 Run again whenever an input file changes (not with --apply or --*-url)
   --quiet                 With --watch, print a run only when its output differs from the last
+                          Each --watch run after the first also lists what changed since the previous run
   --low-threshold <pct>   With --summary or --reorder, the percent of full weight at or under which a spool is low (default 20)
   --reorder               Print a shopping list of spools that are running low
   --save-config           Save the given options (and inventory paths) as defaults in your settings file
@@ -53,7 +54,8 @@ Output:
   --summary               Print counts for each loaded inventory instead of planning changes
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
-  --json                  Print the plan as JSON
+  --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)
+  --json                  Same as --format json
   -V, --version           Show the installed CLI version (supports --json)
   -h, --help              Show this help
 

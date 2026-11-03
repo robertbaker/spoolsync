@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spoolsync.com/schema/cli-report-v1.json",
+  "title": "SpoolSync CLI report",
+  "description": "Printed to stdout by `spoolsync --format json` (alias `--json`). schemaVersion changes only when a field is removed, renamed, or changes meaning; new optional fields can appear without a new version, so readers should ignore fields they do not know. Warnings and progress go to stderr. Failures print { \"error\": { \"message\": \"...\" } } instead.",
+  "oneOf": [{ "$ref": "#/$defs/compareReport" }, { "$ref": "#/$defs/inventoryReport" }],
+  "$defs": {
+    "sourceId": { "type": "string" },
+    "pendingMatch": {
+      "type": "object",
+      "required": ["pair", "answerWith", "score", "reasons"],
+      "properties": {
+        "pair": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "The two record keys, source:id."
+        },
+        "answerWith": {
+          "type": "string",
+          "description": "The value to give --confirm or --reject."
+        },
+        "score": { "type": "number" },
+        "reasons": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "snapshotSpool": {
+      "type": "object",
+      "required": ["key", "label", "remainingGrams"],
+      "properties": {
+        "key": { "type": "string" },
+        "label": { "type": "string" },
+        "remainingGrams": { "type": ["number", "null"] }
+      }
+    },
+    "changesSinceLastRun": {
+      "type": "object",
+      "description": "With --watch, what differs from the previous run. Present only when something changed. Every list is sorted by key.",
+      "required": ["added", "removed", "remainingWeight", "newPendingMatches"],
+      "properties": {
+        "added": { "type": "array", "items": { "$ref": "#/$defs/snapshotSpool" } },
+        "removed": { "type": "array", "items": { "$ref": "#/$defs/snapshotSpool" } },
+        "remainingWeight": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["key", "label", "fromGrams", "toGrams"],
+            "properties": {
+              "key": { "type": "string" },
+              "label": { "type": "string" },
+              "fromGrams": { "type": ["number", "null"] },
+              "toGrams": { "type": ["number", "null"] }
+            }
+          }
+        },
+        "newPendingMatches": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Pending possible matches as key,key that were not pending in the previous run."
+        }
+      }
+    },
+    "compareReport": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "report",
+        "inventories",
+        "groups",
+        "suggestions",
+        "pendingMatches",
+        "problems",
+        "unresolved",
+        "changes",
+        "plannedChanges",
+        "written",
+        "exportWarnings"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "report": { "const": "compare" },
+        "inventories": {
+          "type": "object",
+          "description": "Keyed by source, in source order.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["spools", "warnings"],
+            "properties": {
+              "file": { "type": "string" },
+              "spools": { "type": "integer" },
+              "warnings": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "groups": { "type": "integer" },
+        "suggestions": { "type": "array" },
+        "pendingMatches": { "type": "array", "items": { "$ref": "#/$defs/pendingMatch" } },
+        "problems": { "type": "array", "items": { "type": "string" } },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["group", "field"],
+            "properties": { "group": { "type": "string" }, "field": { "type": "string" } }
+          }
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["updates", "creates"],
+            "properties": { "updates": { "type": "integer" }, "creates": { "type": "integer" } }
+          }
+        },
+        "plannedChanges": { "type": "object", "additionalProperties": { "type": "array" } },
+        "applied": { "type": "array" },
+        "written": { "type": "array", "items": { "type": "string" } },
+        "csvExport": { "type": "string" },
+        "exportWarnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "message"],
+            "properties": { "source": { "type": "string" }, "message": { "type": "string" } }
+          }
+        },
+        "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }
+      }
+    },
+    "inventoryReport": {
+      "type": "object",
+      "required": ["schemaVersion", "report", "written"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "report": { "const": "inventory" },
+        "inventories": {
+          "type": "array",
+          "description": "With --summary, in source order.",
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "spools",
+              "archived",
+              "brands",
+              "materials",
+              "remainingGrams",
+              "unknownWeights",
+              "runningLow",
+              "warnings"
+            ],
+            "properties": {
+              "source": { "type": "string" },
+              "spools": { "type": "integer" },
+              "archived": { "type": "integer" },
+              "brands": { "type": "integer" },
+              "materials": { "type": "integer" },
+              "remainingGrams": { "type": "number" },
+              "unknownWeights": { "type": "integer" },
+              "runningLow": { "type": "integer" },
+              "warnings": { "type": "integer" }
+            }
+          }
+        },
+        "reorder": {
+          "type": "array",
+          "description": "With --reorder, emptiest first.",
+          "items": {
+            "type": "object",
+            "required": [
+              "service",
+              "id",
+              "vendor",
+              "material",
+              "name",
+              "remainingGrams",
+              "fraction"
+            ],
+            "properties": {
+              "service": { "type": "string" },
+              "id": { "type": "string" },
+              "vendor": { "type": ["string", "null"] },
+              "material": { "type": ["string", "null"] },
+              "name": { "type": ["string", "null"] },
+              "remainingGrams": { "type": ["number", "null"] },
+              "fraction": { "type": ["number", "null"] }
+            }
+          }
+        },
+        "spools": { "type": "integer" },
+        "csvExport": { "type": "string" },
+        "written": { "type": "array", "items": { "type": "string" } },
+        "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }
+      }
+    }
+  }
+}

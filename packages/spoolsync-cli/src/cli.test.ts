@@ -376,7 +376,7 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
       JSON.stringify([{ id: "k9", brand: "Z", family: "PLA", newQuantity: 1 }]),
     );
     await until(
-      () => stdout.includes("spoolkeep: 1 spool") && stdout.split("spoolkeep:").length > 3,
+      () => stdout.includes("spoolkeep: 1 spool") && stdout.match(/^spoolkeep: /gm)!.length > 2,
       "recovery",
     );
   } finally {
@@ -1031,4 +1031,234 @@ test("invalid output destinations preserve all previous exports", async () => {
   expect(result.code).toBe(1);
   expect(JSON.parse(result.stdout).error.message).toContain("not a regular file");
   expect(await readFile(previous, "utf8")).toBe("previous export");
+});
+
+const similarPair = async () => {
+  await writeFile(
+    path.join(directory, "spoolman-spools.json"),
+    JSON.stringify([
+      {
+        id: 1,
+        filament: {
+          id: 1,
+          material: "PLA",
+          name: "Blue",
+          color_hex: "0000FF",
+          vendor: { id: 1, name: "Example" },
+        },
+      },
+    ]),
+  );
+  await writeFile(
+    path.join(directory, "spoolio.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "donor",
+          brand: "Example",
+          type: "PLA",
+          colorName: "Blue",
+          colorHex: "0000FF",
+          weightTotal: 1000,
+          weightRemaining: 150,
+        },
+      ],
+    }),
+  );
+};
+
+test("--format json prints the versioned compare report with pending matches on stdout only", async () => {
+  await similarPair();
+  const formatted = await run("--format", "json");
+  expect(formatted.code).toBe(0);
+  expect(formatted.stderr).toBe("");
+  const report = JSON.parse(formatted.stdout);
+  const schema = JSON.parse(
+    await readFile(path.join(import.meta.dir, "..", "schema", "report.schema.json"), "utf8"),
+  );
+  expect(report.schemaVersion).toBe(1);
+  expect(report.report).toBe("compare");
+  for (const key of schema.$defs.compareReport.required) expect(report).toHaveProperty(key);
+  expect(Object.keys(report.inventories)).toEqual(["spoolman", "spoolio"]);
+  expect(report.pendingMatches).toHaveLength(1);
+  expect(report.pendingMatches[0].answerWith).toBe(report.suggestions[0].pair.join(","));
+  expect(report.pendingMatches[0].pair).toEqual(report.suggestions[0].pair);
+  expect(formatted.stdout).not.toMatch(/token|password/i);
+  // Same output as the --json alias and as --format=json, byte for byte.
+  expect((await run("--json")).stdout).toBe(formatted.stdout);
+  expect((await run("--format=json")).stdout).toBe(formatted.stdout);
+  // Text stays the default and --format text is explicit.
+  const text = await run("--format", "text");
+  expect(text.stdout).toContain("Match suggestion:");
+  expect(text.stdout).toBe((await run()).stdout);
+});
+
+test("--format json applies to --summary and --reorder reports", async () => {
+  await similarPair();
+  const summary = JSON.parse((await run("--summary", "--format", "json")).stdout);
+  expect(summary).toMatchObject({ schemaVersion: 1, report: "inventory", written: [] });
+  expect(summary.inventories.map((item: { source: string }) => item.source)).toEqual([
+    "spoolman",
+    "spoolio",
+  ]);
+  const reorder = JSON.parse((await run("--reorder", "--format", "json")).stdout);
+  expect(reorder).toMatchObject({ schemaVersion: 1, report: "inventory" });
+  expect(reorder.reorder).toEqual([
+    expect.objectContaining({ service: "spoolio", remainingGrams: 150, fraction: 0.15 }),
+  ]);
+  expect(reorder).not.toHaveProperty("inventories");
+});
+
+test("--format validates its value and combinations, and failures stay in the chosen format", async () => {
+  const unknown = await run("--format", "xml");
+  expect(unknown.code).toBe(1);
+  expect(unknown.stderr).toContain('Unknown format "xml". Choose one of: text, json.');
+  const conflict = await run("--json", "--format", "text");
+  expect(conflict.code).toBe(1);
+  expect(JSON.parse(conflict.stdout).error.message).toContain(
+    "cannot be combined with --format text",
+  );
+  expect((await run("--format", "text", "--json")).code).toBe(1);
+  const missing = await run("--format");
+  expect(missing.stderr).toContain("--format requires a value");
+  const twice = await run("--format", "json", "--format", "text");
+  expect(JSON.parse(twice.stdout).error.message).toContain("--format may only be provided once");
+  expect((await run("--formt", "json")).stderr).toContain("Did you mean --format?");
+});
+
+test("the settings and --config files can choose the format", async () => {
+  await similarPair();
+  const config = path.join(directory, "format.json");
+  await writeFile(config, JSON.stringify({ format: "json" }));
+  expect(JSON.parse((await run("--config", config)).stdout).schemaVersion).toBe(1);
+  expect((await run("--config", config, "--format", "text")).stdout).toContain("Match suggestion:");
+  await writeFile(config, JSON.stringify({ json: true }));
+  expect((await run("--config", config, "--format", "text")).stdout).toContain("Match suggestion:");
+  await writeFile(config, JSON.stringify({ format: "yaml" }));
+  expect((await run("--config", config)).stderr).toContain('Unknown format "yaml"');
+});
+
+test("completion scripts offer --format and list exactly the known options", async () => {
+  const { KNOWN_OPTIONS } = await import("./parse-args");
+  for (const shell of ["bash", "zsh", "fish"]) {
+    const { stdout, code } = await run("--completion", shell);
+    expect(code).toBe(0);
+    expect(stdout).toContain("json");
+    const names =
+      shell === "fish"
+        ? [...stdout.matchAll(/^complete -c spoolsync -l (\S+)/gm)].map((match) => `--${match[1]}`)
+        : shell === "zsh"
+          ? [...stdout.matchAll(/^ {4}'(--[\w-]+)\[/gm)].map((match) => match[1]!)
+          : (/compgen -W "(--[^"]*)" -- "\$cur"\)\)\n {2}fi/.exec(stdout)?.[1] ?? "").split(" ");
+    expect(new Set(names)).toEqual(new Set(KNOWN_OPTIONS));
+  }
+});
+
+async function watchSession(args: string[]) {
+  const child = spawnIsolated([runtime, cli, ...args, "--watch"], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const state = { stdout: "", stderr: "" };
+  const pump = async (stream: ReadableStream<Uint8Array>, append: (text: string) => void) => {
+    const decoder = new TextDecoder();
+    for await (const chunk of stream) append(decoder.decode(chunk, { stream: true }));
+  };
+  void pump(child.stdout, (text) => (state.stdout += text));
+  void pump(child.stderr, (text) => (state.stderr += text));
+  const until = async (condition: () => boolean, what: string) => {
+    const deadline = Date.now() + 15_000;
+    while (!condition()) {
+      if (Date.now() > deadline)
+        throw new Error(`Timed out waiting for ${what}.\n${state.stdout}\n${state.stderr}`);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+  const stop = async () => {
+    child.kill("SIGINT");
+    return child.exited;
+  };
+  return { state, until, stop };
+}
+
+const spoolioFile = (...filaments: Array<Record<string, unknown>>) =>
+  JSON.stringify({ version: 1, filaments });
+
+test("--watch prints what changed since the previous run in text", async () => {
+  const io = path.join(directory, "spoolio.json");
+  await writeFile(
+    io,
+    spoolioFile(
+      { id: "a", brand: "A", type: "PLA", weightTotal: 1000, weightRemaining: 500 },
+      { id: "b", brand: "B", type: "PETG", weightTotal: 1000, weightRemaining: 100 },
+    ),
+  );
+  const watch = await watchSession(["--spoolio", io, "--summary"]);
+  try {
+    await watch.until(() => watch.state.stderr.includes("Watching 1 file"), "the first run");
+    expect(watch.state.stdout).not.toContain("Changes since");
+    await writeFile(
+      io,
+      spoolioFile(
+        { id: "a", brand: "A", type: "PLA", weightTotal: 1000, weightRemaining: 450 },
+        { id: "c", brand: "C", type: "ABS", weightTotal: 1000, weightRemaining: 900 },
+      ),
+    );
+    await watch.until(() => watch.state.stdout.includes("Changes since the last run:"), "the diff");
+    const { stdout } = watch.state;
+    expect(stdout).toContain("  + added spoolio:c (C ABS)");
+    expect(stdout).toContain("  - removed spoolio:b (B PETG)");
+    expect(stdout).toContain("  ~ spoolio:a (A PLA): 500 g -> 450 g remaining");
+  } finally {
+    expect(await watch.stop()).toBe(0);
+  }
+});
+
+test("--watch --format json adds changesSinceLastRun, and --quiet hides identical runs", async () => {
+  await similarPair();
+  const io = path.join(directory, "spoolio.json");
+  const original = await readFile(io, "utf8");
+  await writeFile(io, spoolioFile());
+  const watch = await watchSession([
+    "--spoolman",
+    path.join(directory, "spoolman-spools.json"),
+    "--spoolio",
+    io,
+    "--format",
+    "json",
+    "--quiet",
+  ]);
+  const documents = () =>
+    watch.state.stdout
+      .split(/\n(?=\{)/)
+      .filter(Boolean)
+      .map((text) => JSON.parse(text));
+  try {
+    await watch.until(() => documents().length === 1, "the first run");
+    expect(documents()[0]).not.toHaveProperty("changesSinceLastRun");
+    // Rewriting the same content prints nothing.
+    await writeFile(io, spoolioFile(), "utf8");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(documents()).toHaveLength(1);
+    // A matching spool appears: it is added and a new possible match is pending.
+    await writeFile(io, original);
+    await watch.until(() => documents().length === 2, "the second run");
+    const changes = documents()[1].changesSinceLastRun;
+    expect(changes.added.map((item: { key: string }) => item.key)).toEqual(["spoolio:donor"]);
+    expect(changes.removed).toEqual([]);
+    expect(changes.newPendingMatches).toEqual(
+      documents()[1].pendingMatches.map((item: { answerWith: string }) => item.answerWith),
+    );
+    expect(changes.newPendingMatches).toHaveLength(1);
+    // The remaining weight changes.
+    await writeFile(io, original.replace('"weightRemaining":150', '"weightRemaining":120'));
+    await watch.until(() => documents().length === 3, "the third run");
+    expect(documents()[2].changesSinceLastRun.remainingWeight).toEqual([
+      { key: "spoolio:donor", label: "Example PLA Blue", fromGrams: 150, toGrams: 120 },
+    ]);
+    expect(documents()[2].changesSinceLastRun.newPendingMatches).toEqual([]);
+  } finally {
+    expect(await watch.stop()).toBe(0);
+  }
 });

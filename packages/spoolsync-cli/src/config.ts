@@ -22,6 +22,7 @@ const SOURCE_KEYS = [
 const PATH_KEYS = new Set<string>([...SOURCE_KEYS, "output-dir", "export-csv"]);
 const STRING_KEYS = new Set<string>([
   ...PATH_KEYS,
+  "format",
   "spoolman-url",
   "filamentdb-url",
   "filadex-url",
@@ -36,6 +37,8 @@ const ALLOWED_KEYS = [...STRING_KEYS, ...NUMBER_KEYS, ...LIST_KEYS, ...BOOLEAN_K
 const ALIASES: Record<string, string> = {
   "3dfp": "three-dfp",
   "spool-hoarder": "spoolhoarder",
+  // `--json` is `--format json`, so each replaces the other from a weaker layer.
+  json: "format",
 };
 const canonical = (name: string) => ALIASES[name] ?? name;
 

@@ -13,3 +13,13 @@ export {
 } from "./workflow/breakdown";
 export { uniqueSpools, type UniqueSpool } from "./workflow/breakdown";
 export { formatReorderList, reorderItems, type ReorderItem } from "./workflow/reorder";
+export {
+  diffSnapshots,
+  formatChanges,
+  hasChanges,
+  snapshotInventory,
+  type InventoryChanges,
+  type InventorySnapshot,
+  type RemainingWeightChange,
+  type SnapshotSpool,
+} from "./workflow/changes";

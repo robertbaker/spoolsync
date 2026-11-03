@@ -1,6 +1,8 @@
 import { watch as fsWatch } from "node:fs";
 import path from "node:path";
 
+import type { InventorySnapshot } from "@spoolsync/core/workflow";
+
 import type { CliOutput } from "./runtime";
 
 export interface FileWatcher {
@@ -27,8 +29,12 @@ export const defaultWatchDependencies: WatchDependencies = {
 
 export interface WatchRequest {
   files: readonly string[];
-  /** Runs the workflow once. It reports its own errors and records its exit code on `output`. */
-  run(output: CliOutput): Promise<void>;
+  /**
+   * Runs the workflow once. It reports its own errors and records its exit code on `output`. It
+   * receives the snapshot of the last run that succeeded, and returns this run's snapshot (or
+   * nothing when the run failed, which keeps the earlier snapshot as the point of comparison).
+   */
+  run(output: CliOutput, previous?: InventorySnapshot): Promise<InventorySnapshot | void>;
   output: CliOutput;
   signal: AbortSignal;
   dependencies?: WatchDependencies;
@@ -38,8 +44,9 @@ export interface WatchRequest {
 
 /**
  * Runs once, then again whenever one of the files changes, until the signal aborts. Changes that
- * arrive while a run is in progress cause exactly one more run afterwards. Status lines go to
- * stderr so machine-readable results on stdout stay clean. The exit code is that of the last run.
+ * arrive while a run is in progress cause exactly one more run afterwards. Each run after the first
+ * is told the previous snapshot so it can print what changed. Status lines go to stderr so
+ * machine-readable results on stdout stay clean. The exit code is that of the last run.
  */
 export async function runWatch(request: WatchRequest): Promise<void> {
   const {
@@ -63,6 +70,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   type Entry = { channel: "log" | "warn" | "error"; values: unknown[] };
   let entries: Entry[] = [];
   let lastSignature: string | undefined;
+  let lastSnapshot: InventorySnapshot | undefined;
   // In quiet mode a run's output is held back until it is known to differ from the last one.
   const runOutput: CliOutput = quiet
     ? {
@@ -87,7 +95,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
       if (!quiet && header) output.error(header);
       exitCode = 0;
       entries = [];
-      await run(runOutput);
+      lastSnapshot = (await run(runOutput, lastSnapshot)) ?? lastSnapshot;
       if (quiet) {
         const signature = JSON.stringify(entries);
         if (signature !== lastSignature) {

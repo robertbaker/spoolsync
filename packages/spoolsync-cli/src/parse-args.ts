@@ -15,6 +15,7 @@ import {
 import { COMPLETION_SHELLS, completionScript, isCompletionShell } from "./completion";
 import { expandConfig, type ConfigSettings } from "./config";
 import { help } from "./help";
+import { OUTPUT_FORMATS, type OutputFormat } from "./json-report";
 import type { Options } from "./options";
 import { closestOption } from "./suggest";
 import { validateOptions } from "./validate-options";
@@ -68,6 +69,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--quiet",
   "--apply",
   "--json",
+  "--format",
   "--spoolman-url",
   "--spoolman-token",
   "--filamentdb-url",
@@ -81,6 +83,7 @@ const SINGLETON_FLAGS: string[] = [
   "--output-dir",
   "--low-threshold",
   "--export-csv",
+  "--format",
   "--spoolman-url",
   "--spoolman-token",
   "--filamentdb-url",
@@ -113,6 +116,7 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let watch = false;
   let quiet = false;
   let json = false;
+  let format: OutputFormat | undefined;
   const singletonFlags = new Set<string>();
   for (let i = 0; i < args.length; i++) {
     const raw = args[i]!;
@@ -206,6 +210,11 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       apply = true;
     } else if (arg === "--json") {
       json = true;
+    } else if (arg === "--format") {
+      const text = value(arg);
+      if (!OUTPUT_FORMATS.includes(text as OutputFormat))
+        throw new Error(`Unknown format "${text}". Choose one of: ${OUTPUT_FORMATS.join(", ")}.`);
+      format = text as OutputFormat;
     } else if (arg === "--summary") {
       summary = true;
     } else if (arg === "--reorder") {
@@ -229,6 +238,9 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       throw new Error(`Unknown option: ${arg}${suggestion ? `. Did you mean ${suggestion}?` : ""}`);
     }
   }
+  if (json && format === "text")
+    throw new Error("--json prints JSON, so it cannot be combined with --format text.");
+  json = json || format === "json";
   const options: Options = {
     inputs,
     empty,

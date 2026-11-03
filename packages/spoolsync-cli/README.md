@@ -122,6 +122,19 @@ terminal left open stays readable while you keep saving:
 spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --watch --quiet
 ```
 
+With `--watch`, every run after the first also lists what changed since the previous successful run:
+spools added or removed, remaining-weight changes, and new possible matches. In JSON this is a
+`changesSinceLastRun` object. It is left out when nothing changed, so runs that print the same thing
+stay hidden with `--quiet`.
+
+```text
+Changes since the last run:
+  + added spoolio:c (C ABS)
+  - removed spoolio:b (B PETG)
+  ~ spoolio:a (A PLA): 500 g -> 450 g remaining
+  ? new possible match spoolio:a,spoolman:3
+```
+
 Enable tab completion for options, source names, and fields:
 
 ```sh
@@ -142,7 +155,10 @@ spoolsync --completion zsh > ~/.zfunc/_spoolsync   # zsh, with ~/.zfunc on your 
 - **`--empty`:** accepts comma-separated writable source names and can be repeated. Pair it with
   `--create-in` to copy missing spools into those targets. Empty inventories take part in dry runs
   and file exports, but cannot also be loaded from a file or API in the same run.
-- **`--json`:** machine-readable output.
+- **`--format <text|json>`:** `json` prints one report on stdout (warnings and progress stay on
+  stderr); `--json` is the same thing. Reports are versioned and described by
+  [`schema/report.schema.json`](schema/report.schema.json), also importable as
+  `spoolsync/report.schema.json`. See [JSON reports](#json-reports).
 - **Helpful errors:** a misspelled option suggests the closest real one, a missing input file says so,
   and a file passed to the wrong service flag names the service it looks like (for example
   `--spoolio` given a SpoolKeep backup suggests `--spoolkeep`).
@@ -219,6 +235,23 @@ inventory and read-only Spoolstock input alone do not produce file exports.
   is ready. Staging files are removed after success or a handled error.
 - A multi-file export is not a transaction: if a later rename fails, the error identifies the files
   already replaced.
+
+## JSON reports
+
+`--format json` (or `--json`) prints one JSON document per run. Every document starts with
+`schemaVersion` (currently `1`) and `report`:
+
+- `"compare"` for two or more inventories: `inventories`, `groups`, `suggestions`, `pendingMatches`
+  (each `{ pair, answerWith, score, reasons }`, where `answerWith` is the value for `--confirm` or
+  `--reject`), `problems`, `unresolved`, `changes`, `plannedChanges`, `applied`, `written`, and
+  `exportWarnings`.
+- `"inventory"` for `--summary`, `--reorder`, and `--export-csv` with a single inventory:
+  `inventories` (summary), `reorder` (emptiest first), `spools`, `csvExport`, and `written`.
+
+Lists have a fixed order (inventories in source order, changes and pending matches by record key),
+and nothing in a report is a credential. `schemaVersion` changes only when a field is removed,
+renamed, or changes meaning; new optional fields can be added, so ignore fields you do not know. A
+`--config` or settings-file `"format": "json"` works too; a command-line `--format text` overrides it.
 
 ## Warnings and errors
 

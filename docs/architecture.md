@@ -184,6 +184,12 @@ loaded order) with `aria-sort`, keeps blanks last in both directions, and return
 the column's button after redrawing. The chart's "By color" view groups by `colorFamily`
 (`core/color.ts`), which names a family from hue, saturation, and lightness.
 
+CLI JSON reports are typed in `json-report.ts` and described by
+`packages/spoolsync-cli/schema/report.schema.json`; `--format json` and `--json` are one setting.
+`core/workflow/changes.ts` holds the pure rule behind the `--watch` "what changed" output
+(`snapshotInventory`, `diffSnapshots`, `formatChanges`), so a browser can reuse it. `runWorkflow`
+returns each run's snapshot, and `runWatch` hands the last successful one to the next run.
+
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
 run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is

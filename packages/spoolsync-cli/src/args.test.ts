@@ -234,4 +234,26 @@ describe("CLI arguments", () => {
       "not both",
     );
   });
+
+  test("--format selects text or json and --json is an alias for --format json", () => {
+    expect(parseArgs(files).json).toBe(false);
+    expect(parseArgs([...files, "--format", "json"]).json).toBe(true);
+    expect(parseArgs([...files, "--format=json"]).json).toBe(true);
+    expect(parseArgs([...files, "--format", "text"]).json).toBe(false);
+    expect(parseArgs([...files, "--json", "--format", "json"]).json).toBe(true);
+  });
+
+  test("--format rejects unknown values, repeats, and a conflict with --json", () => {
+    expect(() => parseArgs([...files, "--format", "yaml"])).toThrow(
+      'Unknown format "yaml". Choose one of: text, json.',
+    );
+    expect(() => parseArgs([...files, "--format"])).toThrow("--format requires a value");
+    expect(() => parseArgs([...files, "--format", "json", "--format=text"])).toThrow(
+      "--format may only be provided once",
+    );
+    expect(() => parseArgs([...files, "--json", "--format", "text"])).toThrow(
+      "cannot be combined with --format text",
+    );
+    expect(() => parseArgs([...files, "--formta", "json"])).toThrow("Did you mean --format?");
+  });
 });

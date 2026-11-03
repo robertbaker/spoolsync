@@ -200,3 +200,40 @@ for (const refreshFailure of [false, true]) {
     expect(f.stdout).toEqual([]);
   });
 }
+
+test("runs report what changed since the previous snapshot, as text or JSON", async () => {
+  const lines = (json: boolean) => {
+    const f = fixture();
+    f.options.json = json;
+    f.options.apply = false;
+    f.options.createIn = [];
+    delete (f.options as { outputDir?: string }).outputDir;
+    return f;
+  };
+  for (const json of [false, true]) {
+    const f = lines(json);
+    const first = await runWorkflow(f.options, f.dependencies, f.output);
+    expect(first.spools.map((spool) => spool.key)).toEqual(["spoolman:1"]);
+    expect(f.stdout.flat().join("\n")).not.toContain("hanges since");
+    const changed = { ...first, spools: [{ ...first.spools[0]!, remainingGrams: 40 }] };
+    await runWorkflow(f.options, f.dependencies, f.output, changed);
+    const printed = String(f.stdout.at(-1)![0]);
+    if (json)
+      expect(JSON.parse(printed).changesSinceLastRun.remainingWeight).toEqual([
+        {
+          key: "spoolman:1",
+          label: "Prusament PLA Galaxy Black",
+          fromGrams: 40,
+          toGrams: 640,
+        },
+      ]);
+    else
+      expect(printed).toContain(
+        "~ spoolman:1 (Prusament PLA Galaxy Black): 40 g -> 640 g remaining",
+      );
+    // Identical to the previous run: nothing extra is printed.
+    const before = f.stdout.length;
+    await runWorkflow(f.options, f.dependencies, f.output, first);
+    expect(String(f.stdout[before]![0])).not.toContain("hanges since");
+  }
+});
