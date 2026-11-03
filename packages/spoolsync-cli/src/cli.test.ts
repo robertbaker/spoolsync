@@ -262,6 +262,57 @@ test("load failures say what to do: missing files, and files given to the wrong 
   expect(typo.stderr).toContain("Unknown option: --spolman. Did you mean --spoolman?");
 });
 
+test("--config supplies defaults that the command line can override", async () => {
+  await writeFile(
+    path.join(directory, "keep.json"),
+    JSON.stringify([{ id: "k1", brand: "Creality", family: "PLA", newQuantity: 1 }]),
+  );
+  await mkdir(path.join(directory, "conf"));
+  await writeFile(
+    path.join(directory, "conf", "spoolsync.json"),
+    JSON.stringify({ spoolkeep: "../keep.json", summary: true }),
+  );
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  const fromConfig = await run("--config", path.join(directory, "conf", "spoolsync.json"));
+  expect(fromConfig).toMatchObject({ code: 0, stderr: "" });
+  expect(fromConfig.stdout).toContain("spoolkeep: 1 spool");
+
+  const secret = path.join(directory, "conf", "secret.json");
+  await writeFile(secret, JSON.stringify({ "spoolman-token": "abc" }));
+  const refused = await run("--config", secret);
+  expect(refused.code).not.toBe(0);
+  expect(refused.stderr).toContain("looks like a secret");
+});
+
+test("--completion prints a script for each supported shell and rejects others", async () => {
+  const run = async (...args: string[]) => {
+    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  for (const shell of ["bash", "zsh", "fish"]) {
+    const result = await run("--completion", shell);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("spoolsync");
+    expect(result.stdout).toContain("export-csv");
+  }
+  const unknown = await run("--completion", "powershell");
+  expect(unknown.code).not.toBe(0);
+  expect(unknown.stderr).toContain('Unknown shell "powershell"');
+});
+
 for (const failRefresh of [true, false]) {
   test(`JSON preserves remote writes when ${failRefresh ? "refresh" : "file commit"} fails`, async () => {
     const output = path.join(directory, "updated");

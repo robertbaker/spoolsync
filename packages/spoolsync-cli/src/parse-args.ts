@@ -7,6 +7,8 @@ import {
   type WritableSourceId,
 } from "@spoolsync/core/core/model";
 
+import { COMPLETION_SHELLS, completionScript, isCompletionShell } from "./completion";
+import { expandConfig } from "./config";
 import { help } from "./help";
 import type { Options } from "./options";
 import { closestOption } from "./suggest";
@@ -35,7 +37,7 @@ export function sourceFlag(source: SourceId): string | undefined {
   return Object.entries(sourceFlags).find(([, id]) => id === source)?.[0];
 }
 
-const KNOWN_OPTIONS: readonly string[] = [
+export const KNOWN_OPTIONS: readonly string[] = [
   "--help",
   "--version",
   "--resolve",
@@ -45,6 +47,8 @@ const KNOWN_OPTIONS: readonly string[] = [
   "--empty",
   "--output-dir",
   "--export-csv",
+  "--config",
+  "--completion",
   "--summary",
   "--apply",
   "--json",
@@ -68,7 +72,8 @@ const SINGLETON_FLAGS: string[] = [
   "--filadex-user",
 ];
 
-export function parseArgs(args: string[]): Options {
+export function parseArgs(argv: string[]): Options {
+  const args = expandConfig(argv);
   const inputs = new Map<SourceId, string>();
   const empty: WritableSourceId[] = [];
   const resolves: Array<[ComparableField, SourceId]> = [];
@@ -115,6 +120,15 @@ export function parseArgs(args: string[]): Options {
     if (SINGLETON_FLAGS.includes(arg)) {
       if (singletonFlags.has(arg)) throw new Error(`${arg} may only be provided once`);
       singletonFlags.add(arg);
+    }
+    if (arg === "--completion") {
+      const shell = value(arg);
+      if (!isCompletionShell(shell))
+        throw new Error(
+          `Unknown shell "${shell}". Choose one of: ${COMPLETION_SHELLS.join(", ")}.`,
+        );
+      process.stdout.write(completionScript(shell));
+      process.exit(0);
     }
     if (arg === "--help" || arg === "-h") {
       help();

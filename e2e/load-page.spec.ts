@@ -280,6 +280,9 @@ test("slash focuses the search field and panel choices are remembered", async ({
   await expect(spoolio).not.toHaveJSProperty("open", true);
   await page.locator("#spoolio-panel > summary").click();
   await page.locator('[data-panel="spoolman"] > summary').click();
+  // The browser reports a panel toggle asynchronously, so wait until the choice is saved.
+  const saved = () => page.evaluate(() => localStorage.getItem("spoolsync:open-panels"));
+  await expect.poll(saved).toBe('["spoolio"]');
   await page.reload();
   await expect(spoolio).toHaveJSProperty("open", true);
   await expect(page.locator('[data-panel="spoolman"]')).not.toHaveJSProperty("open", true);
@@ -292,6 +295,7 @@ test("slash focuses the search field and panel choices are remembered", async ({
     buffer: Buffer.from(JSON.stringify([{ id: "k", brand: "B", family: "PLA", newQuantity: 1 }])),
   });
   await expect(page.locator("#spoolkeep-panel")).toHaveJSProperty("open", true);
+  await expect.poll(saved).toBe("[]");
   await page.reload();
   await expect(page.locator("#spoolkeep-panel")).not.toHaveJSProperty("open", true);
   await expect(spoolio).not.toHaveJSProperty("open", true);
@@ -525,4 +529,21 @@ test("a shared sample link opens the walkthrough but never replaces real data", 
   await expect(page).toHaveURL(/\/load$/);
   await expect(page.locator("#spoolio-status")).toContainText("1 loaded");
   await expect(page.locator("#load-bar-summary")).toContainText("1 service loaded");
+});
+
+test("each loaded service shows its headline numbers", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#loaded-stats")).toBeHidden();
+  await page.getByRole("button", { name: "Try it with sample data" }).click();
+  const stats = page.locator("#loaded-stats");
+  await expect(stats).toBeVisible();
+  const spoolio = stats.locator(":scope > div", { hasText: "Spoolio" });
+  await expect(spoolio).toContainText("4 spools");
+  await expect(spoolio).toContainText("3 brands · 2 materials");
+  await expect(spoolio).toContainText("2,660 g remaining");
+  await expect(stats.locator(":scope > div", { hasText: "FilaMeter" })).toContainText(
+    "3,320 g remaining",
+  );
+  await page.locator("#unload-all").click();
+  await expect(stats).toBeHidden();
 });

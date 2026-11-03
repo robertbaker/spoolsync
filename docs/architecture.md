@@ -106,6 +106,13 @@ and offers "Copy demo link" and "Clear sample data", which also forgets match an
 spools. The CLI package version and changelog are produced by `release-it` from conventional commit
 messages at release time (see `.github/workflows/release-cli.yml`), so they are not edited by hand.
 
+The Load page's loaded section starts with a card per service (`load/loaded-stats.ts`) built from
+core's `summarizeInventory`, the same numbers `spoolsync --summary` prints. The CLI reads default
+options from `--config <file>` (`config.ts`): keys are long option names, paths are relative to the
+file, command-line options replace the same option, and secrets are refused. Shell completion
+scripts (`completion.ts`) are generated from one option list that a test keeps equal to the parser's
+known options.
+
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
 primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
 without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the

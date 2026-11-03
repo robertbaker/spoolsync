@@ -96,6 +96,16 @@ export const output = [
     desc: "Write updated import files for file-loaded writable sources into this directory. Must differ from your input files.",
   },
   {
+    flag: "--config <file>",
+    copy: "--config",
+    desc: "Read default options from a JSON file (paths are relative to the file). Command-line options replace the same option from the file. Tokens and passwords are refused; keep them in environment variables.",
+  },
+  {
+    flag: "--completion <shell>",
+    copy: "--completion",
+    desc: "Print a completion script for bash, zsh, or fish. For example: source <(spoolsync --completion bash).",
+  },
+  {
     flag: "--summary",
     copy: "--summary",
     desc: "Print counts for each loaded inventory (spools, archived, brands, materials, remaining grams) instead of planning changes. Works with a single inventory.",

@@ -55,12 +55,39 @@ single inventory, and it refuses to overwrite one of your input files:
 spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv ./inventory.csv
 ```
 
+Keep your usual options in a config file. Keys are the long option names without dashes, paths are
+relative to the file, and command-line options replace the same option from the file:
+
+```json
+{
+  "spoolio": "./spoolio.json",
+  "spoolkeep": "./SpoolKeep.json",
+  "create-in": ["spoolio"],
+  "output-dir": "./updated"
+}
+```
+
+```sh
+spoolsync --config spoolsync.json
+```
+
+Tokens and passwords are rejected in config files (they tend to be committed); use the
+`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables.
+
+Enable tab completion for options, source names, and fields:
+
+```sh
+source <(spoolsync --completion bash)          # bash
+spoolsync --completion fish | source           # fish
+spoolsync --completion zsh > ~/.zfunc/_spoolsync   # zsh, with ~/.zfunc on your fpath
+```
+
 ## Options
 
 - **Equals syntax:** options with values also accept `--spoolman=spoolman.json` or
   `--resolve=material=spoolstock`. Use it when a filename, directory, or token starts with a dash,
   such as `--spoolio=-inventory.json` or `--output-dir=-updated`.
-- **Single-use options:** connection options, `--output-dir`, and `--export-csv` may only be supplied once;
+- **Single-use options:** connection options, `--output-dir`, `--export-csv`, and `--config` may only be supplied once;
   `--spoolman-token` requires `--spoolman-url`.
 - **`--resolve`:** choose one source per field; conflicting repeated resolutions are rejected.
   Run `spoolsync --help` for valid fields and source names.

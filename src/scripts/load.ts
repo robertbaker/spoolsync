@@ -10,6 +10,7 @@ import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
 import { wireFileSource } from "./load/file-source";
 import { createInventoryTable } from "./load/inventory-table";
+import { renderLoadedStats } from "./load/loaded-stats";
 import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { LoadState } from "./load/state";
@@ -22,8 +23,10 @@ const panels = wireSourcePanels(state);
 const actionBar = createActionBar(state);
 const unloadAll = document.getElementById("unload-all");
 const downloadCombined = document.getElementById("download-combined");
+const loadedStats = document.getElementById("loaded-stats");
 const render = () => {
   renderTable();
+  if (loadedStats) renderLoadedStats(loadedStats, state.results);
   panels.refresh();
   actionBar.update();
   if (unloadAll) unloadAll.hidden = state.results.size === 0;
