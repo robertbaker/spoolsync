@@ -1,6 +1,15 @@
 import type { LoadResult } from "@spoolsync/core/core/model";
 import { loadInventoryFile } from "@spoolsync/core/workflow";
 
+import {
+  clearLoadResult,
+  clearResolutions,
+  loadMatchDecisions,
+  readLoadResult,
+  saveLoadResult,
+  saveMatchDecisions,
+} from "./browser/storage";
+
 /**
  * A small invented inventory in two writable services, so a first-time visitor can see matching,
  * conflicts, and apply without exporting anything. Two spools differ in remaining weight, two pairs
@@ -99,4 +108,44 @@ export async function sampleInventories(): Promise<LoadResult[]> {
     await loadInventoryFile("spoolio", JSON.stringify(spoolio)),
     await loadInventoryFile("filameter", JSON.stringify(filameter)),
   ];
+}
+
+/** Whether every loaded spool came from the sample data, so the page can say so. */
+export function isSampleInventory(results: Iterable<LoadResult>): boolean {
+  const spools = [...results].flatMap((result) => result.spools);
+  return spools.length > 0 && spools.every((spool) => spool.sourceId.startsWith("sample-"));
+}
+
+/** The address that opens the sample walkthrough directly. */
+export function sampleLink(origin: string): string {
+  return `${origin}/sync?sample=1`;
+}
+
+/**
+ * Handles a `?sample=1` link: stores the sample inventories when nothing is loaded yet, so a shared
+ * link can never replace someone's real data, and removes the parameter from the address. Returns
+ * whether sample data was stored.
+ */
+export async function applySampleParam(
+  sources: readonly Parameters<typeof readLoadResult>[0][],
+): Promise<boolean> {
+  const url = new URL(location.href);
+  if (url.searchParams.get("sample") !== "1") return false;
+  url.searchParams.delete("sample");
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  if (sources.some((source) => readLoadResult(source))) return false;
+  const results = await sampleInventories();
+  return results.every((result) => saveLoadResult(result));
+}
+
+/** Removes the sample inventories and any match answers given about them; real data is untouched. */
+export function clearSampleData(sources: readonly Parameters<typeof clearLoadResult>[0][]): void {
+  for (const source of sources) clearLoadResult(source);
+  clearResolutions();
+  const decisions = loadMatchDecisions();
+  const isSample = (pair: string) => pair.includes("sample-");
+  saveMatchDecisions({
+    confirmed: decisions.confirmed.filter((pair) => !isSample(pair)),
+    rejected: decisions.rejected.filter((pair) => !isSample(pair)),
+  });
 }

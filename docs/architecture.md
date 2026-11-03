@@ -99,6 +99,13 @@ the list never shifts under the cursor). `src/lib/sample-data.ts` provides two i
 for first-time visitors; they are offered only when nothing is loaded, so they can never replace a
 real inventory, and they are not counted as recently used.
 
+Each file dropped on the Load page shows a collapsed preview of its first five spools and notes, so
+a wrong service match is easy to spot. A `?sample=1` link stores the sample inventories only when
+nothing is loaded (`applySampleParam`), then removes the parameter; the Sync page labels sample data
+and offers "Copy demo link" and "Clear sample data", which also forgets match answers about sample
+spools. The CLI package version and changelog are produced by `release-it` from conventional commit
+messages at release time (see `.github/workflows/release-cli.yml`), so they are not edited by hand.
+
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
 primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
 without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the

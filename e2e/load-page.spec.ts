@@ -469,3 +469,60 @@ test("sample data lets a first-time visitor try matching, and never replaces rea
   await page.goto("/sync");
   await expect(page.getByRole("button", { name: "Try sample data" })).toBeHidden();
 });
+
+test("each dropped file shows a short preview of what it contained", async ({ page }) => {
+  await page.goto("/load");
+  const filaments = Array.from({ length: 7 }, (_, index) => ({
+    id: `s${index}`,
+    type: "PLA",
+    brand: "Prusa",
+    colorName: `Color ${index}`,
+    colorHex: "#2244CC",
+    weightTotal: 1000,
+    weightRemaining: 500,
+  }));
+  await page.locator("#smart-file").setInputFiles({
+    name: "spoolio.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments })),
+  });
+  const preview = page.locator("#smart-message details");
+  await expect(preview).toContainText("Preview");
+  await expect(preview).not.toHaveJSProperty("open", true);
+  await preview.locator("summary").click();
+  await expect(preview.locator("li")).toHaveCount(5);
+  await expect(preview).toContainText("Prusa PLA Color 0");
+  await expect(preview).toContainText("500 g left");
+  await expect(preview).toContainText("and 2 more");
+});
+
+test("a shared sample link opens the walkthrough but never replaces real data", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/sync?sample=1");
+  await expect(page).toHaveURL(/\/sync$/);
+  await expect(page.locator("#sample-banner")).toContainText("You are looking at sample data");
+  await expect(page.locator("#suggestions article")).toHaveCount(3);
+
+  await page.getByRole("button", { name: "Copy demo link" }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  expect(link).toMatch(/\/sync\?sample=1$/);
+
+  await page.getByRole("button", { name: "Clear sample data" }).click();
+  await expect(page).toHaveURL(/\/load$/);
+  await expect(page.locator("#load-bar")).toBeHidden();
+
+  // A real inventory is never replaced by a shared link.
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "real.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "r", brand: "Real" }] })),
+  });
+  await expect(page.locator("#spoolio-status")).toContainText("1 loaded");
+  await page.goto("/load?sample=1");
+  await expect(page).toHaveURL(/\/load$/);
+  await expect(page.locator("#spoolio-status")).toContainText("1 loaded");
+  await expect(page.locator("#load-bar-summary")).toContainText("1 service loaded");
+});

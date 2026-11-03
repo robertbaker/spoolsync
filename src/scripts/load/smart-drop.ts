@@ -1,4 +1,9 @@
-import { SOURCE_LABELS, type SourceId } from "@spoolsync/core/core/model";
+import {
+  SOURCE_LABELS,
+  type CommonSpool,
+  type LoadResult,
+  type SourceId,
+} from "@spoolsync/core/core/model";
 import { detectInventorySources, type DetectedInventory } from "@spoolsync/core/workflow";
 
 import { h } from "../dom";
@@ -29,6 +34,57 @@ function line(outcome: Outcome, ...children: Array<string | Node>): HTMLElement 
   );
 }
 
+const PREVIEW_ROWS = 5;
+
+/** A short, collapsed look at what a file contained, so a wrong match is easy to spot. */
+function preview(result: LoadResult): HTMLElement {
+  const label = (spool: CommonSpool) =>
+    [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || spool.sourceId;
+  const swatch = (spool: CommonSpool) => {
+    const dot = h("span", {
+      class: "inline-block size-3.5 shrink-0 rounded-full border",
+      "aria-hidden": "true",
+    });
+    if (spool.colors[0]) dot.style.backgroundColor = `#${spool.colors[0]}`;
+    return dot;
+  };
+  const rows = result.spools
+    .slice(0, PREVIEW_ROWS)
+    .map((spool) =>
+      h(
+        "li",
+        { class: "flex items-center gap-2 py-0.5" },
+        swatch(spool),
+        h("span", { class: "min-w-0 truncate" }, label(spool)),
+        h(
+          "span",
+          { class: "ml-auto shrink-0 text-muted-foreground" },
+          spool.remainingWeight === null ? "" : `${Math.round(spool.remainingWeight)} g left`,
+        ),
+      ),
+    );
+  const more = result.spools.length - rows.length;
+  return h(
+    "details",
+    { class: "mt-1 w-full rounded-lg border bg-muted/20 text-xs" },
+    h(
+      "summary",
+      {
+        class:
+          "cursor-pointer p-2 font-medium focus-visible:outline-2 focus-visible:outline-primary",
+      },
+      `Preview${result.warnings.length ? ` · ${plural(result.warnings.length, "note")}` : ""}`,
+    ),
+    h(
+      "div",
+      { class: "px-3 pb-2" },
+      h("ul", {}, ...rows),
+      more > 0 ? h("p", { class: "pt-1 text-muted-foreground" }, `and ${more} more`) : null,
+      ...result.warnings.slice(0, 3).map((warning) => h("p", { class: "pt-1" }, warning)),
+    ),
+  );
+}
+
 /**
  * One drop target for every service: each file is matched to the service whose parser reads it. A
  * file that several services could read asks which one it is, and nothing is guessed.
@@ -42,18 +98,21 @@ export function wireSmartDrop(context: LoadContext): void {
   async function loadAs(source: SourceId, file: File, row: HTMLElement): Promise<void> {
     await readInventoryFile(source, file, context);
     const loaded = context.state.results.get(source);
-    const failed = !loaded || loaded.spools.length === 0;
-    row.replaceWith(
-      failed
-        ? line(
-            "error",
-            `${file.name} could not be read as ${SOURCE_LABELS[source]}. See its panel below.`,
-          )
-        : line(
-            "success",
-            `${file.name} → ${SOURCE_LABELS[source]} (${plural(loaded.spools.length, "spool")})`,
-          ),
+    if (!loaded || loaded.spools.length === 0) {
+      row.replaceWith(
+        line(
+          "error",
+          `${file.name} could not be read as ${SOURCE_LABELS[source]}. See its panel below.`,
+        ),
+      );
+      return;
+    }
+    const outcome = line(
+      "success",
+      `${file.name} → ${SOURCE_LABELS[source]} (${plural(loaded.spools.length, "spool")})`,
     );
+    outcome.append(preview(loaded));
+    row.replaceWith(outcome);
   }
 
   async function handle(files: File[]): Promise<void> {

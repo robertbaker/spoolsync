@@ -1,6 +1,7 @@
 import { SOURCE_IDS, type LoadResult } from "@spoolsync/core/core/model";
 
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
+import { applySampleParam, sampleLink } from "~/lib/sample-data";
 
 import { CONNECTION_CHANGED } from "./connections/events";
 import { h, notice, showToast } from "./dom";
@@ -13,7 +14,7 @@ import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { LoadState } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
-import { download } from "./sync/presentation";
+import { button, download } from "./sync/presentation";
 
 const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
 const renderTable = createInventoryTable(state.results);
@@ -45,6 +46,8 @@ wireApiSources(context);
 wireConnectionPanels();
 wireSmartDrop(context);
 for (const source of SOURCE_IDS) wireFileSource(source, context);
+// A shared `?sample=1` link stores the sample inventories first (only when nothing is loaded).
+await applySampleParam(SOURCE_IDS);
 for (const source of SOURCE_IDS) {
   state.restore(source);
   setStatus(source);
@@ -93,17 +96,25 @@ document.getElementById("try-sample")?.addEventListener("click", async () => {
     state.nextRevision(result.source);
     store(result);
   }
-  document
-    .getElementById("smart-message")
-    ?.replaceChildren(
-      notice(
-        "info",
-        "Sample data loaded",
-        h(
-          "p",
-          { class: "mt-1" },
-          "Two invented inventories (Spoolio and FilaMeter) so you can try matching and syncing. Nothing here is real; use Unload all to clear it.",
-        ),
+  document.getElementById("smart-message")?.replaceChildren(
+    notice(
+      "info",
+      "Sample data loaded",
+      h(
+        "p",
+        { class: "mt-1" },
+        "Two invented inventories (Spoolio and FilaMeter) so you can try matching and syncing. Nothing here is real; use Unload all to clear it.",
       ),
-    );
+      h(
+        "div",
+        { class: "mt-3" },
+        button("Copy demo link", () => {
+          navigator.clipboard.writeText(sampleLink(location.origin)).then(
+            () => showToast("Demo link copied", "success"),
+            () => showToast("Could not copy the link", "error"),
+          );
+        }),
+      ),
+    ),
+  );
 });

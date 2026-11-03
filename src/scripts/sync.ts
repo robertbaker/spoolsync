@@ -8,14 +8,24 @@ import {
   saveMatchDecisions,
   saveResolutions,
 } from "~/lib/browser/storage";
+import {
+  applySampleParam,
+  clearSampleData,
+  isSampleInventory,
+  sampleLink,
+} from "~/lib/sample-data";
 
-import { byId, showToast } from "./dom";
+import { byId, h, notice, showToast } from "./dom";
 import { createApplyView } from "./sync/apply-view";
 import { createControlsView } from "./sync/controls-view";
 import { createGroupsView } from "./sync/groups-view";
+import { button } from "./sync/presentation";
 import { SyncSession } from "./sync/session";
 import { createSuggestionsView } from "./sync/suggestions-view";
 import { createSummaryView } from "./sync/summary-view";
+
+// A shared `?sample=1` link stores the sample inventories first (only when nothing is loaded).
+await applySampleParam(SOURCE_IDS);
 
 const loaded = new Map(
   SOURCE_IDS.flatMap((source) => {
@@ -86,5 +96,34 @@ if (loaded.size < 2) {
 } else {
   byId("sync-empty").hidden = true;
   byId("sync-app").hidden = false;
+  if (isSampleInventory(loaded.values())) showSampleBanner();
   renderAll();
+}
+
+/** Says plainly that this is invented data, and offers a shareable link and a way out. */
+function showSampleBanner(): void {
+  const banner = byId("sample-banner");
+  const copy = button("Copy demo link", () => {
+    navigator.clipboard.writeText(sampleLink(location.origin)).then(
+      () => showToast("Demo link copied", "success"),
+      () => showToast("Could not copy the link", "error"),
+    );
+  });
+  const clear = button("Clear sample data", () => {
+    clearSampleData([...loaded.keys()]);
+    location.assign("/load");
+  });
+  banner.hidden = false;
+  banner.replaceChildren(
+    notice(
+      "info",
+      "You are looking at sample data",
+      h(
+        "p",
+        { class: "mt-1" },
+        "These inventories are invented so you can try matching and syncing. Nothing leaves this browser.",
+      ),
+      h("div", { class: "mt-3 flex flex-wrap gap-2" }, copy, clear),
+    ),
+  );
 }
