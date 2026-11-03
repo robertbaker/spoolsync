@@ -1,3 +1,5 @@
+export type { FileHistory, FileHistoryEntry } from "./storage/file-history";
+export { clearFileHistory, forgetFile, readFileHistory, recordFile } from "./storage/file-history";
 export type { StoredSpoolmanConnection } from "./storage/spoolman";
 export {
   loadSpoolmanConnection,

@@ -246,6 +246,18 @@ const fileSources = [
           <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground"></p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
+          <label id="low-threshold-wrap" hidden class="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Low at</span>
+            <select id="low-threshold" class="field-input mt-0 w-auto py-1 text-xs">
+              <option value="10">10%</option>
+              <option value="15">15%</option>
+              <option value="20">20%</option>
+              <option value="25">25%</option>
+              <option value="30">30%</option>
+              <option value="40">40%</option>
+              <option value="50">50%</option>
+            </select>
+          </label>
           <button
             type="button"
             id="low-only"

@@ -3,7 +3,7 @@ import type { MatchDecisions } from "../core/match";
 import { SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
 import { findMatches } from "../planner";
 
-export type BreakdownField = "material" | "vendor" | "color";
+export type BreakdownField = "material" | "vendor" | "color" | "location";
 
 export interface MaterialShare {
   /** Display name; `Other` folds the tail and `Unknown ...` covers spools without a value. */
@@ -23,6 +23,7 @@ const UNKNOWN: Record<BreakdownField, string> = {
   material: "Unknown material",
   vendor: "Unknown brand",
   color: "Unknown color",
+  location: "No location",
 };
 
 /** The value a spool is grouped under, or `undefined` when it has none. */

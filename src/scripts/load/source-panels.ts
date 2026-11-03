@@ -1,6 +1,7 @@
 import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
 
 import { local, read, write } from "~/lib/browser/storage/access";
+import { readPreferences, updatePreferences } from "~/lib/preferences";
 
 import { wireSlashFocus } from "../shortcuts";
 import type { LoadState } from "./state";
@@ -54,7 +55,7 @@ export function wireSourcePanels(state: LoadState): {
   const chips = [...document.querySelectorAll<HTMLButtonElement>("[data-source-filter]")];
   const empty = document.getElementById("source-empty");
   const count = document.getElementById("source-count");
-  let filter: Filter = "all";
+  let filter: Filter = readPreferences().sourceFilter ?? "all";
 
   // Put the services used last time first. This runs once at startup so the list never shifts
   // while the visitor is working with it.
@@ -123,6 +124,7 @@ export function wireSourcePanels(state: LoadState): {
   for (const chip of chips)
     chip.addEventListener("click", () => {
       filter = (chip.dataset["sourceFilter"] as Filter | undefined) ?? "all";
+      updatePreferences({ sourceFilter: filter === "all" ? undefined : filter });
       refresh();
     });
   refresh();

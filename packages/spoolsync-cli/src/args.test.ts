@@ -133,6 +133,22 @@ describe("CLI arguments", () => {
     expect(() => parseArgs(["--spoolkeep", "k.json"])).toThrow("--reorder for what is running low");
   });
 
+  test("--low-threshold takes whole percents and applies to the low-stock reports", () => {
+    expect(
+      parseArgs(["--spoolkeep", "k.json", "--reorder", "--low-threshold", "30"]).lowThreshold,
+    ).toBe(30);
+    expect(
+      parseArgs(["--spoolkeep", "k.json", "--summary", "--low-threshold=5"]).lowThreshold,
+    ).toBe(5);
+    for (const bad of ["0", "91", "12.5", "abc", "-3"])
+      expect(() =>
+        parseArgs(["--spoolkeep", "k.json", "--reorder", `--low-threshold=${bad}`]),
+      ).toThrow("whole number of percent from 1 to 90");
+    expect(() =>
+      parseArgs(["--spoolkeep", "k.json", "--spoolio", "s.json", "--low-threshold", "20"]),
+    ).toThrow("applies to --summary and --reorder");
+  });
+
   test("rejects conflicting and read-only empty targets", () => {
     expect(() => parseArgs([...files, "--empty", "spoolio"])).toThrow("not both");
     expect(() => parseArgs(["--spoolman-url", "http://localhost", "--empty", "spoolman"])).toThrow(

@@ -5,6 +5,7 @@ import {
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
+import { lowStockRule } from "@spoolsync/core/core/stock";
 import { formatReorderList, reorderItems, summarizeInventory } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
@@ -93,13 +94,14 @@ export function reportInventoryOnly(
   written: string[],
   output: CliOutput,
 ): void {
+  const rule = lowStockRule((options.lowThreshold ?? 20) as number);
   const summaries = SOURCE_IDS.flatMap((source) => {
     const result = loaded.get(source);
-    return result ? [summarizeInventory(result)] : [];
+    return result ? [summarizeInventory(result, rule)] : [];
   });
   const spools = summaries.reduce((total, summary) => total + summary.spools, 0);
   const reorder = options.reorder
-    ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] })
+    ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] }, rule)
     : [];
   if (options.json) {
     output.log(

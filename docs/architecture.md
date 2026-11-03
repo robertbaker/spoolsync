@@ -142,7 +142,23 @@ their buttons.
 under a fifth of its full weight, or at or under 100 g when the full weight is unknown; archived and
 unweighed spools never count. It feeds the stats cards, the table's Low badge and filter, the CLI
 `--summary` line, and the reorder list (`workflow/reorder.ts`), which lists each low spool once using
-the same matching as the chart. The loaded-spools table sorts by column (ascending, descending,
+the same matching as the chart. Everything the web app remembers lives under the `spoolsync:` prefix. Small preferences go through
+one validated store (`lib/preferences.ts`: table sort, running-low filter, service filter, Sync
+filter), alongside the panel, chart, threshold, and recent-service entries and each service's file
+history (`storage/file-history.ts`: name, size, spool count, and date of the last file, never its
+contents; a browser will not reopen a file for a page, so this is a reminder). The footer's "Saved
+settings" dialog (`lib/saved-data.ts`) lists what is stored in plain groups and can forget any group
+or everything, reloading afterwards so nothing stale stays on screen. The CLI mirrors this with a
+per-user settings file (`user-config.ts`: `~/.config/spoolsync/config.json`, `%APPDATA%` on Windows,
+or `$SPOOLSYNC_CONFIG_DIR`). It sits beneath `--config` and the command line; its saved inventories
+apply only when none are named; secrets and per-run options are never saved; writes are atomic and
+private. Tests point `SPOOLSYNC_CONFIG_DIR` at a throwaway folder and pass it to spawned CLIs
+explicitly, because Bun does not forward runtime `process.env` changes to children.
+
+The threshold is a `LowStockRule` (share of full weight, plus fallback grams that scale with it) that
+every caller can pass; the web app saves the visitor's choice (`lib/low-stock.ts`, 10 to 50 percent)
+and the CLI takes `--low-threshold` or a numeric `low-threshold` config key. The chart also groups by
+storage location, which spools without one fold into "No location". The loaded-spools table sorts by column (ascending, descending,
 loaded order) with `aria-sort`, keeps blanks last in both directions, and returns keyboard focus to
 the column's button after redrawing. The chart's "By color" view groups by `colorFamily`
 (`core/color.ts`), which names a family from hue, saturation, and lightness.

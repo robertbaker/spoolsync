@@ -116,6 +116,31 @@ export const output = [
     desc: "With --watch, print a run only when its output differs from the previous run. Errors that differ are still shown.",
   },
   {
+    flag: "--save-config",
+    copy: "--save-config",
+    desc: "Save the options you give, and your inventory file paths, as defaults in your per-user settings file (~/.config/spoolsync/config.json). Tokens, --apply and per-run choices are never saved.",
+  },
+  {
+    flag: "--no-user-config",
+    copy: "--no-user-config",
+    desc: "Ignore the per-user settings file for this run.",
+  },
+  {
+    flag: "--config-path",
+    copy: "--config-path",
+    desc: "Print where the per-user settings file lives (also $SPOOLSYNC_CONFIG_DIR, %APPDATA% on Windows).",
+  },
+  {
+    flag: "--clear-config",
+    copy: "--clear-config",
+    desc: "Delete the per-user settings file.",
+  },
+  {
+    flag: "--low-threshold <pct>",
+    copy: "--low-threshold",
+    desc: "With --summary or --reorder, the whole percent of full weight at or under which a spool counts as low (1 to 90, default 20). Also a numeric key in --config files.",
+  },
+  {
     flag: "--reorder",
     copy: "--reorder",
     desc: "Print a shopping list of spools that are running low (at or under a fifth of their full weight), each spool once. Works with a single inventory.",
@@ -170,6 +195,14 @@ export const examples = [
     body: "Use Spoolstock values to resolve conflicts, add missing spools to Spoolio, and save updated import files.",
     file: "update-files",
     code: "spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json --resolve material=spoolstock --create-in spoolio --output-dir ./updated",
+  },
+  {
+    title: "Remember your setup",
+    icon: "material-symbols:bookmark-outline",
+    effect: { label: "Writes ~/.config/spoolsync", color: "info" },
+    body: "Save your inventory paths and usual options once; later runs need no arguments. Saved inventories are used only when you name none.",
+    file: "save-config",
+    code: "spoolsync --spoolio ~/inv/spoolio.json --spoolkeep ~/inv/SpoolKeep.json --output-dir ~/inv/updated --save-config\nspoolsync --summary",
   },
   {
     title: "See what an export holds",

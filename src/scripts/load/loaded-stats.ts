@@ -6,6 +6,8 @@ import {
 } from "@spoolsync/core/core/model";
 import { summarizeInventory } from "@spoolsync/core/workflow";
 
+import { currentLowStockRule } from "~/lib/low-stock";
+
 import { h } from "../dom";
 import { plural } from "./presentation";
 
@@ -14,10 +16,11 @@ export function renderLoadedStats(
   container: HTMLElement,
   results: ReadonlyMap<SourceId, LoadResult>,
 ): void {
+  const rule = currentLowStockRule();
   const cards = SOURCE_IDS.flatMap((source) => {
     const result = results.get(source);
     if (!result) return [];
-    const summary = summarizeInventory(result);
+    const summary = summarizeInventory(result, rule);
     const details = [
       plural(summary.brands, "brand"),
       plural(summary.materials, "material"),

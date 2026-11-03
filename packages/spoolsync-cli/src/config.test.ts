@@ -71,6 +71,16 @@ describe("expandConfig", () => {
     ]);
   });
 
+  test("numeric keys become options and must be numbers", () => {
+    const read = (config: unknown) =>
+      expandConfig(["--config", "c.json"], files({ "c.json": JSON.stringify(config) }));
+    expect(read({ "low-threshold": 30, summary: true })).toEqual([
+      "--low-threshold=30",
+      "--summary",
+    ]);
+    expect(() => read({ "low-threshold": "30" })).toThrow("must be a number");
+  });
+
   test("refuses secrets, unknown keys, wrong types, and unreadable files", () => {
     const read = (config: unknown) =>
       expandConfig(["--config", "c.json"], files({ "c.json": JSON.stringify(config) }));
@@ -122,4 +132,79 @@ test("parseArgs combines a real config file with command-line options", async ()
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+describe("the per-user settings file", () => {
+  const USER = "/home/ada/.config/spoolsync/config.json";
+  const withUser = (config: unknown, args: string[], extra: Record<string, string> = {}) => {
+    const notes: string[] = [];
+    const expanded = expandConfig(args, files({ [USER]: JSON.stringify(config), ...extra }), {
+      userConfig: { path: USER },
+      onNote: (message) => notes.push(message),
+    });
+    return { expanded, notes };
+  };
+
+  test("supplies defaults beneath the command line", () => {
+    const { expanded } = withUser(
+      { "output-dir": "out", "low-threshold": 30, "create-in": ["spoolio"] },
+      ["--spoolio", "a.json", "--output-dir", "mine"],
+    );
+    expect(expanded.some((arg) => arg.includes("out") && arg.startsWith("--output-dir="))).toBe(
+      false,
+    );
+    expect(expanded).toContain("--low-threshold=30");
+    expect(expanded).toContain("--create-in=spoolio");
+    expect(expanded.slice(-4)).toEqual(["--spoolio", "a.json", "--output-dir", "mine"]);
+  });
+
+  test("saved inventories apply only when the command line names none", () => {
+    const saved = {
+      spoolio: "/data/spoolio.json",
+      spoolkeep: "/data/keep.json",
+      "output-dir": "/out",
+    };
+    const none = withUser(saved, ["--summary"]);
+    expect(none.expanded).toContain("--spoolio=/data/spoolio.json");
+    expect(none.expanded).toContain("--spoolkeep=/data/keep.json");
+    expect(none.notes).toHaveLength(1);
+    expect(none.notes[0]).toContain("saved in /home/ada/.config/spoolsync/config.json");
+
+    // Naming any inventory means the saved set is left out, so it never joins your comparison.
+    const some = withUser(saved, ["--spoolman", "m.json", "--summary"]);
+    expect(some.expanded.some((arg) => arg.startsWith("--spoolio="))).toBe(false);
+    expect(some.expanded.some((arg) => arg.startsWith("--spoolkeep="))).toBe(false);
+    expect(some.expanded).toContain("--output-dir=/out");
+    expect(some.notes).toEqual([]);
+  });
+
+  test("an explicit --config file beats the user file", () => {
+    const { expanded } = withUser(
+      { "output-dir": "/user-out", "low-threshold": 10 },
+      ["--config", "p.json"],
+      {
+        "p.json": JSON.stringify({ "output-dir": "/project-out" }),
+      },
+    );
+    expect(expanded).toContain("--output-dir=/project-out");
+    expect(expanded).not.toContain("--output-dir=/user-out");
+    expect(expanded).toContain("--low-threshold=10");
+  });
+
+  test("--no-user-config skips it, and a missing file is simply nothing saved", () => {
+    const skipped = withUser({ "output-dir": "/out" }, ["--no-user-config", "--summary"]);
+    expect(skipped.expanded).toEqual(["--summary"]);
+    const missing = expandConfig(["--summary"], files({}), { userConfig: { path: USER } });
+    expect(missing).toEqual(["--summary"]);
+  });
+
+  test("a bad user file is reported by name, secrets included", () => {
+    expect(() => withUser({ "spoolman-token": "x" }, ["--summary"])).toThrow(USER);
+    expect(() => withUser({ "output-dr": "x" }, ["--summary"])).toThrow(
+      'Did you mean "output-dir"?',
+    );
+    expect(() =>
+      expandConfig(["--summary"], files({ [USER]: "{nope" }), { userConfig: { path: USER } }),
+    ).toThrow("not valid JSON");
+  });
 });

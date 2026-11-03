@@ -1,5 +1,5 @@
 import type { LoadResult, SourceId } from "../core/model";
-import { isRunningLow } from "../core/stock";
+import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
 
 export interface InventorySummary {
   source: SourceId;
@@ -17,7 +17,10 @@ export interface InventorySummary {
 }
 
 /** Headline numbers for one loaded inventory, for dry-run output and quick checks. */
-export function summarizeInventory(result: LoadResult): InventorySummary {
+export function summarizeInventory(
+  result: LoadResult,
+  rule: LowStockRule = DEFAULT_LOW_STOCK,
+): InventorySummary {
   const brands = new Set<string>();
   const materials = new Set<string>();
   let remainingGrams = 0;
@@ -28,7 +31,7 @@ export function summarizeInventory(result: LoadResult): InventorySummary {
     if (spool.vendor) brands.add(spool.vendor.toLowerCase());
     if (spool.material) materials.add(spool.material.toLowerCase());
     if (spool.archived) archived++;
-    if (isRunningLow(spool)) runningLow++;
+    if (isRunningLow(spool, rule)) runningLow++;
     if (spool.remainingWeight === null) unknownWeights++;
     else remainingGrams += spool.remainingWeight;
   }

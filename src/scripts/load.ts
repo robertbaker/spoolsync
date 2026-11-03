@@ -1,6 +1,7 @@
 import { SOURCE_IDS, type LoadResult } from "@spoolsync/core/core/model";
 
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
+import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 
 import { CONNECTION_CHANGED } from "./connections/events";
@@ -8,6 +9,7 @@ import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
+import { renderFileHistory } from "./load/file-history-view";
 import { wireFileSource } from "./load/file-source";
 import { createInventoryTable } from "./load/inventory-table";
 import { renderLoadedChart } from "./load/loaded-chart";
@@ -28,12 +30,15 @@ const loadedStats = document.getElementById("loaded-stats");
 const loadedChart = document.getElementById("loaded-chart");
 const render = () => {
   renderTable();
+  renderFileHistory(state);
   if (loadedStats) renderLoadedStats(loadedStats, state.results);
   if (loadedChart) renderLoadedChart(loadedChart, state.results);
   panels.refresh();
   actionBar.update();
   if (unloadAll) unloadAll.hidden = state.results.size === 0;
   if (downloadCombined) downloadCombined.hidden = state.results.size === 0;
+  const thresholdWrap = document.getElementById("low-threshold-wrap");
+  if (thresholdWrap) thresholdWrap.hidden = state.results.size === 0;
   // Sample data would replace real inventories in the same services, so offer it only when empty.
   const samplePrompt = document.getElementById("sample-prompt");
   if (samplePrompt) samplePrompt.hidden = state.results.size > 0;
@@ -128,7 +133,11 @@ document.getElementById("try-sample")?.addEventListener("click", async () => {
 document.getElementById("copy-reorder")?.addEventListener("click", async () => {
   const { formatReorderList, reorderItems } = await import("@spoolsync/core/workflow");
   const { loadMatchDecisions } = await import("~/lib/browser/storage");
-  const items = reorderItems([...state.results.values()], loadMatchDecisions());
+  const items = reorderItems(
+    [...state.results.values()],
+    loadMatchDecisions(),
+    currentLowStockRule(),
+  );
   try {
     await navigator.clipboard.writeText(formatReorderList(items));
     showToast(
@@ -139,3 +148,12 @@ document.getElementById("copy-reorder")?.addEventListener("click", async () => {
     showToast("Could not copy the list", "error");
   }
 });
+
+const thresholdSelect = document.getElementById("low-threshold") as HTMLSelectElement | null;
+if (thresholdSelect) {
+  thresholdSelect.value = String(loadLowStockPercent());
+  thresholdSelect.addEventListener("change", () => {
+    saveLowStockPercent(Number(thresholdSelect.value));
+    render();
+  });
+}

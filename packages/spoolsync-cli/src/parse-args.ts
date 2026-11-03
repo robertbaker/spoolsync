@@ -6,9 +6,14 @@ import {
   type SourceId,
   type WritableSourceId,
 } from "@spoolsync/core/core/model";
+import {
+  isLowStockPercent,
+  MAX_LOW_STOCK_PERCENT,
+  MIN_LOW_STOCK_PERCENT,
+} from "@spoolsync/core/core/stock";
 
 import { COMPLETION_SHELLS, completionScript, isCompletionShell } from "./completion";
-import { expandConfig } from "./config";
+import { expandConfig, type ConfigSettings } from "./config";
 import { help } from "./help";
 import type { Options } from "./options";
 import { closestOption } from "./suggest";
@@ -49,6 +54,11 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--export-csv",
   "--config",
   "--completion",
+  "--low-threshold",
+  "--save-config",
+  "--clear-config",
+  "--config-path",
+  "--no-user-config",
   "--summary",
   "--reorder",
   "--watch",
@@ -66,6 +76,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
 
 const SINGLETON_FLAGS: string[] = [
   "--output-dir",
+  "--low-threshold",
   "--export-csv",
   "--spoolman-url",
   "--spoolman-token",
@@ -75,8 +86,8 @@ const SINGLETON_FLAGS: string[] = [
   "--filadex-user",
 ];
 
-export function parseArgs(argv: string[]): Options {
-  const args = expandConfig(argv);
+export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
+  const args = expandConfig(argv, undefined, settings);
   const inputs = new Map<SourceId, string>();
   const empty: WritableSourceId[] = [];
   const resolves: Array<[ComparableField, SourceId]> = [];
@@ -94,6 +105,8 @@ export function parseArgs(argv: string[]): Options {
   let apply = false;
   let summary = false;
   let reorder = false;
+  let saveConfig = false;
+  let lowThreshold: number | undefined;
   let watch = false;
   let quiet = false;
   let json = false;
@@ -194,6 +207,16 @@ export function parseArgs(argv: string[]): Options {
       summary = true;
     } else if (arg === "--reorder") {
       reorder = true;
+    } else if (arg === "--save-config") {
+      saveConfig = true;
+    } else if (arg === "--low-threshold") {
+      const text = value(arg);
+      const percent = /^\d+$/.test(text) ? Number(text) : Number.NaN;
+      if (!isLowStockPercent(percent))
+        throw new Error(
+          `--low-threshold must be a whole number of percent from ${MIN_LOW_STOCK_PERCENT} to ${MAX_LOW_STOCK_PERCENT}, such as 20. Got "${text}".`,
+        );
+      lowThreshold = percent;
     } else if (arg === "--watch") {
       watch = true;
     } else if (arg === "--quiet") {
@@ -219,6 +242,8 @@ export function parseArgs(argv: string[]): Options {
     apply,
     summary,
     reorder,
+    saveConfig,
+    ...(lowThreshold !== undefined ? { lowThreshold } : {}),
     watch,
     quiet,
     ...(outputDir ? { outputDir } : {}),

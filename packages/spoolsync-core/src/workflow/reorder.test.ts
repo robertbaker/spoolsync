@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import type { LoadResult } from "../core/model";
+import { lowStockRule } from "../core/stock";
 import { makeSpool } from "../core/testing";
 import { formatReorderList, reorderItems } from "./reorder";
 
@@ -73,4 +74,18 @@ test("lists low spools once each, emptiest first, with a plain-text format", () 
 test("an empty list says so", () => {
   expect(formatReorderList([])).toBe("Nothing is running low.");
   expect(reorderItems([], none)).toEqual([]);
+});
+
+test("a stricter or looser rule changes who is listed", () => {
+  const results = [
+    result("spoolman", [
+      makeSpool("spoolman", "1", { name: "Quarter", initialWeight: 1000, remainingWeight: 250 }),
+      makeSpool("spoolman", "2", { name: "Tenth", initialWeight: 1000, remainingWeight: 100 }),
+    ]),
+  ];
+  const names = (percent: number) =>
+    reorderItems(results, none, lowStockRule(percent)).map((item) => item.spool.name);
+  expect(names(20)).toEqual(["Tenth"]);
+  expect(names(30)).toEqual(["Tenth", "Quarter"]);
+  expect(names(5)).toEqual([]);
 });

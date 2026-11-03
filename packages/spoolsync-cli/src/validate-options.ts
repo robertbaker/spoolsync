@@ -26,6 +26,8 @@ export function validateOptions(options: Options): void {
     exportCsv,
     summary,
     reorder,
+    saveConfig,
+    lowThreshold,
     watch,
     quiet,
   } = options;
@@ -80,11 +82,20 @@ export function validateOptions(options: Options): void {
     reject.length && "--reject",
   ].filter(Boolean);
   const reportOnly = summary || reorder;
+  if (saveConfig && (apply || watch || summary || reorder || exportCsv))
+    throw new Error(
+      "--save-config only saves defaults, so it cannot be combined with --apply, --watch, --summary, --reorder, or --export-csv.",
+    );
+  if (lowThreshold !== undefined && !reportOnly && !saveConfig)
+    throw new Error(
+      "--low-threshold applies to --summary and --reorder, the reports that count low spools.",
+    );
   if (reportOnly && changeOptions.length)
     throw new Error(
       `--${summary ? "summary" : "reorder"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
     );
-  if (inventories < 2) {
+  // Saving defaults does not run a comparison, so it needs no inventories at all.
+  if (inventories < 2 && !saveConfig) {
     if (!(exportCsv || reportOnly))
       throw new Error(
         "Provide at least two inventories to compare, for example --spoolman <file> --spoolio <file>. With a single inventory, use --summary to see what it holds, --reorder for what is running low, or --export-csv <file> to export it.",

@@ -65,6 +65,12 @@ initial weight must be resolved before export.
 SpoolSync can also export every loaded spool as one CSV (Load → Download all as CSV) and offers
 sample data for a first look at matching and syncing.
 
+SpoolSync remembers your settings in your browser so things are ready when you come back: panel
+layout, table sort and filters, the low-stock threshold, connections you chose to keep, which file
+you used last for each service (name and date only, never its contents), and your match answers. The
+footer's **Saved settings** shows exactly what is stored and can forget any part of it. The CLI has an
+optional per-user settings file (`spoolsync --save-config`, see the CLI README).
+
 ## Connecting your Spoolman
 
 Spoolman usually runs on your local network over plain `http://`. To let SpoolSync reach it:

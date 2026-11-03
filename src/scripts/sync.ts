@@ -8,6 +8,7 @@ import {
   saveMatchDecisions,
   saveResolutions,
 } from "~/lib/browser/storage";
+import { readPreferences } from "~/lib/preferences";
 import {
   applySampleParam,
   clearSampleData,
@@ -38,6 +39,8 @@ const state = new SyncSession(loaded, loadMatchDecisions(), loadResolutions(), {
   saveMatchDecisions,
   saveResolutions,
 });
+// Come back to the same view of the differences list.
+state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
 const renderApply = createApplyView(loaded, renderAll);
 const renderGroups = createGroupsView(state, () => {

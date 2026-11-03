@@ -6,9 +6,11 @@ import {
 } from "@spoolsync/core/core/model";
 import { isRunningLow } from "@spoolsync/core/core/stock";
 
+import { currentLowStockRule } from "~/lib/low-stock";
+import { readPreferences, updatePreferences, type SortKey } from "~/lib/preferences";
+
 import { byId, h } from "../dom";
 
-export type SortKey = "source" | "vendor" | "material" | "name" | "remaining" | "location";
 type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
 
 /** Clicking a column sorts it ascending, then descending, then returns to the loaded order. */
@@ -111,11 +113,14 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
   }
 
   let searchQuery = "";
-  let lowOnly = false;
-  let sort: { key: SortKey; direction: "asc" | "desc" } | null = null;
+  // Restored from the last visit; the table drops them again when they no longer apply.
+  const saved = readPreferences();
+  let lowOnly = saved.lowOnly ?? false;
+  let sort: { key: SortKey; direction: "asc" | "desc" } | null = saved.tableSort ?? null;
   const lowButton = document.getElementById("low-only");
   lowButton?.addEventListener("click", () => {
     lowOnly = !lowOnly;
+    updatePreferences({ lowOnly: lowOnly || undefined });
     renderTable();
   });
   const searchWrap = document.getElementById("loaded-filter-wrap");
@@ -151,7 +156,9 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
       return;
     }
 
-    const lowCount = all.filter(isRunningLow).length;
+    const rule = currentLowStockRule();
+    const isLow = (spool: CommonSpool) => isRunningLow(spool, rule);
+    const lowCount = all.filter(isLow).length;
     if (lowCount === 0) lowOnly = false;
     const reorderButton = document.getElementById("copy-reorder");
     if (reorderButton) reorderButton.hidden = lowCount === 0;
@@ -169,7 +176,7 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
           return text.includes(searchQuery);
         })
       : all;
-    const filtered = sortSpools(lowOnly ? matching.filter(isRunningLow) : matching, sort);
+    const filtered = sortSpools(lowOnly ? matching.filter(isLow) : matching, sort);
 
     byId("loaded-summary").textContent =
       searchQuery || lowOnly
@@ -216,7 +223,7 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
           "td",
           { class: "whitespace-nowrap" },
           weight(spool),
-          isRunningLow(spool)
+          isLow(spool)
             ? h(
                 "span",
                 {
@@ -269,6 +276,7 @@ export function createInventoryTable(results: ReadonlyMap<SourceId, LoadResult>)
                 );
                 button.addEventListener("click", () => {
                   sort = nextSort(sort, header.key!);
+                  updatePreferences({ tableSort: sort ?? undefined });
                   renderTable();
                   // The table is redrawn, so hand keyboard focus to the same column's button.
                   const next = [...container.querySelectorAll("th button")].find((candidate) =>

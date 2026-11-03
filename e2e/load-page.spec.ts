@@ -838,3 +838,180 @@ test("the reorder list covers low spools once each and can be copied", async ({
     "- Alpha PETG Charlie: 150 g left (15%)",
   ]);
 });
+
+test("the low-stock threshold can be changed, and is remembered", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#low-threshold-wrap")).toBeHidden();
+  const filaments = [100, 150, 250, 900].map((remaining, index) => ({
+    id: `s${index}`,
+    type: "PLA",
+    brand: "B",
+    colorName: `C${index}`,
+    weightTotal: 1000,
+    weightRemaining: remaining,
+  }));
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "thr.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ version: 1, filaments })),
+  });
+  const select = page.locator("#low-threshold");
+  await expect(select).toHaveValue("20");
+  await expect(page.locator("#low-only")).toHaveText("Running low (2)");
+
+  await select.selectOption("10");
+  await expect(page.locator("#low-only")).toHaveText("Running low (1)");
+  await expect(page.locator("#loaded-stats")).toContainText("1 running low");
+
+  await select.selectOption("30");
+  await expect(page.locator("#low-only")).toHaveText("Running low (3)");
+  await expect(page.locator("#loaded-stats")).toContainText("3 running low");
+
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:low-stock-percent")))
+    .toBe("30");
+  await page.reload();
+  await expect(page.locator("#low-threshold")).toHaveValue("30");
+  await expect(page.locator("#low-only")).toHaveText("Running low (3)");
+});
+
+test("the chart can group by storage location", async ({ page }) => {
+  await page.goto("/load");
+  const entry = (id: string, location: string, used: number) => ({
+    _id: id,
+    filament: id,
+    material: "PLA",
+    brand: "Same",
+    color: "#2244CC",
+    total_weight: 1000,
+    used_weight: used,
+    location,
+  });
+  await page.locator("#filameter-file").setInputFiles({
+    name: "filameter.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        regular: [
+          entry("a", "Shelf A", 200),
+          entry("b", "Shelf A", 500),
+          entry("c", "Dry box", 100),
+        ],
+      }),
+    ),
+  });
+  const chart = page.locator("#loaded-chart");
+  // One service of one brand, material and color: location is the only useful grouping.
+  await expect(chart).toContainText("Remaining filament by location");
+  await expect(chart.getByRole("button")).toHaveCount(0);
+  await expect(chart.getByRole("img").first()).toHaveAccessibleName(
+    "Shelf A: 1,300 g remaining across 2 spools, 59% of the total",
+  );
+  await expect(chart.getByRole("img").nth(1)).toHaveAccessibleName(
+    "Dry box: 900 g remaining across 1 spool, 41% of the total",
+  );
+});
+
+test("table sort, the low-only filter, and the service filter are remembered", async ({ page }) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  await page.getByRole("button", { name: /^Brand/ }).click();
+  await page.locator("#low-only").click();
+  await page.getByRole("button", { name: "Read-only", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:prefs")))
+    .toContain('"sourceFilter":"readonly"');
+
+  await page.reload();
+  await expect(page.locator("#low-only")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("columnheader", { name: /Brand/ })).toHaveAttribute(
+    "aria-sort",
+    "ascending",
+  );
+  const brands = await page.locator("#loaded-table tbody tr td:nth-child(3)").allInnerTexts();
+  expect(brands).toEqual(["Alpha", "Zeta"]);
+  await expect(page.getByRole("button", { name: "Read-only", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator('[data-panel="spoolstock"]')).toBeVisible();
+  await expect(page.locator('[data-panel="spoolman"]')).toBeHidden();
+});
+
+test("the Sync filter is remembered", async ({ page }) => {
+  await page.goto("/sync?sample=1");
+  await page.getByRole("button", { name: /^Open conflicts/ }).click();
+  await expect(page.locator("#groups")).toContainText("Nothing here.");
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:prefs")))
+    .toContain('"syncFilter":"open"');
+  await page.reload();
+  await expect(page.locator("#groups")).toContainText("Nothing here.");
+});
+
+test("the last file used for a service is remembered, without its contents", async ({ page }) => {
+  await page.goto("/load");
+  const lastFile = page.locator("#spoolio-last-file");
+  await expect(lastFile).toBeHidden();
+  await page
+    .locator("#spoolio-file")
+    .setInputFiles({ ...lowStockFile, name: "my-spoolio-backup.json" });
+  // While the service has something loaded, the badge says it all.
+  await expect(lastFile).toBeHidden();
+  await page.locator("#spoolio-panel").getByRole("button", { name: "Unload Spoolio" }).click();
+  await expect(lastFile).toContainText("my-spoolio-backup.json");
+  await expect(lastFile).toContainText("3 spools");
+  await expect(lastFile).toContainText("Browsers cannot reopen files for you");
+
+  const stored = await page.evaluate(() => localStorage.getItem("spoolsync:file-history") ?? "");
+  expect(stored).toContain("my-spoolio-backup.json");
+  expect(stored).not.toContain("weightRemaining");
+
+  await page.reload();
+  await page.locator("#spoolio-panel > summary").click();
+  await expect(page.locator("#spoolio-last-file")).toContainText("my-spoolio-backup.json");
+  await page.locator("#spoolio-last-file").getByRole("button", { name: "Forget" }).click();
+  await expect(page.locator("#spoolio-last-file")).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem("spoolsync:file-history"))).toBeNull();
+});
+
+test("the saved-settings dialog shows what is remembered and can forget it", async ({ page }) => {
+  await page.goto("/load");
+  await page.getByRole("button", { name: "Saved settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Saved in this browser" });
+  await expect(dialog.locator("#saved-data-empty")).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click();
+
+  await page.locator("#spoolio-file").setInputFiles(lowStockFile);
+  await page.locator("#low-threshold").selectOption("30");
+  await page.getByRole("button", { name: "Saved settings" }).click();
+  await expect(dialog).toContainText("Preferences");
+  await expect(dialog).toContainText("File history");
+  await expect(dialog).toContainText("Loaded inventories (this tab only)");
+
+  await dialog.getByRole("button", { name: "Forget File history" }).click();
+  await expect(dialog).not.toContainText("File history");
+  await expect(dialog).toContainText("Preferences");
+
+  // Closing after forgetting reloads the page, so nothing stale stays on screen.
+  const reloaded = page.waitForEvent("load");
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await reloaded;
+  expect(await page.evaluate(() => localStorage.getItem("spoolsync:file-history"))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("spoolsync:low-stock-percent"))).toBe("30");
+
+  await page.getByRole("button", { name: "Saved settings" }).click();
+  await page
+    .getByRole("dialog", { name: "Saved in this browser" })
+    .getByRole("button", { name: "Forget everything" })
+    .click();
+  await expect(page.locator("#saved-data-empty")).toBeVisible();
+  const reloadedAgain = page.waitForEvent("load");
+  await page
+    .getByRole("dialog", { name: "Saved in this browser" })
+    .getByRole("button", { name: "Close" })
+    .click();
+  await reloadedAgain;
+  expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
+  await expect(page.locator("#load-bar")).toBeHidden();
+});

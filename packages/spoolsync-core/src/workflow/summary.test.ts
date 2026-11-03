@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import { lowStockRule } from "../core/stock";
 import { makeSpool } from "../core/testing";
 import { summarizeInventory } from "./summary";
 
@@ -51,4 +52,19 @@ test("counts spools that are running low, leaving finished and unweighed ones ou
     loadedAt: "now",
   });
   expect(summary.runningLow).toBe(1);
+});
+
+test("a custom low-stock rule changes what counts as running low", () => {
+  const result = {
+    source: "spoolio" as const,
+    spools: [
+      makeSpool("spoolio", "a", { remainingWeight: 250, initialWeight: 1000 }),
+      makeSpool("spoolio", "b", { remainingWeight: 90, initialWeight: 1000 }),
+    ],
+    warnings: [],
+    loadedAt: "now",
+  };
+  expect(summarizeInventory(result).runningLow).toBe(1);
+  expect(summarizeInventory(result, lowStockRule(30)).runningLow).toBe(2);
+  expect(summarizeInventory(result, lowStockRule(5)).runningLow).toBe(0);
 });

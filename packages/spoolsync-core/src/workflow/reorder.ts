@@ -1,6 +1,6 @@
 import type { MatchDecisions } from "../core/match";
 import type { CommonSpool, LoadResult } from "../core/model";
-import { isRunningLow } from "../core/stock";
+import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
 import { uniqueSpools } from "./breakdown";
 
 export interface ReorderItem {
@@ -13,11 +13,12 @@ export interface ReorderItem {
 export function reorderItems(
   results: readonly LoadResult[],
   decisions: MatchDecisions,
+  rule: LowStockRule = DEFAULT_LOW_STOCK,
 ): ReorderItem[] {
   return uniqueSpools(results, decisions)
     .map(({ spool, members }) => {
       // A linked spool is low if its best-known record says so.
-      const low = members.some(isRunningLow);
+      const low = members.some((member) => isRunningLow(member, rule));
       return low ? { spool, remaining: spool.remainingWeight } : null;
     })
     .filter((item): item is { spool: CommonSpool; remaining: number | null } => item !== null)

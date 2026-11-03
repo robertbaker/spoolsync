@@ -27,9 +27,10 @@ const STRING_KEYS = new Set<string>([
   "filadex-url",
   "filadex-user",
 ]);
+const NUMBER_KEYS = new Set(["low-threshold"]);
 const LIST_KEYS = new Set(["resolve", "confirm", "reject", "create-in", "empty"]);
 const BOOLEAN_KEYS = new Set(["apply", "json", "summary"]);
-const ALLOWED_KEYS = [...STRING_KEYS, ...LIST_KEYS, ...BOOLEAN_KEYS];
+const ALLOWED_KEYS = [...STRING_KEYS, ...NUMBER_KEYS, ...LIST_KEYS, ...BOOLEAN_KEYS];
 
 /** Flags that name the same source, so a command-line flag replaces its config counterpart. */
 const ALIASES: Record<string, string> = {
@@ -73,35 +74,33 @@ function readConfig(file: string, dependencies: ConfigDependencies): Record<stri
 }
 
 /**
- * Expands `--config <file>` into the options it describes. Options given on the command line
- * replace the same option from the file, so a config file holds defaults that a run can override.
- * Paths in the file are relative to the file. Secrets are refused: tokens and passwords belong in
- * environment variables, because config files tend to be committed and shared.
+ * Options that choose which inventories to load. A saved set of these only applies when none are
+ * given.
  */
-export function expandConfig(
-  args: string[],
-  dependencies: ConfigDependencies = defaultDependencies,
-): string[] {
-  const rest: string[] = [];
-  let configFile: string | undefined;
-  for (let index = 0; index < args.length; index++) {
-    const arg = args[index]!;
-    if (arg === "--config" || arg.startsWith("--config=")) {
-      if (configFile !== undefined) throw new Error("--config may only be provided once");
-      const inline = arg.startsWith("--config=") ? arg.slice("--config=".length) : undefined;
-      const next = inline ?? args[index + 1];
-      if (!next || (inline === undefined && next.startsWith("-")))
-        throw new Error("--config requires a value");
-      configFile = next;
-      if (inline === undefined) index++;
-    } else rest.push(arg);
-  }
-  if (configFile === undefined) return args;
+const INPUT_KEYS = new Set<string>([
+  ...SOURCE_KEYS,
+  "empty",
+  "spoolman-url",
+  "filamentdb-url",
+  "filadex-url",
+]);
 
-  const config = readConfig(configFile, dependencies);
-  const given = new Set(
-    rest.filter((arg) => arg.startsWith("--")).map((arg) => canonical(arg.slice(2).split("=")[0]!)),
-  );
+export interface ConfigSettings {
+  /** The per-user settings file, applied beneath `--config` and the command line. */
+  userConfig?: { path: string };
+  /** Told when saved settings change what a run does, so the person is not surprised. */
+  onNote?: (message: string) => void;
+  /** Which source options are allowed to be defaults (used for messages only). */
+  readText?: ConfigDependencies["readText"];
+}
+
+/** Turns one config file into command-line options, skipping anything already given. */
+function optionsFromFile(
+  configFile: string,
+  config: Record<string, unknown>,
+  given: ReadonlySet<string>,
+  skipInputs: boolean,
+): string[] {
   const base = path.dirname(path.resolve(configFile));
   const expanded: string[] = [];
   for (const [key, value] of Object.entries(config)) {
@@ -121,10 +120,15 @@ export function expandConfig(
       );
     }
     if (given.has(canonical(key))) continue;
+    if (skipInputs && INPUT_KEYS.has(key)) continue;
     const resolvePath = (text: string) => (path.isAbsolute(text) ? text : path.join(base, text));
     if (BOOLEAN_KEYS.has(key)) {
       if (typeof value !== "boolean") fail(configFile, `"${key}" must be true or false.`);
       if (value) expanded.push(`--${key}`);
+    } else if (NUMBER_KEYS.has(key)) {
+      if (typeof value !== "number" || !Number.isFinite(value))
+        fail(configFile, `"${key}" must be a number.`);
+      expanded.push(`--${key}=${value}`);
     } else if (LIST_KEYS.has(key)) {
       const items = typeof value === "string" ? [value] : value;
       if (!Array.isArray(items) || items.some((item) => typeof item !== "string" || !item))
@@ -135,5 +139,82 @@ export function expandConfig(
       expanded.push(`--${key}=${PATH_KEYS.has(key) ? resolvePath(value as string) : value}`);
     }
   }
-  return [...expanded, ...rest];
+  return expanded;
+}
+
+const givenFlags = (args: readonly string[]) =>
+  new Set(
+    args.filter((arg) => arg.startsWith("--")).map((arg) => canonical(arg.slice(2).split("=")[0]!)),
+  );
+
+/**
+ * Expands `--config <file>` and the per-user settings file into the options they describe. The
+ * layers, strongest first: the command line, `--config`, the user file. An option given by a
+ * stronger layer replaces the same option from a weaker one. Saved inventories (from the user file)
+ * apply only when the stronger layers name none, so a saved set never silently joins a comparison
+ * you spelled out. Paths in a file are relative to that file. Secrets are refused: tokens and
+ * passwords belong in environment variables, because config files tend to be shared.
+ * `--no-user-config` skips the user file.
+ */
+export function expandConfig(
+  args: string[],
+  dependencies: ConfigDependencies = defaultDependencies,
+  settings: ConfigSettings = {},
+): string[] {
+  const rest: string[] = [];
+  let configFile: string | undefined;
+  let useUserConfig = true;
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!;
+    if (arg === "--no-user-config") useUserConfig = false;
+    else if (arg === "--config" || arg.startsWith("--config=")) {
+      if (configFile !== undefined) throw new Error("--config may only be provided once");
+      const inline = arg.startsWith("--config=") ? arg.slice("--config=".length) : undefined;
+      const next = inline ?? args[index + 1];
+      if (!next || (inline === undefined && next.startsWith("-")))
+        throw new Error("--config requires a value");
+      configFile = next;
+      if (inline === undefined) index++;
+    } else rest.push(arg);
+  }
+
+  let result = rest;
+  if (configFile !== undefined) {
+    const config = readConfig(configFile, dependencies);
+    result = [...optionsFromFile(configFile, config, givenFlags(rest), false), ...rest];
+  }
+
+  const user = useUserConfig ? settings.userConfig : undefined;
+  if (user) {
+    const config = readUserConfig(user.path, dependencies);
+    if (config) {
+      const given = givenFlags(result);
+      const hasInputs = [...given].some((flag) => INPUT_KEYS.has(flag));
+      const expanded = optionsFromFile(user.path, config, given, hasInputs);
+      const savedInputs = expanded.some((option) =>
+        INPUT_KEYS.has(canonical(option.slice(2).split("=")[0]!)),
+      );
+      if (savedInputs)
+        settings.onNote?.(
+          `Using the inventories saved in ${user.path} (--no-user-config ignores it).`,
+        );
+      result = [...expanded, ...result];
+    }
+  }
+  // Nothing to expand: hand back the very same arguments.
+  return result === rest && useUserConfig && args.length === rest.length ? args : result;
+}
+
+/** The per-user settings file, or `undefined` when it does not exist yet. */
+function readUserConfig(
+  file: string,
+  dependencies: ConfigDependencies,
+): Record<string, unknown> | undefined {
+  try {
+    return readConfig(file, dependencies);
+  } catch (error) {
+    // A missing file just means nothing was saved; any other problem is worth reporting.
+    if (error instanceof Error && error.message.includes("was not found")) return undefined;
+    throw error;
+  }
 }

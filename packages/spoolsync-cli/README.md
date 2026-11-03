@@ -48,8 +48,8 @@ Check what an export holds without planning anything (including how many spools 
 spoolsync --spoolkeep SpoolKeep.json --summary
 ```
 
-Print a shopping list of spools that are running low (at or under a fifth of their full weight,
-each physical spool listed once). It works with a single inventory and supports `--json`:
+Print a shopping list of spools that are running low (at or under a fifth of their full weight by
+default, or `--low-threshold <percent>`; each physical spool listed once). It works with a single inventory and supports `--json`:
 
 ```sh
 spoolsync --spoolio spoolio.json --spoolkeep SpoolKeep.json --reorder
@@ -61,6 +61,25 @@ single inventory, and it refuses to overwrite one of your input files:
 ```sh
 spoolsync --spoolmaster SpoolMaster.xlsx --spoolkeep SpoolKeep.json --export-csv ./inventory.csv
 ```
+
+Remember your setup. `--save-config` writes the options you give (and your inventory file paths, as
+absolute paths) to a settings file in your user profile, so a bare `spoolsync --summary` works next
+time:
+
+```sh
+spoolsync --spoolio ~/inv/spoolio.json --spoolkeep ~/inv/SpoolKeep.json --output-dir ~/inv/updated --save-config
+spoolsync --summary          # uses the saved inventories
+```
+
+- **Where:** `~/.config/spoolsync/config.json` (or `$XDG_CONFIG_HOME/spoolsync/`), `%APPDATA%\spoolsync\`
+  on Windows, or `$SPOOLSYNC_CONFIG_DIR`. `spoolsync --config-path` prints the exact location.
+- **Order of precedence:** the command line, then `--config <file>`, then the settings file. An option
+  from a stronger layer replaces the same option from a weaker one.
+- **Saved inventories never join a comparison you spelled out:** they are used only when the command
+  line and `--config` name no inventory at all, and a note on stderr says so.
+- **Never saved:** tokens and passwords, `--apply`, `--watch`, and per-run choices such as
+  `--confirm`. The file is written atomically and readable only by you.
+- `--no-user-config` ignores the file for one run, and `--clear-config` deletes it.
 
 Keep your usual options in a config file. Keys are the long option names without dashes, paths are
 relative to the file, and command-line options replace the same option from the file:

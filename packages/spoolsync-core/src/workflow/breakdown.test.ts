@@ -109,3 +109,23 @@ test("groups by color family using each spool's first color", () => {
     { material: "Unknown color", grams: 40, spools: 1 },
   ]);
 });
+
+test("groups by storage location and folds spools without one", () => {
+  const { rows } = remainingBy(
+    "location",
+    [
+      result("spoolman", [
+        makeSpool("spoolman", "1", { location: "Shelf A", name: "A", remainingWeight: 300 }),
+        makeSpool("spoolman", "2", { location: "shelf a ", name: "B", remainingWeight: 200 }),
+        makeSpool("spoolman", "3", { location: "Dry box", name: "C", remainingWeight: 800 }),
+        makeSpool("spoolman", "4", { location: null, name: "D", remainingWeight: 50 }),
+      ]),
+    ],
+    none,
+  );
+  expect(rows).toEqual([
+    { material: "Dry box", grams: 800, spools: 1 },
+    { material: "Shelf A", grams: 500, spools: 2 },
+    { material: "No location", grams: 50, spools: 1 },
+  ]);
+});

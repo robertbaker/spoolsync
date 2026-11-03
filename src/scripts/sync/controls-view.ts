@@ -2,6 +2,8 @@ import { compareGroup, openConflicts, type GroupResolution } from "@spoolsync/co
 import type { SpoolGroup } from "@spoolsync/core/core/match";
 import { SOURCE_LABELS } from "@spoolsync/core/core/model";
 
+import { updatePreferences } from "~/lib/preferences";
+
 import { byId, h, showToast } from "../dom";
 import { button } from "./presentation";
 import type { SyncSession } from "./session";
@@ -41,6 +43,7 @@ export function createControlsView(
           label,
           () => {
             state.filter = value;
+            updatePreferences({ syncFilter: value === "all" ? undefined : value });
             renderFilters();
             renderGroups();
           },

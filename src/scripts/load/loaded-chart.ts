@@ -12,7 +12,7 @@ import { local, read, write } from "~/lib/browser/storage/access";
 import { h } from "../dom";
 import { plural } from "./presentation";
 
-type View = "service" | "material" | "brand" | "color";
+type View = "service" | "material" | "brand" | "color" | "location";
 
 interface Datum {
   label: string;
@@ -29,6 +29,7 @@ const VIEW_LABELS: Record<View, string> = {
   material: "By material",
   brand: "By brand",
   color: "By color",
+  location: "By location",
 };
 /** The word for what each bar is, used in the title and the table heading. */
 const VIEW_NOUNS: Record<View, string> = {
@@ -36,6 +37,7 @@ const VIEW_NOUNS: Record<View, string> = {
   material: "material",
   brand: "brand",
   color: "color",
+  location: "location",
 };
 
 const grams = (value: number) => `${value.toLocaleString()} g`;
@@ -73,7 +75,7 @@ export function renderLoadedChart(
 ): void {
   const services = byService(results);
   const decisions = loadMatchDecisions();
-  const grouped = (field: "material" | "vendor" | "color") => {
+  const grouped = (field: "material" | "vendor" | "color" | "location") => {
     const breakdown = remainingBy(field, [...results.values()], decisions);
     return {
       duplicatesRemoved: breakdown.duplicatesRemoved,
@@ -89,9 +91,10 @@ export function renderLoadedChart(
     material: grouped("material"),
     brand: grouped("vendor"),
     color: grouped("color"),
+    location: grouped("location"),
   };
-  const available = (["service", "material", "brand", "color"] as const).filter((candidate) =>
-    comparable(views[candidate].data),
+  const available = (["service", "material", "brand", "color", "location"] as const).filter(
+    (candidate) => comparable(views[candidate].data),
   );
   container.hidden = available.length === 0;
   if (!available.length) return container.replaceChildren();

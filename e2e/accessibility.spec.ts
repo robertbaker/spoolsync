@@ -67,6 +67,13 @@ for (const colorScheme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
+    test("saved-settings dialog has no detectable violations", async ({ page }) => {
+      await loadTwoServices(page);
+      await page.getByRole("button", { name: "Saved settings" }).click();
+      await expect(page.getByRole("dialog", { name: "Saved in this browser" })).toBeVisible();
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("sync page has no detectable violations with matches to review", async ({ page }) => {
       await loadTwoServices(page);
       await page.goto("/sync");

@@ -7,6 +7,21 @@ import { buildXlsx } from "../../spoolsync-core/src/adapters/shared/xlsx-fixture
 import { createFakeSpoolman } from "../../spoolsync-core/src/adapters/spoolman/fake-server";
 import { version } from "../package.json";
 
+/**
+ * Spawns the CLI with a throwaway settings folder. Bun does not pass runtime changes to
+ * `process.env` on to children, so the variable is given explicitly; this keeps every test away
+ * from a real person's saved settings.
+ */
+const spawnIsolated = ((command: string[], options: { env?: Record<string, string> } = {}) =>
+  Bun.spawn(command, {
+    ...options,
+    env: {
+      ...process.env,
+      ...options.env,
+      SPOOLSYNC_CONFIG_DIR: process.env["SPOOLSYNC_CONFIG_DIR"] ?? "",
+    },
+  } as never)) as typeof Bun.spawn;
+
 let directory: string;
 const compiled = process.env["SPOOLSYNC_CLI_PATH"];
 const cli = compiled ? path.resolve(compiled) : path.join(import.meta.dir, "cli.ts");
@@ -44,7 +59,7 @@ test("a spool deleted after planning cannot modify a surviving spool's filament"
         filaments: [{ id: "donor", spoolmanId: 51, type: "PETG", colorName: "Blue" }],
       }),
     );
-    const child = Bun.spawn(
+    const child = spawnIsolated(
       [
         runtime,
         cli,
@@ -97,7 +112,7 @@ test("compares a SpoolMaster .xlsx workbook against a writable file inventory", 
       },
     ]),
   );
-  const child = Bun.spawn(
+  const child = spawnIsolated(
     [
       runtime,
       cli,
@@ -137,7 +152,7 @@ test("--export-csv writes every loaded spool, alone or alongside a comparison", 
     JSON.stringify([{ id: "k1", brand: "Creality", family: "PLA", color: "Blue", newQuantity: 1 }]),
   );
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -189,7 +204,7 @@ test("--summary reports counts per inventory without planning changes", async ()
     ]),
   );
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -236,7 +251,7 @@ test("load failures say what to do: missing files, and files given to the wrong 
     JSON.stringify([{ id: "k1", brand: "Creality", family: "PLA", newQuantity: 1 }]),
   );
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stderr, code] = await Promise.all([new Response(child.stderr).text(), child.exited]);
     return { stderr, code };
   };
@@ -273,7 +288,7 @@ test("--config supplies defaults that the command line can override", async () =
     JSON.stringify({ spoolkeep: "../keep.json", summary: true }),
   );
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -294,7 +309,7 @@ test("--config supplies defaults that the command line can override", async () =
 
 test("--completion prints a script for each supported shell and rejects others", async () => {
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -316,7 +331,7 @@ test("--completion prints a script for each supported shell and rejects others",
 test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
   const keep = path.join(directory, "keep.json");
   await writeFile(keep, JSON.stringify([{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }]));
-  const child = Bun.spawn([runtime, cli, "--spoolkeep", keep, "--summary", "--watch"], {
+  const child = spawnIsolated([runtime, cli, "--spoolkeep", keep, "--summary", "--watch"], {
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -374,10 +389,13 @@ test("--watch --quiet stays silent when a save does not change the result", asyn
   const keep = path.join(directory, "keep.json");
   const spools = [{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }];
   await writeFile(keep, JSON.stringify(spools));
-  const child = Bun.spawn([runtime, cli, "--spoolkeep", keep, "--summary", "--watch", "--quiet"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  const child = spawnIsolated(
+    [runtime, cli, "--spoolkeep", keep, "--summary", "--watch", "--quiet"],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
   let stdout = "";
   let stderr = "";
   const pump = async (stream: ReadableStream<Uint8Array>, append: (text: string) => void) => {
@@ -423,7 +441,7 @@ test("--summary flags spools that are running low", async () => {
       ],
     }),
   );
-  const child = Bun.spawn(
+  const child = spawnIsolated(
     [runtime, cli, "--spoolio", path.join(directory, "low.json"), "--summary"],
     { stdout: "pipe", stderr: "pipe" },
   );
@@ -468,7 +486,7 @@ test("--reorder prints a shopping list of spools that are running low", async ()
     }),
   );
   const run = async (...args: string[]) => {
-    const child = Bun.spawn([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
     const [stdout, stderr, code] = await Promise.all([
       new Response(child.stdout).text(),
       new Response(child.stderr).text(),
@@ -497,6 +515,111 @@ test("--reorder prints a shopping list of spools that are running low", async ()
   );
   expect(conflict.code).not.toBe(0);
   expect(conflict.stderr).toContain("--reorder only reports what is loaded");
+});
+
+test("--low-threshold changes what --summary and --reorder call low", async () => {
+  await writeFile(
+    path.join(directory, "thr.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          type: "PLA",
+          brand: "A",
+          colorName: "Quarter",
+          weightTotal: 1000,
+          weightRemaining: 250,
+        },
+        {
+          id: "b",
+          type: "PLA",
+          brand: "A",
+          colorName: "Tenth",
+          weightTotal: 1000,
+          weightRemaining: 100,
+        },
+      ],
+    }),
+  );
+  const run = async (...args: string[]) => {
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  const file = path.join(directory, "thr.json");
+  expect((await run("--spoolio", file, "--summary")).stdout).toContain("1 running low");
+  expect((await run("--spoolio", file, "--summary", "--low-threshold", "30")).stdout).toContain(
+    "2 running low",
+  );
+  expect((await run("--spoolio", file, "--summary", "--low-threshold", "5")).stdout).not.toContain(
+    "running low",
+  );
+  const reorder = await run("--spoolio", file, "--reorder", "--low-threshold", "30");
+  expect(reorder.stdout).toContain("Running low (2):");
+  const bad = await run("--spoolio", file, "--summary", "--low-threshold", "150");
+  expect(bad.code).not.toBe(0);
+  expect(bad.stderr).toContain("whole number of percent from 1 to 90");
+});
+
+test("saved settings are remembered between runs and can be overridden, ignored, and cleared", async () => {
+  const settingsDir = path.join(directory, ".settings");
+  const keep = path.join(directory, "keep.json");
+  await writeFile(keep, JSON.stringify([{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }]));
+  const run = async (...args: string[]) => {
+    const child = spawnIsolated([runtime, cli, ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: directory,
+    });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+
+  const where = await run("--config-path");
+  expect(where.stdout.trim()).toBe(path.join(settingsDir, "config.json"));
+
+  // Nothing saved yet: a bare run needs inventories.
+  expect((await run("--summary")).code).not.toBe(0);
+
+  const saved = await run("--spoolkeep", "keep.json", "--low-threshold", "30", "--save-config");
+  expect(saved).toMatchObject({ code: 0, stderr: "" });
+  expect(saved.stdout).toContain("Saved 2 settings to");
+  const file = JSON.parse(await readFile(path.join(settingsDir, "config.json"), "utf8"));
+  expect(file).toEqual({ spoolkeep: keep, "low-threshold": 30 });
+
+  // A bare run now uses the saved inventory and threshold, and says so on stderr only.
+  const remembered = await run("--summary");
+  expect(remembered.code).toBe(0);
+  expect(remembered.stdout).toContain("spoolkeep: 1 spool");
+  expect(remembered.stderr).toContain("Using the inventories saved in");
+
+  // Naming an inventory means the saved set is left out.
+  const other = await run("--spoolio", "spoolio.json", "--summary");
+  expect(other.stdout).toContain("spoolio: 0 spools");
+  expect(other.stdout).not.toContain("spoolkeep");
+
+  const ignored = await run("--no-user-config", "--summary");
+  expect(ignored.code).not.toBe(0);
+
+  const cleared = await run("--clear-config");
+  expect(cleared.stdout).toContain("Removed");
+  expect((await run("--clear-config")).stdout).toContain("No saved settings");
+  expect((await run("--summary")).code).not.toBe(0);
+
+  const nothing = await run("--save-config");
+  expect(nothing.code).not.toBe(0);
+  expect(nothing.stderr).toContain("nothing to save");
+  const combined = await run("--spoolkeep", "keep.json", "--save-config", "--apply");
+  expect(combined.code).not.toBe(0);
 });
 
 for (const failRefresh of [true, false]) {
@@ -535,7 +658,7 @@ for (const failRefresh of [true, false]) {
           ],
         }),
       );
-      const child = Bun.spawn(
+      const child = spawnIsolated(
         [
           runtime,
           cli,
@@ -600,6 +723,8 @@ test("version rejects accidentally combined workflow arguments", () => {
 
 beforeEach(async () => {
   directory = await mkdtemp(path.join(tmpdir(), "spoolsync-cli-"));
+  // Spawned CLIs inherit this, so no test can read or write a real person's settings file.
+  process.env["SPOOLSYNC_CONFIG_DIR"] = path.join(directory, ".settings");
   await writeFile(path.join(directory, "spoolman-spools.json"), "[]");
   await writeFile(path.join(directory, "spoolio.json"), '{"version":1,"filaments":[]}');
 });
@@ -608,7 +733,7 @@ afterEach(async () => {
 });
 
 async function run(...args: string[]) {
-  const child = Bun.spawn(
+  const child = spawnIsolated(
     [
       runtime,
       cli,

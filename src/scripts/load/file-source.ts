@@ -2,6 +2,8 @@ import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { isBinarySource, SOURCE_LABELS } from "@spoolsync/core/core/model";
 import { createEmptyInventory, loadInventoryFile } from "@spoolsync/core/workflow";
 
+import { recordFile } from "~/lib/browser/storage";
+
 import { byId, h, notice } from "../dom";
 import { plural, warningsNotice } from "./presentation";
 import type { LoadContext } from "./state";
@@ -112,4 +114,10 @@ export async function readInventoryFile(
     ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),
   );
   store(result);
+  recordFile(source, {
+    name: file.name,
+    size: file.size,
+    spools: result.spools.length,
+    loadedAt: new Date().toISOString(),
+  });
 }
