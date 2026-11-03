@@ -316,3 +316,65 @@ test("slash focuses the spool filter on the Sync page", async ({ page }) => {
   await page.keyboard.press("/");
   await expect(page.getByLabel("Filter spools")).toBeFocused();
 });
+
+test("saved match answers are shown and can be reset", async ({ page }) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "spoolio.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        version: 1,
+        filaments: [{ id: "s1", type: "PLA", brand: "Prusa", colorName: "Blue" }],
+      }),
+    ),
+  });
+  await page.locator("#filameter-file").setInputFiles({
+    name: "filameter.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        regular: [{ _id: "f1", filament: "Blue", material: "PLA", brand: "Prusa" }],
+      }),
+    ),
+  });
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.goto("/sync");
+  await expect(page.locator("#match-answers")).toBeHidden();
+  await page.getByRole("button", { name: "Different spools" }).click();
+  await expect(page.locator("#suggestions-section")).toBeHidden();
+  await expect(page.locator("#match-answers")).toContainText(
+    "You have answered 1 possible match (0 same, 1 different)",
+  );
+
+  // The answer outlives the page.
+  await page.reload();
+  await expect(page.locator("#suggestions-section")).toBeHidden();
+  await page.getByRole("button", { name: "Reset my match answers" }).click();
+  await expect(page.locator("#suggestions-section")).toBeVisible();
+  await expect(page.locator("#match-answers")).toBeHidden();
+});
+
+test("Unload all clears every loaded service in one step", async ({ page }) => {
+  await page.goto("/load");
+  await expect(page.locator("#unload-all")).toBeHidden();
+  await page.locator("#smart-file").setInputFiles([
+    {
+      name: "a.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "A" }] })),
+    },
+    {
+      name: "k.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify([{ id: "k", brand: "B", family: "PLA", newQuantity: 1 }])),
+    },
+  ]);
+  await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
+  await page.locator("#unload-all").click();
+  await expect(page.locator("#load-bar")).toBeHidden();
+  await expect(page.locator("#unload-all")).toBeHidden();
+  await expect(page.locator("#spoolio-status")).toContainText("Not loaded");
+  await page.reload();
+  await expect(page.locator("#spoolkeep-status")).toContainText("Not loaded");
+});

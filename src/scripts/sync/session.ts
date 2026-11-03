@@ -69,6 +69,19 @@ export class SyncSession {
     this.persistence.saveMatchDecisions(this.decisions);
   }
 
+  /** How many possible matches the visitor has answered, saved across visits. */
+  decisionCounts(): { same: number; different: number } {
+    return { same: this.decisions.confirmed.length, different: this.decisions.rejected.length };
+  }
+
+  /** Forgets every saved match answer so those pairs are suggested again. */
+  resetDecisions(): number {
+    const { same, different } = this.decisionCounts();
+    this.decisions = { confirmed: [], rejected: [] };
+    this.persistence.saveMatchDecisions(this.decisions);
+    return same + different;
+  }
+
   /** Answers every currently suggested pair the same way; the match is recomputed once afterwards. */
   decideAll(same: boolean): number {
     const suggestions = [...this.match.suggestions];

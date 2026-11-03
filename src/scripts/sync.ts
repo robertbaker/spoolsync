@@ -45,6 +45,11 @@ const renderSuggestions = createSuggestionsView(
     showToast(`${same ? "Confirmed" : "Rejected"} ${count} possible matches`, "info");
     renderAll();
   },
+  () => {
+    const count = state.resetDecisions();
+    showToast(`Forgot ${count} match ${count === 1 ? "answer" : "answers"}`, "info");
+    renderAll();
+  },
 );
 
 function renderAll(): void {

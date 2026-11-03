@@ -87,6 +87,10 @@ drops the in-page copy too; file snapshots are kept.
 The Differences list renders a window of 25 groups at a time (cards are built only for that window)
 and can be filtered by text. The Apply section offers one button that downloads every changed file.
 
+Match answers are saved in localStorage so the same question is not asked twice. The Sync page
+shows how many answers are saved and offers "Reset my match answers" (`SyncSession.resetDecisions`),
+so a mistaken answer can be taken back. The Load page has "Unload all" for clearing every service.
+
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
 primary search on "/" (service search on Load, spool filter on Sync, option search on the CLI page)
 without swallowing slashes typed into a field. `source-panels.ts` remembers which service panels the

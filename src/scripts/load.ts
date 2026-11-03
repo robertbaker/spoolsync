@@ -3,6 +3,7 @@ import { SOURCE_IDS } from "@spoolsync/core/core/model";
 import { clearLoadResult, readLoadResult, saveLoadResult } from "~/lib/browser/storage";
 
 import { CONNECTION_CHANGED } from "./connections/events";
+import { showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
 import { wireConnectionPanels } from "./load/connection-panels";
@@ -17,10 +18,12 @@ const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult })
 const renderTable = createInventoryTable(state.results);
 const panels = wireSourcePanels(state);
 const actionBar = createActionBar(state);
+const unloadAll = document.getElementById("unload-all");
 const render = () => {
   renderTable();
   panels.refresh();
   actionBar.update();
+  if (unloadAll) unloadAll.hidden = state.results.size === 0;
 };
 const { store, setStatus } = createLoadStatusView(state, render);
 const context = { state, store };
@@ -44,4 +47,15 @@ document.addEventListener(CONNECTION_CHANGED, () => {
     }
   }
   render();
+});
+
+unloadAll?.addEventListener("click", () => {
+  const sources = [...state.results.keys()];
+  for (const source of sources) {
+    state.unload(source);
+    setStatus(source);
+    document.getElementById(`${source}-message`)?.replaceChildren();
+  }
+  render();
+  showToast(`Unloaded ${sources.length} ${sources.length === 1 ? "service" : "services"}`, "info");
 });

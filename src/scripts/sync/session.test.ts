@@ -113,3 +113,25 @@ test("bulk decisions answer every suggestion once and persist a single time", ()
   expect(state.match.groups.filter((group) => group.status === "linked")).toHaveLength(2);
   expect(state.decideAll(false)).toBe(0);
 });
+
+test("saved match answers can be counted and reset so pairs are suggested again", () => {
+  const { state, saveMatchDecisions } = session(
+    new Map([
+      ["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1")])],
+      ["spoolio", snapshot("spoolio", [makeSpool("spoolio", "one")])],
+    ]),
+  );
+  state.recompute();
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 0 });
+  state.decide(state.match.suggestions[0]!, false);
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 1 });
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(0);
+
+  expect(state.resetDecisions()).toBe(1);
+  expect(state.decisionCounts()).toEqual({ same: 0, different: 0 });
+  expect(saveMatchDecisions).toHaveBeenLastCalledWith({ confirmed: [], rejected: [] });
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(1);
+  expect(state.resetDecisions()).toBe(0);
+});

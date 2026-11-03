@@ -10,6 +10,7 @@ export function createSuggestionsView(
   state: SyncSession,
   decide: (suggestion: MatchSuggestion, same: boolean) => void,
   decideAll: (same: boolean) => void,
+  resetAnswers: () => void,
 ) {
   const CONFIRM_WINDOW_MS = 5000;
 
@@ -40,7 +41,31 @@ export function createSuggestionsView(
     return control;
   }
 
+  /** Saved answers outlive the tab, so show them and let the visitor take them back. */
+  function renderAnswers(): void {
+    const { same, different } = state.decisionCounts();
+    const container = byId("match-answers");
+    container.hidden = same + different === 0;
+    if (container.hidden) return container.replaceChildren();
+    container.replaceChildren(
+      h(
+        "div",
+        {
+          class:
+            "flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/30 p-4",
+        },
+        h(
+          "p",
+          { class: "text-sm text-muted-foreground" },
+          `You have answered ${same + different} possible ${same + different === 1 ? "match" : "matches"} (${same} same, ${different} different). Answers are remembered in this browser.`,
+        ),
+        button("Reset my match answers", resetAnswers),
+      ),
+    );
+  }
+
   function renderSuggestions(): void {
+    renderAnswers();
     byId("suggestions-section").hidden = state.match.suggestions.length === 0;
     const count = state.match.suggestions.length;
     byId("suggestions-bulk").replaceChildren(

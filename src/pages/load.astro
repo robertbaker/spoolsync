@@ -239,6 +239,15 @@ const fileSources = [
           <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
           <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground"></p>
         </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            id="unload-all"
+            hidden
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Unload all
+          </button>
         <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
           <input
             id="spool-search-input"
@@ -247,6 +256,7 @@ const fileSources = [
             class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
             aria-label="Filter loaded spools"
           />
+        </div>
         </div>
       </div>
       <div id="loaded-table" class="mt-4"></div>
