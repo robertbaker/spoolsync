@@ -91,7 +91,7 @@ export function validateOptions(options: Options): void {
       throw new Error(
         "--watch cannot be combined with --apply: writing to a service on every file change is too easy to do by accident. Run --apply once, on its own.",
       );
-    if (spoolmanUrl || filamentdbUrl || bambuddyUrl || filadexUrl)
+    if (spoolmanUrl || filamentdbUrl || filamentDbUrl || bambuddyUrl || filadexUrl)
       throw new Error("--watch only watches files, so it cannot be used with --*-url inventories.");
     if (!inputs.size) throw new Error("--watch needs at least one file input to watch.");
   }
@@ -136,9 +136,9 @@ export function validateOptions(options: Options): void {
       throw new Error(
         `--restore-rollback puts back one service's values, so it cannot be combined with ${others.join(", ")}.`,
       );
-    if (!spoolmanUrl && !filamentdbUrl && !bambuddyUrl && !filadexUrl)
+    if (!spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
       throw new Error(
-        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, --bambuddy-url, or --filadex-url.",
+        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url.",
       );
     return;
   }
