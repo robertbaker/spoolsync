@@ -5,8 +5,9 @@ import {
   type SourceId,
 } from "@spoolsync/core/core/model";
 import { isRunningLow } from "@spoolsync/core/core/stock";
-import { HEALTH_ISSUES, HEALTH_LABELS, spoolKey } from "@spoolsync/core/workflow";
+import { HEALTH_ISSUES, spoolKey } from "@spoolsync/core/workflow";
 
+import { t, type MessageKey } from "~/lib/i18n";
 import { currentLowStockRule } from "~/lib/low-stock";
 import { readPreferences, updatePreferences, type SortKey } from "~/lib/preferences";
 import {
@@ -17,6 +18,8 @@ import {
   type ViewSettings,
 } from "~/lib/saved-views";
 import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
+import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns";
+import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
 import { byId, h } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
@@ -59,10 +62,18 @@ export function sortSpools(spools: CommonSpool[], sort: Sort): CommonSpool[] {
   });
 }
 
-const FILTER_LABELS: Record<InsightFilter, string> = {
-  duplicates: "Possible duplicates",
-  watched: "Watched",
-  ...HEALTH_LABELS,
+/** The chip and empty-state wording for a filter, in the page language. */
+export const filterLabel = (filter: InsightFilter): string =>
+  filter === "watched" ? "Watched" : t(`health.factor.${filter}` as MessageKey);
+
+/** Table columns with their translated headings and, where sortable, the sort key. */
+const COLUMN_SORT: Partial<Record<TableColumn, SortKey>> = {
+  source: "source",
+  vendor: "vendor",
+  material: "material",
+  name: "name",
+  remaining: "remaining",
+  location: "location",
 };
 
 export function createInventoryTable(
@@ -133,6 +144,18 @@ export function createInventoryTable(
   }
 
   let searchQuery = "";
+  // The columns shown, restored from the last visit. The name column always stays.
+  let columns: TableColumn[] = readColumns();
+  // Rows drawn so far; reset to one window whenever the filters, sort or grouping change.
+  let rowLimit = WINDOW_STEP;
+  let windowSignature = "";
+  /** Index of the row to focus after the next draw, set when "Show more" adds rows. */
+  let focusAfterDraw: number | null = null;
+  const windowStatus = document.createElement("p");
+  windowStatus.className = "sr-only";
+  windowStatus.setAttribute("role", "status");
+  windowStatus.setAttribute("aria-live", "polite");
+  document.getElementById("loaded-table")?.after(windowStatus);
   /** The spools the table is showing now, in table order, for features such as label printing. */
   let visible: CommonSpool[] = [];
   // Restored from the last visit; the table drops them again when they no longer apply.
@@ -210,6 +233,7 @@ export function createInventoryTable(
     const filters: InsightFilter[] = [
       "duplicates",
       "watched",
+      "missing-price",
       ...HEALTH_ISSUES.filter((issue) => insights.health.counts[issue] > 0),
     ];
     const shown = filters.filter(
@@ -229,7 +253,7 @@ export function createInventoryTable(
             class:
               "rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-foreground",
           },
-          `${FILTER_LABELS[filter]} (${insights.countFor(filter)})`,
+          `${filterLabel(filter)} (${insights.countFor(filter)})`,
         );
         chip.addEventListener("click", () => {
           insights.setFilter(pressed ? null : filter);
@@ -280,6 +304,7 @@ export function createInventoryTable(
 
   function draw(): void {
     renderChips();
+    windowStatus.textContent = "";
     const all = [...results.values()].flatMap((result) => result.spools);
     visible = [];
     const container = byId("loaded-table");
@@ -350,7 +375,7 @@ export function createInventoryTable(
             : rangeActive
               ? "No spools match the material and weight filters."
               : insightFilter
-                ? `No spools match "${FILTER_LABELS[insightFilter]}".`
+                ? `No spools match "${filterLabel(insightFilter)}".`
                 : "No spools are running low.",
         ),
       );
@@ -358,46 +383,44 @@ export function createInventoryTable(
     }
 
     const headers: Array<{ label: string; key?: SortKey }> = [
-      { label: "Source", key: "source" },
-      { label: "ID" },
-      { label: "Brand", key: "vendor" },
-      { label: "Material", key: "material" },
-      { label: "Name", key: "name" },
-      { label: "Color" },
-      { label: "Remaining", key: "remaining" },
-      { label: "Location", key: "location" },
-      { label: "Linked to" },
+      ...columns.map((column) => {
+        const key = COLUMN_SORT[column];
+        return { label: t(`col.${column}` as MessageKey), ...(key ? { key } : {}) };
+      }),
       ...(insights ? [{ label: "Watch" }] : []),
     ];
     const drops = insights?.droppedWatched();
-    const rows = filtered.map((spool) => {
+    // Only a window of rows is built; sorting, filtering and grouping above used the whole list.
+    const signature = JSON.stringify([searchQuery, lowOnly, insightFilter, extra, sort, all.length]);
+    if (signature !== windowSignature) {
+      windowSignature = signature;
+      rowLimit = WINDOW_STEP;
+    }
+    const windowed = windowSections(sections, rowLimit);
+    const drawn = windowed.sections.flatMap((section) => section.spools);
+    const rows = drawn.map((spool) => {
       const key = spoolKey(spool);
       const drop = drops?.get(key);
       const watching = insights?.watched.has(key) ?? false;
       const flags = insights
         ? [
             insights.duplicateSpoolKeys.has(key) ? "Possible duplicate" : null,
-            ...(insights.health.byKey.get(key) ?? []).map((issue) => HEALTH_LABELS[issue]),
+            ...(insights.health.byKey.get(key) ?? []).map((issue) => t(`health.factor.${issue}` as MessageKey)),
+            insights.missingPrice.has(key) ? t("health.factor.missing-price") : null,
           ].filter(Boolean)
         : [];
-      const row = h(
-        "tr",
-        {
-          class:
-            `cursor-pointer hover:bg-muted/40 ${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
-          ...(flags.length ? { title: flags.join("; ") } : {}),
-        },
-        h("td", { class: "whitespace-nowrap font-medium" }, SOURCE_LABELS[spool.source]),
-        h(
+      const cells: Record<TableColumn, HTMLElement> = {
+        source: h("td", { class: "whitespace-nowrap font-medium" }, SOURCE_LABELS[spool.source]),
+        id: h(
           "td",
           { class: "max-w-40 truncate font-mono text-xs", title: spool.sourceId },
           spool.sourceId,
         ),
-        h("td", {}, spool.vendor ?? "—"),
-        h("td", {}, spool.material ?? "—"),
-        h("td", {}, detailsButton(key, spool.name), spool.archived ? " (archived)" : ""),
-        h("td", {}, swatches(spool.colors)),
-        h(
+        vendor: h("td", {}, spool.vendor ?? "—"),
+        material: h("td", {}, spool.material ?? "—"),
+        name: h("td", {}, detailsButton(key, spool.name), spool.archived ? " (archived)" : ""),
+        color: h("td", {}, swatches(spool.colors)),
+        remaining: h(
           "td",
           { class: "whitespace-nowrap" },
           weight(spool),
@@ -422,8 +445,18 @@ export function createInventoryTable(
               )
             : null,
         ),
-        h("td", {}, spool.location ?? "—"),
-        h("td", { class: "text-xs" }, links(spool)),
+        location: h("td", {}, spool.location ?? "—"),
+        linked: h("td", { class: "text-xs" }, links(spool)),
+      };
+      const row = h(
+        "tr",
+        {
+          "data-spool-row": "",
+          class:
+            `cursor-pointer hover:bg-muted/40 ${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
+          ...(flags.length ? { title: flags.join("; ") } : {}),
+        },
+        ...columns.map((column) => cells[column]),
         insights ? h("td", {}, watchButton(key, spool, watching)) : null,
       );
       // A click anywhere on the row opens the detail drawer, except on other controls and while
@@ -437,8 +470,8 @@ export function createInventoryTable(
       });
       return row;
     });
-    const rowOf = new Map(filtered.map((spool, index) => [spool, rows[index]!]));
-    const bodyRows = sections.flatMap((section) => [
+    const rowOf = new Map(drawn.map((spool, index) => [spool, rows[index]!]));
+    const bodyRows = windowed.sections.flatMap((section) => [
       section.label
         ? h(
             "tr",
@@ -450,13 +483,46 @@ export function createInventoryTable(
                 colspan: String(headers.length),
                 class: "bg-muted/40 text-left text-sm font-semibold",
               },
-              `${section.label} (${section.spools.length})`,
+              `${section.label} (${section.total})`,
             ),
           )
         : null,
       ...section.spools.map((spool) => rowOf.get(spool)!),
     ]);
 
+    const hiddenRows = windowed.total - windowed.shown;
+    const windowButton =
+      "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary";
+    const showMore = h(
+      "button",
+      { type: "button", class: windowButton },
+      t("table.window.more", { count: Math.min(WINDOW_STEP, hiddenRows) }),
+    );
+    showMore.addEventListener("click", () => {
+      focusAfterDraw = windowed.shown;
+      rowLimit = nextLimit(rowLimit, windowed.total);
+      renderTable();
+    });
+    const showAll = h("button", { type: "button", class: windowButton }, t("table.window.all"));
+    showAll.addEventListener("click", () => {
+      focusAfterDraw = windowed.shown;
+      rowLimit = windowed.total;
+      renderTable();
+    });
+    const windowControls =
+      hiddenRows > 0
+        ? h(
+            "div",
+            { class: "table-window" },
+            h(
+              "p",
+              { class: "text-muted-foreground" },
+              t("table.window.status", { shown: windowed.shown, total: windowed.total }),
+            ),
+            showMore,
+            hiddenRows > WINDOW_STEP ? showAll : null,
+          )
+        : null;
     container.replaceChildren(
       h(
         "div",
@@ -517,11 +583,31 @@ export function createInventoryTable(
           h("tbody", {}, ...bodyRows),
         ),
       ),
+      windowControls,
     );
+    // Spoken only after "Show more"; an unrelated redraw (such as watching a spool) stays silent.
+    if (focusAfterDraw !== null) {
+      windowStatus.textContent = t("table.window.status", {
+        shown: windowed.shown,
+        total: windowed.total,
+      });
+      // "Show more" replaced the button that had focus, so move to the first row it added.
+      container.querySelectorAll<HTMLElement>("[data-open-spool]")[focusAfterDraw]?.focus();
+      focusAfterDraw = null;
+    }
+  }
+
+  /** Shows exactly these columns (the name column always stays) and remembers the choice. */
+  function setColumns(next: readonly string[]): TableColumn[] {
+    columns = saveColumns(next);
+    renderTable();
+    return columns;
   }
 
   return Object.assign(renderTable, {
     visibleSpools: (): readonly CommonSpool[] => visible,
+    getColumns: (): readonly TableColumn[] => columns,
+    setColumns,
     getViewSettings,
     applyViewSettings,
     /** Runs after every redraw, so the saved-views panel can show whether a view is modified. */

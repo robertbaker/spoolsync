@@ -14,6 +14,7 @@ import {
   saveAcceptedCleanups,
   saveCleanupSettings,
 } from "~/lib/browser/storage/cleanup";
+import { countCleanupSpools } from "~/lib/health-score";
 import { formatMoney, formatWeight } from "~/lib/units";
 
 import { h, showToast } from "../dom";
@@ -93,7 +94,7 @@ export function wireCleanupPanel(
   results: ReadonlyMap<SourceId, LoadResult>,
   store: CleanupStore = browserStore,
   today: () => string = () => new Date().toISOString().slice(0, 10),
-): { update(): void; open(): void } {
+): { update(): void; open(): void; applicableSpools(): number } {
   const controller = new CleanupController(results, store, today);
   const details = h("details", {
     id: "cleanup-details",
@@ -519,6 +520,10 @@ export function wireCleanupPanel(
     open() {
       root.hidden = results.size === 0;
       details.open = true;
+    },
+    /** Spools with a suggestion that could be accepted, as of the last update. */
+    applicableSpools() {
+      return countCleanupSpools(controller.result.proposals);
     },
   };
 }

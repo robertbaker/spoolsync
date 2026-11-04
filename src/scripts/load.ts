@@ -13,6 +13,7 @@ import {
 import { recordStockPoint } from "~/lib/browser/storage/stock-history";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
+import { LOCALE_CHANGED } from "~/lib/i18n";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
@@ -25,6 +26,7 @@ import { wireConnectionPanels } from "./load/connection-panels";
 import { renderCostChart } from "./load/cost-chart";
 import { renderFileHistory } from "./load/file-history-view";
 import { wireFileSource } from "./load/file-source";
+import { wireHealthDashboard } from "./load/health-dashboard";
 import { LoadInsights } from "./load/insights";
 import { renderInsights } from "./load/insights-view";
 import { createInventoryTable } from "./load/inventory-table";
@@ -40,6 +42,7 @@ import { wireSpoolDrawer } from "./load/spool-drawer";
 import { LoadState } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
 import { renderTrendChart } from "./load/trend-chart";
+import { wireTableTools } from "./load/table-tools";
 import { wireViewsPanel } from "./load/views-panel";
 import { button, download } from "./sync/presentation";
 
@@ -74,6 +77,18 @@ const reorderRoot = document.getElementById("reorder-panel");
 const reorder = reorderRoot ? wireReorderPanel(reorderRoot, state.results) : null;
 const cleanupRoot = document.getElementById("cleanup-panel");
 const cleanup = cleanupRoot ? wireCleanupPanel(cleanupRoot, state.results) : null;
+const healthRoot = document.getElementById("health-dashboard");
+const health = healthRoot
+  ? wireHealthDashboard(healthRoot, {
+      results: state.results,
+      insights,
+      cleanupSpools: () => cleanup?.applicableSpools() ?? 0,
+    })
+  : null;
+const toolsRoot = document.getElementById("table-tools");
+const tableTools = toolsRoot
+  ? wireTableTools(toolsRoot, renderTable, () => state.results.size > 0)
+  : null;
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
 const render = () => {
@@ -83,6 +98,9 @@ const render = () => {
   views?.update();
   reorder?.update();
   cleanup?.update();
+  // After the cleanup panel, whose suggestions are one input to the score.
+  health?.update();
+  tableTools?.update();
   inventoryReport.update();
   sinceVisit.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
@@ -138,6 +156,7 @@ render();
 
 // Weight unit and price symbol changes redraw the charts and stats; setup guide is lazy.
 document.addEventListener(DISPLAY_CHANGED, render);
+document.addEventListener(LOCALE_CHANGED, render);
 void import("./setup/wizard").then(({ wireSetupGuide }) =>
   wireSetupGuide({ loadedCount: () => state.results.size }),
 );

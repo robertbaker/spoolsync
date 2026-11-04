@@ -15,6 +15,7 @@ import {
 } from "@spoolsync/core/workflow";
 
 import type { InventorySnapshot } from "~/lib/browser/storage";
+import { missingPriceKeys } from "~/lib/health-score";
 
 /** The browser storage the insights need, injected so tests and pages can supply their own. */
 export interface InsightsStorage {
@@ -36,13 +37,17 @@ export interface ServiceChanges {
   remembered: boolean;
 }
 
-/** The narrowing the table offers: duplicates, watched spools, or one health check. */
-export type InsightFilter = "duplicates" | "watched" | HealthIssue;
+/** The narrowing the table offers: duplicates, watched spools, missing prices, or one health check. */
+export type InsightFilter = "duplicates" | "watched" | "missing-price" | HealthIssue;
 
 /** Derived reports for the loaded inventories, plus the per-visit change log and watchlist. */
 export class LoadInsights {
   duplicates: DuplicateGroup[] = [];
   duplicateSpoolKeys: Set<string> = new Set();
+  /** Spools with no usable price. Prices are not a health check in core, so the page tracks them. */
+  missingPrice: Set<string> = new Set();
+  /** Spools checked by the last refresh, for the data health score. */
+  spoolCount = 0;
   health: HealthReport = checkInventoryHealth([]);
   readonly changes = new Map<SourceId, ServiceChanges>();
   watched: Set<string>;
@@ -75,6 +80,9 @@ export class LoadInsights {
     this.duplicates = findDuplicateSpools(loaded);
     this.duplicateSpoolKeys = duplicateKeys(this.duplicates);
     this.health = checkInventoryHealth(loaded);
+    const spools = loaded.flatMap((result) => result.spools);
+    this.spoolCount = spools.length;
+    this.missingPrice = missingPriceKeys(spools, spoolKey);
     for (const [source, entry] of this.changes)
       if (this.results.get(source)?.loadedAt !== entry.loadedAt) this.changes.delete(source);
     // A filter whose spools are gone would show an empty table with no way to see why.
@@ -84,6 +92,7 @@ export class LoadInsights {
   countFor(filter: InsightFilter): number {
     if (filter === "duplicates") return this.duplicateSpoolKeys.size;
     if (filter === "watched") return this.loadedWatchedKeys().length;
+    if (filter === "missing-price") return this.missingPrice.size;
     return this.health.counts[filter];
   }
 
@@ -93,6 +102,7 @@ export class LoadInsights {
     if (!this.filter) return true;
     if (this.filter === "duplicates") return this.duplicateSpoolKeys.has(key);
     if (this.filter === "watched") return this.watched.has(key);
+    if (this.filter === "missing-price") return this.missingPrice.has(key);
     return this.health.byKey.get(key)?.includes(this.filter) ?? false;
   }
 
