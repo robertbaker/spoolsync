@@ -14,7 +14,7 @@ export const SOCIAL_LINKS: Record<string, string> = {};
  * has a single "Inventory" entry that stays active on both pages.
  */
 export const NAV_LINKS = [
-  { href: "/", label: "Overview", text: "Overview", icon: "material-symbols:home-outline-rounded" },
+  { href: "/", label: "Home", text: "Home", icon: "material-symbols:home-outline-rounded" },
   {
     href: "/load",
     label: "Inventory",

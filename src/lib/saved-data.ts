@@ -60,6 +60,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:display",
       "spoolsync:setup-dismissed",
       "spoolsync:palette-recent",
+      "spoolsync:sidebar",
       "spoolsync:cleanup-settings",
       "spoolsync:weigh-in",
       "spoolsync:shop-template",
@@ -238,6 +239,8 @@ function isValidEntry(key: string, text: string): boolean {
       }
       case "spoolsync:setup-dismissed":
         return text === "1";
+      case "spoolsync:sidebar":
+        return text === "collapsed" || text === "expanded";
       case "spoolsync:weigh-in":
         return Object.keys(sanitizeTares(JSON.parse(text))).length > 0;
       case "spoolsync:shop-template":

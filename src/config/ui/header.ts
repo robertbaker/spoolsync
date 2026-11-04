@@ -6,7 +6,9 @@ export const HEADER_UI_CONFIG: SiteHeaderConfig = {
   sticky: "fixed",
   variant: "default",
   glass: true,
-  mobileVariant: "bottom-nav",
+  // The site header is replaced by the sidebar (components/Sidebar.astro), which draws its own
+  // bottom bar, so the layout must not add bottom-nav padding to the body.
+  mobileVariant: "collapse",
   mobileMenuButtonStyle: "morph",
   mobileMenuAccentColor: "primary",
   unstyled: false,

@@ -1,8 +1,8 @@
 ---
 import type { ImageMetadata } from "astro";
 import type { CollectionEntry } from "astro:content";
-import { Icon } from "astro-icon/components";
 import cliPackage from "../../packages/spoolsync-cli/package.json";
+import Sidebar from "~/components/Sidebar.astro";
 import SiteBaseLayout from "~/components/starwind/layouts/SiteBaseLayout.astro";
 import {
   SITE_URL,
@@ -21,6 +21,7 @@ import {
   shouldNoindexPath,
 } from "~/config/seo";
 import { allServiceNames } from "~/lib/services";
+import { SIDEBAR_KEY } from "~/lib/sidebar";
 import globalStylesheetHref from "~/styles/global.css?url";
 
 interface Props {
@@ -35,38 +36,21 @@ interface Props {
 }
 
 const { title, description, post, image, imageAlt, robots, hideHeader, hideFooter } = Astro.props;
-// Desktop shows these as header/footer links; on mobile they live in the bottom nav's "More" menu.
-const mobileNavLinks = [
+// The navigation entries (config/site.ts) plus Credits, which the sidebar lists with the primary pages.
+const sidebarLinks = [
   ...navLinks,
-  {
-    href: "https://github.com/robertbaker/spoolsync",
-    label: "GitHub",
-    text: "GitHub",
-    icon: "simple-icons:github",
-    external: true,
-  },
-  {
-    href: "https://github.com/robertbaker/spoolsync/issues/new",
-    label: "Report an issue",
-    text: "Report an issue",
-    icon: "material-symbols:bug-report-outline",
-    external: true,
-  },
-  {
-    href: "https://ko-fi.com/spool_sync",
-    label: "Support on Ko-fi",
-    text: "Support on Ko-fi",
-    icon: "simple-icons:kofi",
-    external: true,
-  },
-  {
-    href: "/credits",
-    label: "Credits",
-    text: "Credits",
-    icon: "material-symbols:attribution-outline",
-  },
+  { href: "/credits", label: "Credits", text: "Credits", icon: "material-symbols:attribution-outline" },
 ];
-const normalizedPath =normalizeSeoPath(Astro.url.pathname);
+// Sets the saved sidebar state before first paint so a collapsed rail does not flash open.
+const sidebarInitScript = `(function(){var m="expanded";try{if(localStorage.getItem(${JSON.stringify(SIDEBAR_KEY)})==="collapsed")m="collapsed"}catch(e){}document.documentElement.dataset.sidebar=m})()`;
+if (!hideHeader && Astro.csp) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sidebarInitScript));
+  Astro.csp.insertScriptHash({
+    hash: `sha256-${btoa(String.fromCharCode(...new Uint8Array(digest)))}`,
+    kind: "element",
+  });
+}
+const normalizedPath = normalizeSeoPath(Astro.url.pathname);
 const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_ROBOTS : undefined);
 ---
 
@@ -83,52 +67,25 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   twitterHandle={TWITTER_HANDLE}
   socialLinks={SOCIAL_LINKS}
   navLinks={navLinks}
-  mobileNavLinks={mobileNavLinks}
   config={SITE_CONFIG}
   {...(resolvedRobots ? { robots: resolvedRobots } : {})}
-  {...(hideHeader ? { hideHeader } : {})}
+  hideHeader
+  {...(hideHeader ? {} : { bodyClass: "has-sidebar" })}
   {...(hideFooter ? { hideFooter } : {})}
   scrollSmooth
   mainId="main-content"
-  mainClass="pb-24 lg:pb-8 flex-1 min-w-0"
+  mainClass="pb-24 md:pb-8 flex-1 min-w-0"
   skipLinkClass="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-100 focus-visible:rounded-lg focus-visible:bg-card focus-visible:px-4 focus-visible:py-2.5 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-foreground focus-visible:border focus-visible:border-primary focus-visible:shadow-layered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
 >
-  <span slot="header-logo" class="group flex items-center gap-2 text-xl font-extrabold tracking-tight text-foreground">
-    <img src="/logo-mark.svg" alt="" class="size-9 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-6" width="36" height="36" />
-    <span>Spool<span class="text-primary-text">Sync</span></span>
-  </span>
-  <Fragment slot="header-actions">
-    <button
-      type="button"
-      data-install-app
-      hidden
-      data-print="hide"
-      class="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      title="Install SpoolSync as an app"
-    >
-      <Icon name="material-symbols:download-rounded" class="size-4" aria-hidden="true" />
-      Install
-    </button>
-    <a
-      href="https://github.com/robertbaker/spoolsync"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="inline-flex size-9 items-center justify-center rounded-full text-foreground transition-all hover:scale-105 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      aria-label="SpoolSync on GitHub"
-      title="SpoolSync on GitHub"
-    >
-      <Icon name="simple-icons:github" class="size-5" aria-hidden="true" />
-    </a>
-    <a
-      href="https://ko-fi.com/spool_sync"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="inline-flex size-9 items-center justify-center rounded-full bg-[#ff5e5b] text-white transition-all hover:scale-105 hover:bg-[#e94d4a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      aria-label="Support SpoolSync on Ko-fi"
-      title="Support SpoolSync on Ko-fi"
-    >
-      <Icon name="simple-icons:kofi" class="size-5" aria-hidden="true" />
-    </a>
+  <Fragment slot="before-header">
+    {
+      !hideHeader && (
+        <>
+          <a href="#app-sidebar" class="skip-nav">Skip to navigation</a>
+          <Sidebar links={sidebarLinks} version={cliPackage.version} />
+        </>
+      )
+    }
   </Fragment>
   <span slot="footer-logo" class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground">
     <img src="/logo-mark.svg" alt="" class="size-10" width="40" height="40" loading="lazy" />
@@ -157,16 +114,6 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     <a class="footer-link underline" href="/credits">
       Credits
     </a>
-    <span> · </span>
-    <button type="button" class="footer-link underline" data-open-shortcuts>Keyboard shortcuts</button>
-    <span> · </span>
-    <button type="button" class="footer-link underline" data-open-changelog data-version={cliPackage.version} aria-label={`SpoolSync version ${cliPackage.version}, show what is new`}>v{cliPackage.version}</button>
-    <span> · </span>
-    <button type="button" class="footer-link underline" data-open-saved-data>Saved settings</button>
-    <span> · </span>
-    <button type="button" class="footer-link underline" data-open-palette aria-keyshortcuts="Control+K Meta+K">Command palette</button>
-    <span> · </span>
-    <button type="button" class="footer-link underline" data-open-setup>Setup guide</button>
     <span class="mt-2 block text-xs opacity-80">
       SpoolSync is independent and not affiliated with or endorsed by {allServiceNames(undefined, "or", ["Bambu Lab"])}. All names and logos are trademarks of their respective owners and are used only to identify compatibility.
     </span>
@@ -174,6 +121,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   <Fragment slot="head">
     <meta name="color-scheme" content="light dark" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    {!hideHeader && <script is:inline set:html={sidebarInitScript} />}
     <link rel="preload" href="/fonts/inter-latin-variable-wghtOnly-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href={globalStylesheetHref} />
     <slot name="head" />
@@ -188,14 +136,18 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   import { wireSavedData } from "~/scripts/saved-data-dialog";
   import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
   import { wirePalette } from "~/scripts/palette";
+  import { wireSidebar } from "~/scripts/sidebar";
   import { wireSetupTriggers } from "~/scripts/setup/launch";
 
+  // Records the running version first, so the sidebar's "New" badge sees what was last read.
+  announceUpdate(document.querySelector<HTMLElement>("[data-open-changelog]")?.dataset["version"] ?? "");
+  // Before the tools, so the phone drawer closes before one of them opens a dialog.
+  wireSidebar();
   wireShortcutsHelp();
   wirePalette();
   wireSetupTriggers();
   wireSavedData();
   wireChangelog();
-  announceUpdate(document.querySelector<HTMLElement>("[data-open-changelog]")?.dataset["version"] ?? "");
 
   // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
   const syncAria = (el: Element | null) => {

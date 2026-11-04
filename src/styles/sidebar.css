@@ -1,0 +1,742 @@
+/*
+ * Site navigation (components/Sidebar.astro).
+ *
+ *   >= 1024px   persistent left rail, expanded (labels) or collapsed (icons), saved per browser
+ *   768-1023px  collapsed rail that expands over the page on hover or keyboard focus
+ *   < 768px     bottom bar for the main destinations and a slide-over drawer (Popover API)
+ *
+ * `--sidebar-w` is the space the page reserves on the left. `body.has-sidebar` pads by it, so the
+ * main area, the footer and everything inside them keep their normal flow, and sticky action bars,
+ * dialogs and the tour highlight need no knowledge of the sidebar. `html[data-sidebar]` holds the
+ * saved desktop state and is set before first paint by a small script in the layout head.
+ */
+:root {
+  --sidebar-w-full: 16rem;
+  --sidebar-w-rail: 4.5rem;
+  --sidebar-w: 0px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --sidebar-w: var(--sidebar-w-rail);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-w: var(--sidebar-w-full);
+  }
+
+  :root[data-sidebar="collapsed"] {
+    --sidebar-w: var(--sidebar-w-rail);
+  }
+}
+
+body.has-sidebar {
+  padding-inline-start: var(--sidebar-w);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body.has-sidebar {
+    transition: padding-inline-start 180ms var(--ease-out, ease-out);
+  }
+}
+
+/* The skip-to-navigation link only makes sense where the sidebar is a fixed region. */
+.skip-nav {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-nav:focus-visible {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 100;
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--primary);
+  border-radius: 0.5rem;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: var(--dialog-shadow, 0 8px 24px rgb(0 0 0 / 0.2));
+  outline: 2px solid var(--primary);
+}
+
+@media (max-width: 767.98px) {
+  .skip-nav {
+    display: none;
+  }
+}
+
+/* ---- The sidebar itself ------------------------------------------------------------------- */
+
+.app-sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline: 0 auto;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  inline-size: var(--sidebar-w-full);
+  block-size: 100dvh;
+  margin: 0;
+  padding: 0.75rem;
+  border: 0;
+  border-inline-end: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.app-sidebar:focus-visible {
+  outline: none;
+}
+
+@media (min-width: 768px) {
+  .app-sidebar {
+    inline-size: var(--sidebar-w);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-sidebar {
+    transition:
+      inline-size 180ms var(--ease-out, ease-out),
+      box-shadow 180ms;
+  }
+}
+
+.sb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-block-size: 2.75rem;
+}
+
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding-inline: 0.25rem;
+  border-radius: 0.75rem;
+  color: var(--foreground);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.sb-brand__mark {
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
+}
+
+.sb-list {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sb-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: color-mix(in oklab, var(--foreground) 78%, transparent);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 120ms,
+    color 120ms;
+}
+
+.sb-link:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.sb-link[aria-current="page"] {
+  background: color-mix(in oklab, var(--primary) 14%, transparent);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+
+.sb-link[hidden] {
+  display: none;
+}
+
+.sb-brand:focus-visible,
+.sb-link:focus-visible,
+.sb-steplink:focus-visible,
+.sb-iconbtn:focus-visible,
+.bn-link:focus-visible,
+.sb-themebtn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.sb-icon {
+  flex: none;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+
+.sb-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-brand .sb-label {
+  flex: 0 1 auto;
+}
+
+.sb-kbd,
+.sb-version {
+  flex: none;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.sb-kbd {
+  padding: 0.0625rem 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.sb-badge {
+  flex: none;
+  min-inline-size: 1.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.sb-badge[hidden] {
+  display: none;
+}
+
+.sb-badge--new {
+  background: var(--success);
+  color: var(--success-foreground);
+}
+
+.sb-chip {
+  flex: none;
+  min-inline-size: 2rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--foreground);
+}
+
+.sb-sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sb-iconbtn {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.sb-iconbtn:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.sb-iconbtn svg {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+
+.sb-close {
+  display: none;
+}
+
+.sb-collapse__icon {
+  transition: transform 180ms;
+}
+
+/* Workflow steps under Inventory. */
+.sb-steps {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0.125rem 0 0.25rem 1.5rem;
+  padding: 0 0 0 0.75rem;
+  border-inline-start: 1px solid var(--border);
+  list-style: none;
+}
+
+.sb-steplink {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-block-size: 44px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.625rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.sb-steplink:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.sb-step__dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sb-step__check {
+  display: none;
+  inline-size: 0.875rem;
+  block-size: 0.875rem;
+}
+
+.sb-step__text {
+  display: grid;
+  min-inline-size: 0;
+  line-height: 1.2;
+}
+
+.sb-step__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sb-step__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.sb-step[data-state="current"] .sb-steplink {
+  background: color-mix(in oklab, var(--primary) 12%, transparent);
+  color: var(--foreground);
+}
+
+.sb-step[data-state="current"] .sb-step__dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.sb-step[data-state="done"] .sb-steplink {
+  color: var(--foreground);
+}
+
+.sb-step[data-state="done"] .sb-step__dot {
+  border-color: var(--success);
+  background: var(--success);
+  color: var(--success-foreground);
+}
+
+.sb-step[data-state="done"] .sb-step__num {
+  display: none;
+}
+
+.sb-step[data-state="done"] .sb-step__check {
+  display: block;
+}
+
+/* Tools and display controls. */
+.sb-group {
+  display: grid;
+  gap: 0.25rem;
+  margin-block-start: 0.5rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--border);
+}
+
+.sb-group__title {
+  margin: 0;
+  padding-inline: 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.sb-foot {
+  display: grid;
+  gap: 0.25rem;
+  margin-block-start: auto;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--border);
+}
+
+.sb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-inline: 0.75rem 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--foreground) 78%, transparent);
+}
+
+.app-sidebar .sb-themebtn {
+  inline-size: 2.75rem !important;
+  block-size: 2.75rem !important;
+  min-inline-size: 2.75rem !important;
+  min-block-size: 2.75rem !important;
+}
+
+/* ---- Collapsed rail: icons only. Labels stay available to assistive technology. ----------- */
+
+@media (min-width: 1024px) {
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-label,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-kbd,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-version,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-group__title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar {
+    align-items: stretch;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-head {
+    flex-direction: column;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-link,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-brand,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-row {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-steps {
+    display: none;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-badge,
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-chip {
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-end: 0.5rem;
+    min-inline-size: 1rem;
+    padding: 0 0.25rem;
+    font-size: 0.625rem;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-badge--new {
+    font-size: 0;
+    min-inline-size: 0.625rem;
+    block-size: 0.625rem;
+    padding: 0;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-collapse__icon {
+    transform: rotate(180deg);
+  }
+}
+
+/* Tablet: always a rail, expanding over the page while hovered or keyboard-focused. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-label,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-kbd,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-version,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-group__title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-head {
+    flex-direction: column;
+  }
+
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-link,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-brand,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-row {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-steps {
+    display: none;
+  }
+
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-badge,
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-chip {
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-end: 0.5rem;
+    min-inline-size: 1rem;
+    padding: 0 0.25rem;
+    font-size: 0.625rem;
+  }
+
+  .app-sidebar:not(:hover):not(:has(:focus-visible)):not([data-peek]) .sb-badge--new {
+    font-size: 0;
+    min-inline-size: 0.625rem;
+    block-size: 0.625rem;
+    padding: 0;
+  }
+
+  .app-sidebar:is(:hover, :has(:focus-visible), [data-peek]) {
+    inline-size: var(--sidebar-w-full);
+    z-index: 70;
+    box-shadow: 0 0 32px rgb(0 0 0 / 0.25);
+  }
+
+  .sb-collapse {
+    display: none;
+  }
+}
+
+/* ---- Phone: a drawer from the left, opened from the bottom bar ---------------------------- */
+
+@media (max-width: 767.98px) {
+  .app-sidebar {
+    display: none;
+    inline-size: min(20rem, 86vw);
+    padding-block-end: max(0.75rem, env(safe-area-inset-bottom));
+    padding-inline-start: max(0.75rem, env(safe-area-inset-left));
+    border-inline-end: 1px solid var(--border);
+    box-shadow: 0 0 40px rgb(0 0 0 / 0.3);
+  }
+
+  .app-sidebar:popover-open {
+    display: flex;
+  }
+
+  /* Browsers without the Popover API get the same drawer from a data attribute. */
+  .app-sidebar[data-open] {
+    display: flex;
+    z-index: 70;
+  }
+
+  .app-sidebar::backdrop {
+    background: var(--backdrop, rgb(0 0 0 / 0.4));
+  }
+
+  .sb-collapse {
+    display: none;
+  }
+
+  .sb-close {
+    display: inline-grid;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .app-sidebar {
+      transform: translateX(-100%);
+      transition:
+        transform 200ms var(--ease-out, ease-out),
+        display 200ms allow-discrete,
+        overlay 200ms allow-discrete;
+    }
+
+    .app-sidebar:popover-open,
+    .app-sidebar[data-open] {
+      transform: none;
+    }
+
+    @starting-style {
+      .app-sidebar:popover-open {
+        transform: translateX(-100%);
+      }
+    }
+
+    .app-sidebar::backdrop {
+      transition:
+        background-color 200ms,
+        display 200ms allow-discrete,
+        overlay 200ms allow-discrete;
+    }
+
+    @starting-style {
+      .app-sidebar:popover-open::backdrop {
+        background-color: transparent;
+      }
+    }
+  }
+}
+
+/* ---- Bottom bar (phones) ------------------------------------------------------------------ */
+
+.app-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .app-bottom-nav {
+    position: fixed;
+    z-index: 40;
+    inset-inline: max(0.75rem, env(safe-area-inset-left, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px));
+    inset-block-end: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    display: block;
+    border: 1px solid color-mix(in oklab, var(--foreground) 15%, transparent);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--background) 88%, transparent);
+    box-shadow: 0 10px 30px color-mix(in oklab, var(--foreground) 15%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
+  .app-bottom-nav ul {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+  }
+
+  .app-bottom-nav li {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+
+  .bn-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    inline-size: 100%;
+    min-block-size: 48px;
+    padding: 0.25rem;
+    border: 0;
+    border-radius: 0.75rem;
+    background: transparent;
+    color: color-mix(in oklab, var(--foreground) 72%, transparent);
+    font: inherit;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.1;
+    text-decoration: none;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  .bn-link span {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bn-link[aria-current="page"],
+  .bn-link[aria-expanded="true"] {
+    background: color-mix(in oklab, var(--primary) 15%, transparent);
+    color: var(--primary-text);
+  }
+
+  .bn-icon {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
+  #main-content {
+    padding-block-end: calc(6rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* The tour highlight must not turn the fixed sidebar into a relatively positioned box. */
+.app-sidebar.spoolsync-tour-highlight {
+  position: fixed;
+}
+
+@media (forced-colors: active) {
+  .sb-link[aria-current="page"],
+  .bn-link[aria-current="page"] {
+    outline: 2px solid Highlight;
+  }
+
+  .sb-step__dot {
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+@media print {
+  .app-sidebar,
+  .app-bottom-nav,
+  .skip-nav {
+    display: none !important;
+  }
+
+  body.has-sidebar {
+    padding-inline-start: 0 !important;
+  }
+}

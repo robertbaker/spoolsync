@@ -90,10 +90,10 @@ adapter (`loadX`, `exportX`, client/apply modules) so the registry stays accurat
 
 ## Inventory workflow and navigation
 
-Load and Sync are one workflow, so the header, bottom bar, and command palette have a single
+Load and Sync are one workflow, so the sidebar, bottom bar, and command palette have a single
 "Inventory" entry (`NAV_LINKS` in `src/config/site.ts`). It links to `/load` and carries
-`matchPaths` (`/load`, `/sync`, `/inventory`), which `isNavItemActive` (starwind `NavMenu`) and the
-bottom bar use so it is highlighted on both pages. The stepper (`components/FlowSteps.astro`,
+`matchPaths` (`/load`, `/sync`, `/inventory`), which `isNavCurrent` (`lib/sidebar.ts`) uses so it is
+highlighted on both pages. The stepper (`components/FlowSteps.astro`,
 `scripts/workflow-steps.ts`) renders "1 Load, 2 Review, 3 Apply" on both pages. Its links are always
 real anchors; script only adds progress. It counts inventories in session storage, listens for
 `spoolsync:inventories-changed` (dispatched by `LoadState.store` and `unload`) and the URL hash
@@ -104,10 +104,46 @@ loaded and to Load otherwise (a meta refresh covers scripting being off). Both `
 working, and `/connections` still redirects to `/load`.
 
 `src/styles/navigation.css` holds the platform features for this area: cross-document view transitions
-(`@view-transition`, only under `prefers-reduced-motion: no-preference`, with the header and bottom bar
+(`@view-transition`, only under `prefers-reduced-motion: no-preference`, with the sidebar and bottom bar
 given stable `view-transition-name`s so they do not cross-fade), container queries for the stepper and
 matrix, dynamic viewport units, safe-area insets for the fixed bottom bar, 44px targets, visible focus
 rings, and `content-visibility: auto` on matrix rows.
+
+### Sidebar navigation
+
+There is no top header. `components/Sidebar.astro` renders one `<nav aria-label="Main">` plus a phone
+bottom bar (`<nav aria-label="Quick links">`), and `layouts/BaseLayout.astro` mounts it in the vendored
+`SiteBaseLayout`'s `before-header` slot (the vendored layout is always called with `hideHeader`, so no
+starwind file is edited). Entries come from `NAV_LINKS` plus Credits; the Load, Review, Apply sub-steps come
+from `WORKFLOW_STEPS`, so `src/config/site.ts` stays the single source. Pages that pass `hideHeader` to
+`BaseLayout` get neither the sidebar nor the page offset.
+
+`styles/sidebar.css` has three presentations of the same element. At 1024px and wider it is a fixed
+left rail, expanded (labels) or collapsed (icons; labels stay in the accessibility tree as visually
+hidden text). From 768px to 1023px it is always a rail that widens over the page on hover or
+`:focus-visible` (an overlay, so layout does not move). Under 768px it is a drawer using the Popover
+API (`popover="auto"`: Escape, light dismiss and focus return come from the platform; a `data-open`
+attribute is the fallback), opened by the bottom bar's "More" button, which also holds Home, Inventory,
+CLI and Resources. The page reserves space with `--sidebar-w` (`body.has-sidebar` pads by it), so the
+main area, footer, sticky action bars (`#load-bar`, `#sync-bar`), modal dialogs (top layer) and the tour
+highlight work unchanged; the tour launcher, the offline/update indicator and toasts use `md:` offsets
+that match the sidebar breakpoints. `print.css` hides the sidebar and clears the padding.
+
+`scripts/sidebar.ts` (`wireSidebar`, called first in the `BaseLayout` script) owns behavior: the
+collapse button and Ctrl/Cmd+B (`[` and `]` already cycle saved views), the saved state, the drawer, the
+Inventory loaded-count badge and step states (it reuses `workflowProgress` and `countLoaded` from
+`workflow-steps.ts` and the `spoolsync:inventories-changed` event, with its own `data-sb-step` hooks so
+it never collides with the page stepper's `data-step`), the changelog "New" badge (the version in
+`spoolsync:changelog-read` is older than the running one), and the grams/ounces quick toggle. The
+collapse state is `spoolsync:sidebar` (`collapsed` or `expanded`) in localStorage through
+`browser/storage/access.ts`; it is listed in the Preferences group of `lib/saved-data.ts`, so it appears in
+Saved settings, backups and "forget". A small inline script in the head (its CSP hash is registered in
+`BaseLayout`) sets `html[data-sidebar]` before first paint so a collapsed rail does not flash open. The
+tools (palette, setup guide, changelog, saved settings, shortcuts, install, theme) carry the same
+`data-open-*`, `data-install-app` and `data-theme-toggle` hooks the footer used to, so the existing
+wiring and palette actions find them; the footer no longer repeats them. The palette has a
+"Toggle sidebar" action (`action:sidebar`), which dispatches `spoolsync:toggle-sidebar`. Pure logic (state
+parsing, current-page matching, step and badge rules) is in `lib/sidebar.ts` with unit tests.
 
 ## Load page
 
@@ -186,7 +222,7 @@ color. `print.css` makes the Sync page printable: navigation, controls, and floa
 disclosures are expanded, cards avoid page breaks, and transitions are disabled. "Copy plan summary"
 puts the per-service counts, open conflicts, and unanswered matches on the clipboard as plain text.
 `shortcuts-help.ts` opens a native `<dialog>` listing the keyboard shortcuts when "?" is pressed
-outside a text field, or from the footer button. Toasts sit above the sticky bars so they never cover
+outside a text field, or from the sidebar's Tools list. Toasts sit above the sticky bars so they never cover
 their buttons.
 
 "Running low" has one definition, `isRunningLow` in core (`core/stock.ts`): a spool still in use at or
@@ -197,7 +233,7 @@ the same matching as the chart. Everything the web app remembers lives under the
 one validated store (`lib/preferences.ts`: table sort, running-low filter, service filter, Sync
 filter), alongside the panel, chart, threshold, and recent-service entries and each service's file
 history (`storage/file-history.ts`: name, size, spool count, and date of the last file, never its
-contents; a browser will not reopen a file for a page, so this is a reminder). The footer's "Saved
+contents; a browser will not reopen a file for a page, so this is a reminder). The sidebar's "Saved
 settings" dialog (`lib/saved-data.ts`) lists what is stored in plain groups and can forget any group
 or everything, reloading afterwards so nothing stale stays on screen. The CLI mirrors this with a
 per-user settings file (`user-config.ts`: `~/.config/spoolsync/config.json`, `%APPDATA%` on Windows,
@@ -217,7 +253,7 @@ The Sync page keeps an undo and redo history (`SyncSession.checkpoint`, `undo`, 
 to the plan and of answers to possible matches: each value pick, "add to" checkbox, bulk action,
 reset, confirm, reject, bulk answer, and answer reset takes a deep snapshot of both the resolutions
 and the match answers first (50 deep), and restoring a step puts both back and saves the answers, the buttons show what they would reverse, and Ctrl or Cmd + Z
-and Shift + Z work outside text fields. The footer shows the running version (read from the CLI
+and Shift + Z work outside text fields. The sidebar's Changelog entry shows the running version (read from the CLI
 package at build time) and opens a "What's new" dialog that fetches the changelog from GitHub,
 parses it (`lib/changelog.ts`) into DOM without ever inserting HTML or following non-https links,
 keeps a saved copy for offline use, and notes when the running version is behind. The first visit
@@ -541,7 +577,7 @@ an `Authorization` request are never stored. Pages are network-first with the sa
 `activate` deletes older ones. A new worker waits: `scripts/pwa/controller.ts` shows "Reload to
 update", which posts `SKIP_WAITING`, and the page reloads once the new worker controls it. The
 worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
-The header's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
+The sidebar's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
 is offline. Playwright runs with service workers enabled, matching production.
 
 ## Spool drawer, saved views, and reorder list
@@ -619,8 +655,8 @@ announced through the existing live region, and `prefers-reduced-motion` stops t
 coarse pointers or narrow screens.
 ## Command palette, display units, setup guide, and import reports
 
-`src/scripts/palette/` is mounted from `BaseLayout.astro` and opens with Ctrl/Cmd+K (or the footer
-button). `rank.ts` holds the pure ranking: normalized (accent- and case-insensitive) fuzzy scoring in
+`src/scripts/palette/` is mounted from `BaseLayout.astro` and opens with Ctrl/Cmd+K (or the sidebar's
+Command palette button). `rank.ts` holds the pure ranking: normalized (accent- and case-insensitive) fuzzy scoring in
 which every word must match, title matches counting double, ties keeping their original order,
 recent choices first for an empty query, and spools listed only when a query is typed. `items.ts`
 turns loaded inventories (read with `readLoadResult`, so it works on any page) into entries, and
@@ -643,7 +679,7 @@ currency and are never converted, and the setting says so.
 The first-run setup guide (`scripts/setup/`) is a dialog on the Load page that opens when nothing is
 loaded, it has not been dismissed (`spoolsync:setup-dismissed`), and the URL has no purpose of its
 own (`?sample`, `?tour`, `?spool`, `?panel`). Browser automation (`navigator.webdriver`) never gets it
-unprompted, so end-to-end tests are not blocked by a modal; `/load?setup=1`, the footer link, and the
+unprompted, so end-to-end tests are not blocked by a modal; `/load?setup=1`, the sidebar's Setup guide entry, and the
 palette open it on request. Step one picks apps, then one page per app shows that service's export
 instructions, and the last step opens the page's `#smart-file` multi-file picker so detection and
 request revisions are shared with every other load. The instructions come from
@@ -656,8 +692,8 @@ file-wide notes, and counts rows read. It only reads warnings, so adapters, warn
 loaded file (`load/import-report-view.ts`) with a CSV download whose cells that start with `=`, `+`,
 `-`, `@`, tab, or carriage return are prefixed with an apostrophe.
 
-On small screens the header's `bottom-nav` mobile variant (already enabled in
-`config/ui/header.ts`) provides the bottom navigation. `styles/touch.css` raises the Load page's table
+On small screens the sidebar component's bottom bar and drawer (see Sidebar navigation) provide the
+navigation. `styles/touch.css` raises the Load page's table
 buttons, links, filter chips, and toolbar buttons to at least 44 px on coarse pointers and narrow
 windows without touching `inventory-table.ts`.
 

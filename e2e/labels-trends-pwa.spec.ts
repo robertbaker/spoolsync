@@ -89,7 +89,7 @@ test.describe("labels", () => {
     // On paper, only the sheet is shown.
     await page.emulateMedia({ media: "print" });
     await expect(sheet).toBeVisible();
-    await expect(page.locator("header").first()).toBeHidden();
+    await expect(page.locator("#app-sidebar")).toBeHidden();
     await expect(page.locator("#loaded-table")).toBeHidden();
     const box = await sheet.locator(".spool-label").first().boundingBox();
     expect(box?.width).toBeGreaterThan(150);

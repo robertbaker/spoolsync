@@ -1,7 +1,7 @@
 /*
  * Touch targets for the Load page. On touch screens and narrow windows every control in the spool
  * table and its filter chips is at least 44 by 44 CSS pixels (WCAG 2.5.5), without changing the
- * desktop layout. The mobile bottom navigation already comes from the header's "bottom-nav" variant.
+ * desktop layout. The mobile bottom navigation is part of components/Sidebar.astro.
  */
 @media (pointer: coarse), (max-width: 40rem) {
   #loaded-table .spool-table-wrapper button,

@@ -1,5 +1,5 @@
 /*
- * Navigation, the Load/Sync workflow stepper, and the home page's tool matrix.
+ * The Load/Sync workflow stepper, and the home page's tool matrix.
  *
  * Modern platform features are used only where they degrade cleanly: cross-document view
  * transitions are opt-in for people who have not asked for reduced motion, container queries
@@ -13,13 +13,12 @@
     navigation: auto;
   }
 
-  /* The header and bottom bar stay put instead of cross-fading with the page. */
-  #main-header,
-  header[data-site-header-styled] {
-    view-transition-name: site-header;
+  /* The sidebar and bottom bar stay put instead of cross-fading with the page. */
+  .app-sidebar {
+    view-transition-name: site-sidebar;
   }
 
-  div:has(> nav[aria-label="Primary"]) {
+  .app-bottom-nav {
     view-transition-name: site-bottom-nav;
   }
 
@@ -47,31 +46,10 @@
   }
 }
 
-/* Header links reach the 44px minimum target size and show a clear keyboard focus ring. */
-:is(#main-header, header[data-site-header-styled]) nav a,
-:is(#main-header, header[data-site-header-styled]) nav summary,
-nav[aria-label="Primary"] a {
-  min-block-size: 44px;
-}
-
-:is(#main-header, header[data-site-header-styled]) nav a:focus-visible,
-nav[aria-label="Primary"] a:focus-visible,
+/* The workflow stepper's links show a clear keyboard focus ring. Sidebar styles are in sidebar.css. */
 .workflow-steps__link:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
-}
-
-/* The fixed bottom bar keeps clear of rounded corners and the home indicator. */
-@media (max-width: 1023.98px) {
-  div:has(> nav[aria-label="Primary"]) {
-    inset-inline: max(0.75rem, env(safe-area-inset-left, 0px))
-      max(0.75rem, env(safe-area-inset-right, 0px));
-    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-  }
-
-  #main-content {
-    padding-block-end: calc(6rem + env(safe-area-inset-bottom, 0px));
-  }
 }
 
 /* Workflow stepper: 1 Load, 2 Review, 3 Apply. */

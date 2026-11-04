@@ -630,7 +630,7 @@ export function announceUpdate(current: string): void {
   if (seen && read(local, READ_KEY) === null) write(local, READ_KEY, seen);
   if (seen)
     showToast(
-      `SpoolSync updated to v${current}. Click the version in the footer to see what's new.`,
+      `SpoolSync updated to v${current}. Open the changelog in the sidebar to see what's new.`,
       "info",
       9000,
     );

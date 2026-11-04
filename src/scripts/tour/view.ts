@@ -44,7 +44,7 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
     {
       type: "button",
       class:
-        "fixed bottom-24 right-4 z-40 lg:bottom-4 rounded-full border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-layered lg:px-4 lg:py-2.5 lg:text-sm hover:bg-muted hover:border-primary/50 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        "fixed bottom-24 right-4 z-40 md:bottom-4 rounded-full border bg-background px-3 py-2 text-xs font-semibold text-foreground shadow-layered md:px-4 md:py-2.5 md:text-sm hover:bg-muted hover:border-primary/50 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
       "aria-haspopup": "dialog",
       "data-tour-launcher": "",
     },

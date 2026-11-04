@@ -4,6 +4,7 @@ import { navLinks } from "~/config/navigation";
 import { WORKFLOW_STEPS } from "~/config/site";
 import { readLoadResult } from "~/lib/browser/storage/inventories";
 import { backupFilename, createBackup } from "~/lib/saved-data";
+import { SIDEBAR_TOGGLE_EVENT } from "~/lib/sidebar";
 import { readDisplaySettings, updateDisplaySettings } from "~/lib/units";
 
 import { showToast } from "../dom";
@@ -122,6 +123,15 @@ function actionItems(): PaletteItem[] {
       keywords: "appearance mode dark light color",
       aliases: ["dark mode", "light mode", "night mode", "theme"],
       run: () => void clickVisible("[data-theme-toggle]"),
+    });
+  if (document.getElementById("app-sidebar"))
+    add({
+      id: "action:sidebar",
+      title: "Toggle sidebar",
+      subtitle: "Ctrl+B",
+      keywords: "navigation menu collapse expand rail drawer side panel",
+      aliases: ["sidebar", "collapse sidebar", "expand sidebar", "navigation", "menu"],
+      run: () => document.dispatchEvent(new Event(SIDEBAR_TOGGLE_EVENT)),
     });
   add({
     id: "action:units",

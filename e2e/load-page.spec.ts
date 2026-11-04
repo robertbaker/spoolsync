@@ -680,7 +680,7 @@ test("printing the Sync page drops navigation and controls but keeps the plan", 
   await page.goto("/sync?sample=1");
   await expect(page.locator("#suggestions article").first()).toBeVisible();
   await page.emulateMedia({ media: "print" });
-  await expect(page.locator("header").first()).toBeHidden();
+  await expect(page.locator("#app-sidebar")).toBeHidden();
   await expect(page.locator("footer").first()).toBeHidden();
   await expect(page.getByRole("button", { name: "Same spool" }).first()).toBeHidden();
   await expect(page.locator("#sync-summary")).toBeVisible();
@@ -690,7 +690,7 @@ test("printing the Sync page drops navigation and controls but keeps the plan", 
     .toBe("rgb(255, 255, 255)");
 });
 
-test("the question-mark key and footer button open a shortcuts list", async ({ page }) => {
+test("the question-mark key and sidebar button open a shortcuts list", async ({ page }) => {
   await page.goto("/load");
   await page.keyboard.press("?");
   const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });

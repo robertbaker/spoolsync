@@ -27,13 +27,13 @@ async function serveChangelog(page: Page, body = changelog) {
   );
 }
 
-test("the footer shows the version, and clicking it shows the changelog from GitHub", async ({
+test("the sidebar shows the version, and its changelog entry shows the changelog from GitHub", async ({
   page,
 }) => {
   await serveChangelog(page);
   await page.goto("/");
   const button = page.getByRole("button", { name: new RegExp(`SpoolSync version ${version}`) });
-  await expect(button).toHaveText(`v${version}`);
+  await expect(button).toContainText(`v${version}`);
   await button.click();
 
   const dialog = page.getByRole("dialog", { name: "What's new" });

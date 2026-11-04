@@ -1,23 +1,141 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("Inventory navigation", () => {
-  test("one Inventory link replaces Load and Sync and stays current on both pages", async ({
+test.describe("Sidebar navigation", () => {
+  test("one Inventory link stays current on Load and Sync, with its steps beneath it", async ({
     page,
   }) => {
     await page.goto("/load");
-    const header = page.locator("header");
-    await expect(header.getByRole("link", { name: "Load", exact: true })).toHaveCount(0);
-    await expect(header.getByRole("link", { name: "Sync", exact: true })).toHaveCount(0);
-    const inventory = header.getByRole("link", { name: "Inventory", exact: true }).first();
+    const sidebar = page.getByRole("navigation", { name: "Main" });
+    const inventory = sidebar.getByRole("link", { name: "Inventory", exact: true });
     await expect(inventory).toHaveAttribute("aria-current", "page");
+    await expect(sidebar.getByRole("link", { name: "Load", exact: true })).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
 
     await page.goto("/sync");
     await expect(inventory).toHaveAttribute("aria-current", "page");
+    await expect(sidebar.getByRole("link", { name: "Review", exact: true })).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
 
     await page.goto("/cli");
     await expect(inventory).not.toHaveAttribute("aria-current", "page");
+    await expect(sidebar.getByRole("link", { name: "CLI", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
+  test("the sidebar shows how many inventories are loaded", async ({ page }) => {
+    await page.goto("/load?sample=1");
+    await expect(page.locator("#load-bar-summary")).toContainText("services loaded");
+    const sidebar = page.getByRole("navigation", { name: "Main" });
+    await expect(sidebar.locator("[data-sb-loaded]")).toBeVisible();
+    await expect(sidebar.locator('[data-sb-step="load"]')).toHaveAttribute("data-state", "current");
+    await page.goto("/cli");
+    await expect(sidebar.locator('[data-sb-step="load"]')).toHaveAttribute("data-state", "done");
+  });
+
+  test("collapse state is kept across pages and toggles with Ctrl+B", async ({ page }) => {
+    await page.goto("/");
+    const html = page.locator("html");
+    const collapse = page.getByRole("button", { name: "Collapse sidebar" });
+    await expect(html).toHaveAttribute("data-sidebar", "expanded");
+    await collapse.click();
+    await expect(html).toHaveAttribute("data-sidebar", "collapsed");
+    await expect(page.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    // Links keep their accessible names when only icons are shown.
+    await expect(
+      page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "CLI", exact: true }),
+    ).toBeVisible();
+
+    await page.goto("/cli");
+    await expect(html).toHaveAttribute("data-sidebar", "collapsed");
+    await page.keyboard.press("Control+b");
+    await expect(html).toHaveAttribute("data-sidebar", "expanded");
+    await page.reload();
+    await expect(html).toHaveAttribute("data-sidebar", "expanded");
+  });
+
+  test("the command palette can toggle the sidebar", async ({ page }) => {
+    await page.goto("/");
+    await page.keyboard.press("Control+k");
+    await page.getByRole("combobox").fill("toggle sidebar");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("html")).toHaveAttribute("data-sidebar", "collapsed");
+  });
+
+  test("the units toggle switches between grams and ounces", async ({ page }) => {
+    await page.goto("/");
+    const units = page.getByRole("button", { name: /^Units: grams/ });
+    await units.click();
+    await expect(page.getByRole("button", { name: /^Units: ounces/ })).toBeVisible();
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 800 } });
+
+    test("a bottom bar holds the main pages and More opens the full menu as a drawer", async ({
+      page,
+    }) => {
+      await page.goto("/cli");
+      const bar = page.getByRole("navigation", { name: "Quick links" });
+      await expect(bar).toBeVisible();
+      await expect(bar.getByRole("link", { name: "CLI" })).toHaveAttribute("aria-current", "page");
+      const drawer = page.getByRole("navigation", { name: "Main" });
+      await expect(drawer).toBeHidden();
+
+      await bar.getByRole("button", { name: "More" }).click();
+      await expect(drawer).toBeVisible();
+      await expect(drawer.getByRole("button", { name: "Keyboard shortcuts" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(drawer).toBeHidden();
+
+      await bar.getByRole("button", { name: "More" }).click();
+      await drawer.getByRole("button", { name: "Keyboard shortcuts" }).click();
+      await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
+      await expect(drawer).toBeHidden();
+    });
+
+    test("the page does not scroll sideways", async ({ page }) => {
+      await page.goto("/load");
+      const scrolls = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(scrolls).toBe(false);
+    });
+  });
+
+  test.describe("on a tablet", () => {
+    test.use({ viewport: { width: 900, height: 800 } });
+
+    test("the rail is collapsed and expands while focused", async ({ page }) => {
+      await page.goto("/");
+      const sidebar = page.locator("#app-sidebar");
+      const narrow = (await sidebar.boundingBox())?.width ?? 0;
+      expect(narrow).toBeLessThan(100);
+      await sidebar.getByRole("link", { name: "CLI", exact: true }).focus();
+      await page.keyboard.press("Tab");
+      await expect.poll(async () => (await sidebar.boundingBox())?.width ?? 0).toBeGreaterThan(200);
+    });
+  });
+
+  test("a skip link jumps to the navigation", async ({ page }) => {
+    await page.goto("/");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Skip to navigation" })).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#app-sidebar")).toBeFocused();
+  });
+});
+
+test.describe("Inventory workflow", () => {
   test("the workflow stepper tracks loaded inventories and links between the steps", async ({
     page,
   }) => {
