@@ -5,8 +5,8 @@
  * `SourceId` has no entry) plus its web presentation in `src/lib/services.ts`.
  *
  * Capability words are from the service's point of view: `file-export` and `api-export` mean
- * SpoolSync can read the service's files or API; `file-import` and `api-import` mean SpoolSync
- * can hand changes back through an import file or the API.
+ * SpoolSync can read the service's files or API; `file-import` and `api-import` mean SpoolSync can
+ * hand changes back through an import file or the API.
  */
 import type { ServiceCapability, SourceId } from "./model";
 
@@ -317,6 +317,8 @@ export function platformLabel(platform: ServicePlatform): string {
 }
 
 /** Services in the order of `SOURCE_IDS`, with their registry entries. */
-export function listServices(ids: readonly SourceId[] = SERVICE_IDS): { id: SourceId; info: ServiceInfo }[] {
+export function listServices(
+  ids: readonly SourceId[] = SERVICE_IDS,
+): { id: SourceId; info: ServiceInfo }[] {
   return ids.map((id) => ({ id, info: SERVICES[id] }));
 }
