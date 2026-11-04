@@ -68,6 +68,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--reorder",
   "--cleanup",
   "--cleanup-report",
+  "--reference",
+  "--reference-report",
   "--watch",
   "--quiet",
   "--apply",
@@ -85,6 +87,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
 const SINGLETON_FLAGS: string[] = [
   "--cleanup",
   "--cleanup-report",
+  "--reference",
+  "--reference-report",
   "--output-dir",
   "--low-threshold",
   "--export-csv",
@@ -119,6 +123,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let cleanup = false;
   let cleanupReport = false;
   let cleanupRules: CleanupRuleId[] | undefined;
+  let reference: string | undefined;
+  let referenceReport: string | undefined;
   let saveConfig = false;
   let lowThreshold: number | undefined;
   let watch = false;
@@ -243,6 +249,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
           );
         cleanupRules = selection.enabled;
       }
+    } else if (arg === "--reference") {
+      reference = value(arg);
+    } else if (arg === "--reference-report") {
+      referenceReport = value(arg);
     } else if (arg === "--save-config") {
       saveConfig = true;
     } else if (arg === "--low-threshold") {
@@ -265,6 +275,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   if (json && format === "text")
     throw new Error("--json prints JSON, so it cannot be combined with --format text.");
   json = json || format === "json";
+  if (reference !== undefined && referenceReport !== undefined && reference !== referenceReport)
+    throw new Error(
+      "--reference and --reference-report name different files. Give the file once, or name the same one.",
+    );
   const options: Options = {
     inputs,
     empty,
@@ -284,6 +298,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     cleanup,
     cleanupReport,
     ...(cleanupRules ? { cleanupRules } : {}),
+    ...(reference ? { reference } : {}),
+    ...(referenceReport ? { referenceReport } : {}),
     saveConfig,
     ...(lowThreshold !== undefined ? { lowThreshold } : {}),
     watch,

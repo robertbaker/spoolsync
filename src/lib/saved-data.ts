@@ -1,3 +1,4 @@
+import { isProviderId, sanitizeReferenceSettings } from "@spoolsync/core/core/reference";
 import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
 import { sanitizeFileHistory } from "./browser/storage/file-history";
@@ -42,7 +43,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "preferences",
     label: "Preferences",
     description:
-      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, which data-cleanup rules are on, and recently used services.",
+      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, which data-cleanup rules are on, the reference-data provider and field choices, and recently used services.",
     keys: [
       "spoolsync:prefs",
       "spoolsync:low-stock-percent",
@@ -61,10 +62,19 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:setup-dismissed",
       "spoolsync:palette-recent",
       "spoolsync:cleanup-settings",
+      "spoolsync:reference-settings",
       "spoolsync:weigh-in",
       "spoolsync:shop-template",
       "spoolsync:changelog-read",
     ],
+    storage: "local",
+  },
+  {
+    id: "reference-cache",
+    label: "Reference data cache",
+    description:
+      "A catalog fetched from a reference service (such as the Open Filament Database or FilamentColors) with its credit line, kept for a short time so it is not fetched again. Kept on this device only and never exported.",
+    keys: ["spoolsync:reference-cache"],
     storage: "local",
   },
   {
@@ -123,6 +133,8 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:resolutions",
       "spoolsync:bulk-edits",
       "spoolsync:cleanup-accepted",
+      "spoolsync:reference-accepted",
+      "spoolsync:reference-choices",
       "spoolsync:spoolman-token",
     ],
     storage: "session",
@@ -267,6 +279,13 @@ function isValidEntry(key: string, text: string): boolean {
         return sanitizeViews(JSON.parse(text)).length > 0;
       case "spoolsync:cleanup-settings":
         return isStringList((JSON.parse(text) as { enabled?: unknown }).enabled);
+      case "spoolsync:reference-settings": {
+        const value = JSON.parse(text) as { providerId?: unknown; policy?: unknown };
+        return (
+          isProviderId(value.providerId) &&
+          sanitizeReferenceSettings(value).providerId === value.providerId
+        );
+      }
       case "spoolsync:match-decisions": {
         const value = JSON.parse(text) as { confirmed?: unknown; rejected?: unknown };
         return isStringList(value.confirmed) && isStringList(value.rejected);

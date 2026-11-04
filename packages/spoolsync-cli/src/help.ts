@@ -57,6 +57,9 @@ Output:
                           before comparing; changes that need a person to look are listed, not applied.
                           <rules> is a comma list of: ${CLEANUP_RULE_IDS.join(", ")} (or all, -rule to leave one out)
   --cleanup-report[=<rules>] List every proposed cleanup and warning (alone it plans nothing and works with one inventory)
+  --reference <file>      Match spools to a reference file (JSON or CSV of filaments) and add the missing values it can fill,
+                          from confident, unambiguous matches only, to the plan; overwrites and unclear matches are listed, not applied
+  --reference-report <file> List every reference match, difference, ambiguous choice and color check (alone it plans nothing and works with one inventory)
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)

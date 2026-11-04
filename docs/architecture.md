@@ -722,6 +722,120 @@ applicable proposals to `planSync` as record edits (`cleanup.ts`, `planning.ts`)
 and, on its own, plans nothing and accepts a single inventory (the `"inventory"` report gains a
 `cleanup` object, as does the `"compare"` report). Rule lists share `parseRuleSelection`. Matching
 still uses the values as loaded, so cleanup can change what a later run matches.
+## Reference data
+
+Reference data matches the loaded spools to a catalog of filaments (a file the person loads, or a
+service they configure) to fill in what is missing, offer corrections, and check colors. Core's
+`core/reference/` (public entry `core/reference.ts`) is pure and provider-neutral; it never changes a
+spool and never knows a provider's wire format.
+
+**Model.** `ReferenceFilament` is the one normalized record: vendor, product name, canonical material,
+color name, `colorHex` (and `colorHexes` for multi-color), diameter, density, nozzle and bed
+temperatures, net and empty-spool weight, list price, barcode, `https:` URL, provider id and label,
+and the `attribution` and `license` strings that stay with every record. Values the source does not
+state are `null`, never guessed. `mapping.ts` turns a raw record into it: a `ReferenceMapping` is
+plain data (a records path, per-key lists of paths, a weight unit), paths are dotted with `[n]`
+indexes, and keys match exactly and then ignoring case, punctuation and a unit in brackets. The
+built-in `GENERIC_MAPPING` carries preset aliases for the documented reference-file schema
+(`brand`/`vendor`/`manufacturer`, `material`, `color_name`, `hex`, `diameter`, `density`,
+`nozzle_temp_min`/`_max` or a `nozzle_temp` range, `bed_temp_*`, `net_weight`, `spool_weight`,
+`price`, `barcode`/`ean`/`upc`/`gtin`, `url`). `normalize.ts` reuses the cleanup parsers
+(`parseWeight`, `parseTemperature`, `normalizeHex`, `parseMaterial`, ...): out-of-range values are
+dropped with a warning, a finish such as "Silk" moves from the material to the product name, a hex
+column is told apart from a color-name column, bare weights of 10 or less are kilograms, and ids come
+from the source or a stable content hash (repeats get `#2`). `file.ts` reads JSON (a list, or an
+object holding one, optionally with `attribution` and `license`) or CSV with the same mapping.
+
+**Matching.** `ReferenceCatalog` holds records in a fixed order (vendor, material, color name, name,
+id) and indexes them by brand identity (cleanup's vendor-alias table, so `PRUSAMENT inc` finds
+`Prusament`; extra aliases are an option) and by barcode. `match(spool)` scores each candidate out
+of 100 with the reasons kept: brand 30, material 20 (a different polymer excludes the record, a
+variant such as `PLA+` against `PLA` scores less), name 35 (Dice similarity on word sets, ignoring
+case, order, accents, brand and polymer words), color 8, diameter and spool size as tie-breakers,
+barcode 60. The result is ordered by score then id and has a status: `matched` (one candidate clearly
+ahead, at least 75), `ambiguous` (rivals within 8 points), `suggested` (one weak candidate), or
+`none`. Only `matched` is used unasked. Ambiguous and suggested spools wait for a person's choice
+(a record, or "none of these"), which is stored and checked against the candidates on every refresh,
+in line with "suggestions never merge groups automatically".
+
+**Diff, policy and proposals.** `analyzeReference` compares the policy's fields for the selected
+record: a field is `missing` (empty, or `0` for diameter, density, temperatures and weights, which
+services store for "unknown"), `differs`, or `same` (case, spacing, word order, tolerances and a
+color within the match threshold do not count). A `ReferencePolicy` lists the fields the reference
+may touch and the subset that may replace an existing value; the default fills missing values only and
+leaves out the brand (the matching key) and the price (what was paid is not a list price). Each
+proposal has the cleanup proposal's shape (`id` `source:id#field`, before, after, confidence, reason,
+`applicable` through cleanup's `canApplyCleanup`) plus `kind` (`fill` or `overwrite`) and the
+reference id. A fill from a confident, unchosen match is `safe` (the CLI may apply it); everything
+else, including every overwrite and any fill from a person's choice, is `review`. Accepted entries
+are `AcceptedReference` values (`spoolKey`, `field`, `before`, `after`, provider, reference id);
+`referenceEditsFromAccepted` drops entries whose spool is gone or changed or whose service cannot
+take the field and returns `RecordEdits`, and `mergeRecordEdits` combines them with accepted
+cleanups (later wins a shared field; reference data goes last).
+
+**Color.** `core/color.ts` has CIEDE2000 (`deltaE2000`, `deltaE2000Lab`, tested against the pairs in
+Sharma, Wu and Dalal 2005). `color-check.ts` classifies a distance: up to 2.3 is a match, up to 5
+close, above 5 a mismatch; several colors compare pairwise and use the worst, and a different number
+of colors is always a mismatch. A separate plausibility check uses `colorFamily`: a color word in a
+name (`Red`, `Gold`, `Navy`) is checked against the hex's hue family with neighbor tolerance, so
+`Red` on a blue hex is flagged and `Galaxy` or `Natural` (no color claim) are `unknown`. It is applied
+to the spool's own name and hex and to the reference's, and a reference color that contradicts its own
+name is never filled as `safe`.
+
+**Providers.** `providers.ts` declares three providers. `file` is ready. `openfilamentdatabase`
+(https://openfilamentdatabase.org/docs) and `filamentcolors` (https://filamentcolors.xyz/api/) have
+status `needs-endpoint-config`: the host could not be reached while they were built, so their real
+endpoints and response schemas are unverified and **no endpoint, field name or response is built in or
+mocked**. What remains for each, and why:
+
+1. The service's base URL, endpoint paths and paging scheme must be taken from its documentation.
+2. A verified `ReferencePreset` (records path and per-key paths) must be added to
+   `REFERENCE_PRESETS` and the provider's `presets`, and its status set to `ready`; the fetch, paging,
+   cache, matching and UI code need no change. Until then the person enters the address and a JSON
+   mapping in the panel, which `parseMapping` validates.
+3. Browser access (CORS) must be confirmed. Fetching is browser-only; if the service does not allow
+   other sites, its data has to be downloaded and loaded as a file.
+4. The data's license and attribution wording must be confirmed and recorded in `license`
+   (`null` is shown as "not stated by the source"). FilamentColors' API may not carry temperatures or
+   weights at all; only what a mapping reads is filled.
+
+**Fetching.** `fetch.ts` is generic and uses injected `ReferenceIO` (`fetch`, `sleep`, `now`). The
+endpoint is `https:` only, with no embedded credentials and a real host; `{offset}`, `{page}` and
+`{limit}` are filled in. Paging is none, a next-link path in the response (followed only within the
+configured origin, with a loop guard), a record offset, or a page number, bounded by a page cap and a
+record cap. Requests are paced (`minIntervalMs`), 408/425/429/5xx are retried with exponential backoff
+that honors `Retry-After` (capped), a lost connection is retried once, and an `AbortSignal` stops
+waits and requests. Only an `Accept` header is sent, so the request needs no CORS preflight; the
+browser implementation (`lib/browser/reference-io.ts`) sends no cookies or referrer. A browser reports a
+blocked cross-site request like a lost connection, so that error carries CORS help pointing to the file
+option. `cache.ts` keeps a catalog with its `fetchedAt`, TTL (default 24 hours, `0` always fetches),
+credit line and a key over the endpoint, mapping and paging, so a changed setting misses the cache;
+stored records are re-validated on read. `settings.ts` sanitizes everything saved.
+
+**Load page.** The "Reference data" panel (`load/reference-view.ts`, `#reference-panel`, a
+`details[data-panel="reference"]` so the palette's `?panel=reference` landing opens it) is a view over
+`ReferenceController`, which owns the catalog, the policy, the filters (everything to review, missing,
+differs, color check, needs a choice, no match), per-field accept/reject, "Fill all missing" and
+"Overwrite selected" (both act on the spools in view), candidate choices, and undo. Cards show the
+spool beside the reference record with swatches, the CIEDE2000 distance, the name/hex warnings and
+each proposed field. Loading is guarded by a request revision: a newer file load, fetch or `cancel()`
+makes an older response stale and it is discarded without touching state. Storage goes through
+`lib/browser/storage/reference.ts` and is registered in `lib/saved-data.ts`: the provider, policy and
+per-provider endpoint settings in `spoolsync:reference-settings` (a portable preference), a fetched
+catalog in `spoolsync:reference-cache` (its own group, device only, never exported), and accepted
+changes and picked records in `spoolsync:reference-accepted` and `spoolsync:reference-choices`
+(sessionStorage, like the cleanup choices). A catalog loaded from a file stays in memory; after a
+reload the accepted changes are held (not discarded) until the same reference is loaded again. The Sync
+page validates the accepted entries against the loaded values, merges them with the cleanup edits,
+shows a notice with the count, and each change can still be left out like any other.
+
+**CLI.** `--reference <file>` adds the safe, applicable fills from confident matches to the plan as
+record edits (it needs two inventories, like `--cleanup`); `--reference-report <file>` lists every
+match, proposal (including would-be overwrites), ambiguous choice and non-matching color, and alone
+plans nothing and works with a single inventory. The CLI reads only the file given and never contacts a
+reference service. Both are path keys in `--config` files, appear in the completion specs, `--help`,
+the report schema (a `reference` object in both report kinds) and `src/components/cli/data.ts`.
+
 ## Load-page tools, backup, and shared styles
 
 **Weigh-in calculator.** The spool drawer has a "Weigh in" section (`load/weigh-in-panel.ts`, pure rules

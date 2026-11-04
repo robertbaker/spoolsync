@@ -28,6 +28,10 @@ export type Options = {
   cleanupReport: boolean;
   /** Rules named with `--cleanup=<rules>` or `--cleanup-report=<rules>`; all when absent. */
   cleanupRules?: CleanupRuleId[];
+  /** Reference file: add confident, unambiguous fills from it to the plan (see `--reference`). */
+  reference?: string;
+  /** Reference file: list every match, proposal and color check; alone it plans nothing. */
+  referenceReport?: string;
   /** Save the given options as defaults in the per-user settings file, then stop. */
   saveConfig: boolean;
   /** With --summary or --reorder, the share of full weight at or under which a spool is low. */

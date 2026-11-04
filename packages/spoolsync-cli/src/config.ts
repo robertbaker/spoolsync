@@ -19,7 +19,13 @@ const SOURCE_KEYS = [
   "spool",
   "spoolkeep",
 ] as const;
-const PATH_KEYS = new Set<string>([...SOURCE_KEYS, "output-dir", "export-csv"]);
+const PATH_KEYS = new Set<string>([
+  ...SOURCE_KEYS,
+  "output-dir",
+  "export-csv",
+  "reference",
+  "reference-report",
+]);
 const STRING_KEYS = new Set<string>([
   ...PATH_KEYS,
   "format",

@@ -32,6 +32,7 @@ import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
 import { wireInventoryReport } from "./load/report-panel";
+import { wireReferencePanel } from "./load/reference-view";
 import { wireReorderPanel } from "./load/reorder-panel";
 import { wireSinceVisit } from "./load/since-visit-panel";
 import { wireSmartDrop } from "./load/smart-drop";
@@ -74,6 +75,8 @@ const reorderRoot = document.getElementById("reorder-panel");
 const reorder = reorderRoot ? wireReorderPanel(reorderRoot, state.results) : null;
 const cleanupRoot = document.getElementById("cleanup-panel");
 const cleanup = cleanupRoot ? wireCleanupPanel(cleanupRoot, state.results) : null;
+const referenceRoot = document.getElementById("reference-panel");
+const reference = referenceRoot ? wireReferencePanel(referenceRoot, state.results) : null;
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
 const render = () => {
@@ -83,6 +86,7 @@ const render = () => {
   views?.update();
   reorder?.update();
   cleanup?.update();
+  reference?.update();
   inventoryReport.update();
   sinceVisit.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);

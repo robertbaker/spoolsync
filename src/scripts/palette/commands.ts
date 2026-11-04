@@ -183,6 +183,19 @@ function actionItems(): PaletteItem[] {
       else location.assign("/load?panel=cleanup");
     },
   });
+  add({
+    id: "action:reference",
+    title: "Match with reference data",
+    subtitle: "Load page",
+    keywords:
+      "reference catalog open filament database filamentcolors colors fill missing temperatures weights barcode delta e",
+    aliases: ["open filament database", "filamentcolors", "reference filament"],
+    run: () => {
+      // A native <details data-panel="reference"> on the Load page, like the cleanup panel.
+      if (isLoadPath(location.pathname)) openPanel("reference");
+      else location.assign("/load?panel=reference");
+    },
+  });
   if (available("#download-combined"))
     add({
       id: "action:download-combined",

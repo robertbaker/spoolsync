@@ -2,6 +2,7 @@ import type { ApplyLogEntry, SourceId } from "@spoolsync/core/core/model";
 import type { InventoryChanges, InventorySummary } from "@spoolsync/core/workflow";
 
 import type { CleanupSection } from "./cleanup";
+import type { ReferenceSection } from "./reference";
 
 /**
  * The machine-readable reports behind `--format json` (and its alias `--json`).
@@ -56,6 +57,8 @@ export interface CompareReport extends ReportBase {
   exportWarnings: Array<{ source: SourceId; message: string }>;
   /** With `--cleanup`: what was proposed and which safe changes joined the plan. */
   cleanup?: CleanupSection;
+  /** With `--reference`: what matched, and which safe fills joined the plan. */
+  reference?: ReferenceSection;
 }
 
 export interface ReorderEntry {
@@ -80,6 +83,8 @@ export interface InventoryReport extends ReportBase {
   spools?: number;
   /** With `--cleanup-report` on its own: the proposals and warnings. Nothing is applied. */
   cleanup?: CleanupSection;
+  /** With `--reference-report` on its own: matches, proposals and color checks. Nothing is applied. */
+  reference?: ReferenceSection;
   csvExport?: string;
   written: string[];
 }

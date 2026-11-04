@@ -89,6 +89,114 @@
         }
       }
     },
+    "referenceChange": {
+      "type": "object",
+      "required": ["spool", "field", "before", "after", "kind", "confidence", "reference", "reason", "applicable"],
+      "properties": {
+        "spool": { "type": "string", "description": "The record key, source:id." },
+        "field": { "type": "string" },
+        "before": {},
+        "after": {},
+        "kind": { "enum": ["fill", "overwrite"], "description": "fill supplies a missing value; overwrite replaces an existing one and is never added to the plan." },
+        "confidence": { "enum": ["safe", "review"] },
+        "reference": { "type": "string", "description": "The id of the reference record the value came from." },
+        "reason": { "type": "string" },
+        "applicable": {
+          "type": "boolean",
+          "description": "Whether the spool's service is writable and stores the field."
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "description": "Reference data (--reference, --reference-report). Only safe fills from confident, unambiguous matches that a service can take are added to the plan, and only with --reference. The CLI reads the file given and contacts no reference service.",
+      "required": ["provider", "file", "attribution", "license", "catalog", "counts", "applied", "warnings"],
+      "properties": {
+        "provider": { "type": "string" },
+        "file": { "type": "string" },
+        "attribution": { "type": "string", "description": "The credit line carried by the reference file." },
+        "license": { "type": ["string", "null"] },
+        "catalog": {
+          "type": "object",
+          "required": ["records", "usable", "skipped"],
+          "properties": {
+            "records": { "type": "integer" },
+            "usable": { "type": "integer" },
+            "skipped": { "type": "integer" }
+          }
+        },
+        "counts": {
+          "type": "object",
+          "required": ["spools", "matched", "ambiguous", "suggested", "unmatched", "proposals", "safe", "review", "applicable", "colorMismatches", "colorClose"],
+          "properties": {
+            "spools": { "type": "integer" },
+            "matched": { "type": "integer" },
+            "ambiguous": { "type": "integer" },
+            "suggested": { "type": "integer" },
+            "unmatched": { "type": "integer" },
+            "proposals": { "type": "integer" },
+            "safe": { "type": "integer" },
+            "review": { "type": "integer" },
+            "applicable": { "type": "integer" },
+            "colorMismatches": { "type": "integer" },
+            "colorClose": { "type": "integer" }
+          }
+        },
+        "applied": {
+          "type": "array",
+          "description": "Changes added to the plan; empty without --reference.",
+          "items": { "$ref": "#/$defs/referenceChange" }
+        },
+        "proposals": {
+          "type": "array",
+          "description": "Every proposal, with --reference-report.",
+          "items": { "$ref": "#/$defs/referenceChange" }
+        },
+        "ambiguous": {
+          "type": "array",
+          "description": "With --reference-report: spools whose match needs a person's choice. Nothing is chosen for them.",
+          "items": {
+            "type": "object",
+            "required": ["spool", "status", "note", "candidates"],
+            "properties": {
+              "spool": { "type": "string" },
+              "status": { "enum": ["ambiguous", "suggested"] },
+              "note": { "type": ["string", "null"] },
+              "candidates": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id", "label", "score", "confidence"],
+                  "properties": {
+                    "id": { "type": "string" },
+                    "label": { "type": "string" },
+                    "score": { "type": "number" },
+                    "confidence": { "enum": ["high", "medium", "low"] }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "colorChecks": {
+          "type": "array",
+          "description": "With --reference-report: colors that are not a match (CIEDE2000 above 2.3).",
+          "items": {
+            "type": "object",
+            "required": ["spool", "spoolHex", "referenceHex", "deltaE", "verdict", "countDiffers"],
+            "properties": {
+              "spool": { "type": "string" },
+              "spoolHex": { "type": "string" },
+              "referenceHex": { "type": "string" },
+              "deltaE": { "type": "number" },
+              "verdict": { "enum": ["match", "close", "mismatch"] },
+              "countDiffers": { "type": "boolean" }
+            }
+          }
+        },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "snapshotSpool": {
       "type": "object",
       "required": ["key", "label", "remainingGrams"],
@@ -190,6 +298,7 @@
           }
         },
         "cleanup": { "$ref": "#/$defs/cleanup" },
+        "reference": { "$ref": "#/$defs/reference" },
         "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }
       }
     },
@@ -255,6 +364,7 @@
         },
         "spools": { "type": "integer" },
         "cleanup": { "$ref": "#/$defs/cleanup" },
+        "reference": { "$ref": "#/$defs/reference" },
         "csvExport": { "type": "string" },
         "written": { "type": "array", "items": { "type": "string" } },
         "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }

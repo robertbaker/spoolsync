@@ -43,6 +43,11 @@ export interface PlanState {
   bulkEdits?(): ReadonlyMap<string, BulkEdit>;
   /** Accepted data cleanups by record key; absent means none. */
   recordEdits?(): RecordEdits;
+  /**
+   * How many of the record edits came from accepted cleanups and from accepted reference data, for
+   * the notices. Absent means every record edit is a cleanup.
+   */
+  recordEditCounts?(): { cleanup: number; reference: number };
   clearBulkEdit?(groupId: string): void;
 }
 
@@ -104,10 +109,25 @@ export function createApplyView(
         ),
       );
     }
-    const cleanups = [...recordEdits.values()].reduce(
+    const edited = [...recordEdits.values()].reduce(
       (sum, edit) => sum + Object.keys(edit).length,
       0,
     );
+    const counts = planState.recordEditCounts?.() ?? { cleanup: edited, reference: 0 };
+    const cleanups = counts.cleanup;
+    if (counts.reference) {
+      sections.push(
+        notice(
+          "info",
+          `${counts.reference} accepted reference ${counts.reference === 1 ? "change is" : "changes are"} in this plan`,
+          h(
+            "p",
+            { class: "mt-1" },
+            "You accepted these under Reference data on the Load page. Each shows as a field change below and can be left out. The copied CLI command does not include them; use its --reference option with the same file for the confident fills.",
+          ),
+        ),
+      );
+    }
     if (cleanups) {
       sections.push(
         notice(

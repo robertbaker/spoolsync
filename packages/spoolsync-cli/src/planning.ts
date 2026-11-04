@@ -1,13 +1,20 @@
 import { compareGroup } from "@spoolsync/core/core/compare";
 import { matchSpools, recordKey } from "@spoolsync/core/core/match";
+import { mergeRecordEdits } from "@spoolsync/core/core/reference";
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import { planSync, resolutionsFromChoices } from "@spoolsync/core/planner";
 
 import { pairArg, type Options } from "./args";
 import { runCleanup } from "./cleanup";
+import type { ReferenceOutcome } from "./reference";
 
 /** Pure CLI decisions and plan construction; no files or remote writes. */
-export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, LoadResult>) {
+export function createCliPlan(
+  options: Options,
+  loaded: ReadonlyMap<SourceId, LoadResult>,
+  /** Matches against `--reference`, computed by the caller because reading the file is async. */
+  reference?: ReferenceOutcome,
+) {
   const decisions = {
     confirmed: options.confirm.map(pairArg),
     rejected: options.reject.map(pairArg),
@@ -45,7 +52,8 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
     resolutions,
     matches.suggestions,
     undefined,
-    cleanup?.edits,
+    // Reference fills are applied after cleanups: they come from an explicit file the person gave.
+    cleanup || reference ? mergeRecordEdits(cleanup?.edits, reference?.edits) : undefined,
   );
   const plannedChanges = Object.fromEntries(
     SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [
@@ -88,5 +96,5 @@ export function createCliPlan(options: Options, loaded: ReadonlyMap<SourceId, Lo
     plannedChanges,
   };
 
-  return { spools, matches, resolutions, plan, summary, cleanup };
+  return { spools, matches, resolutions, plan, summary, cleanup, reference };
 }
