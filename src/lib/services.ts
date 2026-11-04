@@ -99,6 +99,13 @@ export const SERVICE_WEB = {
     how: "Save the response of GET /api/spools from FilamentDB, or a single spool file from its data/spools folder. Extract ZIP exports first, or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token.",
     summary: "Direct via server address, or spools JSON from /api/spools",
   },
+  filamentDbApp: {
+    icon: "vendor/filament-db",
+    kind: "JSON snapshot or spool CSV",
+    how: "In Filament DB, open Settings → Backup and export a snapshot (JSON), or export Spools as CSV from Import/Export, then choose or drop the file here. Every spool loads as its own record. Either file can be updated: the snapshot keeps everything and replaces your data when restored, while a spool CSV is written back as just the changed spools, for Filament DB's spool importer (spool fields only). The command line can also read and update a Filament DB server directly. Weights, price (Filament DB stores cost per kilogram, so it is converted with the net weight), location, purchase date, retired flag and the spool label (as notes) are per spool; brand, material, color, diameter, density, temperatures and the net and empty-spool weights belong to the filament, so a change there applies to all of its spools. SpoolSync can also add a spool to an existing color variant.",
+    summary: "JSON snapshot or spool CSV; the CLI can also use its API",
+    creditBy: "the open-source Filament DB project by hyiger",
+  },
   spoolmaster: {
     icon: "material-symbols:table-chart-outline",
     kind: "Excel (.xlsx)",

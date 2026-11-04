@@ -12,14 +12,22 @@ test("filters narrow the list and search narrows it further", () => {
   expect(visibleServiceIds("", "file")).not.toContain("spoolman");
   expect(visibleServiceIds("excel", "all")).toEqual(["spoolmaster"]);
   expect(visibleServiceIds("excel", "write")).toEqual([]);
-  expect(visibleServiceIds("self-hosted", "api")).toEqual(["spoolman", "bambuddy", "filadex", "filamentdb"]);
+  expect(visibleServiceIds("self-hosted", "api")).toEqual([
+    "spoolman",
+    "bambuddy",
+    "filadex",
+    "filamentdb",
+    "filamentDbApp",
+  ]);
 });
 
 test("the status sentence reflects the visible count", () => {
   expect(matrixStatus(SERVICE_COUNT, "", "all")).toBe(`Showing all ${SERVICE_COUNT} tools.`);
   expect(matrixStatus(2, "csv", "all")).toBe(`Showing 2 of ${SERVICE_COUNT} tools.`);
   expect(matrixStatus(0, "zzz", "all")).toBe("No tools match.");
-  expect(matrixStatus(SERVICE_COUNT, "  ", "write")).toBe(`Showing ${SERVICE_COUNT} of ${SERVICE_COUNT} tools.`);
+  expect(matrixStatus(SERVICE_COUNT, "  ", "write")).toBe(
+    `Showing ${SERVICE_COUNT} of ${SERVICE_COUNT} tools.`,
+  );
 });
 
 beforeEach(() => {
@@ -42,7 +50,9 @@ test("wiring hides rows, marks the pressed filter, and shows the empty message",
   writeButton.click();
   expect(rows.map((row) => row.hidden)).toEqual([false, true]);
   expect(writeButton.getAttribute("aria-pressed")).toBe("true");
-  expect(document.querySelector('[data-matrix-filter="all"]')!.getAttribute("aria-pressed")).toBe("false");
+  expect(document.querySelector('[data-matrix-filter="all"]')!.getAttribute("aria-pressed")).toBe(
+    "false",
+  );
 
   const search = document.querySelector<HTMLInputElement>("[data-matrix-search]")!;
   search.value = "no such tool";

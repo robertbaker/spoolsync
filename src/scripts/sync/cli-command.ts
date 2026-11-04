@@ -18,6 +18,7 @@ const INPUT_FLAGS: Record<SourceId, string> = {
   filameter: "--filameter",
   filadex: "--filadex",
   filamentdb: "--filamentdb",
+  filamentDbApp: "--filament-db",
   spoolmaster: "--spoolmaster",
   spoolhoarder: "--spoolhoarder",
   spoolapp: "--spool",
@@ -28,6 +29,7 @@ const INPUT_FLAGS: Record<SourceId, string> = {
 const API_INPUTS: Partial<Record<SourceId, { flag: string; token: string }>> = {
   spoolman: { flag: "--spoolman-url", token: "SPOOLMAN_TOKEN" },
   filamentdb: { flag: "--filamentdb-url", token: "FILAMENTDB_TOKEN" },
+  filamentDbApp: { flag: "--filament-db-url", token: "FILAMENT_DB_API_KEY" },
 };
 
 /** Services the CLI can write directly with `--apply`. */

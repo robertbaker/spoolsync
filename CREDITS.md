@@ -55,6 +55,12 @@ SpoolSync is an independent open-source project and relies on graphics, icons, a
 - **Source**: [the-luap/filadex](https://github.com/the-luap/filadex)
 - **Usage**: Used to identify software compatibility.
 
+### Filament DB
+
+- **Asset**: Filament DB logo
+- **Source**: [hyiger/filament-db](https://github.com/hyiger/filament-db)
+- **Usage**: Used to identify software compatibility.
+
 ## UI & System Icons
 
 - **Google Material Symbols**: Provided under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Source: [Google Fonts Icons](https://fonts.google.com/icons).

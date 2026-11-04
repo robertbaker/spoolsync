@@ -12,9 +12,9 @@ import { spoolKey, type DuplicateGroup, type WeightChange } from "@spoolsync/cor
 import type { StockHistory, StockPoint } from "./browser/storage/stock-history";
 
 /**
- * What the spool detail drawer shows for one spool: the same physical spool as every loaded
- * service sees it, the other records it might be, and a matrix of field values. Pure so it can be
- * tested without a page; the drawer module draws it.
+ * What the spool detail drawer shows for one spool: the same physical spool as every loaded service
+ * sees it, the other records it might be, and a matrix of field values. Pure so it can be tested
+ * without a page; the drawer module draws it.
  */
 
 export type DetailKind = "text" | "weight" | "money" | "colors" | "flag";
@@ -67,6 +67,7 @@ export const CROSS_ID_LABELS: Record<keyof CrossIds, string> = {
   filameterId: "FilaMeter",
   filadexId: "Filadex",
   filamentdbSerial: "FilamentDB",
+  filamentDbAppId: "Filament DB",
   spoolmasterId: "SpoolMaster",
   spoolhoarderId: "Spool Hoarder",
   spoolappId: "Spool",
@@ -148,11 +149,18 @@ export function markDifferent(decisions: MatchDecisions, a: string, b: string): 
   const pair = pairKey(a, b);
   return {
     confirmed: decisions.confirmed.filter((existing) => existing !== pair),
-    rejected: decisions.rejected.includes(pair) ? [...decisions.rejected] : [...decisions.rejected, pair],
+    rejected: decisions.rejected.includes(pair)
+      ? [...decisions.rejected]
+      : [...decisions.rejected, pair],
   };
 }
 
-const FIELDS: Array<{ id: string; label: string; kind: DetailKind; value: (s: CommonSpool) => DetailRow["values"][number] }> = [
+const FIELDS: Array<{
+  id: string;
+  label: string;
+  kind: DetailKind;
+  value: (s: CommonSpool) => DetailRow["values"][number];
+}> = [
   { id: "sourceId", label: "ID", kind: "text", value: (s) => s.sourceId },
   { id: "vendor", label: "Brand", kind: "text", value: (s) => s.vendor },
   { id: "material", label: "Material", kind: "text", value: (s) => s.material },
@@ -167,7 +175,12 @@ const FIELDS: Array<{ id: string; label: string; kind: DetailKind; value: (s: Co
   { id: "upc", label: "Barcode", kind: "text", value: (s) => s.upc },
   { id: "initialWeight", label: "Full weight", kind: "weight", value: (s) => s.initialWeight },
   { id: "remainingWeight", label: "Remaining", kind: "weight", value: (s) => s.remainingWeight },
-  { id: "emptySpoolWeight", label: "Empty spool", kind: "weight", value: (s) => s.emptySpoolWeight },
+  {
+    id: "emptySpoolWeight",
+    label: "Empty spool",
+    kind: "weight",
+    value: (s) => s.emptySpoolWeight,
+  },
   { id: "location", label: "Location", kind: "text", value: (s) => s.location },
   { id: "price", label: "Price", kind: "money", value: (s) => s.price },
   { id: "purchasedOn", label: "Purchased", kind: "text", value: (s) => s.purchasedOn },
@@ -193,7 +206,9 @@ export function detailRows(columns: readonly CommonSpool[]): DetailRow[] {
 export function linkedIds(spool: CommonSpool): Array<{ label: string; value: string }> {
   return (Object.keys(CROSS_ID_LABELS) as Array<keyof CrossIds>).flatMap((field) => {
     const value = spool.crossIds[field];
-    return value === undefined || value === "" ? [] : [{ label: CROSS_ID_LABELS[field], value: String(value) }];
+    return value === undefined || value === ""
+      ? []
+      : [{ label: CROSS_ID_LABELS[field], value: String(value) }];
   });
 }
 
