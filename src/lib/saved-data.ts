@@ -10,7 +10,6 @@ import { isLocale } from "./i18n";
 import { sanitizeColumnMaps } from "./import-mapper/store";
 import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
 import { sanitizePreferences } from "./preferences";
-import { validateShopTemplate } from "./reorder-list";
 import { sanitizeViews } from "./saved-views";
 import { isDefaultColumns, sanitizeColumns } from "./table-columns";
 import { sanitizeDisplaySettings } from "./units";
@@ -70,7 +69,6 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:cleanup-settings",
       "spoolsync:reference-settings",
       "spoolsync:weigh-in",
-      "spoolsync:shop-template",
       "spoolsync:changelog-read",
       "spoolsync:language",
       "spoolsync:table-columns",
@@ -282,8 +280,6 @@ function isValidEntry(key: string, text: string): boolean {
         return text === "collapsed" || text === "expanded";
       case "spoolsync:weigh-in":
         return Object.keys(sanitizeTares(JSON.parse(text))).length > 0;
-      case "spoolsync:shop-template":
-        return validateShopTemplate(text).ok;
       case "spoolsync:open-panels":
       case "spoolsync:recent-sources":
       case "spoolsync:palette-recent":

@@ -48,3 +48,63 @@ test.describe("Load page tools", () => {
     await expect(page.locator("#labels-dialog")).toContainText("filter box and press Enter");
   });
 });
+
+test("the reorder list links a SUNLU spool to the SUNLU store first, with the coupon and disclosures", async ({
+  page,
+}) => {
+  await page.goto("/load");
+  await page.locator("#spoolio-file").setInputFiles({
+    name: "spoolio.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(
+      JSON.stringify({
+        version: 1,
+        filaments: [
+          {
+            id: "s1",
+            brand: "SUNLU",
+            type: "PLA",
+            colorName: "Fire Red",
+            weightTotal: 1000,
+            weightRemaining: 50,
+          },
+          {
+            id: "s2",
+            brand: "Prusament",
+            type: "PETG",
+            colorName: "Orange",
+            weightTotal: 1000,
+            weightRemaining: 40,
+          },
+        ],
+      }),
+    ),
+  });
+  const panel = page.locator("#reorder-panel");
+  await panel.locator("summary").click();
+
+  const sunlu = panel.locator("li a[data-shop='sunlu']").first();
+  const href = await sunlu.getAttribute("href");
+  const url = new URL(href!);
+  expect(url.origin).toBe("https://store.sunlu.com");
+  expect(url.searchParams.get("sca_ref")).toBe("12700401.UcCqD96LNe");
+  expect(url.searchParams.get("q")).toBe("PLA Fire Red");
+  await expect(sunlu).toHaveAttribute("rel", /sponsored/);
+  await expect(panel).toContainText("Coupon code SpoolSync (5% off)");
+
+  // Clicking the code copies it.
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await panel.locator("button[data-coupon='SpoolSync']").first().click();
+  await expect(page.getByText("Copied coupon code SpoolSync")).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("SpoolSync");
+
+  // Prusament has no store of its own here, so it gets Amazon only.
+  const amazon = panel.locator("a[data-shop='amazon']");
+  expect(await amazon.count()).toBeGreaterThanOrEqual(2);
+  await expect(amazon.first()).toHaveAttribute("href", /tag=spoolsync-20/);
+  await expect(panel.locator("[data-disclosure]")).toHaveCount(2);
+  await expect(panel).toContainText(
+    "As an Amazon Associate, SpoolSync earns from qualifying purchases.",
+  );
+  await expect(panel).toContainText("SUNLU links are affiliate links");
+});

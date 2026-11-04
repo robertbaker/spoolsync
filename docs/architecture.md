@@ -609,9 +609,23 @@ visit and says so.
 
 **Reorder list** (`load/reorder-panel.ts`, logic in `lib/reorder-list.ts`). Built from core's
 `reorderItems`, so it uses the same low-stock rule and linked-spool matching as "Copy reorder list",
-then grouped by brand (case-insensitive, no-brand last). Search links are
-`https://www.google.com/search?tbm=shop&q=brand+material+name`, built with `URLSearchParams` and opened
-with `rel="noopener noreferrer"`; nothing from the inventory is sent until the visitor clicks. The CSV
+then grouped by brand (case-insensitive, no-brand last). Shop links come from `lib/affiliates/`, the
+site's affiliate programs; they exist so the site earns, so there is no visitor setting for them (the
+older custom shop address was removed, and the panel forgets its `spoolsync:shop-template` key).
+`buyLinks({ brand, material, color })` asks every program in `AFFILIATE_PROGRAMS` (`index.ts`) for a
+link: a program is either a maker's own store for named brands (matched ignoring case and
+punctuation, so `SUN-LU` is SUNLU) or a general shop (`brands: "any"`), and the maker's store comes
+first, so a SUNLU spool lists SUNLU then Amazon. Parts are encoded by `URL`, links open with
+`rel="noopener noreferrer sponsored"`, and only brand, material and color are in a link; nothing from
+the inventory is sent until the visitor clicks. **Adding a program** is one entry: for a Shopify-style
+store call `searchStoreProgram` (`stores.ts`) with the brands, origin, the affiliate parameters, the
+disclosure and optionally a coupon, then add it to `AFFILIATE_PROGRAMS`. The panel shows each used
+program's disclosure once and a coupon next to its link, the CSV's `search_url` is the first link,
+and `pages/privacy.astro` lists the programs from the same array. Amazon (`amazon.ts`) picks its
+store (`AMAZON_STORES`: .com, .ca, .co.uk, .de, .fr, .it, .es, .nl, .pl, .se) from the browser's
+languages (`detectAmazonStore`: country first, then language, else .com) and adds the tracking tag;
+SUNLU, OVERTURE and AMOLEN search `store.sunlu.com/search`, `overture3d.com/search` and `www.amolen.com/search` with its referral and campaign parameters and shows the
+coupon code. The CSV
 neutralizes cells that start with a formula character like `combinedInventoryCsv` does. The printable
 view builds a plain `#reorder-sheet` and sets `body.printing-reorder`, which `print.css` uses to print
 the sheet alone, as it does for labels.
@@ -1042,10 +1056,7 @@ is the dialog section: download, choose a file, review, confirm.
 
 **Smaller additions.** Saved views can be shared as `?view=` (compact JSON in base64url, parsed with
 `decodeViewParam` through `sanitizeSettings`, applied once when spools are first on screen, then
-removed from the address) and stepped with `[` and `]` (`cycleView`). The reorder list accepts a
-shop link template (`validateShopTemplate`: https only, `{brand}`, `{material}` and `{color}`, none
-in the host name; each part is percent-encoded by `expandShopTemplate`), stored under
-`spoolsync:shop-template`, and falls back to web search when it is missing or invalid. The command
+removed from the address) and stepped with `[` and `]` (`cycleView`). The command
 palette ranks `aliases` like titles, lists recently chosen commands and spools first under "Recent"
 when opened empty, and has actions for the report, weigh-in, since-last-visit, the reorder list, view
 links, history export and backup or restore. Sync history can be filtered by service, method,
@@ -1058,7 +1069,7 @@ for `display` and `overlay`) behind `prefers-reduced-motion: no-preference`. It 
 `color-scheme`, balanced and pretty text wrapping, tabular numbers, toast safe areas and tone edges,
 and the `.skeleton` and `.empty-state` blocks that Load-page panels use. `styles/features.css`
 holds the report, weigh-in and since-visit styles. The new storage keys (`spoolsync:weigh-in`,
-`spoolsync:shop-template`, `spoolsync:changelog-read`, `spoolsync:since-visit`) are registered in
+`spoolsync:changelog-read`, `spoolsync:since-visit`) are registered in
 `SAVED_GROUPS`.
 
 ## Data health dashboard

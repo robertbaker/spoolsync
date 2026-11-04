@@ -6,7 +6,7 @@ import { expect, test, type Page } from "@playwright/test";
  * scrolls. This is cheaper than screenshot baselines (which differ by operating system) and catches
  * the same regression: one unbreakable line or table pushing a whole page wider than a phone.
  */
-const PAGES = ["/", "/load", "/sync", "/cli", "/resources", "/credits"];
+const PAGES = ["/", "/load", "/sync", "/cli", "/resources", "/credits", "/privacy"];
 const VIEWPORTS = [
   { name: "phone", width: 360, height: 780 },
   { name: "large phone", width: 430, height: 900 },

@@ -1,0 +1,103 @@
+---
+import Container from "~/components/starwind/controls/Container/Container.astro";
+import PageHeader from "~/components/PageHeader.astro";
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import { SITE_TITLE } from "~/config";
+import { AFFILIATE_PROGRAMS, AMAZON_STORES } from "~/lib/affiliates";
+
+const link = "underline hover:text-foreground";
+---
+
+<BaseLayout
+  title={`Privacy — ${SITE_TITLE}`}
+  description="What SpoolSync keeps, where it keeps it, which other sites it talks to, and how its Amazon affiliate links work."
+>
+  <Container class="py-10 sm:py-14">
+    <PageHeader
+      eyebrow="Your data"
+      title="Privacy"
+      description="SpoolSync runs in your browser. Your inventory is not sent to SpoolSync, and there is no account."
+    />
+
+    <div class="mt-10 grid max-w-3xl gap-8 text-sm leading-relaxed text-muted-foreground">
+      <section aria-labelledby="privacy-inventory">
+        <h2 id="privacy-inventory" class="text-xl font-semibold text-foreground">Your inventory</h2>
+        <p class="mt-2">
+          Files you open and inventories you load are read and compared in your browser. They are not uploaded to
+          SpoolSync, which has no server for them and no database of its own.
+        </p>
+      </section>
+
+      <section aria-labelledby="privacy-storage">
+        <h2 id="privacy-storage" class="text-xl font-semibold text-foreground">What stays in your browser</h2>
+        <p class="mt-2">
+          Settings and choices you make are kept in your browser's storage on this device: the chosen language and
+          units, saved views, match decisions, the shop link settings, cached reference catalogs, and connection
+          addresses. Connection tokens and passwords are kept only as the connection form offers: for the session, or
+          on this device if you choose to remember them. SpoolSync sets no cookies and has no analytics or advertising scripts. The saved settings
+          dialog on the Load page lists what is stored and can export or erase it.
+        </p>
+      </section>
+
+      <section aria-labelledby="privacy-network">
+        <h2 id="privacy-network" class="text-xl font-semibold text-foreground">Other sites it talks to</h2>
+        <p class="mt-2">
+          Your browser contacts other sites only when you ask it to, or to show the changelog:
+        </p>
+        <ul class="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            The services you connect (for example your own Spoolman or Filadex server). These requests go from your
+            browser to that server directly.
+          </li>
+          <li>
+            The reference catalogs, <a class={link} href="https://openfilamentdatabase.org" target="_blank" rel="noopener noreferrer">Open Filament Database</a> and
+            <a class={link} href="https://filamentcolors.xyz" target="_blank" rel="noopener noreferrer">FilamentColors</a>,
+            when you fetch or update one. The catalog copies built into SpoolSync come from this site instead.
+          </li>
+          <li>GitHub, to read the public changelog.</li>
+        </ul>
+        <p class="mt-2">
+          The site itself is served by Cloudflare, which, like any host, may keep ordinary server logs of requests
+          (such as the address and time). SpoolSync does not add anything to them.
+        </p>
+      </section>
+
+      <section aria-labelledby="privacy-affiliate">
+        <h2 id="privacy-affiliate" class="text-xl font-semibold text-foreground">Affiliate links</h2>
+        <p class="mt-2">
+          The shop links in the reorder list ("Find to buy" and "Search this brand") are affiliate links. If you
+          buy after following one, the shop pays SpoolSync a commission at no extra cost to you. A link contains
+          only the brand, material and color being searched for, never your inventory, and nothing is sent until
+          you click. The shop then handles your visit under its own privacy notice. The links are marked
+          <code>rel="sponsored"</code>.
+        </p>
+        <ul class="mt-3 space-y-3">
+          {
+            AFFILIATE_PROGRAMS.map((program) => (
+              <li>
+                <strong class="text-foreground">{program.name}</strong>: {program.disclosure}
+                {program.id === "amazon" ? (
+                  <Fragment>
+                    {" "}The store is chosen automatically from your browser's language, and the tracking id works on{" "}
+                    {AMAZON_STORES.map((store) => store.host.replace("www.", "")).join(", ")}.
+                  </Fragment>
+                ) : (
+                  <Fragment> Links go to {program.hosts([]).join(", ")}.</Fragment>
+                )}
+                {program.coupon ? <Fragment> Buyers can use the coupon code {program.coupon.code}{program.coupon.offer ? ` for ${program.coupon.offer}` : ""}.</Fragment> : null}
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section aria-labelledby="privacy-contact">
+        <h2 id="privacy-contact" class="text-xl font-semibold text-foreground">Questions</h2>
+        <p class="mt-2">
+          SpoolSync is open source. Questions about privacy can be raised as an
+          <a class={link} href="https://github.com/robertbaker/spoolsync/issues/new" target="_blank" rel="noopener noreferrer">issue on GitHub</a>.
+        </p>
+      </section>
+    </div>
+  </Container>
+</BaseLayout>

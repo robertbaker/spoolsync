@@ -2,23 +2,22 @@ import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { isRunningLow } from "@spoolsync/core/core/stock";
 import { reorderItems } from "@spoolsync/core/workflow";
 
+import { programsOf, type BuyLink } from "~/lib/affiliates";
 import { loadMatchDecisions } from "~/lib/browser/storage";
+import { local, write } from "~/lib/browser/storage/access";
 import { currentLowStockRule } from "~/lib/low-stock";
 import {
-  SHOP_TEMPLATE_EXAMPLE,
   groupByBrand,
   itemLabel,
-  readShopTemplate,
   reorderCsv,
   reorderFilename,
-  saveShopTemplate,
-  spoolSearchUrl,
-  validateShopTemplate,
+  spoolBuyLinks,
   type BrandGroup,
 } from "~/lib/reorder-list";
 import { DISPLAY_CHANGED, formatWeight } from "~/lib/units";
 
 import { h, showToast } from "../dom";
+import { copyText } from "../sync/clipboard";
 import { download } from "../sync/presentation";
 
 const BUTTON =
@@ -31,67 +30,58 @@ const left = (grams: number | null, fraction: number | null): string =>
     ? "weight unknown"
     : `${formatWeight(grams)} left${fraction === null ? "" : ` (${Math.round(fraction * 100)}%)`}`;
 
-/** A link that opens a shop search in a new tab without handing the page to the shop. */
-function shopLink(url: string, text: string, label: string): HTMLElement {
-  return h(
-    "a",
-    { href: url, target: "_blank", rel: "noopener noreferrer", class: LINK, "aria-label": label },
-    text,
-  );
-}
-
 /**
- * A small form to point the "Find to buy" links at a favourite shop instead of web search. The
- * address must be https and may use {brand}, {material} and {color}; it is checked before saving.
+ * A shop link that opens in a new tab without handing the page to the shop. Every link is marked
+ * `sponsored` because the shops are affiliate programs. A shop's coupon, if it gives one, follows.
  */
-function shopTemplateEditor(current: string | null, rebuild: () => void): HTMLElement {
-  const input = h("input", {
-    id: "shop-template",
-    type: "url",
-    class: "field-input mt-1 w-full text-xs",
-    placeholder: SHOP_TEMPLATE_EXAMPLE,
-    maxlength: "300",
-    autocomplete: "off",
-    spellcheck: "false",
-    "aria-describedby": "shop-template-help shop-template-status",
-  });
-  input.value = current ?? "";
-  const status = h("p", { id: "shop-template-status", class: "mt-1 min-h-5 text-xs", role: "status", "aria-live": "polite" });
-  const save = h("button", { type: "button", class: BUTTON }, "Save shop link");
-  const reset = h("button", { type: "button", class: BUTTON }, "Use web search");
-  save.addEventListener("click", () => {
-    const checked = validateShopTemplate(input.value);
-    if (!checked.ok) {
-      status.textContent = checked.error;
-      status.className = "mt-1 min-h-5 text-xs text-error-text";
-      input.setAttribute("aria-invalid", "true");
-      input.focus();
-      return;
-    }
-    if (!saveShopTemplate(checked.template)) {
-      showToast("Could not save the shop link in this browser", "error");
-      return;
-    }
-    showToast("Shop link saved", "success");
-    rebuild();
-  });
-  reset.addEventListener("click", () => {
-    saveShopTemplate(null);
-    showToast("Shop links use web search again", "info");
-    rebuild();
+function shopLink(link: BuyLink, text: string, label: string): HTMLElement {
+  const code = link.couponCode;
+  const copy = code
+    ? h(
+        "button",
+        {
+          type: "button",
+          class:
+            "rounded border px-1.5 font-mono text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
+          title: "Copy the coupon code",
+          "aria-label": `Copy coupon code ${code}`,
+          "data-coupon": code,
+        },
+        code,
+      )
+    : null;
+  copy?.addEventListener("click", () => {
+    void copyText(code!).then((ok) => {
+      showToast(
+        ok ? `Copied coupon code ${code}` : "Could not copy. Select the code and copy it.",
+        ok ? "success" : "error",
+      );
+    });
   });
   return h(
-    "details",
-    { class: "mt-3 rounded-lg border p-3", ...(current ? { open: "" } : {}) },
-    h("summary", { class: "cursor-pointer text-xs font-medium" }, current ? "Shop link: custom" : "Shop link: web search"),
+    "span",
+    { class: "inline-flex flex-wrap items-baseline gap-x-2" },
     h(
-      "p",
-      { id: "shop-template-help", class: "mt-2 text-xs text-muted-foreground" },
-      "Send the links to your own shop. Use {brand}, {material} and {color} in an https address; names are encoded for you.",
+      "a",
+      {
+        href: link.url,
+        target: "_blank",
+        rel: "noopener noreferrer sponsored",
+        class: LINK,
+        "aria-label": label,
+        "data-shop": link.programId,
+      },
+      text,
     ),
-    h("label", { class: "mt-2 block text-xs font-medium", for: "shop-template" }, "Shop address", input),
-    status,
-    h("div", { class: "mt-2 flex flex-wrap gap-2" }, save, current ? reset : null),
+    link.couponCode
+      ? h(
+          "span",
+          { class: "text-xs text-muted-foreground" },
+          "Coupon code ",
+          copy,
+          link.couponOffer ? ` (${link.couponOffer})` : "",
+        )
+      : null,
   );
 }
 
@@ -129,13 +119,15 @@ function printSheet(groups: readonly BrandGroup[], count: number): HTMLElement {
 }
 
 /**
- * The smart reorder list: low spools grouped by brand with shop search links, a CSV download of
- * the shopping list, and a printable view. Content is built only while the panel is open.
+ * The smart reorder list: low spools grouped by brand with shop search links, a CSV download of the
+ * shopping list, and a printable view. Content is built only while the panel is open.
  */
 export function wireReorderPanel(
   root: HTMLElement,
   results: ReadonlyMap<SourceId, LoadResult>,
 ): { update(): void } {
+  // The custom shop address this panel once offered is gone; forget what an earlier visit saved.
+  write(local, "spoolsync:shop-template", null);
   const details = h("details", { class: "rounded-xl border" });
   const summary = h(
     "summary",
@@ -158,16 +150,23 @@ export function wireReorderPanel(
   };
 
   function build(): void {
-    const template = readShopTemplate();
     let groups: BrandGroup[];
     let total: number;
     try {
-      const items = reorderItems([...results.values()], loadMatchDecisions(), currentLowStockRule());
-      groups = groupByBrand(items, template);
+      const items = reorderItems(
+        [...results.values()],
+        loadMatchDecisions(),
+        currentLowStockRule(),
+      );
+      groups = groupByBrand(items);
       total = items.length;
     } catch {
       content.replaceChildren(
-        h("p", { class: "text-sm text-error-text", role: "alert" }, "Could not build the reorder list."),
+        h(
+          "p",
+          { class: "text-sm text-error-text", role: "alert" },
+          "Could not build the reorder list.",
+        ),
       );
       return;
     }
@@ -183,11 +182,20 @@ export function wireReorderPanel(
       );
       return;
     }
-    const csvButton = h("button", { type: "button", class: BUTTON }, "Download shopping list (CSV)");
+    // Each program's disclosure appears once, and only when one of its links is on the page.
+    const disclosures = programsOf([
+      ...groups.flatMap((group) => group.links),
+      ...groups.flatMap((group) => group.items.flatMap(({ spool }) => spoolBuyLinks(spool))),
+    ]).map((program) => program.disclosure);
+    const csvButton = h(
+      "button",
+      { type: "button", class: BUTTON },
+      "Download shopping list (CSV)",
+    );
     csvButton.addEventListener("click", () => {
       try {
         // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
-        download(reorderFilename(new Date()), `﻿${reorderCsv(groups, template)}`, "text/csv");
+        download(reorderFilename(new Date()), `﻿${reorderCsv(groups)}`, "text/csv");
       } catch {
         showToast("Could not create the CSV", "error");
       }
@@ -215,10 +223,12 @@ export function wireReorderPanel(
       h(
         "p",
         { class: "text-sm text-muted-foreground" },
-        "Low spools by brand, once each even when several services list them. Shop links open a web search in a new tab; SpoolSync does not send your inventory anywhere.",
+        "Low spools by brand, once each even when several services list them. Shop links open in a new tab; only the brand, material and color are in a link, and SpoolSync does not send your inventory anywhere.",
+      ),
+      ...disclosures.map((text) =>
+        h("p", { class: "mt-1 text-xs text-muted-foreground", "data-disclosure": "" }, text),
       ),
       h("div", { class: "mt-3 flex flex-wrap gap-2" }, csvButton, printButton),
-      shopTemplateEditor(template, build),
       ...groups.map((group, index) => {
         const headingId = `reorder-brand-${index}`;
         return h(
@@ -227,16 +237,32 @@ export function wireReorderPanel(
           h(
             "div",
             { class: "flex flex-wrap items-baseline justify-between gap-2" },
-            h("h3", { id: headingId, class: "font-semibold" }, `${group.brand} (${group.items.length})`),
-            group.searchUrl
-              ? shopLink(group.searchUrl, "Search this brand", `Search shops for ${group.brand} filament`)
+            h(
+              "h3",
+              { id: headingId, class: "font-semibold" },
+              `${group.brand} (${group.items.length})`,
+            ),
+            group.links.length
+              ? h(
+                  "span",
+                  { class: "flex flex-wrap items-baseline gap-x-4" },
+                  ...group.links.map((link) =>
+                    shopLink(
+                      link,
+                      group.links.length > 1
+                        ? `Search this brand at ${link.shop}`
+                        : "Search this brand",
+                      `Search ${link.shop} for ${group.brand} filament`,
+                    ),
+                  ),
+                )
               : null,
           ),
           h(
             "ul",
             { class: "mt-1 divide-y text-sm" },
             ...group.items.map(({ spool, fraction }) => {
-              const url = spoolSearchUrl(spool, template);
+              const links = spoolBuyLinks(spool);
               return h(
                 "li",
                 { class: "flex flex-wrap items-center justify-between gap-2 py-1.5" },
@@ -250,8 +276,18 @@ export function wireReorderPanel(
                     left(spool.remainingWeight, fraction),
                   ),
                 ),
-                url
-                  ? shopLink(url, "Find to buy", `Search shops for ${itemLabel(spool)} from ${group.brand}`)
+                links.length
+                  ? h(
+                      "span",
+                      { class: "flex flex-wrap items-baseline gap-x-4" },
+                      ...links.map((link) =>
+                        shopLink(
+                          link,
+                          links.length > 1 ? `Find at ${link.shop}` : "Find to buy",
+                          `Search ${link.shop} for ${itemLabel(spool)} from ${group.brand}`,
+                        ),
+                      ),
+                    )
                   : null,
               );
             }),

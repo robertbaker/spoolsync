@@ -62,3 +62,16 @@ for (const viewport of [
     expect(errors).toEqual([]);
   });
 }
+
+test("the privacy page explains storage, other sites and the Amazon affiliate links", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Privacy" }).click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Privacy" })).toBeVisible();
+  await expect(
+    page.getByText("As an Amazon Associate, SpoolSync earns from qualifying purchases."),
+  ).toBeVisible();
+  await expect(page.getByText("amazon.co.uk")).toBeVisible();
+});

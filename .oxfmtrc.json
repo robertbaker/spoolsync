@@ -15,6 +15,7 @@
     "**/yarn.lock",
     "**/test-results/**",
     "**/playwright-report/**",
-    "**/worker-configuration.d.ts"
+    "**/worker-configuration.d.ts",
+    "packages/spoolsync-cli/README.md"
   ]
 }

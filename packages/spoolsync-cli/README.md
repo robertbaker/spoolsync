@@ -11,7 +11,6 @@ planning, and export adapters as the [SpoolSync web app](https://spoolsync.com),
 Each service has its own input option:
 
 <!-- services:cli-inputs:start -->
-
 | Service                 | File option      | API option         | Reads files |
 | ----------------------- | ---------------- | ------------------ | ----------- |
 | Spoolman / Spoolman-NG  | `--spoolman`     | `--spoolman-url`   | JSON, CSV   |
@@ -27,7 +26,6 @@ Each service has its own input option:
 | Spool Hoarder           | `--spoolhoarder` | None               | CSV         |
 | Spool (Mac and iOS app) | `--spool`        | None               | JSON        |
 | SpoolKeep               | `--spoolkeep`    | None               | JSON        |
-
 <!-- services:cli-inputs:end -->
 
 ## Install
@@ -348,14 +346,12 @@ targets. Spoolman is written only with `--apply`. Read-only sources can provide 
 a write target.
 
 <!-- services:cli-writing:start -->
-
 | Inventory source                                             | How it receives changes       |
 | ------------------------------------------------------------ | ----------------------------- |
 | File inventory                                               | Output file in `--output-dir` |
 | `--empty` target                                             | Output file in `--output-dir` |
 | Direct Spoolman, Filadex, and FilamentDB                     | `--apply`                     |
 | Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep | Read-only                     |
-
 <!-- services:cli-writing:end -->
 
 `--output-dir` requires a writable file inventory or `--empty` target. A directly loaded Spoolman
