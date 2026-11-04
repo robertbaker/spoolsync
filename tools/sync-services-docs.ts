@@ -3,23 +3,19 @@
  * (`packages/spoolsync-core/src/core/services.ts`), so tool lists and capability tables are never
  * edited by hand.
  *
- *   bun run docs:services          rewrite the regions in place
- *   bun run docs:services:check    exit 1 when any region is stale (used in CI)
+ * Bun run docs:services rewrite the regions in place bun run docs:services:check exit 1 when any
+ * region is stale (used in CI)
  *
  * A region is delimited by HTML comments. `<!-- services:start -->` ... `<!-- services:end -->`
- * holds the capability table; `<!-- services:NAME:start -->` ... `<!-- services:NAME:end -->`
- * holds the generator called NAME (see `GENERATORS`). Names ending in `-inline` replace text in
- * the middle of a sentence; the others replace whole lines.
+ * holds the capability table; `<!-- services:NAME:start -->` ... `<!-- services:NAME:end -->` holds
+ * the generator called NAME (see `GENERATORS`). Names ending in `-inline` replace text in the
+ * middle of a sentence; the others replace whole lines.
  */
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { SERVICE_COUNT_WORD, formatLabel } from "../packages/spoolsync-core/src/core/services";
-import {
-  SERVICE_VIEWS,
-  joinNames,
-  type ServiceView,
-} from "../src/lib/services";
+import { SERVICE_VIEWS, joinNames, type ServiceView } from "../src/lib/services";
 
 /** Markdown files that contain regions, relative to the repository root. */
 export const DOC_FILES = [
@@ -75,12 +71,16 @@ export const GENERATORS: Record<string, () => string> = {
   "readonly-names-inline": () => joinNames(names(readOnly())),
   "api-load-inline": () =>
     joinNames(
-      SERVICE_VIEWS.filter((service) => service.apiInBrowser).map((service) => service.connectionName),
+      SERVICE_VIEWS.filter((service) => service.apiInBrowser).map(
+        (service) => service.connectionName,
+      ),
       "or",
     ),
   "api-write-inline": () =>
     joinNames(
-      SERVICE_VIEWS.filter((service) => service.apiWriteInBrowser).map((service) => service.connectionName),
+      SERVICE_VIEWS.filter((service) => service.apiWriteInBrowser).map(
+        (service) => service.connectionName,
+      ),
       "or",
     ),
   "cli-names-inline": () => joinNames(names([...SERVICE_VIEWS])),
@@ -124,7 +124,9 @@ export function renderRegions(text: string): { text: string; regions: string[] }
     output = output.replace(pattern(name), (_match, open: string, _body: string, close: string) => {
       regions.push(name || "table");
       const body = generate();
-      return inline ? `${open}${body}${close}` : `${open}\n${body}\n${close}`;
+      // Markdown formatters put blank lines around a table, so emit them to stay formatter-stable.
+      const gap = name === "" ? "\n\n" : "\n";
+      return inline ? `${open}${body}${close}` : `${open}${gap}${body}${gap}${close}`;
     });
   }
   return { text: output, regions };
@@ -133,7 +135,9 @@ export function renderRegions(text: string): { text: string; regions: string[] }
 /** Marker comments with no generator are a mistake worth failing on. */
 export function unknownRegions(text: string): string[] {
   const known = new Set(Object.keys(GENERATORS));
-  const found = [...text.matchAll(/<!-- services:(?:([a-z-]+):)?start -->/g)].map((match) => match[1] ?? "");
+  const found = [...text.matchAll(/<!-- services:(?:([a-z-]+):)?start -->/g)].map(
+    (match) => match[1] ?? "",
+  );
   return found.filter((name) => !known.has(name));
 }
 
@@ -149,7 +153,8 @@ export async function syncDocs(root: string, check: boolean): Promise<SyncResult
     const path = resolve(root, file);
     const current = await readFile(path, "utf8");
     const unknown = unknownRegions(current);
-    if (unknown.length > 0) throw new Error(`${file}: no generator for region(s): ${unknown.join(", ")}`);
+    if (unknown.length > 0)
+      throw new Error(`${file}: no generator for region(s): ${unknown.join(", ")}`);
     const next = renderRegions(current);
     const changed = next.text !== current;
     if (changed && !check) await writeFile(path, next.text);
@@ -168,7 +173,9 @@ if (import.meta.main) {
     console.log(`${result.file}: ${status} (${result.regions.length} regions)`);
   }
   if (check && stale.length > 0) {
-    console.error("Supported-tool docs are out of date. Run `bun run docs:services` and commit the result.");
+    console.error(
+      "Supported-tool docs are out of date. Run `bun run docs:services` and commit the result.",
+    );
     process.exitCode = 1;
   }
 }

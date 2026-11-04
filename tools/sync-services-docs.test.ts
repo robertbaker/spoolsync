@@ -40,7 +40,7 @@ test("block regions are rewritten between their markers and inline regions stay 
   expect(next).toContain(
     `There are <!-- services:count-inline:start -->${countWord(SOURCE_IDS.length)}<!-- services:count-inline:end --> tools.`,
   );
-  expect(next.startsWith("Before\n<!-- services:start -->\n| ")).toBe(true);
+  expect(next.startsWith("Before\n<!-- services:start -->\n\n|")).toBe(true);
   expect(renderRegions(next).text).toBe(next);
 });
 
