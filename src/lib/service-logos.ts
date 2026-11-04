@@ -1,5 +1,10 @@
 import type { SourceId } from "@spoolsync/core/core/model";
+
 import bambuddyLogo from "~/assets/logos/vendor/bambuddy.png";
+import spoolLogo from "~/assets/logos/vendor/spool.svg";
+import spoolhoarderLogo from "~/assets/logos/vendor/spoolhoarder.png";
+import spoolkeepLogo from "~/assets/logos/vendor/spoolkeep.svg";
+import spoolmasterLogo from "~/assets/logos/vendor/spoolmaster.png";
 import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
 
 /**
@@ -8,6 +13,10 @@ import spoolstockLogo from "~/assets/logos/vendor/spoolstock.png";
  */
 const LOGOS: Partial<Record<SourceId, string>> = {
   bambuddy: bambuddyLogo.src,
+  spoolapp: spoolLogo.src,
+  spoolhoarder: spoolhoarderLogo.src,
+  spoolkeep: spoolkeepLogo.src,
+  spoolmaster: spoolmasterLogo.src,
   spoolstock: spoolstockLogo.src,
 };
 
