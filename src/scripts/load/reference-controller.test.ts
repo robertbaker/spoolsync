@@ -5,14 +5,20 @@ import {
   DEFAULT_REFERENCE_SETTINGS,
   NO_REFERENCE,
   type AcceptedReference,
-  type ReferenceCacheEntry,
+  type ReferenceCacheMeta,
+  type ReferenceFilament,
   type ReferenceIO,
   type ReferenceResponse,
   type ReferenceSettings,
+  type ReferenceSnapshot,
 } from "@spoolsync/core/core/reference";
 import { makeSpool } from "@spoolsync/core/core/testing";
 
-import { ReferenceController, type ReferenceStore } from "./reference-controller";
+import {
+  ReferenceController,
+  type ReferenceSnapshots,
+  type ReferenceStore,
+} from "./reference-controller";
 
 const result = (source: SourceId, spools: LoadResult["spools"]): LoadResult => ({
   source,
@@ -26,7 +32,11 @@ function memoryStore(accepted: AcceptedReference[] = []) {
     settings: { ...DEFAULT_REFERENCE_SETTINGS } as ReferenceSettings,
     accepted,
     choices: new Map<string, string>(),
-    cache: {} as Record<string, ReferenceCacheEntry>,
+    cache: {} as Record<string, ReferenceCacheMeta>,
+    bodies: {} as Record<string, ReferenceFilament[]>,
+    meta() {
+      return this.cache;
+    },
   };
   const store: ReferenceStore = {
     loadSettings: () => state.settings,
@@ -41,14 +51,33 @@ function memoryStore(accepted: AcceptedReference[] = []) {
     saveChoices: (choices) => {
       state.choices = new Map(choices);
     },
-    loadCache: () => state.cache,
-    saveCache: (entry) => {
-      state.cache = { ...state.cache, [entry.providerId]: entry };
+    loadCache: () => state.meta(),
+    loadCatalog: async (id) => state.bodies[id] ?? null,
+    saveCache: async (entry) => {
+      const { filaments, ...rest } = entry;
+      state.bodies[entry.providerId] = filaments;
+      state.cache = {
+        ...state.cache,
+        [entry.providerId]: {
+          ...rest,
+          sourceToken: entry.sourceToken ?? null,
+          via: entry.via ?? "fetch",
+          count: filaments.length,
+        },
+      };
       return true;
     },
-    clearCache: (id) => {
-      if (id) delete state.cache[id];
-      else state.cache = {};
+    touchCache: (id, at) => {
+      if (state.cache[id]) state.cache[id] = { ...state.cache[id]!, fetchedAt: at };
+    },
+    clearCache: async (id) => {
+      if (id) {
+        delete state.cache[id];
+        delete state.bodies[id];
+      } else {
+        state.cache = {};
+        state.bodies = {};
+      }
     },
   };
   return { state, store };
@@ -63,8 +92,26 @@ const idleIO: ReferenceIO = {
 };
 
 const referenceFile = JSON.stringify([
-  { brand: "Prusament", material: "PLA", color_name: "Galaxy Black", hex: "#1A1A1A", diameter: 1.75, net_weight: 1000, density: 1.24, spool_weight: 201, nozzle_temp: "215-230" },
-  { brand: "Prusament", material: "PLA", color_name: "Galaxy Silver", hex: "#C0C0C0", diameter: 1.75, net_weight: 1000, density: 1.24 },
+  {
+    brand: "Prusament",
+    material: "PLA",
+    color_name: "Galaxy Black",
+    hex: "#1A1A1A",
+    diameter: 1.75,
+    net_weight: 1000,
+    density: 1.24,
+    spool_weight: 201,
+    nozzle_temp: "215-230",
+  },
+  {
+    brand: "Prusament",
+    material: "PLA",
+    color_name: "Galaxy Silver",
+    hex: "#C0C0C0",
+    diameter: 1.75,
+    net_weight: 1000,
+    density: 1.24,
+  },
 ]);
 
 function setup(accepted: AcceptedReference[] = [], io: ReferenceIO = idleIO) {
@@ -73,7 +120,12 @@ function setup(accepted: AcceptedReference[] = [], io: ReferenceIO = idleIO) {
       "spoolman",
       result("spoolman", [
         makeSpool("spoolman", "1", { density: null, emptySpoolWeight: null }),
-        makeSpool("spoolman", "2", { name: "Galaxy Silver", colors: ["C0C0C0"], density: null, diameter: 2.85 }),
+        makeSpool("spoolman", "2", {
+          name: "Galaxy Silver",
+          colors: ["C0C0C0"],
+          density: null,
+          diameter: 2.85,
+        }),
         makeSpool("spoolman", "3", { vendor: "Nobody", name: "Mystery" }),
       ]),
     ],
@@ -115,7 +167,13 @@ describe("ReferenceController with a file", () => {
     expect(controller.visible().map((i) => i.spoolKey)).toEqual(["spoolman:3"]);
     controller.setFilter("ambiguous");
     expect(controller.visible()).toEqual([]);
-    expect(controller.filterCounts()).toMatchObject({ all: 2, missing: 2, differs: 1, unmatched: 1, ambiguous: 0 });
+    expect(controller.filterCounts()).toMatchObject({
+      all: 2,
+      missing: 2,
+      differs: 1,
+      unmatched: 1,
+      ambiguous: 0,
+    });
   });
 
   test("accept, reject, reset, and undo, saved as the Sync page reads them", () => {
@@ -123,14 +181,22 @@ describe("ReferenceController with a file", () => {
     controller.loadFile("ref.json", referenceFile);
     expect(controller.accept(["spoolman:1#density"])).toBe(1);
     expect(memory.state.accepted).toEqual([
-      expect.objectContaining({ spoolKey: "spoolman:1", field: "density", before: null, after: 1.24, providerId: "file" }),
+      expect.objectContaining({
+        spoolKey: "spoolman:1",
+        field: "density",
+        before: null,
+        after: 1.24,
+        providerId: "file",
+      }),
     ]);
     expect(controller.accept(["spoolman:1#density"])).toBe(0);
     expect(controller.reject(["spoolman:1#density"])).toBe(1);
     expect(memory.state.accepted).toEqual([]);
     expect(controller.undoLabel()).toBe("rejecting reference data");
     expect(controller.undo()).toBe("rejecting reference data");
-    expect(controller.status(controller.analysis.proposals.find((p) => p.id === "spoolman:1#density")!)).toBe("accepted");
+    expect(
+      controller.status(controller.analysis.proposals.find((p) => p.id === "spoolman:1#density")!),
+    ).toBe("accepted");
     expect(controller.reset(["spoolman:1#density"])).toBe(1);
     expect(memory.state.accepted).toEqual([]);
   });
@@ -139,7 +205,9 @@ describe("ReferenceController with a file", () => {
     const { controller } = setup();
     controller.loadFile("ref.json", referenceFile);
     // Spoolman has no nozzle temperature range.
-    expect(controller.analysis.proposals.find((p) => p.id === "spoolman:1#nozzleTempMin")?.applicable).toBe(false);
+    expect(
+      controller.analysis.proposals.find((p) => p.id === "spoolman:1#nozzleTempMin")?.applicable,
+    ).toBe(false);
     expect(controller.accept(["spoolman:1#nozzleTempMin"])).toBe(0);
     expect(controller.reject(["spoolman:1#nozzleTempMin"])).toBe(1);
   });
@@ -152,7 +220,11 @@ describe("ReferenceController with a file", () => {
     });
     controller.loadFile("ref.json", referenceFile);
     const overwrite = controller.analysis.proposals.find((p) => p.field === "diameter");
-    expect(overwrite).toMatchObject({ id: "spoolman:2#diameter", kind: "overwrite", confidence: "review" });
+    expect(overwrite).toMatchObject({
+      id: "spoolman:2#diameter",
+      kind: "overwrite",
+      confidence: "review",
+    });
     expect(controller.fillAllMissing()).toBe(3);
     expect(controller.status(overwrite!)).toBe("pending");
     expect(controller.overwriteSelected()).toBe(1);
@@ -200,7 +272,14 @@ describe("ReferenceController choices and held entries", () => {
       [
         "spoolman",
         result("spoolman", [
-          makeSpool("spoolman", "9", { vendor: "Acme", name: "Red", colors: [], diameter: null, initialWeight: null, density: null }),
+          makeSpool("spoolman", "9", {
+            vendor: "Acme",
+            name: "Red",
+            colors: [],
+            diameter: null,
+            initialWeight: null,
+            density: null,
+          }),
         ]),
       ],
     ]);
@@ -239,7 +318,9 @@ describe("ReferenceController choices and held entries", () => {
     controller.chooseReference("spoolman:9", second!.reference.id);
     expect(memory.state.accepted).toEqual([]);
     expect(controller.undo()).toBe("choosing a reference");
-    expect(controller.status(controller.analysis.proposals.find((p) => p.field === "colors")!)).toBe("accepted");
+    expect(
+      controller.status(controller.analysis.proposals.find((p) => p.field === "colors")!),
+    ).toBe("accepted");
     expect(memory.state.accepted).toHaveLength(1);
   });
 
@@ -287,7 +368,17 @@ describe("ReferenceController choices and held entries", () => {
     const other = setup(saved);
     other.controller.loadFile(
       "other.json",
-      JSON.stringify([{ brand: "Prusament", material: "PLA", color_name: "Galaxy Black", hex: "#1A1A1A", density: 1.3, diameter: 1.75, net_weight: 1000 }]),
+      JSON.stringify([
+        {
+          brand: "Prusament",
+          material: "PLA",
+          color_name: "Galaxy Black",
+          hex: "#1A1A1A",
+          density: 1.3,
+          diameter: 1.75,
+          net_weight: 1000,
+        },
+      ]),
     );
     expect(other.controller.counts().accepted).toBe(0);
     expect(other.controller.dropped).toBe(1);
@@ -337,7 +428,15 @@ describe("ReferenceController fetching", () => {
     attribution: "",
   };
   const page = [
-    { brand: "Prusament", material: "PLA", color_name: "Galaxy Black", hex: "#1A1A1A", diameter: 1.75, net_weight: 1000, density: 1.24 },
+    {
+      brand: "Prusament",
+      material: "PLA",
+      color_name: "Galaxy Black",
+      hex: "#1A1A1A",
+      diameter: 1.75,
+      net_weight: 1000,
+      density: 1.24,
+    },
   ];
 
   function fetching(body: () => Promise<ReferenceResponse>) {
@@ -356,11 +455,15 @@ describe("ReferenceController fetching", () => {
     return { ...made, calls, advance: (ms: number) => (clock += ms) };
   }
 
-  test("an unconfigured provider is refused with what to fix", async () => {
+  test("an unusable address is refused with what to fix", async () => {
     const { controller } = setup();
+    controller.saveProviderSettings("openfilamentdatabase", {
+      ...providerSettings,
+      urlTemplate: "http://data.example.org/x",
+    });
     const outcome = await controller.fetchProvider("openfilamentdatabase");
     expect(outcome).toMatchObject({ kind: "invalid" });
-    expect(outcome.kind === "invalid" && outcome.errors[0]).toContain("address");
+    expect(outcome.kind === "invalid" && outcome.errors[0]).toContain("https");
   });
 
   test("fetches, keeps the credit line, caches, and reuses a fresh copy", async () => {
@@ -396,7 +499,10 @@ describe("ReferenceController fetching", () => {
   test("changing the address misses the cache", async () => {
     const { controller, calls } = fetching(async () => ok(page));
     await controller.fetchProvider("filamentcolors");
-    controller.saveProviderSettings("filamentcolors", { ...providerSettings, urlTemplate: "https://other.example.org/api" });
+    controller.saveProviderSettings("filamentcolors", {
+      ...providerSettings,
+      urlTemplate: "https://other.example.org/api",
+    });
     await controller.fetchProvider("filamentcolors");
     expect(calls).toHaveLength(2);
   });
@@ -414,7 +520,9 @@ describe("ReferenceController fetching", () => {
 
   test("a newer load makes an older response stale", async () => {
     let release: (response: ReferenceResponse) => void = () => {};
-    const { controller } = fetching(() => new Promise<ReferenceResponse>((resolve) => (release = resolve)));
+    const { controller } = fetching(
+      () => new Promise<ReferenceResponse>((resolve) => (release = resolve)),
+    );
     const pending = controller.fetchProvider("filamentcolors", { force: true });
     expect(controller.busy).toBe(true);
     controller.loadFile("ref.json", referenceFile);
@@ -426,12 +534,198 @@ describe("ReferenceController fetching", () => {
 
   test("cancel stops a fetch and ignores whatever arrives", async () => {
     let release: (response: ReferenceResponse) => void = () => {};
-    const { controller } = fetching(() => new Promise<ReferenceResponse>((resolve) => (release = resolve)));
+    const { controller } = fetching(
+      () => new Promise<ReferenceResponse>((resolve) => (release = resolve)),
+    );
     const pending = controller.fetchProvider("filamentcolors", { force: true });
     controller.cancel();
     release(ok(page));
     expect(await pending).toEqual({ kind: "stale" });
     expect(controller.catalog).toBeNull();
     expect(controller.progress).toBeNull();
+  });
+});
+
+describe("ReferenceController snapshot and update checks", () => {
+  const HOUR = 3_600_000;
+  const swatch = (id: number) => ({
+    id,
+    manufacturer: { name: "Prusament" },
+    color_name: `Galaxy ${id}`,
+    filament_type: { name: "PLA" },
+    hex_color: "1A1A1A",
+  });
+  const reply = (body: unknown): ReferenceResponse => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => null },
+    json: async () => body,
+  });
+
+  /** A FilamentColors-shaped service whose total can be changed or taken offline. */
+  function world(options: { total?: number; snapshot?: ReferenceSnapshot | null } = {}) {
+    const state = {
+      total: options.total ?? 5,
+      offline: false,
+      downloadsFail: false,
+      probes: 0,
+      downloads: 0,
+      now: 100 * HOUR,
+    };
+    const io: ReferenceIO = {
+      now: () => state.now,
+      sleep: async () => {},
+      async fetch(url) {
+        if (state.offline) throw new TypeError("Failed to fetch");
+        if (url.endsWith("page_size=1")) {
+          state.probes += 1;
+          return reply({ count: state.total, results: [{ id: state.total, date_published: "d" }] });
+        }
+        if (state.downloadsFail) throw new TypeError("Failed to fetch");
+        state.downloads += 1;
+        return reply({
+          count: state.total,
+          next: null,
+          results: Array.from({ length: state.total }, (_, i) => swatch(i + 1)),
+        });
+      },
+    };
+    const snapshotCalls = { count: 0 };
+    const snapshots: ReferenceSnapshots = {
+      load: async () => {
+        snapshotCalls.count += 1;
+        return options.snapshot ?? null;
+      },
+    };
+    const memory = memoryStore();
+    const controller = new ReferenceController(new Map(), memory.store, io, snapshots);
+    return { state, controller, memory, snapshotCalls };
+  }
+
+  const snapshotOf = (count: number, at: number, token: string | null): ReferenceSnapshot => ({
+    providerId: "filamentcolors",
+    generatedAt: at,
+    sourceToken: token,
+    source: "https://filamentcolors.xyz/api/swatch/?page_size=100",
+    attribution: "FilamentColors (filamentcolors.xyz)",
+    license: null,
+    skipped: 0,
+    filaments: Array.from({ length: count }, (_, i) => ({
+      id: String(i + 1),
+      providerId: "filamentcolors",
+      providerLabel: "FilamentColors",
+      vendor: "Prusament",
+      name: null,
+      material: "PLA",
+      colorName: `Galaxy ${i + 1}`,
+      colorHex: "1A1A1A",
+      colorHexes: ["1A1A1A"],
+      diameter: null,
+      density: null,
+      nozzleTempMin: null,
+      nozzleTempMax: null,
+      bedTempMin: null,
+      bedTempMax: null,
+      initialWeight: null,
+      emptySpoolWeight: null,
+      price: null,
+      barcode: null,
+      url: null,
+      attribution: "FilamentColors (filamentcolors.xyz)",
+      license: null,
+    })),
+  });
+
+  test("a fresh snapshot is used without contacting the service, and kept in the browser", async () => {
+    const { state, controller, memory } = world({ snapshot: snapshotOf(5, 99 * HOUR, "5:5:d") });
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info).toMatchObject({ origin: "snapshot", usable: 5 });
+    expect(state.probes + state.downloads).toBe(0);
+    await Promise.resolve();
+    expect(memory.state.cache["filamentcolors"]).toMatchObject({
+      via: "snapshot",
+      count: 5,
+      sourceToken: "5:5:d",
+    });
+    expect(memory.state.bodies["filamentcolors"]).toHaveLength(5);
+  });
+
+  test("a stale snapshot that is still current costs one small check, then counts as fresh", async () => {
+    const { state, controller, memory } = world({ snapshot: snapshotOf(5, 52 * HOUR, "5:5:d") });
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info.note).toContain("nothing has changed");
+    expect(state).toMatchObject({ probes: 1, downloads: 0 });
+    expect(memory.state.cache["filamentcolors"]!.fetchedAt).toBe(100 * HOUR);
+
+    controller.unload();
+    state.now += HOUR;
+    const again = await controller.fetchProvider("filamentcolors");
+    expect(again.kind === "ok" && again.info.origin).toBe("cache");
+    expect(state).toMatchObject({ probes: 1, downloads: 0 });
+  });
+
+  test("changed data is downloaded once, replaces the snapshot, and records its token", async () => {
+    const { state, controller, memory } = world({
+      total: 7,
+      snapshot: snapshotOf(5, 52 * HOUR, "5:5:d"),
+    });
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info).toMatchObject({ origin: "fetch", usable: 7 });
+    expect(state).toMatchObject({ probes: 1, downloads: 1 });
+    expect(memory.state.cache["filamentcolors"]).toMatchObject({
+      via: "fetch",
+      count: 7,
+      sourceToken: "7:7:d",
+    });
+  });
+
+  test("when the service cannot be reached the copy in hand is used and the person is told", async () => {
+    const { state, controller } = world({ snapshot: snapshotOf(5, 52 * HOUR, "5:5:d") });
+    state.offline = true;
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info).toMatchObject({ origin: "snapshot", usable: 5 });
+    expect(outcome.kind === "ok" && outcome.info.note).toContain("Could not check");
+  });
+
+  test("without a snapshot or copy it downloads live; a failure there is an error", async () => {
+    const { state, controller } = world();
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info.origin).toBe("fetch");
+    expect(state.downloads).toBe(1);
+
+    const offline = world();
+    offline.state.offline = true;
+    const failed = await offline.controller.fetchProvider("filamentcolors");
+    expect(failed.kind).toBe("error");
+  });
+
+  test("a download that fails after the check falls back to the older copy", async () => {
+    const { state, controller } = world({ total: 7, snapshot: snapshotOf(5, 52 * HOUR, "5:5:d") });
+    state.downloadsFail = true;
+    const outcome = await controller.fetchProvider("filamentcolors");
+    expect(outcome.kind === "ok" && outcome.info).toMatchObject({ origin: "snapshot", usable: 5 });
+    expect(outcome.kind === "ok" && outcome.info.note).toContain("Could not reach");
+  });
+
+  test("force downloads regardless; a custom address ignores snapshot and check", async () => {
+    const { state, controller, snapshotCalls } = world({
+      snapshot: snapshotOf(5, 100 * HOUR, "5:5:d"),
+    });
+    await controller.fetchProvider("filamentcolors", { force: true });
+    expect(state.downloads).toBe(1);
+    expect(snapshotCalls.count).toBe(0);
+
+    const custom = world({ snapshot: snapshotOf(5, 100 * HOUR, "5:5:d") });
+    custom.controller.saveProviderSettings("filamentcolors", {
+      urlTemplate: "https://filamentcolors.xyz/api/swatch/?page_size=50",
+      mapping: {},
+      pagination: { kind: "next-link", path: "next" },
+      ttlHours: 24,
+      minIntervalMs: 0,
+      attribution: "",
+    });
+    await custom.controller.fetchProvider("filamentcolors");
+    expect(custom.snapshotCalls.count).toBe(0);
+    expect(custom.state.probes).toBe(0);
   });
 });

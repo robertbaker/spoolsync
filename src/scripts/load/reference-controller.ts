@@ -14,6 +14,7 @@ import {
   mappingOverrides,
   needsChoice,
   parseReferenceFile,
+  probeFreshness,
   providerById,
   ttlMs,
   type AcceptedReference,
@@ -21,6 +22,7 @@ import {
   type ProviderSettings,
   type ReferenceAnalysis,
   type ReferenceCacheEntry,
+  type ReferenceCacheMeta,
   type ReferenceFilament,
   type ReferenceIO,
   type ReferenceItem,
@@ -29,6 +31,7 @@ import {
   type ReferenceProposal,
   type ReferenceProviderId,
   type ReferenceSettings,
+  type ReferenceSnapshot,
   type ReferenceSummary,
 } from "@spoolsync/core/core/reference";
 
@@ -42,9 +45,21 @@ export interface ReferenceStore {
   saveAccepted(accepted: readonly AcceptedReference[]): void;
   loadChoices(): Map<string, string>;
   saveChoices(choices: ReadonlyMap<string, string>): void;
-  loadCache(): Record<string, ReferenceCacheEntry>;
-  saveCache(entry: ReferenceCacheEntry): boolean;
-  clearCache(providerId?: string): void;
+  /** What is kept, without the records (small, so it can be read at once). */
+  loadCache(): Record<string, ReferenceCacheMeta>;
+  /** The kept records of one provider; `null` when none are kept or they cannot be read. */
+  loadCatalog(providerId: string): Promise<ReferenceFilament[] | null>;
+  /** Keeps a catalog; `false` when it could not be stored (the page still works from memory). */
+  saveCache(entry: ReferenceCacheEntry): Promise<boolean>;
+  /** Marks the kept catalog as confirmed current at `fetchedAt`, without rewriting its records. */
+  touchCache(providerId: string, fetchedAt: number): void;
+  clearCache(providerId?: string): Promise<void>;
+}
+
+/** The catalog built into the site at deploy time (see `tools/reference-snapshot.ts`). */
+export interface ReferenceSnapshots {
+  /** `null` when the site has no snapshot for the provider or it cannot be read. */
+  load(providerId: ReferenceProviderId, signal?: AbortSignal): Promise<ReferenceSnapshot | null>;
 }
 
 export type ProposalStatus = "pending" | "accepted" | "rejected";
@@ -67,13 +82,21 @@ export interface CatalogInfo {
   license: string | null;
   /** The file name, or the endpoint's host. */
   name: string;
-  origin: "file" | "fetch" | "cache";
+  /**
+   * - `file`: a file you loaded.
+   * - `fetch`: downloaded from the service just now.
+   * - `cache`: the copy this browser kept.
+   * - `snapshot`: the copy built into the site, so the service was not contacted for the catalog.
+   */
+  origin: "file" | "fetch" | "cache" | "snapshot";
   records: number;
   usable: number;
   skipped: number;
   warnings: string[];
-  /** Milliseconds since the epoch. */
+  /** Milliseconds since the epoch the data was fetched or last confirmed current. */
   loadedAt: number;
+  /** Something to tell the person about how the data was obtained, or `null`. */
+  note: string | null;
 }
 
 export type FetchOutcome =
@@ -137,15 +160,15 @@ const hasColorFlag = (item: ReferenceItem) =>
   hasColorProblem(item) || item.color?.verdict === "close";
 
 /**
- * Holds the state of the "Reference data" panel: the catalog in use, what it says about each
- * loaded spool, and which proposed changes the person accepted or rejected. It owns no DOM and
- * never changes an inventory; accepted proposals are saved for the Sync page to plan, each with
- * the value it was made for, so one that no longer matches the loaded data is dropped instead of
- * being applied to something it was not made for.
+ * Holds the state of the "Reference data" panel: the catalog in use, what it says about each loaded
+ * spool, and which proposed changes the person accepted or rejected. It owns no DOM and never
+ * changes an inventory; accepted proposals are saved for the Sync page to plan, each with the value
+ * it was made for, so one that no longer matches the loaded data is dropped instead of being
+ * applied to something it was not made for.
  *
- * Loading a catalog, from a file or the network, is guarded by a request revision: a newer load
- * (or `cancel()`) makes every older response stale, and a stale response is discarded without
- * touching state.
+ * Loading a catalog, from a file or the network, is guarded by a request revision: a newer load (or
+ * `cancel()`) makes every older response stale, and a stale response is discarded without touching
+ * state.
  */
 export class ReferenceController {
   settings: ReferenceSettings;
@@ -171,6 +194,7 @@ export class ReferenceController {
     private readonly results: ReadonlyMap<SourceId, LoadResult>,
     private readonly store: ReferenceStore,
     private readonly io: ReferenceIO,
+    private readonly snapshots: ReferenceSnapshots | null = null,
   ) {
     this.settings = store.loadSettings();
     this.stored = store.loadAccepted();
@@ -199,8 +223,8 @@ export class ReferenceController {
   }
 
   /**
-   * Re-analyses what is loaded and reconciles earlier choices with the result. Call it whenever
-   * the inventories, the catalog, or the policy change.
+   * Re-analyses what is loaded and reconciles earlier choices with the result. Call it whenever the
+   * inventories, the catalog, or the policy change.
    */
   refresh(): void {
     const earlier: AcceptedReference[] = this.restored
@@ -323,6 +347,7 @@ export class ReferenceController {
       skipped: parsed.skipped,
       warnings: parsed.warnings,
       loadedAt: this.io.now(),
+      note: null,
     };
     this.setCatalog(parsed.filaments, info);
     return info;
@@ -337,7 +362,7 @@ export class ReferenceController {
   }
 
   /** The fresh cached catalog for a provider's current settings, if there is one. */
-  cached(providerId: ReferenceProviderId): ReferenceCacheEntry | null {
+  cached(providerId: ReferenceProviderId): ReferenceCacheMeta | null {
     const built = buildFetchConfig(providerId, this.settings.providers[providerId]);
     if (!built.ok) return null;
     const entry = this.store.loadCache()[providerId];
@@ -346,8 +371,18 @@ export class ReferenceController {
   }
 
   /**
-   * Fetches a provider's catalog in the browser, or reuses a cached copy that is still fresh
-   * (`force` fetches anyway). Only the latest request is applied.
+   * Gets a provider's catalog with as little traffic to the service as possible, newest data first:
+   *
+   * 1. A copy this browser kept, or the snapshot built into the site (whichever is newer), is used
+   *    while it is fresh (the TTL, default 24 hours).
+   * 2. Once stale, one small request asks the service whether anything changed; if not, the copy is
+   *    kept and marked current. If the service cannot be reached the copy is used and the person is
+   *    told.
+   * 3. Only when the data changed, there is no copy, or `force` is set, is the catalog downloaded, and
+   *    it is kept for next time.
+   *
+   * Snapshots and the freshness check apply to a provider's built-in address and mapping only. Only
+   * the latest request is applied.
    */
   async fetchProvider(
     providerId: ReferenceProviderId,
@@ -356,79 +391,158 @@ export class ReferenceController {
     const provider = providerById(providerId);
     const settings = this.settings.providers[providerId];
     const built = buildFetchConfig(providerId, settings);
-    if (!provider || !built.ok) return { kind: "invalid", errors: built.ok ? ["Unknown provider."] : built.errors };
+    if (!provider || !built.ok)
+      return { kind: "invalid", errors: built.ok ? ["Unknown provider."] : built.errors };
     const key = keyFor(built.config);
     const host = new URL(built.config.urlTemplate.replace(/\{(offset|page|limit)\}/g, "0")).host;
-
-    if (!options.force) {
-      const entry = this.store.loadCache()[providerId];
-      if (entry && entry.key === key && isFresh(entry, this.io.now())) {
-        this.cancel();
-        this.setCatalog(entry.filaments, {
-          providerId,
-          providerLabel: provider.info.label,
-          attribution: entry.attribution,
-          license: entry.license,
-          name: host,
-          origin: "cache",
-          records: entry.filaments.length,
-          usable: entry.filaments.length,
-          skipped: 0,
-          warnings: [],
-          loadedAt: entry.fetchedAt,
-        });
-        return { kind: "ok", info: this.info! };
-      }
-    }
+    const ttl = ttlMs(settings?.ttlHours ?? 24);
+    const dateOf = (at: number) => new Date(at).toLocaleDateString("en-GB");
 
     const { revision, signal } = this.begin();
     this.progress = { pages: 0, records: 0 };
+    const superseded = () => revision !== this.revision;
+    const infoFor = (
+      origin: CatalogInfo["origin"],
+      meta: Pick<ReferenceCacheMeta, "attribution" | "license" | "fetchedAt">,
+      usable: number,
+      extra: Partial<CatalogInfo> = {},
+    ): CatalogInfo => ({
+      providerId,
+      providerLabel: provider.info.label,
+      attribution: meta.attribution,
+      license: meta.license,
+      name: host,
+      origin,
+      records: usable,
+      usable,
+      skipped: 0,
+      warnings: [],
+      loadedAt: meta.fetchedAt,
+      note: null,
+      ...extra,
+    });
+
     try {
-      const fetched = await fetchReferenceCatalog(provider, built.config, this.io, {
-        signal,
-        onProgress: (progress) => {
-          if (revision !== this.revision) return;
-          this.progress = progress;
-          options.onProgress?.(progress);
-        },
-      });
-      if (revision !== this.revision) return { kind: "stale" };
-      this.abort = null;
-      this.progress = null;
-      const info: CatalogInfo = {
-        providerId,
-        providerLabel: provider.info.label,
-        attribution: fetched.attribution,
-        license: fetched.license,
-        name: host,
-        origin: "fetch",
-        records: fetched.filaments.length + fetched.skipped,
-        usable: fetched.filaments.length,
-        skipped: fetched.skipped,
-        warnings: fetched.warnings,
-        loadedAt: fetched.fetchedAt,
+      let base: {
+        meta: ReferenceCacheMeta;
+        filaments: ReferenceFilament[];
+        from: "cache" | "snapshot";
+      } | null = null;
+      if (!options.force) {
+        const meta = this.store.loadCache()[providerId];
+        if (meta && meta.key === key) {
+          const filaments = await this.store.loadCatalog(providerId);
+          if (superseded()) return { kind: "stale" };
+          if (filaments) base = { meta, filaments, from: "cache" };
+        }
+        if (built.builtIn && this.snapshots) {
+          const snapshot = await this.snapshots.load(providerId, signal).catch(() => null);
+          if (superseded()) return { kind: "stale" };
+          if (snapshot && (!base || snapshot.generatedAt > base.meta.fetchedAt)) {
+            const snapshotMeta: ReferenceCacheMeta = {
+              providerId,
+              key,
+              fetchedAt: snapshot.generatedAt,
+              ttlMs: ttl,
+              attribution: snapshot.attribution,
+              license: snapshot.license,
+              sourceToken: snapshot.sourceToken,
+              via: "snapshot",
+              count: snapshot.filaments.length,
+            };
+            base = { meta: snapshotMeta, filaments: snapshot.filaments, from: "snapshot" };
+            // Kept in this browser, so the next visit does not even download the snapshot.
+            void this.store.saveCache({ ...snapshotMeta, filaments: snapshot.filaments });
+          }
+        }
+      }
+
+      const use = (note: string | null, fetchedAt = base!.meta.fetchedAt): FetchOutcome => {
+        const info = infoFor(base!.from, { ...base!.meta, fetchedAt }, base!.filaments.length, {
+          note,
+        });
+        this.setCatalog(base!.filaments, info);
+        return { kind: "ok", info };
       };
+
+      let token: string | null = null;
+      const checkable = built.builtIn && provider.defaults?.freshness !== undefined;
+      if (base) {
+        const now = this.io.now();
+        if (isFresh({ fetchedAt: base.meta.fetchedAt, ttlMs: base.meta.ttlMs }, now))
+          return use(null);
+        if (checkable) {
+          token = await probeFreshness(provider, this.io, signal);
+          if (superseded()) return { kind: "stale" };
+          if (token === null)
+            return use(
+              `Could not check ${host} for newer data, so the copy from ${dateOf(base.meta.fetchedAt)} is in use.`,
+            );
+          if (token === base.meta.sourceToken) {
+            // The service says nothing changed: keep the copy and count it as current from now.
+            this.store.touchCache(providerId, now);
+            return use("Checked: nothing has changed at the source.", now);
+          }
+        }
+      } else if (checkable) {
+        token = await probeFreshness(provider, this.io, signal);
+        if (superseded()) return { kind: "stale" };
+      }
+
+      let fetched;
+      try {
+        fetched = await fetchReferenceCatalog(provider, built.config, this.io, {
+          signal,
+          onProgress: (progress) => {
+            if (superseded()) return;
+            this.progress = progress;
+            options.onProgress?.(progress);
+          },
+        });
+      } catch (error) {
+        if (superseded()) return { kind: "stale" };
+        const cancelled = error instanceof ReferenceFetchError && error.kind === "aborted";
+        const message = error instanceof Error ? error.message : String(error);
+        // A copy that is only out of date is better than nothing when the service is unreachable.
+        if (base && !cancelled)
+          return use(
+            `Could not reach ${host} (${message}), so the copy from ${dateOf(base.meta.fetchedAt)} is in use.`,
+          );
+        return { kind: "error", message, cancelled };
+      }
+      if (superseded()) return { kind: "stale" };
+      const info = infoFor(
+        "fetch",
+        {
+          attribution: fetched.attribution,
+          license: fetched.license,
+          fetchedAt: fetched.fetchedAt,
+        },
+        fetched.filaments.length,
+        {
+          records: fetched.filaments.length + fetched.skipped,
+          skipped: fetched.skipped,
+          warnings: fetched.warnings,
+        },
+      );
       this.setCatalog(fetched.filaments, info);
-      this.store.saveCache({
+      await this.store.saveCache({
         providerId,
         key,
         fetchedAt: fetched.fetchedAt,
-        ttlMs: ttlMs(settings?.ttlHours ?? 24),
+        ttlMs: ttl,
         attribution: fetched.attribution,
         license: fetched.license,
+        sourceToken: token,
+        via: "fetch",
         filaments: fetched.filaments,
       });
       return { kind: "ok", info };
-    } catch (error) {
-      if (revision !== this.revision) return { kind: "stale" };
-      this.abort = null;
-      this.progress = null;
-      const cancelled = error instanceof ReferenceFetchError && error.kind === "aborted";
-      return {
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error),
-        cancelled,
-      };
+    } finally {
+      if (!superseded()) {
+        this.abort = null;
+        this.progress = null;
+      }
     }
   }
 
@@ -551,7 +665,11 @@ export class ReferenceController {
       // A change the service cannot take is never accepted; rejecting it is allowed.
       .filter((id) => status !== "accepted" || known.get(id)!.applicable);
     const changed = wanted.filter((id) => {
-      const current = this.accepted.has(id) ? "accepted" : this.rejected.has(id) ? "rejected" : "pending";
+      const current = this.accepted.has(id)
+        ? "accepted"
+        : this.rejected.has(id)
+          ? "rejected"
+          : "pending";
       return current !== status;
     });
     if (!changed.length) return 0;
@@ -583,9 +701,7 @@ export class ReferenceController {
       .flatMap((item) => item.proposals)
       .filter(
         (proposal) =>
-          proposal.kind === kind &&
-          proposal.applicable &&
-          this.status(proposal) === "pending",
+          proposal.kind === kind && proposal.applicable && this.status(proposal) === "pending",
       );
   }
 
@@ -607,8 +723,8 @@ export class ReferenceController {
   }
 
   /**
-   * Picks which reference record a spool is tied to (or `NO_REFERENCE` for none). Accepted
-   * changes that were made from a different record are dropped.
+   * Picks which reference record a spool is tied to (or `NO_REFERENCE` for none). Accepted changes
+   * that were made from a different record are dropped.
    */
   chooseReference(spoolKey: string, referenceId: string): boolean {
     const item = this.analysis.items.find((candidate) => candidate.spoolKey === spoolKey);
@@ -646,9 +762,9 @@ export class ReferenceController {
       const proposal = byId.get(id);
       return Boolean(
         proposal &&
-          (!entry ||
-            (proposal.referenceId === entry.referenceId &&
-              strictValuesEqual(proposal.after, entry.after))),
+        (!entry ||
+          (proposal.referenceId === entry.referenceId &&
+            strictValuesEqual(proposal.after, entry.after))),
       );
     };
     this.accepted = new Set([...this.accepted].filter((id) => stillValid(id, previous.get(id))));

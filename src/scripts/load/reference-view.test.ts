@@ -4,7 +4,8 @@ import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import {
   DEFAULT_REFERENCE_SETTINGS,
   type AcceptedReference,
-  type ReferenceCacheEntry,
+  type ReferenceCacheMeta,
+  type ReferenceFilament,
   type ReferenceIO,
   type ReferenceSettings,
 } from "@spoolsync/core/core/reference";
@@ -18,7 +19,11 @@ function memory() {
     settings: { ...DEFAULT_REFERENCE_SETTINGS } as ReferenceSettings,
     accepted: [] as AcceptedReference[],
     choices: new Map<string, string>(),
-    cache: {} as Record<string, ReferenceCacheEntry>,
+    cache: {} as Record<string, ReferenceCacheMeta>,
+    bodies: {} as Record<string, ReferenceFilament[]>,
+    meta() {
+      return this.cache;
+    },
   };
   const store: ReferenceStore = {
     loadSettings: () => state.settings,
@@ -33,13 +38,33 @@ function memory() {
     saveChoices: (choices) => {
       state.choices = new Map(choices);
     },
-    loadCache: () => state.cache,
-    saveCache: (entry) => {
-      state.cache = { ...state.cache, [entry.providerId]: entry };
+    loadCache: () => state.meta(),
+    loadCatalog: async (id) => state.bodies[id] ?? null,
+    saveCache: async (entry) => {
+      const { filaments, ...rest } = entry;
+      state.bodies[entry.providerId] = filaments;
+      state.cache = {
+        ...state.cache,
+        [entry.providerId]: {
+          ...rest,
+          sourceToken: entry.sourceToken ?? null,
+          via: entry.via ?? "fetch",
+          count: filaments.length,
+        },
+      };
       return true;
     },
-    clearCache: () => {
-      state.cache = {};
+    touchCache: (id, at) => {
+      if (state.cache[id]) state.cache[id] = { ...state.cache[id]!, fetchedAt: at };
+    },
+    clearCache: async (id) => {
+      if (id) {
+        delete state.cache[id];
+        delete state.bodies[id];
+      } else {
+        state.cache = {};
+        state.bodies = {};
+      }
     },
   };
   return { state, store };
@@ -61,7 +86,13 @@ const loaded = (): Map<SourceId, LoadResult> =>
         source: "spoolman",
         spools: [
           makeSpool("spoolman", "1", { density: null, colors: ["FF0000"], name: "Black" }),
-          makeSpool("spoolman", "2", { vendor: "Acme", name: "Red", colors: [], diameter: null, initialWeight: null }),
+          makeSpool("spoolman", "2", {
+            vendor: "Acme",
+            name: "Red",
+            colors: [],
+            diameter: null,
+            initialWeight: null,
+          }),
         ],
         warnings: [],
         loadedAt: "2026-01-01T00:00:00.000Z",
@@ -70,7 +101,15 @@ const loaded = (): Map<SourceId, LoadResult> =>
   ]);
 
 const referenceFile = JSON.stringify([
-  { brand: "Prusament", material: "PLA", color_name: "Black", hex: "#1A1A1A", diameter: 1.75, net_weight: 1000, density: 1.24 },
+  {
+    brand: "Prusament",
+    material: "PLA",
+    color_name: "Black",
+    hex: "#1A1A1A",
+    diameter: 1.75,
+    net_weight: 1000,
+    density: 1.24,
+  },
   { brand: "Acme", material: "PLA", color_name: "Red", hex: "#FF0000", diameter: 1.75 },
   { brand: "Acme", material: "PLA", color_name: "Red", hex: "#FE0000", diameter: 2.85 },
 ]);
@@ -114,19 +153,19 @@ describe("reference panel", () => {
     expect(root.textContent).toContain("nothing is uploaded");
   });
 
-  test("the two services say they need an endpoint and what is missing", () => {
+  test("the two services ship a verified address and need no setup", () => {
     const { root, panel } = open();
-    for (const [id, name] of [
-      ["openfilamentdatabase", "Open Filament Database"],
-      ["filamentcolors", "FilamentColors"],
+    for (const [id, host] of [
+      ["openfilamentdatabase", "api.openfilamentdatabase.org"],
+      ["filamentcolors", "filamentcolors.xyz"],
     ] as const) {
       panel.controller.setProvider(id);
       panel.update();
-      expect(root.textContent).toContain(`${name} needs an endpoint before it can be used`);
-      expect(root.textContent).toContain("Needs endpoint configuration");
-      expect(root.textContent).toContain("What is still missing");
-      expect(root.textContent).toContain("unverified");
-      expect(root.querySelector(`#reference-${id}-url`)).not.toBeNull();
+      expect(root.textContent).not.toContain("needs an endpoint");
+      expect(root.textContent).not.toContain("Needs endpoint configuration");
+      expect((root.querySelector(`#reference-${id}-url`) as HTMLInputElement).value).toContain(
+        host,
+      );
       expect(button(root, `fetch-${id}`)).toBeDefined();
     }
   });
@@ -162,7 +201,9 @@ describe("reference panel", () => {
     accept.click();
     expect(state.accepted.map((entry) => entry.field)).toEqual(["density"]);
     expect(button(root, "accept-spoolman:1#density")!.getAttribute("aria-pressed")).toBe("true");
-    expect(root.textContent).toContain("1 accepted change will appear in the plan on the Sync page.");
+    expect(root.textContent).toContain(
+      "1 accepted change will appear in the plan on the Sync page.",
+    );
     button(root, "undo")!.click();
     expect(state.accepted).toEqual([]);
   });
@@ -175,7 +216,9 @@ describe("reference panel", () => {
     expect(card.textContent).toContain("Needs a choice");
     expect(card.textContent).toContain("Choose the matching record (2)");
     expect(card.querySelector("details")?.hasAttribute("open")).toBe(true);
-    const use = [...card.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Use this")!;
+    const use = [...card.querySelectorAll<HTMLButtonElement>("button")].find(
+      (b) => b.textContent === "Use this",
+    )!;
     use.click();
     expect(state.choices.get("spoolman:2")).toBeDefined();
     expect(root.querySelector("[data-spool='spoolman:2']")?.textContent).toContain("Chosen by you");

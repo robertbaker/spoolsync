@@ -15,6 +15,11 @@
 /*.woff2
   Cache-Control: public, max-age=31536000, immutable
 
+# Reference-data snapshots: rebuilt with each deploy; the page also checks the source for newer data,
+# so a short shared cache is enough to keep visitors off the origin.
+/reference/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
 # Default Cache Rule - For everything else (like HTML pages)
 # Forces the browser to check with Cloudflare if there's a new version
 /*

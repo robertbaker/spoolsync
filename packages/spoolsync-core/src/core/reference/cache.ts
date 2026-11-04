@@ -4,19 +4,36 @@ import type { ReferenceFilament } from "./types";
 
 export const DEFAULT_TTL_HOURS = 24;
 export const MAX_TTL_HOURS = 24 * 30;
-/** Entries beyond this are not cached, so a huge catalog cannot fill the browser's storage. */
-export const MAX_CACHED_FILAMENTS = 20_000;
+/** Catalogs beyond this are not cached, so a runaway response cannot fill the browser's storage. */
+export const MAX_CACHED_FILAMENTS = 60_000;
 
-/** A fetched catalog kept for a while so the next visit does not fetch it again. */
-export interface ReferenceCacheEntry {
+/**
+ * What is known about a kept catalog without its records. The records are large (the Open Filament
+ * Database alone is about 24,000), so the browser keeps them apart from this small description.
+ */
+export interface ReferenceCacheMeta {
   providerId: string;
   /** Identifies the endpoint and mapping the data came from; a changed setting misses the cache. */
   key: string;
-  /** Milliseconds since the epoch. */
+  /** Milliseconds since the epoch of the last time the data was fetched or confirmed current. */
   fetchedAt: number;
   ttlMs: number;
   attribution: string;
   license: string | null;
+  /** The service's freshness token when the data was taken, or `null` when it gave none. */
+  sourceToken: string | null;
+  /** Where the data came from: the live service or the snapshot built into the site. */
+  via: "fetch" | "snapshot";
+  count: number;
+}
+
+/** A catalog kept for a while so the next visit does not fetch it again. */
+export interface ReferenceCacheEntry extends Omit<
+  ReferenceCacheMeta,
+  "count" | "via" | "sourceToken"
+> {
+  via?: ReferenceCacheMeta["via"];
+  sourceToken?: string | null;
   filaments: ReferenceFilament[];
 }
 
@@ -25,16 +42,25 @@ export function cacheKey(parts: {
   mapping: unknown;
   pagination: unknown;
 }): string {
-  return contentId([parts.urlTemplate, JSON.stringify(parts.mapping), JSON.stringify(parts.pagination)]);
+  return contentId([
+    parts.urlTemplate,
+    JSON.stringify(parts.mapping),
+    JSON.stringify(parts.pagination),
+  ]);
 }
 
 export function ttlMs(hours: number): number {
-  const clean = Number.isFinite(hours) ? Math.min(MAX_TTL_HOURS, Math.max(0, hours)) : DEFAULT_TTL_HOURS;
+  const clean = Number.isFinite(hours)
+    ? Math.min(MAX_TTL_HOURS, Math.max(0, hours))
+    : DEFAULT_TTL_HOURS;
   return Math.round(clean * 3_600_000);
 }
 
 /** Fresh while the age is under the TTL (and not from the future, which means a bad clock). */
-export function isFresh(entry: Pick<ReferenceCacheEntry, "fetchedAt" | "ttlMs">, now: number): boolean {
+export function isFresh(
+  entry: Pick<ReferenceCacheEntry, "fetchedAt" | "ttlMs">,
+  now: number,
+): boolean {
   const age = now - entry.fetchedAt;
   return age >= 0 && age < entry.ttlMs;
 }
@@ -71,7 +97,8 @@ export function sanitizeFilament(raw: unknown): ReferenceFilament | null {
         .filter((hex): hex is string => hex !== null)
         .slice(0, 8)
     : [];
-  const colorHex = typeof raw["colorHex"] === "string" ? (normalizeHex(raw["colorHex"])?.hex ?? null) : null;
+  const colorHex =
+    typeof raw["colorHex"] === "string" ? (normalizeHex(raw["colorHex"])?.hex ?? null) : null;
   const colorHexes = hexes.length ? hexes : colorHex ? [colorHex] : [];
   const barcode = typeof raw["barcode"] === "string" ? normalizeBarcode(raw["barcode"]) : null;
   const vendor = str(raw["vendor"]);
@@ -102,21 +129,18 @@ export function sanitizeFilament(raw: unknown): ReferenceFilament | null {
   };
 }
 
-/** Validates stored cache entries, one per provider. Damaged or oversized ones are dropped. */
-export function sanitizeReferenceCache(raw: unknown): Record<string, ReferenceCacheEntry> {
-  const out: Record<string, ReferenceCacheEntry> = {};
+/** Validates stored cache descriptions, one per provider. Damaged ones are dropped. */
+export function sanitizeReferenceCacheMeta(raw: unknown): Record<string, ReferenceCacheMeta> {
+  const out: Record<string, ReferenceCacheMeta> = {};
   if (!isObject(raw)) return out;
   for (const [providerId, value] of Object.entries(raw)) {
-    if (!isObject(value) || !Array.isArray(value["filaments"])) continue;
+    if (!isObject(value)) continue;
     const key = str(value["key"], 40);
     const fetchedAt = num(value["fetchedAt"]);
     const ttl = num(value["ttlMs"]);
-    if (!key || fetchedAt === null || ttl === null || ttl < 0 || value["filaments"].length > MAX_CACHED_FILAMENTS)
+    const count = num(value["count"]);
+    if (!key || fetchedAt === null || ttl === null || ttl < 0 || count === null || count <= 0)
       continue;
-    const filaments = value["filaments"]
-      .map(sanitizeFilament)
-      .filter((filament): filament is ReferenceFilament => filament !== null);
-    if (!filaments.length) continue;
     out[providerId] = {
       providerId,
       key,
@@ -124,8 +148,19 @@ export function sanitizeReferenceCache(raw: unknown): Record<string, ReferenceCa
       ttlMs: Math.min(ttl, ttlMs(MAX_TTL_HOURS)),
       attribution: str(value["attribution"], 500) ?? "",
       license: str(value["license"], 500),
-      filaments,
+      sourceToken: str(value["sourceToken"], 120),
+      via: value["via"] === "snapshot" ? "snapshot" : "fetch",
+      count: Math.floor(count),
     };
   }
   return out;
+}
+
+/** Re-validates stored records; anything that does not fit is dropped rather than trusted. */
+export function sanitizeFilaments(raw: unknown): ReferenceFilament[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_CACHED_FILAMENTS) return null;
+  const filaments = raw
+    .map(sanitizeFilament)
+    .filter((filament): filament is ReferenceFilament => filament !== null);
+  return filaments.length ? filaments : null;
 }

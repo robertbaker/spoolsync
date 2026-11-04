@@ -1,9 +1,10 @@
 import { isProviderId, sanitizeReferenceSettings } from "@spoolsync/core/core/reference";
 import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
+import { browserCatalogBodies } from "./browser/storage/catalog-db";
 import { sanitizeFileHistory } from "./browser/storage/file-history";
-import { sanitizeWatchlist } from "./browser/storage/insights";
 import { sanitizeHealthHistory } from "./browser/storage/health-history";
+import { sanitizeWatchlist } from "./browser/storage/insights";
 import { sanitizeStockHistory } from "./browser/storage/stock-history";
 import { isLocale } from "./i18n";
 import { sanitizeColumnMaps } from "./import-mapper/store";
@@ -81,7 +82,7 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "reference-cache",
     label: "Reference data cache",
     description:
-      "A catalog fetched from a reference service (such as the Open Filament Database or FilamentColors) with its credit line, kept for a short time so it is not fetched again. Kept on this device only and never exported.",
+      "A catalog from a reference service (such as the Open Filament Database or FilamentColors) with its credit line, kept so it is not downloaded again; the records are in this browser's database and a short description is listed here. Kept on this device only and never exported.",
     keys: ["spoolsync:reference-cache"],
     storage: "local",
   },
@@ -201,7 +202,17 @@ export function forgetGroup(id: string): number {
   if (!group || !storage) return 0;
   const keys = keysIn(storage, group);
   for (const key of keys) storage.removeItem(key);
+  if (id === "reference-cache") void forgetCatalogRecords();
   return keys.length;
+}
+
+/** The kept reference catalogs' records live in IndexedDB; a failure to empty it is not an error. */
+async function forgetCatalogRecords(): Promise<void> {
+  try {
+    await browserCatalogBodies.remove();
+  } catch {
+    // Nothing to do: without its description a kept catalog is never used.
+  }
 }
 
 /** Removes everything SpoolSync saved, in both kinds of storage, including keys no group names. */
@@ -218,6 +229,7 @@ export function forgetEverything(): number {
     for (const key of keys) storage.removeItem(key);
     removed += keys.length;
   }
+  void forgetCatalogRecords();
   return removed;
 }
 
@@ -459,7 +471,10 @@ function parseBackup(text: string): ParsedBackup {
   };
 }
 
-function classify(parsed: ParsedBackup): { accepted: Map<string, string>; inspection: BackupInspection } {
+function classify(parsed: ParsedBackup): {
+  accepted: Map<string, string>;
+  inspection: BackupInspection;
+} {
   const allowed = new Set(portableKeys());
   const accepted = new Map<string, string>();
   const inspection: BackupInspection = {
@@ -509,7 +524,8 @@ export interface RestoreResult extends BackupInspection {
 export function restoreBackup(text: string, mode: "merge" | "replace" = "merge"): RestoreResult {
   const { accepted, inspection } = classify(parseBackup(text));
   const storage = store("local");
-  if (!storage) throw new Error("Browser storage is unavailable, so the backup cannot be restored.");
+  if (!storage)
+    throw new Error("Browser storage is unavailable, so the backup cannot be restored.");
   const removed: string[] = [];
   try {
     if (mode === "replace")

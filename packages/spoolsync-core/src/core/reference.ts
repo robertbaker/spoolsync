@@ -57,9 +57,12 @@ export {
   type AnalyzeOptions,
   type ReferenceAnalysis,
 } from "./reference/analyze";
+export { OFD_BULK_URL, flattenOpenFilamentDatabase, type OfdRecord } from "./reference/ofd";
 export {
   GENERIC_FIELD_ALIASES,
+  FILAMENTCOLORS_MAPPING,
   GENERIC_MAPPING,
+  OFD_MAPPING,
   REFERENCE_KEYS,
   REFERENCE_PRESETS,
   fieldKey,
@@ -95,7 +98,9 @@ export {
   isProviderId,
   providerById,
   type ProviderStatus,
+  type ReferenceFreshness,
   type ReferenceProvider,
+  type ReferenceProviderDefaults,
   type ReferenceProviderId,
   type ReferenceProviderInfo,
 } from "./reference/providers";
@@ -123,10 +128,20 @@ export {
   cacheKey,
   isFresh,
   sanitizeFilament,
-  sanitizeReferenceCache,
+  sanitizeFilaments,
+  sanitizeReferenceCacheMeta,
   ttlMs,
   type ReferenceCacheEntry,
+  type ReferenceCacheMeta,
 } from "./reference/cache";
+export { probeFreshness } from "./reference/freshness";
+export {
+  SNAPSHOT_VERSION,
+  decodeSnapshot,
+  encodeSnapshot,
+  snapshotPath,
+  type ReferenceSnapshot,
+} from "./reference/snapshot";
 export {
   DEFAULT_PROVIDER_SETTINGS,
   DEFAULT_REFERENCE_SETTINGS,
@@ -134,6 +149,7 @@ export {
   buildFetchConfig,
   sanitizeAcceptedReferences,
   sanitizePagination,
+  defaultProviderSettings,
   sanitizeReferenceChoices,
   sanitizeReferencePolicy,
   sanitizeReferenceSettings,

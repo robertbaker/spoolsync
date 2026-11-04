@@ -45,6 +45,9 @@ bun run e2e
 ```
 
 The end-to-end suite builds the site and starts the Wrangler preview server automatically.
+`bun run build` first fetches the reference-data snapshots (`bun run snapshot:reference`, about a
+minute, written to the git-ignored `public/reference/`); set `SKIP_REFERENCE_SNAPSHOT=1` to skip that
+when offline.
 It includes axe-core accessibility checks of the home, Load, and Sync pages in light and dark themes;
 fix any reported violation rather than excluding rules.
 With the current Bun runtime, `expect(promise).rejects` matchers wait internally and return

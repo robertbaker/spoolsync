@@ -1,12 +1,18 @@
-import { REFERENCE_PRESETS, type ReferencePreset } from "./mapping";
+import type { Pagination } from "./fetch";
+import {
+  FILAMENTCOLORS_MAPPING,
+  OFD_MAPPING,
+  REFERENCE_PRESETS,
+  type ReferenceMapping,
+  type ReferencePreset,
+} from "./mapping";
+import { flattenOpenFilamentDatabase, OFD_BULK_URL } from "./ofd";
 
 export type ReferenceProviderId = "file" | "openfilamentdatabase" | "filamentcolors";
 
 /**
- * - `ready`: works with real data today.
- * - `needs-endpoint-config`: the fetch layer is complete, but the provider's real endpoint and
- *   response schema have not been verified, so none is built in. The person supplies a base URL and
- *   a path mapping in settings; once a verified `ReferencePreset` is added, the provider is ready.
+ * - `ready`: works with real data today; a remote provider ships a verified endpoint and mapping.
+ * - `needs-endpoint-config`: no verified endpoint or mapping is built in; the person supplies them.
  */
 export type ProviderStatus = "ready" | "needs-endpoint-config";
 
@@ -26,24 +32,40 @@ export interface ReferenceProviderInfo {
   remaining: readonly string[];
 }
 
+/** What a remote provider ships with: the address, paging and mapping verified against the live API. */
+export interface ReferenceProviderDefaults {
+  urlTemplate: string;
+  pagination: Pagination;
+  mapping: ReferenceMapping;
+  maxPages: number;
+  /** Pause between requests, for a service that is paged. */
+  minIntervalMs: number;
+  /**
+   * A small request that tells whether the catalog changed, so a copy held earlier (a build-time
+   * snapshot or the browser's cache) can be kept without downloading the catalog again.
+   */
+  freshness: ReferenceFreshness;
+}
+
+export interface ReferenceFreshness {
+  /** An `https:` address answering a few hundred bytes of JSON. */
+  url: string;
+  /** A short token that changes when the catalog does, or `null` when the response is unusable. */
+  token(document: unknown): string | null;
+}
+
 /** An integration: its facts, plus the presets verified to describe its records. */
 export interface ReferenceProvider {
   info: ReferenceProviderInfo;
   /** Mappings known to fit this provider's records. Empty until a schema has been verified. */
   presets: readonly ReferencePreset[];
+  /** Built-in endpoint settings; remote providers that are `ready` have them. */
+  defaults?: ReferenceProviderDefaults;
   /** Adjusts one raw record before it is mapped, such as flattening a nested object. */
   prepareRecord?(record: unknown): unknown;
+  /** Turns a whole response into a list of records, for a service that returns joined tables. */
+  prepareDocument?(document: unknown): unknown;
 }
-
-const UNVERIFIED =
-  "The service's host could not be reached while this was built, so its real endpoints and response schema are unverified; none is built in and nothing is mocked.";
-
-const REMOTE_REMAINING: readonly string[] = [
-  UNVERIFIED,
-  "Add a verified ReferencePreset (records path and field paths) for it in core/reference/mapping.ts and set its status to ready; the fetch, paging, caching and matching code needs no change.",
-  "Confirm the service answers browser requests from other sites (CORS). Fetching happens in the browser only; if it does not, download an export and load it as a reference file instead.",
-  "Confirm the license of the data and its attribution wording, and record it in `license`.",
-];
 
 export const PROVIDERS: readonly ReferenceProvider[] = [
   {
@@ -68,11 +90,27 @@ export const PROVIDERS: readonly ReferenceProvider[] = [
       homepage: "https://openfilamentdatabase.org",
       docsUrl: "https://openfilamentdatabase.org/docs",
       attribution: "Open Filament Database (openfilamentdatabase.org)",
-      license: null,
-      status: "needs-endpoint-config",
-      remaining: REMOTE_REMAINING,
+      license: "MIT; the data is free to use and redistribute, attribution appreciated",
+      status: "ready",
+      remaining: [],
     },
     presets: REFERENCE_PRESETS.filter((preset) => preset.providerId === "openfilamentdatabase"),
+    defaults: {
+      urlTemplate: OFD_BULK_URL,
+      pagination: { kind: "none" },
+      mapping: OFD_MAPPING,
+      maxPages: 1,
+      minIntervalMs: 0,
+      freshness: {
+        // The index lists the dataset's version and the time it was rebuilt (daily).
+        url: "https://api.openfilamentdatabase.org/api/v1/index.json",
+        token: (document) => {
+          const generated = (document as { generated_at?: unknown } | null)?.generated_at;
+          return typeof generated === "string" && generated ? generated.slice(0, 64) : null;
+        },
+      },
+    },
+    prepareDocument: flattenOpenFilamentDatabase,
   },
   {
     info: {
@@ -83,13 +121,31 @@ export const PROVIDERS: readonly ReferenceProvider[] = [
       docsUrl: "https://filamentcolors.xyz/api/",
       attribution: "FilamentColors (filamentcolors.xyz)",
       license: null,
-      status: "needs-endpoint-config",
-      remaining: [
-        ...REMOTE_REMAINING,
-        "Map only what its API actually returns; fields it does not carry (temperatures, weights) stay empty and are never filled by guesswork.",
-      ],
+      status: "ready",
+      remaining: [],
     },
     presets: REFERENCE_PRESETS.filter((preset) => preset.providerId === "filamentcolors"),
+    defaults: {
+      urlTemplate: "https://filamentcolors.xyz/api/swatch/?page_size=100",
+      pagination: { kind: "next-link", path: "next" },
+      mapping: FILAMENTCOLORS_MAPPING,
+      maxPages: 100,
+      minIntervalMs: 500,
+      freshness: {
+        // One swatch is enough: the total, and the first swatch's id and publish date, change when
+        // swatches are added or published. An edit to an old swatch is only picked up by a refresh.
+        url: "https://filamentcolors.xyz/api/swatch/?page_size=1",
+        token: (document) => {
+          const page = document as { count?: unknown; results?: unknown } | null;
+          if (typeof page?.count !== "number" || !Array.isArray(page.results)) return null;
+          const first = (page.results[0] ?? {}) as { id?: unknown; date_published?: unknown };
+          return `${page.count}:${String(first.id ?? "")}:${String(first.date_published ?? "")}`.slice(
+            0,
+            120,
+          );
+        },
+      },
+    },
   },
 ];
 

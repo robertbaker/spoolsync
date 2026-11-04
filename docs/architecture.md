@@ -615,6 +615,7 @@ with `rel="noopener noreferrer"`; nothing from the inventory is sent until the v
 neutralizes cells that start with a formula character like `combinedInventoryCsv` does. The printable
 view builds a plain `#reorder-sheet` and sets `body.printing-reorder`, which `print.css` uses to print
 the sheet alone, as it does for labels.
+
 ## Sync page: bulk edits, history, and touch review
 
 **Bulk edits.** Core `core/comparison/edits.ts` defines `BulkEdit` (`location`, `note`, `tag`,
@@ -653,6 +654,7 @@ gestures that start on a control are ignored. Buttons and the S/D/N/Z keys remai
 announced through the existing live region, and `prefers-reduced-motion` stops the card moving.
 `styles/sync-touch.css` makes Sync page controls, table choices, and previews at least 44px tall on
 coarse pointers or narrow screens.
+
 ## Command palette, display units, setup guide, and import reports
 
 `src/scripts/palette/` is mounted from `BaseLayout.astro` and opens with Ctrl/Cmd+K (or the sidebar's
@@ -758,6 +760,7 @@ applicable proposals to `planSync` as record edits (`cleanup.ts`, `planning.ts`)
 and, on its own, plans nothing and accepts a single inventory (the `"inventory"` report gains a
 `cleanup` object, as does the `"compare"` report). Rule lists share `parseRuleSelection`. Matching
 still uses the values as loaded, so cleanup can change what a later run matches.
+
 ## Reference data
 
 Reference data matches the loaded spools to a catalog of filaments (a file the person loads, or a
@@ -818,22 +821,58 @@ name (`Red`, `Gold`, `Navy`) is checked against the hex's hue family with neighb
 to the spool's own name and hex and to the reference's, and a reference color that contradicts its own
 name is never filled as `safe`.
 
-**Providers.** `providers.ts` declares three providers. `file` is ready. `openfilamentdatabase`
-(https://openfilamentdatabase.org/docs) and `filamentcolors` (https://filamentcolors.xyz/api/) have
-status `needs-endpoint-config`: the host could not be reached while they were built, so their real
-endpoints and response schemas are unverified and **no endpoint, field name or response is built in or
-mocked**. What remains for each, and why:
+**Providers.** `providers.ts` declares three providers, all `ready`. `file` reads a loaded file.
+`openfilamentdatabase` and `filamentcolors` ship a verified endpoint, paging and `ReferencePreset`
+(`defaults` on the provider; checked against the live APIs on 2026-11-04). A person can still
+override the address or enter a JSON mapping in the panel; the verified mapping applies only to the
+built-in address with no mapping entered.
 
-1. The service's base URL, endpoint paths and paging scheme must be taken from its documentation.
-2. A verified `ReferencePreset` (records path and per-key paths) must be added to
-   `REFERENCE_PRESETS` and the provider's `presets`, and its status set to `ready`; the fetch, paging,
-   cache, matching and UI code need no change. Until then the person enters the address and a JSON
-   mapping in the panel, which `parseMapping` validates.
-3. Browser access (CORS) must be confirmed. Fetching is browser-only; if the service does not allow
-   other sites, its data has to be downloaded and loaded as a file.
-4. The data's license and attribution wording must be confirmed and recorded in `license`
-   (`null` is shown as "not stated by the source"). FilamentColors' API may not carry temperatures or
-   weights at all; only what a mapping reads is filled.
+- _Open Filament Database_ (https://openfilamentdatabase.org/docs, MIT, attribution appreciated)
+  publishes static JSON with open CORS. SpoolSync reads the bulk file
+  `https://api.openfilamentdatabase.org/json/all.json` (about 3.4 MB compressed, 16 MB raw) in one
+  request. The file is relational (brands, materials, filaments, variants, sizes), so the provider's
+  `prepareDocument` (`reference/ofd.ts`, `flattenOpenFilamentDatabase`) joins it into one record per
+  size; the mapping (`OFD_MAPPING`) then reads brand, filament name, material, color name and hex
+  (`color_hexes` for multi-color), diameter, density, nozzle and bed temperatures, net and empty
+  spool weight (refill sizes claim no spool) and the GTIN. It states no list price or product page.
+  About 24,000 records fit the browser cache because it uses IndexedDB (see below).
+- _FilamentColors_ (https://filamentcolors.xyz/api/, open CORS, data license not stated, shown as
+  such) is a paged list at `/api/swatch/?page_size=100` (page size 100 is its maximum; 23 requests,
+  followed by the `next` link). A swatch is one measured product color: brand, material
+  (`filament_type.name`), color name, `hex_color` and a purchase link. It carries one typical
+  temperature per filament _type_, not per product, so temperatures stay unmapped rather than
+  presented as the product's. It states no weight, diameter or barcode.
+
+**Snapshots and update checks.** Neither service should be asked for its whole catalog by every
+visitor, so the catalog is kept in three layers, newest data first:
+
+1. _Build time._ `bun run snapshot:reference` (run by `bun run build`; `tools/reference-snapshot.ts`
+   and `tools/reference-snapshot/build.ts`) fetches both catalogs with the same core code and writes
+   `public/reference/<provider>.json` (git-ignored, served with the site; `SKIP_REFERENCE_SNAPSHOT=1`
+   skips it). The format (`reference/snapshot.ts`) is a column list plus rows with the constant fields
+   stored once: the Open Filament Database shrinks from 16 MB of JSON to about 3.5 MB (850 KB
+   compressed). A build never fails because a service is down: the snapshot on disk is kept, a
+   response under half the old size is distrusted unless `--force`, and a site built without a
+   snapshot fetches live. A rebuild is skipped when the service's freshness token is unchanged. The
+   snapshot is only as new as the last deploy; deploy regularly (the Open Filament Database
+   rebuilds daily) and visitors still get newer data through layer 3.
+2. _In the browser._ A catalog the browser has seen is kept in IndexedDB (`storage/catalog-db.ts`;
+   the 24,000 Open Filament Database records are far past localStorage's 5 MB), with a small
+   description (`ReferenceCacheMeta`: key, time, TTL, credit line, freshness token, count, and
+   whether it came from the snapshot or the service) in `spoolsync:reference-cache`. The description
+   is written only after the records are stored, and records are re-validated on read. Earlier
+   versions kept records in that key; they are dropped on first read. "Forget" in Saved settings also
+   empties the database.
+3. _Update checks._ Each provider has a `freshness` request (Open Filament Database: `api/v1/index.json`,
+   token `generated_at`; FilamentColors: `?page_size=1`, token `count:firstId:firstPublishDate`, so a
+   swatch edited in place is only picked up by "Fetch again"). `ReferenceController.fetchProvider`
+   takes the newer of the kept copy and the snapshot; while it is under the TTL (default 24 hours)
+   nothing else happens. Once stale it makes the one small request: an equal token keeps the copy and
+   marks it current (`touchCache`), a changed token downloads the catalog and keeps it, and an
+   unreachable service keeps the copy and says so (`CatalogInfo.note`); a failed download falls back to
+   the older copy the same way. "Fetch again" downloads regardless. Snapshots and checks apply only
+   to the provider's built-in address, paging and mapping (`buildFetchConfig(...).builtIn`); a custom
+   address is fetched and cached as before.
 
 **Fetching.** `fetch.ts` is generic and uses injected `ReferenceIO` (`fetch`, `sleep`, `now`). The
 endpoint is `https:` only, with no embedded credentials and a real host; `{offset}`, `{page}` and
@@ -844,7 +883,7 @@ that honors `Retry-After` (capped), a lost connection is retried once, and an `A
 waits and requests. Only an `Accept` header is sent, so the request needs no CORS preflight; the
 browser implementation (`lib/browser/reference-io.ts`) sends no cookies or referrer. A browser reports a
 blocked cross-site request like a lost connection, so that error carries CORS help pointing to the file
-option. `cache.ts` keeps a catalog with its `fetchedAt`, TTL (default 24 hours, `0` always fetches),
+option. `cache.ts` describes a kept catalog by its `fetchedAt`, TTL (default 24 hours, `0` always checks),
 credit line and a key over the endpoint, mapping and paging, so a changed setting misses the cache;
 stored records are re-validated on read. `settings.ts` sanitizes everything saved.
 
@@ -935,7 +974,6 @@ holds the report, weigh-in and since-visit styles. The new storage keys (`spools
 `spoolsync:shop-template`, `spoolsync:changelog-read`, `spoolsync:since-visit`) are registered in
 `SAVED_GROUPS`.
 
-
 ## Data health dashboard
 
 `#health-dashboard` (Load page, above the charts) turns the existing checks into one score and a
@@ -945,8 +983,7 @@ applicable cleanup suggestion) and returns a 0 to 100 score, a grade (excellent 
 75, fair from 50, poor below), and the factors that cost points. Each factor costs
 `HEALTH_WEIGHTS[factor] * affected / spools`; the weights add up to 100 (impossible values 30,
 missing weight 15, duplicates and cleanup 10 each, color, brand and material 8 each, price 7,
-location 4), so the score means the same for 20 and 2,000 spools and a fully broken inventory scores
-0. It never reads 100 while any spool needs a look. Nothing loaded gives no score.
+location 4), so the score means the same for 20 and 2,000 spools and a fully broken inventory scores 0. It never reads 100 while any spool needs a look. Nothing loaded gives no score.
 
 `scripts/load/health-dashboard.ts` renders it. The meter is a `role="meter"` with `aria-valuenow`,
 `aria-valuetext` ("78 out of 100, Good") and a visible grade, so the color is never the only signal;

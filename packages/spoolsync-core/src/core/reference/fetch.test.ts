@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { DEFAULT_TTL_HOURS, cacheKey, isFresh, sanitizeFilament, sanitizeReferenceCache, ttlMs } from "./cache";
+import {
+  DEFAULT_TTL_HOURS,
+  cacheKey,
+  isFresh,
+  sanitizeFilament,
+  sanitizeFilaments,
+  sanitizeReferenceCacheMeta,
+  ttlMs,
+} from "./cache";
 import {
   ReferenceFetchError,
   checkEndpointUrl,
@@ -23,11 +31,20 @@ import {
 } from "./settings";
 import type { ReferenceFilament } from "./types";
 
-const provider = providerById("openfilamentdatabase")!;
+// A provider without a document step, so these tests exercise the generic fetch layer.
+const provider = { info: providerById("openfilamentdatabase")!.info };
 
-const record = (n: number) => ({ brand: "Acme", material: "PLA", color_name: `Color ${n}`, hex: "FF0000" });
+const record = (n: number) => ({
+  brand: "Acme",
+  material: "PLA",
+  color_name: `Color ${n}`,
+  hex: "FF0000",
+});
 
-function response(body: unknown, init: { status?: number; headers?: Record<string, string> } = {}): ReferenceResponse {
+function response(
+  body: unknown,
+  init: { status?: number; headers?: Record<string, string> } = {},
+): ReferenceResponse {
   const status = init.status ?? 200;
   return {
     ok: status >= 200 && status < 300,
@@ -119,7 +136,11 @@ describe("fetching a catalog", () => {
       response({ items: [record(1)], next: "/api/filaments?page=2" }),
       response({ items: [record(2)], next: null }),
     ]);
-    const result = await fetchReferenceCatalog(provider, config({ pagination: { kind: "next-link", path: "next" } }), io);
+    const result = await fetchReferenceCatalog(
+      provider,
+      config({ pagination: { kind: "next-link", path: "next" } }),
+      io,
+    );
     expect(result.filaments).toHaveLength(2);
     expect(urls[1]).toBe("https://data.example.org/api/filaments?page=2");
   });
@@ -127,13 +148,21 @@ describe("fetching a catalog", () => {
   test("refuses a next link to another host and a link loop", async () => {
     const other = fakeIO([response({ items: [record(1)], next: "https://evil.example.net/x" })]);
     await expect(
-      fetchReferenceCatalog(provider, config({ pagination: { kind: "next-link", path: "next" } }), other.io),
+      fetchReferenceCatalog(
+        provider,
+        config({ pagination: { kind: "next-link", path: "next" } }),
+        other.io,
+      ),
     ).rejects.toMatchObject({ kind: "bad-next-link" });
 
     const loop = fakeIO([
       response({ items: [record(1)], next: "https://data.example.org/api/filaments" }),
     ]);
-    const result = await fetchReferenceCatalog(provider, config({ pagination: { kind: "next-link", path: "next" } }), loop.io);
+    const result = await fetchReferenceCatalog(
+      provider,
+      config({ pagination: { kind: "next-link", path: "next" } }),
+      loop.io,
+    );
     expect(result.filaments).toHaveLength(1);
     expect(loop.urls).toHaveLength(1);
   });
@@ -146,7 +175,9 @@ describe("fetching a catalog", () => {
     ]);
     const result = await fetchReferenceCatalog(
       provider,
-      config({ pagination: { kind: "offset", offsetParam: "offset", limitParam: "limit", pageSize: 2 } }),
+      config({
+        pagination: { kind: "offset", offsetParam: "offset", limitParam: "limit", pageSize: 2 },
+      }),
       io,
     );
     expect(result.filaments).toHaveLength(5);
@@ -155,13 +186,22 @@ describe("fetching a catalog", () => {
   });
 
   test("pages by number and fills template placeholders", async () => {
-    const { io, urls } = fakeIO([response({ items: [record(1), record(2)] }), response({ items: [] })]);
+    const { io, urls } = fakeIO([
+      response({ items: [record(1), record(2)] }),
+      response({ items: [] }),
+    ]);
     await expect(
       fetchReferenceCatalog(
         provider,
         config({
           urlTemplate: "https://data.example.org/api/{page}/filaments?size={limit}",
-          pagination: { kind: "page", pageParam: "p", firstPage: 1, limitParam: "size", pageSize: 2 },
+          pagination: {
+            kind: "page",
+            pageParam: "p",
+            firstPage: 1,
+            limitParam: "size",
+            pageSize: 2,
+          },
         }),
         io,
       ),
@@ -175,7 +215,9 @@ describe("fetching a catalog", () => {
     const { io, urls } = fakeIO([response(page), response(page), response(page)]);
     const result = await fetchReferenceCatalog(
       provider,
-      config({ pagination: { kind: "offset", offsetParam: "offset", limitParam: "limit", pageSize: 2 } }),
+      config({
+        pagination: { kind: "offset", offsetParam: "offset", limitParam: "limit", pageSize: 2 },
+      }),
       io,
     );
     expect(result.filaments).toHaveLength(2);
@@ -183,7 +225,9 @@ describe("fetching a catalog", () => {
   });
 
   test("stops at the page cap and says so", async () => {
-    const pages = Array.from({ length: 5 }, (_, i) => response({ items: [record(i)], next: `?page=${i + 2}` }));
+    const pages = Array.from({ length: 5 }, (_, i) =>
+      response({ items: [record(i)], next: `?page=${i + 2}` }),
+    );
     const { io } = fakeIO(pages);
     const result = await fetchReferenceCatalog(
       provider,
@@ -199,7 +243,11 @@ describe("fetching a catalog", () => {
       response({ items: [record(1)], next: "?page=2" }),
       response({ items: [record(2)] }),
     ]);
-    await fetchReferenceCatalog(provider, config({ minIntervalMs: 700, pagination: { kind: "next-link", path: "next" } }), io);
+    await fetchReferenceCatalog(
+      provider,
+      config({ minIntervalMs: 700, pagination: { kind: "next-link", path: "next" } }),
+      io,
+    );
     expect(sleeps).toEqual([700]);
   });
 });
@@ -219,7 +267,9 @@ describe("failures", () => {
 
   test("gives up after the retry limit", async () => {
     const { io } = fakeIO(Array.from({ length: 5 }, () => response({}, { status: 500 })));
-    await expect(fetchReferenceCatalog(provider, config({ maxRetries: 2 }), io)).rejects.toMatchObject({
+    await expect(
+      fetchReferenceCatalog(provider, config({ maxRetries: 2 }), io),
+    ).rejects.toMatchObject({
       kind: "http",
       status: 500,
     });
@@ -227,12 +277,18 @@ describe("failures", () => {
 
   test("does not retry a client error", async () => {
     const { io, urls } = fakeIO([response({}, { status: 404 })]);
-    await expect(fetchReferenceCatalog(provider, config(), io)).rejects.toMatchObject({ kind: "http", status: 404 });
+    await expect(fetchReferenceCatalog(provider, config(), io)).rejects.toMatchObject({
+      kind: "http",
+      status: 404,
+    });
     expect(urls).toHaveLength(1);
   });
 
   test("a blocked or lost request explains CORS and is retried once", async () => {
-    const { io, urls } = fakeIO([new TypeError("Failed to fetch"), new TypeError("Failed to fetch")]);
+    const { io, urls } = fakeIO([
+      new TypeError("Failed to fetch"),
+      new TypeError("Failed to fetch"),
+    ]);
     const error = await fetchReferenceCatalog(provider, config(), io).catch((caught) => caught);
     expect(error).toBeInstanceOf(ReferenceFetchError);
     expect(error.kind).toBe("cors-or-network");
@@ -242,7 +298,9 @@ describe("failures", () => {
   });
 
   test("rejects non-JSON, missing record lists, and unreadable records", async () => {
-    await expect(fetchReferenceCatalog(provider, config(), fakeIO([response(undefined)]).io)).rejects.toMatchObject({
+    await expect(
+      fetchReferenceCatalog(provider, config(), fakeIO([response(undefined)]).io),
+    ).rejects.toMatchObject({
       kind: "not-json",
     });
     await expect(
@@ -272,7 +330,9 @@ describe("failures", () => {
     const before = new AbortController();
     before.abort();
     await expect(
-      fetchReferenceCatalog(provider, config(), fakeIO([response({ items: [record(1)] })]).io, { signal: before.signal }),
+      fetchReferenceCatalog(provider, config(), fakeIO([response({ items: [record(1)] })]).io, {
+        signal: before.signal,
+      }),
     ).rejects.toMatchObject({ kind: "aborted" });
 
     const during = new AbortController();
@@ -286,12 +346,20 @@ describe("failures", () => {
     ).rejects.toMatchObject({ kind: "aborted" });
 
     const between = new AbortController();
-    const paged = fakeIO([response({ items: [record(1)], next: "?page=2" }), response({ items: [record(2)] })]);
+    const paged = fakeIO([
+      response({ items: [record(1)], next: "?page=2" }),
+      response({ items: [record(2)] }),
+    ]);
     await expect(
-      fetchReferenceCatalog(provider, config({ pagination: { kind: "next-link", path: "next" } }), paged.io, {
-        signal: between.signal,
-        onProgress: () => between.abort(),
-      }),
+      fetchReferenceCatalog(
+        provider,
+        config({ pagination: { kind: "next-link", path: "next" } }),
+        paged.io,
+        {
+          signal: between.signal,
+          onProgress: () => between.abort(),
+        },
+      ),
     ).rejects.toMatchObject({ kind: "aborted" });
     expect(paged.urls).toHaveLength(1);
   });
@@ -306,25 +374,30 @@ describe("failures", () => {
 });
 
 describe("providers", () => {
-  test("the two named services need endpoint configuration and say what remains", () => {
+  test("the two named services are ready with a verified endpoint and mapping", () => {
     for (const id of ["openfilamentdatabase", "filamentcolors"]) {
-      const info = providerById(id)!.info;
-      expect(info.status).toBe("needs-endpoint-config");
-      expect(info.kind).toBe("remote");
-      expect(info.remaining.length).toBeGreaterThan(2);
-      expect(info.remaining.join(" ")).toContain("unverified");
-      expect(providerById(id)!.presets).toEqual([]);
+      const found = providerById(id)!;
+      expect(found.info.status).toBe("ready");
+      expect(found.info.kind).toBe("remote");
+      expect(found.info.remaining).toEqual([]);
+      expect(found.presets).toHaveLength(1);
+      expect(found.defaults!.urlTemplate.startsWith("https://")).toBe(true);
     }
     expect(providerById("file")!.info.status).toBe("ready");
-    expect(PROVIDERS.map((p) => p.info.id)).toEqual(["file", "openfilamentdatabase", "filamentcolors"]);
+    expect(PROVIDERS.map((p) => p.info.id)).toEqual([
+      "file",
+      "openfilamentdatabase",
+      "filamentcolors",
+    ]);
   });
 });
 
 describe("settings", () => {
   test("builds a fetch config only from valid settings", () => {
     expect(buildFetchConfig("file", undefined)).toMatchObject({ ok: false });
-    const missing = buildFetchConfig("filamentcolors", undefined);
-    expect(missing.ok).toBe(false);
+    const builtIn = buildFetchConfig("filamentcolors", undefined);
+    expect(builtIn.ok && builtIn.config.urlTemplate).toContain("filamentcolors.xyz/api/swatch/");
+    expect(builtIn.ok && builtIn.config.pagination).toEqual({ kind: "next-link", path: "next" });
     const ok = buildFetchConfig("filamentcolors", {
       ...DEFAULT_PROVIDER_SETTINGS,
       urlTemplate: " https://data.example.org/api ",
@@ -346,7 +419,12 @@ describe("settings", () => {
       providerId: "nope",
       policy: { fields: ["density", "bogus"], overwrite: ["density", "price"] },
       providers: {
-        filamentcolors: { urlTemplate: "https://x.example.org/a", ttlHours: 9999, minIntervalMs: -5, pagination: { kind: "offset" } },
+        filamentcolors: {
+          urlTemplate: "https://x.example.org/a",
+          ttlHours: 9999,
+          minIntervalMs: -5,
+          pagination: { kind: "offset" },
+        },
         file: { urlTemplate: "https://ignored.example.org" },
       },
     });
@@ -362,15 +440,22 @@ describe("settings", () => {
   });
 
   test("pagination settings are validated", () => {
-    expect(sanitizePagination({ kind: "next-link", path: "links.next" })).toEqual({ kind: "next-link", path: "links.next" });
+    expect(sanitizePagination({ kind: "next-link", path: "links.next" })).toEqual({
+      kind: "next-link",
+      path: "links.next",
+    });
     expect(sanitizePagination({ kind: "next-link", path: "a;b" })).toEqual({ kind: "none" });
-    expect(sanitizePagination({ kind: "offset", offsetParam: "o", limitParam: "l", pageSize: 99999 })).toEqual({
+    expect(
+      sanitizePagination({ kind: "offset", offsetParam: "o", limitParam: "l", pageSize: 99999 }),
+    ).toEqual({
       kind: "offset",
       offsetParam: "o",
       limitParam: "l",
       pageSize: 5000,
     });
-    expect(sanitizePagination({ kind: "page", pageParam: "page", firstPage: 7 })).toEqual({ kind: "none" });
+    expect(sanitizePagination({ kind: "page", pageParam: "page", firstPage: 7 })).toEqual({
+      kind: "none",
+    });
   });
 
   test("policy falls back to the defaults", () => {
@@ -397,7 +482,9 @@ describe("settings", () => {
     ]);
     expect(accepted).toEqual([good]);
     expect(sanitizeAcceptedReferences("nope")).toEqual([]);
-    expect([...sanitizeReferenceChoices({ "spoolman:1": "r1", "": "x", "spoolman:2": 5 })]).toEqual([["spoolman:1", "r1"]]);
+    expect([...sanitizeReferenceChoices({ "spoolman:1": "r1", "": "x", "spoolman:2": 5 })]).toEqual(
+      [["spoolman:1", "r1"]],
+    );
   });
 });
 
@@ -438,29 +525,44 @@ describe("cache", () => {
   });
 
   test("the key changes with the endpoint, mapping, or paging", () => {
-    const base = { urlTemplate: "https://a.example.org/x", mapping: {}, pagination: { kind: "none" } };
+    const base = {
+      urlTemplate: "https://a.example.org/x",
+      mapping: {},
+      pagination: { kind: "none" },
+    };
     expect(cacheKey(base)).toBe(cacheKey({ ...base }));
     expect(cacheKey(base)).not.toBe(cacheKey({ ...base, urlTemplate: "https://b.example.org/x" }));
     expect(cacheKey(base)).not.toBe(cacheKey({ ...base, mapping: { records: "data" } }));
   });
 
-  test("stored entries are re-validated", () => {
-    const stored = {
+  test("stored descriptions and records are re-validated", () => {
+    const meta = sanitizeReferenceCacheMeta({
       filamentcolors: {
         key: "abc",
         fetchedAt: 5,
         ttlMs: 10,
         attribution: "Example",
         license: null,
-        filaments: [filament("a"), { id: "bad" }, { ...filament("c"), colorHex: "zz", colorHexes: [], url: "http://insecure.example.org" }],
+        sourceToken: "t1",
+        via: "snapshot",
+        count: 3,
       },
+      noCount: { key: "x", fetchedAt: 1, ttlMs: 1 },
       broken: { key: "x" },
-    };
-    const clean = sanitizeReferenceCache(stored);
-    expect(Object.keys(clean)).toEqual(["filamentcolors"]);
-    expect(clean["filamentcolors"]!.filaments.map((f) => f.id)).toEqual(["a", "c"]);
-    expect(clean["filamentcolors"]!.filaments[1]).toMatchObject({ colorHex: null, url: null });
+    });
+    expect(Object.keys(meta)).toEqual(["filamentcolors"]);
+    expect(meta["filamentcolors"]).toMatchObject({ sourceToken: "t1", via: "snapshot", count: 3 });
+    expect(sanitizeReferenceCacheMeta("nope")).toEqual({});
+
+    const records = sanitizeFilaments([
+      filament("a"),
+      { id: "bad" },
+      { ...filament("c"), colorHex: "zz", colorHexes: [], url: "http://insecure.example.org" },
+    ]);
+    expect(records!.map((f) => f.id)).toEqual(["a", "c"]);
+    expect(records![1]).toMatchObject({ colorHex: null, url: null });
+    expect(sanitizeFilaments([{ id: "bad" }])).toBeNull();
+    expect(sanitizeFilaments("nope")).toBeNull();
     expect(sanitizeFilament({ id: "x", providerId: "p" })).toBeNull();
-    expect(sanitizeReferenceCache("nope")).toEqual({});
   });
 });

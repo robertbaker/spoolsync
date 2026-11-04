@@ -14,7 +14,10 @@ export interface ReferenceResponse {
 
 /** Injected IO: the network, the clock, and sleeping. Nothing here touches globals. */
 export interface ReferenceIO {
-  fetch(url: string, init: { signal?: AbortSignal; headers: Record<string, string> }): Promise<ReferenceResponse>;
+  fetch(
+    url: string,
+    init: { signal?: AbortSignal; headers: Record<string, string> },
+  ): Promise<ReferenceResponse>;
   sleep(ms: number, signal?: AbortSignal): Promise<void>;
   now(): number;
 }
@@ -96,18 +99,31 @@ export function checkEndpointUrl(template: string): UrlCheck {
     return { ok: false, error: "That is not a valid address." };
   }
   if (url.protocol !== "https:")
-    return { ok: false, error: "Only https:// addresses are allowed, so data cannot be read or changed on the way." };
+    return {
+      ok: false,
+      error: "Only https:// addresses are allowed, so data cannot be read or changed on the way.",
+    };
   if (url.username || url.password)
-    return { ok: false, error: "Remove the user name and password from the address; credentials are never stored." };
+    return {
+      ok: false,
+      error: "Remove the user name and password from the address; credentials are never stored.",
+    };
   if (!url.hostname || !url.hostname.includes("."))
     return { ok: false, error: "The address needs a full host name, such as example.org." };
   return { ok: true, url };
 }
 
-function requestUrl(config: ReferenceFetchConfig, offset: number, page: number, limit: number): string {
-  const filled = config.urlTemplate.trim().replace(PLACEHOLDER, (_, name: string) =>
-    String(name === "offset" ? offset : name === "page" ? page : limit),
-  );
+function requestUrl(
+  config: ReferenceFetchConfig,
+  offset: number,
+  page: number,
+  limit: number,
+): string {
+  const filled = config.urlTemplate
+    .trim()
+    .replace(PLACEHOLDER, (_, name: string) =>
+      String(name === "offset" ? offset : name === "page" ? page : limit),
+    );
   const url = new URL(filled);
   const paging = config.pagination;
   if (paging.kind === "offset") {
@@ -163,7 +179,7 @@ export interface FetchOptions {
  * simple one that needs no CORS preflight.
  */
 export async function fetchReferenceCatalog(
-  provider: Pick<ReferenceProvider, "info" | "prepareRecord">,
+  provider: Pick<ReferenceProvider, "info" | "prepareRecord" | "prepareDocument">,
   config: ReferenceFetchConfig,
   io: ReferenceIO,
   options: FetchOptions = {},
@@ -197,7 +213,10 @@ export async function fetchReferenceCatalog(
       let response: ReferenceResponse | undefined;
       let failure: ReferenceFetchError | undefined;
       try {
-        response = await io.fetch(url, { headers: { Accept: "application/json" }, ...(signal ? { signal } : {}) });
+        response = await io.fetch(url, {
+          headers: { Accept: "application/json" },
+          ...(signal ? { signal } : {}),
+        });
       } catch (error) {
         if (signal?.aborted || (error as { name?: string })?.name === "AbortError")
           throw new ReferenceFetchError("aborted", "The fetch was cancelled.");
@@ -212,8 +231,13 @@ export async function fetchReferenceCatalog(
           try {
             return await response.json();
           } catch {
-            if (signal?.aborted) throw new ReferenceFetchError("aborted", "The fetch was cancelled.");
-            throw new ReferenceFetchError("not-json", "The service answered with something that is not JSON.", response.status);
+            if (signal?.aborted)
+              throw new ReferenceFetchError("aborted", "The fetch was cancelled.");
+            throw new ReferenceFetchError(
+              "not-json",
+              "The service answered with something that is not JSON.",
+              response.status,
+            );
           }
         }
         failure = new ReferenceFetchError(
@@ -259,7 +283,8 @@ export async function fetchReferenceCatalog(
   while (url && pages < maxPages) {
     if (visited.has(url)) break;
     visited.add(url);
-    const document = await request(url);
+    const fetched = await request(url);
+    const document = provider.prepareDocument ? provider.prepareDocument(fetched) : fetched;
     pages += 1;
     const records = recordsOf(document, config.mapping);
     if (!records) {
@@ -276,8 +301,15 @@ export async function fetchReferenceCatalog(
         "too-large",
         `The service returned more than ${MAX_REFERENCE_RECORDS.toLocaleString("en-US")} records.`,
       );
-    const prepared = provider.prepareRecord ? records.map((record) => provider.prepareRecord!(record)) : records;
-    const batch = normalizeReferenceRecords(prepared, config.mapping, context, received - records.length + 1);
+    const prepared = provider.prepareRecord
+      ? records.map((record) => provider.prepareRecord!(record))
+      : records;
+    const batch = normalizeReferenceRecords(
+      prepared,
+      config.mapping,
+      context,
+      received - records.length + 1,
+    );
     skipped += batch.skipped;
     warnings.push(...batch.warnings);
     // A page that repeats earlier records (a service that ignores the offset) must not loop.
@@ -300,7 +332,10 @@ export async function fetchReferenceCatalog(
         try {
           resolved = new URL(next.trim(), url);
         } catch {
-          throw new ReferenceFetchError("bad-next-link", "The next-page link in the response is not a valid address.");
+          throw new ReferenceFetchError(
+            "bad-next-link",
+            "The next-page link in the response is not a valid address.",
+          );
         }
         if (resolved.origin !== origin)
           throw new ReferenceFetchError(

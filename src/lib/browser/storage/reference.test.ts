@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import {
   DEFAULT_REFERENCE_SETTINGS,
@@ -12,12 +12,15 @@ import {
   clearReferenceCache,
   loadAcceptedReferences,
   loadReferenceCache,
+  loadReferenceCatalog,
   loadReferenceChoices,
   loadReferenceSettings,
   saveAcceptedReferences,
   saveReferenceCacheEntry,
   saveReferenceChoices,
   saveReferenceSettings,
+  setCatalogBodies,
+  touchReferenceCache,
 } from "./reference";
 
 afterEach(() => {
@@ -57,7 +60,10 @@ const entry = (providerId: string, count = 2): ReferenceCacheEntry => ({
   ttlMs: 5000,
   attribution: "Example",
   license: null,
-  filaments: Array.from({ length: count }, (_, index) => ({ ...filament(`f${index}`), providerId })),
+  filaments: Array.from({ length: count }, (_, index) => ({
+    ...filament(`f${index}`),
+    providerId,
+  })),
 });
 
 describe("reference settings", () => {
@@ -82,27 +88,102 @@ describe("reference settings", () => {
   });
 });
 
+/** An in-memory stand-in for IndexedDB, which the test runtime does not have. */
+function memoryBodies(options: { failPut?: boolean } = {}) {
+  const map = new Map<string, unknown>();
+  return {
+    map,
+    get: async (id: string) => map.get(id) ?? null,
+    put: async (id: string, value: unknown) => {
+      if (options.failPut) return false;
+      map.set(id, value);
+      return true;
+    },
+    remove: async (id?: string) => {
+      if (id) map.delete(id);
+      else map.clear();
+    },
+  };
+}
+
 describe("reference cache", () => {
-  test("keeps one entry per provider and clears them separately", () => {
-    expect(saveReferenceCacheEntry(entry("filamentcolors"))).toBe(true);
-    expect(saveReferenceCacheEntry(entry("openfilamentdatabase"))).toBe(true);
-    expect(Object.keys(loadReferenceCache()).sort()).toEqual(["filamentcolors", "openfilamentdatabase"]);
-    clearReferenceCache("filamentcolors");
-    expect(Object.keys(loadReferenceCache())).toEqual(["openfilamentdatabase"]);
-    clearReferenceCache();
-    expect(localStorage.getItem("spoolsync:reference-cache")).toBeNull();
-    clearReferenceCache("never-stored");
+  let bodies = memoryBodies();
+  beforeEach(() => {
+    bodies = memoryBodies();
+    setCatalogBodies(bodies);
+  });
+  afterEach(() => setCatalogBodies(null));
+
+  test("keeps one entry per provider, the records apart from the description", async () => {
+    expect(await saveReferenceCacheEntry(entry("filamentcolors"))).toBe(true);
+    expect(
+      await saveReferenceCacheEntry({
+        ...entry("openfilamentdatabase"),
+        sourceToken: "t1",
+        via: "snapshot",
+      }),
+    ).toBe(true);
+    const meta = loadReferenceCache();
+    expect(Object.keys(meta).sort()).toEqual(["filamentcolors", "openfilamentdatabase"]);
+    expect(meta["openfilamentdatabase"]).toMatchObject({
+      sourceToken: "t1",
+      via: "snapshot",
+      count: 2,
+    });
+    expect(meta["filamentcolors"]).toMatchObject({ sourceToken: null, via: "fetch", count: 2 });
+    expect(localStorage.getItem("spoolsync:reference-cache")).not.toContain("filaments");
+    expect((await loadReferenceCatalog("filamentcolors"))!.map((f) => f.id)).toEqual(["f0", "f1"]);
+    expect(await loadReferenceCatalog("never-stored")).toBeNull();
   });
 
-  test("a catalog too large to store is not cached and nothing is broken", () => {
-    expect(saveReferenceCacheEntry(entry("filamentcolors", 20_001))).toBe(false);
+  test("clears providers separately, and everything", async () => {
+    await saveReferenceCacheEntry(entry("filamentcolors"));
+    await saveReferenceCacheEntry(entry("openfilamentdatabase"));
+    await clearReferenceCache("filamentcolors");
+    expect(Object.keys(loadReferenceCache())).toEqual(["openfilamentdatabase"]);
+    expect(bodies.map.has("filamentcolors")).toBe(false);
+    await clearReferenceCache();
     expect(localStorage.getItem("spoolsync:reference-cache")).toBeNull();
+    expect(bodies.map.size).toBe(0);
+    await clearReferenceCache("never-stored");
+  });
+
+  test("touching marks the catalog current without rewriting its records", async () => {
+    await saveReferenceCacheEntry(entry("filamentcolors"));
+    bodies.map.clear();
+    touchReferenceCache("filamentcolors", 9999);
+    expect(loadReferenceCache()["filamentcolors"]!.fetchedAt).toBe(9999);
+    touchReferenceCache("never-stored", 1);
+    expect(Object.keys(loadReferenceCache())).toEqual(["filamentcolors"]);
+  });
+
+  test("a catalog the browser will not store, or too large, leaves no description behind", async () => {
+    setCatalogBodies(memoryBodies({ failPut: true }));
+    expect(await saveReferenceCacheEntry(entry("filamentcolors"))).toBe(false);
+    expect(localStorage.getItem("spoolsync:reference-cache")).toBeNull();
+    setCatalogBodies(bodies);
+    expect(await saveReferenceCacheEntry(entry("filamentcolors", 60_001))).toBe(false);
     expect(loadReferenceCache()).toEqual({});
   });
 
-  test("damaged storage reads as empty", () => {
+  test("damaged storage reads as empty; records are re-validated", async () => {
     localStorage.setItem("spoolsync:reference-cache", "oops");
     expect(loadReferenceCache()).toEqual({});
+    bodies.map.set("filamentcolors", [{ id: "bad" }]);
+    expect(await loadReferenceCatalog("filamentcolors")).toBeNull();
+    bodies.map.set("filamentcolors", "nope");
+    expect(await loadReferenceCatalog("filamentcolors")).toBeNull();
+  });
+
+  test("an earlier version's description with embedded records is dropped to free the space", () => {
+    localStorage.setItem(
+      "spoolsync:reference-cache",
+      JSON.stringify({
+        filamentcolors: { key: "abc", fetchedAt: 1, ttlMs: 1, filaments: [{ id: "x" }] },
+      }),
+    );
+    expect(loadReferenceCache()).toEqual({});
+    expect(localStorage.getItem("spoolsync:reference-cache")).toBeNull();
   });
 });
 
@@ -119,7 +200,10 @@ describe("accepted changes and choices (this tab only)", () => {
     saveAcceptedReferences([good]);
     expect(sessionStorage.getItem("spoolsync:reference-accepted")).not.toBeNull();
     expect(loadAcceptedReferences()).toEqual([good]);
-    sessionStorage.setItem("spoolsync:reference-accepted", JSON.stringify([good, { spoolKey: "x" }]));
+    sessionStorage.setItem(
+      "spoolsync:reference-accepted",
+      JSON.stringify([good, { spoolKey: "x" }]),
+    );
     expect(loadAcceptedReferences()).toEqual([good]);
     saveAcceptedReferences([]);
     expect(sessionStorage.getItem("spoolsync:reference-accepted")).toBeNull();
@@ -128,19 +212,35 @@ describe("accepted changes and choices (this tab only)", () => {
   });
 
   test("choices keep the record picked, or none", () => {
-    saveReferenceChoices(new Map([["spoolman:1", "r1"], ["spoolman:2", "none"]]));
-    expect([...loadReferenceChoices()]).toEqual([["spoolman:1", "r1"], ["spoolman:2", "none"]]);
+    saveReferenceChoices(
+      new Map([
+        ["spoolman:1", "r1"],
+        ["spoolman:2", "none"],
+      ]),
+    );
+    expect([...loadReferenceChoices()]).toEqual([
+      ["spoolman:1", "r1"],
+      ["spoolman:2", "none"],
+    ]);
     saveReferenceChoices(new Map());
     expect(sessionStorage.getItem("spoolsync:reference-choices")).toBeNull();
   });
 });
 
 describe("saved data", () => {
-  test("the cache and the tab's choices are listed and forgettable under their own groups", () => {
-    saveReferenceCacheEntry(entry("filamentcolors"));
+  test("the cache and the tab's choices are listed and forgettable under their own groups", async () => {
+    setCatalogBodies(memoryBodies());
+    await saveReferenceCacheEntry(entry("filamentcolors"));
     saveReferenceChoices(new Map([["spoolman:1", "r1"]]));
     saveAcceptedReferences([
-      { spoolKey: "spoolman:1", field: "density", before: null, after: 1.2, providerId: "file", referenceId: "r1" },
+      {
+        spoolKey: "spoolman:1",
+        field: "density",
+        before: null,
+        after: 1.2,
+        providerId: "file",
+        referenceId: "r1",
+      },
     ]);
     const groups = listSavedData().map((item) => item.group.id);
     expect(groups).toContain("reference-cache");
@@ -149,13 +249,14 @@ describe("saved data", () => {
     expect(forgetGroup("inventories")).toBe(2);
   });
 
-  test("settings are portable when valid, the cache and choices never are", () => {
+  test("settings are portable when valid, the cache and choices never are", async () => {
+    setCatalogBodies(memoryBodies());
     saveReferenceSettings({
       providerId: "openfilamentdatabase",
       policy: { fields: ["density"], overwrite: [] },
       providers: {},
     });
-    saveReferenceCacheEntry(entry("filamentcolors"));
+    await saveReferenceCacheEntry(entry("filamentcolors"));
     saveReferenceChoices(new Map([["spoolman:1", "r1"]]));
     const document = JSON.parse(exportSettings());
     expect(Object.keys(document.entries)).toEqual(["spoolsync:reference-settings"]);
@@ -172,8 +273,13 @@ describe("saved data", () => {
       }),
     );
     expect(result.imported).toEqual([]);
-    expect(result.skipped.sort()).toEqual(["spoolsync:reference-cache", "spoolsync:reference-settings"]);
-    expect(importSettings(JSON.stringify(document)).imported).toEqual(["spoolsync:reference-settings"]);
+    expect(result.skipped.sort()).toEqual([
+      "spoolsync:reference-cache",
+      "spoolsync:reference-settings",
+    ]);
+    expect(importSettings(JSON.stringify(document)).imported).toEqual([
+      "spoolsync:reference-settings",
+    ]);
     expect(loadReferenceSettings().providerId).toBe("openfilamentdatabase");
   });
 });

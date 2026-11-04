@@ -34,7 +34,8 @@ export type WeightUnitSetting = "g" | "kg" | "auto";
 export interface ReferenceMapping {
   /**
    * Where the list of records is in a JSON document: a path such as `data.filaments`, `""` for a
-   * document that is itself a list, or `"auto"` to look for the one list of objects. Ignored for CSV.
+   * document that is itself a list, or `"auto"` to look for the one list of objects. Ignored for
+   * CSV.
    */
   records: string;
   /** Paths to try, in order, per key. The first one that holds a value wins. */
@@ -143,7 +144,7 @@ export const GENERIC_MAPPING: ReferenceMapping = {
   weightUnit: "auto",
 };
 
-/** A mapping for a provider whose real schema is known. None is verified yet; see `PROVIDERS`. */
+/** A mapping for a provider whose real schema is known and has been checked against its live API. */
 export interface ReferencePreset {
   id: string;
   label: string;
@@ -151,9 +152,68 @@ export interface ReferencePreset {
   mapping: ReferenceMapping;
 }
 
-/** Presets that ship with SpoolSync: only the generic file schema. */
+/**
+ * Open Filament Database, after `flattenOpenFilamentDatabase` joined its tables (see ofd.ts). Only
+ * what the database states is mapped; it carries no list price or product page.
+ */
+export const OFD_MAPPING: ReferenceMapping = {
+  records: "",
+  weightUnit: "g",
+  fields: {
+    id: ["id"],
+    vendor: ["brand"],
+    name: ["filament"],
+    material: ["material"],
+    colorName: ["variant"],
+    colorHex: ["hex"],
+    colorHexes: ["hexes"],
+    diameter: ["diameter"],
+    density: ["density"],
+    nozzleTempMin: ["nozzleMin"],
+    nozzleTempMax: ["nozzleMax"],
+    bedTempMin: ["bedMin"],
+    bedTempMax: ["bedMax"],
+    initialWeight: ["weight"],
+    emptySpoolWeight: ["emptySpool"],
+    barcode: ["gtin"],
+  },
+};
+
+/**
+ * FilamentColors (https://filamentcolors.xyz/api/swatch/), a paged list of swatches. A swatch is a
+ * measured color of one product, so only the brand, material, color name, hex and a product link
+ * are mapped. Its filament type carries one typical hot end and bed temperature for the whole type,
+ * not a range for this product, so temperatures are left out rather than presented as the
+ * product's.
+ */
+export const FILAMENTCOLORS_MAPPING: ReferenceMapping = {
+  records: "results",
+  weightUnit: "g",
+  fields: {
+    id: ["id"],
+    vendor: ["manufacturer.name"],
+    material: ["filament_type.name"],
+    colorName: ["color_name"],
+    colorHex: ["hex_color"],
+    url: ["mfr_purchase_link", "amazon_purchase_link"],
+  },
+};
+
+/** Presets that ship with SpoolSync. */
 export const REFERENCE_PRESETS: readonly ReferencePreset[] = [
   { id: "generic", label: "Generic reference file", providerId: "file", mapping: GENERIC_MAPPING },
+  {
+    id: "openfilamentdatabase",
+    label: "Open Filament Database",
+    providerId: "openfilamentdatabase",
+    mapping: OFD_MAPPING,
+  },
+  {
+    id: "filamentcolors",
+    label: "FilamentColors",
+    providerId: "filamentcolors",
+    mapping: FILAMENTCOLORS_MAPPING,
+  },
 ];
 
 /** Names compare without case, accents, punctuation, or a unit in brackets at the end. */
@@ -212,7 +272,8 @@ export function readPath(value: unknown, path: string): unknown {
   return current;
 }
 
-const isKey = (key: string): key is ReferenceKey => (REFERENCE_KEYS as readonly string[]).includes(key);
+const isKey = (key: string): key is ReferenceKey =>
+  (REFERENCE_KEYS as readonly string[]).includes(key);
 
 export type MappingResult =
   | { ok: true; mapping: ReferenceMapping }
@@ -229,7 +290,8 @@ export function parseMapping(raw: unknown): MappingResult {
   const errors: string[] = [];
   const known = new Set(["records", "fields", "weightUnit"]);
   for (const key of Object.keys(raw))
-    if (!known.has(key)) errors.push(`Unknown mapping key "${key}". Use records, fields, weightUnit.`);
+    if (!known.has(key))
+      errors.push(`Unknown mapping key "${key}". Use records, fields, weightUnit.`);
 
   let records = GENERIC_MAPPING.records;
   if (raw["records"] !== undefined) {
@@ -269,7 +331,9 @@ export function parseMapping(raw: unknown): MappingResult {
         fields[key] = [...new Set(paths as string[])];
       }
   }
-  return errors.length ? { ok: false, errors } : { ok: true, mapping: { records, fields, weightUnit } };
+  return errors.length
+    ? { ok: false, errors }
+    : { ok: true, mapping: { records, fields, weightUnit } };
 }
 
 /** The part of a mapping that differs from the generic one, for storing in settings. */

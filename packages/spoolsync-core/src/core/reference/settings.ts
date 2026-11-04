@@ -1,7 +1,13 @@
-import { COMPARABLE_FIELDS } from "../model";
 import type { FieldValue } from "../comparison/types";
+import { COMPARABLE_FIELDS } from "../model";
+import type { AcceptedReference } from "./analyze";
 import { DEFAULT_TTL_HOURS, MAX_TTL_HOURS } from "./cache";
-import { checkEndpointUrl, FETCH_LIMITS, type Pagination, type ReferenceFetchConfig } from "./fetch";
+import {
+  checkEndpointUrl,
+  FETCH_LIMITS,
+  type Pagination,
+  type ReferenceFetchConfig,
+} from "./fetch";
 import { mappingOverrides, parseMapping, parsePath } from "./mapping";
 import { isProviderId, providerById, PROVIDERS, type ReferenceProviderId } from "./providers";
 import {
@@ -10,7 +16,6 @@ import {
   type ReferenceField,
   type ReferencePolicy,
 } from "./types";
-import type { AcceptedReference } from "./analyze";
 
 /** What a person entered for one remote provider. Held as data so it can be saved and exported. */
 export interface ProviderSettings {
@@ -38,6 +43,18 @@ export const DEFAULT_PROVIDER_SETTINGS: ProviderSettings = {
   minIntervalMs: FETCH_LIMITS.minIntervalMs.default,
   attribution: "",
 };
+
+/** Settings for a provider before anything was entered: its built-in endpoint when it has one. */
+export function defaultProviderSettings(providerId: ReferenceProviderId): ProviderSettings {
+  const defaults = providerById(providerId)?.defaults;
+  if (!defaults) return { ...DEFAULT_PROVIDER_SETTINGS };
+  return {
+    ...DEFAULT_PROVIDER_SETTINGS,
+    urlTemplate: defaults.urlTemplate,
+    pagination: structuredClone(defaults.pagination),
+    minIntervalMs: defaults.minIntervalMs,
+  };
+}
 
 export const DEFAULT_REFERENCE_SETTINGS: ReferenceSettings = {
   providerId: "file",
@@ -75,7 +92,13 @@ export function sanitizePagination(raw: unknown): Pagination {
     case "page": {
       const pageParam = paramName(raw["pageParam"]);
       const first = raw["firstPage"];
-      if (!pageParam || typeof first !== "number" || !Number.isInteger(first) || first < 0 || first > 1)
+      if (
+        !pageParam ||
+        typeof first !== "number" ||
+        !Number.isInteger(first) ||
+        first < 0 ||
+        first > 1
+      )
         return { kind: "none" };
       const limitParam = paramName(raw["limitParam"]);
       const pageSize = size(raw["pageSize"]);
@@ -94,24 +117,29 @@ export function sanitizePagination(raw: unknown): Pagination {
 export function sanitizeReferencePolicy(raw: unknown): ReferencePolicy {
   if (!isObject(raw)) return DEFAULT_REFERENCE_POLICY;
   const list = (value: unknown): ReferenceField[] | null =>
-    Array.isArray(value)
-      ? REFERENCE_FIELDS.filter((field) => value.includes(field))
-      : null;
+    Array.isArray(value) ? REFERENCE_FIELDS.filter((field) => value.includes(field)) : null;
   const fields = list(raw["fields"]) ?? [...DEFAULT_REFERENCE_POLICY.fields];
   // Overwriting a field the policy does not touch would be meaningless; keep the two consistent.
   const overwrite = (list(raw["overwrite"]) ?? []).filter((field) => fields.includes(field));
   return { fields, overwrite };
 }
 
-function sanitizeProviderSettings(raw: unknown): ProviderSettings | null {
+function sanitizeProviderSettings(
+  raw: unknown,
+  providerId: ReferenceProviderId,
+): ProviderSettings | null {
   if (!isObject(raw)) return null;
+  const fallback = defaultProviderSettings(providerId);
   const parsed = parseMapping(isObject(raw["mapping"]) ? raw["mapping"] : {});
   const ttl = raw["ttlHours"];
   const interval = raw["minIntervalMs"];
+  const url =
+    typeof raw["urlTemplate"] === "string" ? raw["urlTemplate"].trim().slice(0, 2000) : "";
   return {
-    urlTemplate: typeof raw["urlTemplate"] === "string" ? raw["urlTemplate"].trim().slice(0, 2000) : "",
+    // An empty address means "use the built-in one" for a provider that has one.
+    urlTemplate: url || fallback.urlTemplate,
     mapping: parsed.ok ? mappingOverrides(parsed.mapping) : {},
-    pagination: sanitizePagination(raw["pagination"]),
+    pagination: url ? sanitizePagination(raw["pagination"]) : fallback.pagination,
     ttlHours:
       typeof ttl === "number" && Number.isFinite(ttl)
         ? Math.min(MAX_TTL_HOURS, Math.max(0, ttl))
@@ -119,8 +147,9 @@ function sanitizeProviderSettings(raw: unknown): ProviderSettings | null {
     minIntervalMs:
       typeof interval === "number" && Number.isFinite(interval)
         ? Math.min(FETCH_LIMITS.minIntervalMs.max, Math.max(0, Math.round(interval)))
-        : FETCH_LIMITS.minIntervalMs.default,
-    attribution: typeof raw["attribution"] === "string" ? raw["attribution"].trim().slice(0, 300) : "",
+        : fallback.minIntervalMs,
+    attribution:
+      typeof raw["attribution"] === "string" ? raw["attribution"].trim().slice(0, 300) : "",
   };
 }
 
@@ -131,7 +160,10 @@ export function sanitizeReferenceSettings(raw: unknown): ReferenceSettings {
   if (isObject(raw["providers"]))
     for (const provider of PROVIDERS) {
       if (provider.info.kind !== "remote") continue;
-      const settings = sanitizeProviderSettings(raw["providers"][provider.info.id]);
+      const settings = sanitizeProviderSettings(
+        raw["providers"][provider.info.id],
+        provider.info.id,
+      );
       if (settings) providers[provider.info.id] = settings;
     }
   return {
@@ -142,7 +174,12 @@ export function sanitizeReferenceSettings(raw: unknown): ReferenceSettings {
 }
 
 export type FetchConfigResult =
-  | { ok: true; config: ReferenceFetchConfig }
+  | {
+      ok: true;
+      config: ReferenceFetchConfig;
+      /** The provider's own address and mapping, so a snapshot built from them applies. */
+      builtIn: boolean;
+    }
   | { ok: false; errors: string[] };
 
 /** Turns what a person entered for a provider into a fetch configuration, or says what is wrong. */
@@ -153,11 +190,20 @@ export function buildFetchConfig(
   const provider = providerById(providerId);
   if (!provider || provider.info.kind !== "remote")
     return { ok: false, errors: ["That source is loaded from a file, not fetched."] };
-  const current = settings ?? DEFAULT_PROVIDER_SETTINGS;
+  const current = settings ?? defaultProviderSettings(providerId);
+  const defaults = provider.defaults;
   const errors: string[] = [];
   const url = checkEndpointUrl(current.urlTemplate);
   if (!url.ok) errors.push(url.error);
-  const mapping = parseMapping(current.mapping);
+  // The verified mapping belongs to the built-in address: with it and no mapping entered, it applies.
+  // A mapping a person entered replaces it whole, and another address reads the generic names.
+  const usesPreset =
+    defaults !== undefined &&
+    Object.keys(current.mapping).length === 0 &&
+    current.urlTemplate.trim() === defaults.urlTemplate;
+  const mapping = usesPreset
+    ? { ok: true as const, mapping: defaults.mapping }
+    : parseMapping(current.mapping);
   if (!mapping.ok) errors.push(...mapping.errors);
   if (errors.length || !mapping.ok) return { ok: false, errors };
   return {
@@ -168,10 +214,12 @@ export function buildFetchConfig(
       pagination: current.pagination,
       minIntervalMs: current.minIntervalMs,
       maxRetries: FETCH_LIMITS.maxRetries.default,
-      maxPages: FETCH_LIMITS.maxPages.default,
+      maxPages: usesPreset && defaults ? defaults.maxPages : FETCH_LIMITS.maxPages.default,
       attribution: current.attribution || provider.info.attribution,
       license: provider.info.license,
     },
+    builtIn:
+      usesPreset && JSON.stringify(current.pagination) === JSON.stringify(defaults?.pagination),
   };
 }
 
@@ -208,7 +256,7 @@ export function sanitizeAcceptedReferences(raw: unknown): AcceptedReference[] {
   return out;
 }
 
-/** spool key to the reference a person picked (or "none"). */
+/** Spool key to the reference a person picked (or "none"). */
 export function sanitizeReferenceChoices(raw: unknown): Map<string, string> {
   const out = new Map<string, string>();
   if (!isObject(raw)) return out;
