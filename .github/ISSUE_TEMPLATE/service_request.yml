@@ -1,0 +1,47 @@
+name: Request support for a service
+description: Ask for a filament or inventory tool to be supported
+title: "Support for: "
+labels: [service-request]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Service name
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Link
+      description: Website, GitHub repository, or App Store / Google Play page.
+      placeholder: https://
+    validations:
+      required: true
+  - type: dropdown
+    id: direction
+    attributes:
+      label: What do you need?
+      multiple: true
+      options:
+        - Import from this service
+        - Export to this service
+    validations:
+      required: true
+  - type: textarea
+    id: export
+    attributes:
+      label: Data export file
+      description: |
+        Please attach an export of your filament data from the service (CSV, JSON, SQLite/.db, XLSX, etc.) by dragging it into this box. Without a sample we can't build or test an adapter. Zip it if GitHub rejects the extension. Remove anything personal first.
+      placeholder: Drag and drop the file here.
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: API or docs
+      description: Link to API documentation if the service has one, or explain how you export data.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
