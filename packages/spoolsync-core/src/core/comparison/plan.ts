@@ -41,6 +41,7 @@ function groupLinks(group: SpoolGroup): CrossIds {
     filameter: "filameterId",
     filadex: "filadexId",
     filamentdb: "filamentdbSerial",
+    filamentDbApp: "filamentDbAppId",
     spoolmaster: "spoolmasterId",
     spoolhoarder: "spoolhoarderId",
     spoolapp: "spoolappId",
@@ -72,6 +73,7 @@ export const LINKABLE_IDS: Record<SourceId, ReadonlyArray<keyof CrossIds>> = {
   filameter: [],
   filadex: [],
   filamentdb: [],
+  filamentDbApp: [],
   spoolmaster: [],
   spoolhoarder: [],
   spoolapp: [],
@@ -133,7 +135,11 @@ export function buildPlan(
         }
       // A bulk edit overrides the resolved value; a tag is added to the resolved or member's note.
       for (const field of ["location", "comment", "remainingWeight"] as const) {
-        const edited = editedField(edit, field, targets.has(field) ? targets.get(field)! : member[field]);
+        const edited = editedField(
+          edit,
+          field,
+          targets.has(field) ? targets.get(field)! : member[field],
+        );
         if (edited !== undefined) targets.set(field, edited);
       }
       for (const [field, to] of targets) {

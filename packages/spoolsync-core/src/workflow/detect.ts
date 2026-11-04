@@ -48,6 +48,7 @@ function csvSignatureSource(text: string): SourceId | null {
         .replace(/[\s-]+/g, "_"),
     );
   const has = (...names: string[]) => names.every((name) => header.includes(name));
+  if (has("filament", "totalweight", "spoolid")) return "filamentDbApp";
   if (has("spoolid", "brand") || has("colorhexcodes") || has("secondary_type", "td", "uuid"))
     return "spoolhoarder";
   return null;
@@ -67,9 +68,22 @@ function signatureSource(input: string | Uint8Array): SourceId | null {
   } catch {
     return null;
   }
-  if (Array.isArray(parsed))
-    return hasKey(parsed, ["newQuantity", "usedQuantity", "exactType"]) ? "spoolkeep" : null;
+  if (Array.isArray(parsed)) {
+    if (hasKey(parsed, ["newQuantity", "usedQuantity", "exactType"])) return "spoolkeep";
+    const embedsSpools = parsed.some(
+      (record) =>
+        !!record &&
+        typeof record === "object" &&
+        Array.isArray((record as Record<string, unknown>)["spools"]) &&
+        "vendor" in record &&
+        "type" in record,
+    );
+    return embedsSpools ? "filamentDbApp" : null;
+  }
   const container = parsed as Record<string, unknown> | null;
+  const collections = container?.["collections"] as Record<string, unknown> | undefined;
+  if (collections && typeof collections === "object" && Array.isArray(collections["filaments"]))
+    return "filamentDbApp";
   if (
     container &&
     typeof container === "object" &&

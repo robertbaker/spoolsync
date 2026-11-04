@@ -79,6 +79,8 @@ export const SOURCE_FIELDS: Record<SourceId, ReadonlySet<ComparableField>> = {
     "archived",
   ),
   filamentdb: without("location", "price", "purchasedOn"),
+  // Filament DB has no barcode field and keeps one bed temperature, not a range.
+  filamentDbApp: without("upc", "bedTempMax"),
   spoolmaster: without("density", "upc", "emptySpoolWeight", "archived"),
   spoolhoarder: without(
     "density",

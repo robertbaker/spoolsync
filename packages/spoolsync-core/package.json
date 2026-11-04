@@ -21,6 +21,7 @@
     "./adapters/filameter/*": "./src/adapters/filameter/*.ts",
     "./adapters/filadex/*": "./src/adapters/filadex/*.ts",
     "./adapters/filamentdb/*": "./src/adapters/filamentdb/*.ts",
+    "./adapters/filamentDbApp/*": "./src/adapters/filamentDbApp/*.ts",
     "./adapters/spoolmaster/*": "./src/adapters/spoolmaster/*.ts",
     "./adapters/spoolhoarder/*": "./src/adapters/spoolhoarder/*.ts",
     "./adapters/spoolapp/*": "./src/adapters/spoolapp/*.ts",

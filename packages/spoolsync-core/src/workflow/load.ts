@@ -74,6 +74,8 @@ async function parseInventoryFile(
       return (await import("../adapters/filadex")).loadFiladexFile(text);
     case "filamentdb":
       return (await import("../adapters/filamentdb")).loadFilamentDbFile(text);
+    case "filamentDbApp":
+      return (await import("../adapters/filamentDbApp")).loadFilamentDbAppFile(text);
     case "spoolhoarder":
       return (await import("../adapters/spoolhoarder")).loadSpoolHoarderCsv(text);
     case "spoolapp":
@@ -97,6 +99,7 @@ export async function createEmptyInventory(source: SourceId): Promise<LoadResult
     bambuddy: "[]",
     filameter: '{"regular":[]}',
     filadex: "[]",
+    filamentDbApp: "[]",
     filamentdb: "[]",
   };
   return loadInventoryFile(source, templates[source as WritableSourceId]);

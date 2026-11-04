@@ -4,6 +4,9 @@ import { FiladexClient } from "./adapters/filadex/client";
 import { loadFilamentDb, type FilamentDbConnection } from "./adapters/filamentdb";
 import { applyToFilamentDb } from "./adapters/filamentdb/apply";
 import { FilamentDbClient } from "./adapters/filamentdb/client";
+import { loadFilamentDbApp, type FilamentDbAppConnection } from "./adapters/filamentDbApp";
+import { applyToFilamentDbApp } from "./adapters/filamentDbApp/apply";
+import { FilamentDbAppClient } from "./adapters/filamentDbApp/client";
 import { loadSpoolman } from "./adapters/spoolman";
 import { applyToSpoolman } from "./adapters/spoolman/apply";
 import { SpoolmanClient, type SpoolmanConnection } from "./adapters/spoolman/client";
@@ -16,7 +19,7 @@ import {
 import type { PlannedChange } from "./core/compare";
 import type { LoadResult, ApplyLogEntry } from "./core/model";
 
-type ApplyService = "Spoolman" | "TigerTag" | "FilamentDB" | "Filadex";
+type ApplyService = "Spoolman" | "TigerTag" | "FilamentDB" | "Filament DB" | "Filadex";
 
 export interface ApplyAndReloadResult {
   log: ApplyLogEntry[];
@@ -82,6 +85,16 @@ export async function applyAndReloadFilamentDb(
 ): Promise<ApplyAndReloadResult> {
   const log = await applyToFilamentDb(new FilamentDbClient(connection), changes, onProgress);
   return reloadAfterApply("FilamentDB", log, () => loadFilamentDb(connection));
+}
+
+/** Applies spool-level changes to Filament DB and fetches a fresh snapshot. */
+export async function applyAndReloadFilamentDbApp(
+  connection: FilamentDbAppConnection,
+  changes: PlannedChange[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<ApplyAndReloadResult> {
+  const log = await applyToFilamentDbApp(new FilamentDbAppClient(connection), changes, onProgress);
+  return reloadAfterApply("Filament DB", log, () => loadFilamentDbApp(connection));
 }
 
 /** Applies the plan to Filadex (Node only; it needs a cookie login) and fetches a fresh snapshot. */

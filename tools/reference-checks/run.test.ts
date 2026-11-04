@@ -33,10 +33,10 @@ test("reference checks run through injected I/O and retain expected unsupported-
     "spoolman.db": "SQLite format 3\0",
     "my-spools-hueforge.csv": "uuid,secondary_type,td\none,PLA,1",
   });
-  expect(await runReferenceChecks(f.dependencies)).toEqual({ checks: 13, failures: 0 });
+  expect(await runReferenceChecks(f.dependencies)).toEqual({ checks: 14, failures: 0 });
   expect(f.reads).toEqual(["SPOOLIO-empty.json", "spoolman.db", "my-spools-hueforge.csv"]);
   expect(f.errors).toEqual([]);
-  expect(f.logs.at(-1)).toEqual(["13 reference checks completed; 0 failures."]);
+  expect(f.logs.at(-1)).toEqual(["14 reference checks completed; 0 failures."]);
 });
 
 test("reference checks retain earlier conversion counts when a later target rejects the file", async () => {

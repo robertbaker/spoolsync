@@ -16,6 +16,7 @@ export const SOURCE_IDS = [
   "filameter",
   "filadex",
   "filamentdb",
+  "filamentDbApp",
   "spoolmaster",
   "spoolhoarder",
   "spoolapp",
@@ -77,6 +78,7 @@ export interface CrossIds {
   filameterId?: string;
   filadexId?: string;
   filamentdbSerial?: string;
+  filamentDbAppId?: string;
   spoolmasterId?: string;
   spoolhoarderId?: string;
   spoolappId?: string;

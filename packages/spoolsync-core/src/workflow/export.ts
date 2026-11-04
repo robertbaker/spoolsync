@@ -147,6 +147,24 @@ export async function exportInventory(
         ],
       };
     }
+    case "filamentDbApp": {
+      const adapter = await import("../adapters/filamentDbApp");
+      const file = loaded as import("../adapters/filamentDbApp").FilamentDbAppLoadResult;
+      // A spool CSV has no snapshot behind it, so it is written back as an import CSV.
+      if (!file.file.document) {
+        const result = adapter.exportFilamentDbAppCsv(file, changes);
+        return {
+          source,
+          text: result.csv,
+          mediaType: "text/csv",
+          total: result.total,
+          updated: result.updated,
+          created: result.created,
+          warnings: result.warnings,
+        };
+      }
+      return jsonExport(source, adapter.exportFilamentDbApp(file, changes));
+    }
     case "filamentdb": {
       const result = (await import("../adapters/filamentdb")).exportFilamentDb(
         loaded as import("../adapters/filamentdb").FilamentDbLoadResult,
