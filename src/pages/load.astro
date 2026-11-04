@@ -7,6 +7,7 @@ import Container from "~/components/starwind/controls/Container/Container.astro"
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 import SourcePanel from "~/components/SourcePanel.astro";
+import SourceTile from "~/components/SourceTile.astro";
 import SpoolmanConnectionForm from "~/components/connections/SpoolmanConnectionForm.astro";
 import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro";
 import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
@@ -57,8 +58,7 @@ const spoolman = serviceView("spoolman");
       </label>
       <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
       <p id="sample-prompt" class="mt-3 text-sm text-muted-foreground">
-        No files handy?
-        <button type="button" id="try-sample" class="font-medium text-primary-text underline underline-offset-2 hover:no-underline">
+        No files handy?&nbsp;<button type="button" id="try-sample" class="font-medium text-primary-text underline underline-offset-2 hover:no-underline">
           Try it with sample data
         </button>
       </p>
@@ -103,7 +103,50 @@ const spoolman = serviceView("spoolman");
       </search>
     </div>
 
-    <div class="mt-4 grid items-start gap-4 md:grid-cols-2">
+    <section data-tile-section class="mt-4" aria-labelledby="connect-heading">
+      <h3 id="connect-heading" class="mb-2 text-sm font-semibold text-muted-foreground">Connect to a server</h3>
+      <div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4" role="group" aria-labelledby="connect-heading">
+        <SourceTile id="spoolman" label={spoolman.name} kind={spoolman.kind} icon={spoolman.icon} api />
+        {
+          fileSources
+            .filter((source) => source.hasApiBadge)
+            .map((source) => (
+              <SourceTile id={source.id} label={source.label} kind={source.kind} icon={source.icon} image={source.image} api />
+            ))
+        }
+      </div>
+    </section>
+    <section data-tile-section class="mt-5" aria-labelledby="files-heading">
+      <h3 id="files-heading" class="mb-2 text-sm font-semibold text-muted-foreground">
+        From an export file
+        <span class="ml-1 font-normal">(drop any of these above, or pick one for its export steps)</span>
+      </h3>
+      <div class="flex flex-wrap gap-2" role="group" aria-labelledby="files-heading">
+        {
+          fileSources
+            .filter((source) => !source.hasApiBadge)
+            .map((source) => (
+              <SourceTile
+                id={source.id}
+                label={source.label}
+                kind={source.kind}
+                icon={source.icon}
+                image={source.image}
+                readonly={source.readonly}
+                compact
+              />
+            ))
+        }
+      </div>
+    </section>
+    <p id="source-empty" class="mt-4 rounded-lg border border-dashed p-6 text-center text-muted-foreground" hidden>
+      No service matches. Clear the search or choose another filter.
+    </p>
+
+    <div id="source-stage" class="mt-4 [&>details:not([open])]:hidden [&:has(>details[open])>#source-hint]:hidden">
+      <p id="source-hint" class="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+        Choose a service above to connect to it or load its export file.
+      </p>
       <SourcePanel id="spoolman" tourId="tour-load" label={spoolman.name} kind={spoolman.kind} icon={spoolman.icon} api open>
         <p id="spoolman-target" class="mb-3 break-all text-sm text-muted-foreground empty:hidden"></p>
         <div class="flex flex-wrap gap-3">
@@ -123,8 +166,7 @@ const spoolman = serviceView("spoolman");
           </div>
         </details>
         <p class="mt-4 text-sm text-muted-foreground">
-          Or load a file instead: a Spoolman export (Settings → Export, JSON or CSV), the API export from
-          <code>/api/v1/export/spools?fmt=json</code>, or a raw JSON list of spools from the API.
+          Or load a file instead: a Spoolman export (Settings → Export, JSON or CSV), the API export from&nbsp;<code>/api/v1/export/spools?fmt=json</code>, or a raw JSON list of spools from the API.
         </p>
         <label id="spoolman-drop" for="spoolman-file" class="dropzone mt-3">
           <Icon name="material-symbols:upload-file-outline-rounded" class="size-7 text-primary" aria-hidden="true" />
@@ -192,9 +234,6 @@ const spoolman = serviceView("spoolman");
         ))
       }
     </div>
-    <p id="source-empty" class="mt-4 rounded-lg border border-dashed p-6 text-center text-muted-foreground" hidden>
-      No service matches. Clear the search or choose another filter.
-    </p>
 
     <section class="app-card mt-10" aria-labelledby="loaded-heading">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-4">

@@ -49,36 +49,101 @@ export function wireSourcePanels(state: LoadState): {
 } {
   const panels = SOURCE_IDS.flatMap((source) => {
     const element = document.querySelector(`[data-panel="${source}"]`);
-    return element instanceof HTMLDetailsElement ? [{ source, element }] : [];
+    const tile = document.querySelector<HTMLButtonElement>(`[data-tile="${source}"]`);
+    return element instanceof HTMLDetailsElement && tile ? [{ source, element, tile }] : [];
   });
   const search = document.getElementById("source-search") as HTMLInputElement | null;
   const chips = [...document.querySelectorAll<HTMLButtonElement>("[data-source-filter]")];
   const empty = document.getElementById("source-empty");
   const count = document.getElementById("source-count");
+  const stage = document.getElementById("source-stage");
   let filter: Filter = readPreferences().sourceFilter ?? "all";
 
-  // Put the services used last time first. This runs once at startup so the list never shifts
+  // Put the services used last time first. This runs once at startup so the picker never shifts
   // while the visitor is working with it.
-  const container = panels[0]?.element.parentElement;
   const recent = readRecent().slice(0, MAX_RECENT);
-  if (container && recent.length) {
-    const byService = new Map(panels.map((panel) => [panel.source, panel.element]));
-    const first = recent.flatMap((source) => byService.get(source) ?? []);
-    container.prepend(...first);
+  for (const source of [...recent].reverse()) {
+    const tile = panels.find((panel) => panel.source === source)?.tile;
+    tile?.parentElement?.prepend(tile);
   }
 
-  // Restore the visitor's own open/closed choices; the page defaults apply until they make one.
+  // One service is shown at a time, in the stage under the picker. Other scripts (the palette,
+  // connection links, load errors) open panels by setting `open`, so the rule lives on the panels.
   const remembered = readOpenPanels();
-  if (remembered) for (const { source, element } of panels) element.open = remembered.has(source);
+  if (remembered) {
+    const keep = panels.find((panel) => remembered.has(panel.source));
+    for (const panel of panels) panel.element.open = panel === keep;
+  } else {
+    const first = panels.find((panel) => panel.element.open);
+    for (const panel of panels) panel.element.open = panel === first;
+  }
   // Panels that open themselves to show a message are not a choice, so they are not remembered.
   const selfOpened = new Set<HTMLDetailsElement>();
-  for (const { source, element } of panels) {
+  function syncTile(panel: (typeof panels)[number]): void {
+    panel.tile.setAttribute("aria-expanded", String(panel.element.open));
+  }
+  for (const panel of panels) {
+    const { source, element, tile } = panel;
+    syncTile(panel);
+    tile.addEventListener("click", () => {
+      if (element.open) {
+        element.open = false;
+        return;
+      }
+      element.open = true;
+      requestAnimationFrame(() =>
+        (stage ?? element).scrollIntoView({
+          block: "nearest",
+          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        }),
+      );
+    });
+    // Keep the tile's status badge in step with the one in the panel header.
+    const status = document.getElementById(`${source}-status`);
+    const tileStatus = tile.querySelector("[data-tile-status]");
+    if (status && tileStatus) {
+      // The tile is small, so it carries a compact copy of the badge (no "from file" suffix).
+      const mirror = () =>
+        tileStatus.replaceChildren(
+          ...[...status.children]
+            .filter((child) => child.tagName !== "BUTTON")
+            .filter(
+              (child) =>
+                // A pill for an unloaded service says nothing the name does not.
+                tile.dataset["compact"] !== "true" || child.textContent !== "Not loaded",
+            )
+            .map((child) => {
+              const copy = child.cloneNode(true) as HTMLElement;
+              copy.className = copy.className.replace(
+                "px-2.5 py-1 text-xs",
+                "px-2 py-0.5 text-[0.68rem]",
+              );
+              const text = copy.lastChild;
+              if (text?.nodeType === Node.TEXT_NODE)
+                text.textContent = (text.textContent ?? "").replace(/ from (file|cloud|API)$/, "");
+              return copy;
+            }),
+        );
+      new MutationObserver(mirror).observe(status, {
+        childList: true,
+        subtree: true,
+      });
+      mirror();
+    }
     element.addEventListener("toggle", () => {
+      syncTile(panel);
+      if (element.open)
+        for (const other of panels)
+          if (other.element !== element && other.element.open) {
+            // Closed on the visitor's behalf, so it is not a choice to remember.
+            selfOpened.add(other.element);
+            other.element.open = false;
+          }
       if (selfOpened.delete(element)) return;
       write(
         local,
         OPEN_KEY,
-        JSON.stringify(panels.filter((panel) => panel.element.open).map((panel) => panel.source)),
+        JSON.stringify(panels.filter((entry) => entry.element.open).map((entry) => entry.source)),
       );
     });
     const message = document.getElementById(`${source}-message`);
@@ -108,11 +173,16 @@ export function wireSourcePanels(state: LoadState): {
 
   function refresh(): void {
     let visible = 0;
-    for (const { source, element } of panels) {
+    for (const { source, element, tile } of panels) {
       const show = matches(source, element);
       element.hidden = !show;
+      tile.hidden = !show;
       if (show) visible++;
     }
+    for (const section of document.querySelectorAll<HTMLElement>("[data-tile-section]"))
+      section.hidden = ![...section.querySelectorAll<HTMLElement>("[data-tile]")].some(
+        (tile) => !tile.hidden,
+      );
     if (empty) empty.hidden = visible > 0 || panels.length === 0;
     if (count) count.textContent = `${visible} of ${panels.length} services`;
     for (const chip of chips)
@@ -124,7 +194,9 @@ export function wireSourcePanels(state: LoadState): {
   for (const chip of chips)
     chip.addEventListener("click", () => {
       filter = (chip.dataset["sourceFilter"] as Filter | undefined) ?? "all";
-      updatePreferences({ sourceFilter: filter === "all" ? undefined : filter });
+      updatePreferences({
+        sourceFilter: filter === "all" ? undefined : filter,
+      });
       refresh();
     });
   refresh();

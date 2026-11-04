@@ -42,7 +42,7 @@ const search = `${label} ${kind} ${api ? "api connect" : ""} ${readonly ? "read-
     }
     <span class="min-w-0 flex-1">
       <span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-        <h2 id={`load-${id}-heading`} class="text-lg font-semibold leading-tight">{label}</h2>
+        <h2 id={`load-${id}-heading`} class="min-w-0 break-words text-lg font-semibold leading-tight">{label}</h2>
         {api && <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[0.7rem] font-medium text-primary-text">API</span>}
         {readonly && <span class="rounded-full bg-muted px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground">Read-only</span>}
       </span>

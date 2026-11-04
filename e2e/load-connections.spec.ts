@@ -58,6 +58,7 @@ test("changing the Spoolman address drops its fetched snapshot but keeps file in
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "Kept" }] })),
   });
+  await page.locator('[data-tile="spoolman"]').click();
   await page.locator("#spoolman-url").fill("http://one.test:7912");
   await page.getByRole("button", { name: "Save and test" }).click();
   await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();
@@ -88,7 +89,7 @@ test("TigerTag sign-in works from its panel and clears the password", async ({ p
         }),
   );
   await page.goto("/load");
-  await page.locator("#tigertag-panel > summary").click();
+  await page.locator('[data-tile="tigertag"]').click();
   await expect(page.locator("#tigertag-cloud")).toBeDisabled();
   await page.getByRole("button", { name: "Sign in", exact: true }).first().click();
   await expect(page.locator("#tigertag-email-input")).toBeFocused();

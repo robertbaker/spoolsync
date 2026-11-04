@@ -111,15 +111,21 @@ test("services can be searched and filtered, and panels open when they report", 
 
   await page.getByLabel("Find a service").fill("excel");
   await expect(page.locator(VISIBLE_SERVICE_PANELS)).toHaveCount(1);
-  await expect(page.locator("#spoolmaster-panel")).toBeVisible();
+  await expect(page.locator('[data-tile="spoolmaster"]')).toBeVisible();
   await page.getByLabel("Find a service").fill("zzzz");
   await expect(page.locator("#source-empty")).toBeVisible();
   await page.getByLabel("Find a service").fill("");
 
-  await page.getByRole("button", { name: "Read-only" }).click();
-  await expect(page.locator("#spoolstock-panel")).toBeVisible();
+  await page
+    .getByRole("group", { name: "Filter services" })
+    .getByRole("button", { name: "Read-only" })
+    .click();
+  await expect(page.locator('[data-tile="spoolstock"]')).toBeVisible();
   await expect(page.locator('[data-panel="spoolman"]')).toBeHidden();
-  await page.getByRole("button", { name: "All", exact: true }).click();
+  await page
+    .getByRole("group", { name: "Filter services" })
+    .getByRole("button", { name: "All", exact: true })
+    .click();
 
   const panel = page.locator("#spoolkeep-panel");
   await expect(panel).not.toHaveJSProperty("open", true);
@@ -131,7 +137,10 @@ test("services can be searched and filtered, and panels open when they report", 
     ),
   });
   await expect(panel).toHaveJSProperty("open", true);
-  await page.getByRole("button", { name: "Loaded" }).click();
+  await page
+    .getByRole("group", { name: "Filter services" })
+    .getByRole("button", { name: "Loaded", exact: true })
+    .click();
   await expect(page.locator(VISIBLE_SERVICE_PANELS)).toHaveCount(1);
 
   // Unload sits in the panel body, so using it must not collapse the panel.
@@ -285,8 +294,8 @@ test("slash focuses the search field and panel choices are remembered", async ({
 
   const spoolio = page.locator("#spoolio-panel");
   await expect(spoolio).not.toHaveJSProperty("open", true);
-  await page.locator("#spoolio-panel > summary").click();
-  await page.locator('[data-panel="spoolman"] > summary').click();
+  await page.locator('[data-tile="spoolio"]').click();
+  // Opening one service closes the other, so the choice is just Spoolio.
   // The browser reports a panel toggle asynchronously, so wait until the choice is saved.
   const saved = () => page.evaluate(() => localStorage.getItem("spoolsync:open-panels"));
   await expect.poll(saved).toBe('["spoolio"]');
@@ -295,7 +304,7 @@ test("slash focuses the search field and panel choices are remembered", async ({
   await expect(page.locator('[data-panel="spoolman"]')).not.toHaveJSProperty("open", true);
 
   // A panel that opens itself to show a result is not remembered as a choice.
-  await page.locator("#spoolio-panel > summary").click();
+  await page.locator('[data-tile="spoolio"]').click();
   await page.locator("#spoolkeep-file").setInputFiles({
     name: "keep.json",
     mimeType: "application/json",
@@ -433,8 +442,8 @@ test("services used last time are listed first on the next visit", async ({ page
   await page.goto("/load");
   const order = () =>
     page
-      .locator("details[data-panel]")
-      .evaluateAll((panels) => panels.map((panel) => (panel as HTMLElement).dataset["panel"]));
+      .locator("[data-tile]")
+      .evaluateAll((tiles) => tiles.map((tile) => (tile as HTMLElement).dataset["tile"]));
   expect((await order())[0]).toBe("spoolman");
   await page.locator("#spoolkeep-file").setInputFiles({
     name: "keep.json",
@@ -448,8 +457,13 @@ test("services used last time are listed first on the next visit", async ({ page
     buffer: Buffer.from("not a workbook"),
   });
   await page.reload();
-  // Only successful loads count, newest first.
-  expect((await order()).slice(0, 2)).toEqual(["spoolkeep", "spoolman"]);
+  // Only successful loads count, newest first, within each group (servers, then export files).
+  const files = await page
+    .locator("[data-tile-section]:has(#files-heading) [data-tile]")
+    .evaluateAll((tiles) => tiles.map((tile) => (tile as HTMLElement).dataset["tile"]));
+  expect(files[0]).toBe("spoolkeep");
+  expect(files).not.toContain("spoolman");
+  expect((await order())[0]).toBe("spoolman");
 });
 
 test("sample data lets a first-time visitor try matching, and never replaces real data", async ({
@@ -946,7 +960,7 @@ test("table sort, the low-only filter, and the service filter are remembered", a
     "aria-pressed",
     "true",
   );
-  await expect(page.locator('[data-panel="spoolstock"]')).toBeVisible();
+  await expect(page.locator('[data-tile="spoolstock"]')).toBeVisible();
   await expect(page.locator('[data-panel="spoolman"]')).toBeHidden();
 });
 
@@ -980,7 +994,7 @@ test("the last file used for a service is remembered, without its contents", asy
   expect(stored).not.toContain("weightRemaining");
 
   await page.reload();
-  await page.locator("#spoolio-panel > summary").click();
+  await page.locator('[data-tile="spoolio"]').click();
   await expect(page.locator("#spoolio-last-file")).toContainText("my-spoolio-backup.json");
   await page.locator("#spoolio-last-file").getByRole("button", { name: "Forget" }).click();
   await expect(page.locator("#spoolio-last-file")).toBeHidden();

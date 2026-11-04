@@ -70,10 +70,11 @@ for (const viewport of VIEWPORTS) {
     test("/load with open service panels and loaded inventories fits", async ({ page }) => {
       await page.goto("/load?sample=1");
       await expect(page.locator("#load-bar-summary")).toContainText("services loaded");
-      for (const panel of await page.locator("details[data-panel]").all()) {
-        await panel.evaluate((element) => ((element as HTMLDetailsElement).open = true));
+      // One service shows at a time, so check each in turn.
+      for (const tile of await page.locator("[data-tile]").all()) {
+        await tile.click();
+        await fits(page);
       }
-      await fits(page);
     });
   });
 }

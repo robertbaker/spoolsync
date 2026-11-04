@@ -278,12 +278,12 @@ test("Bambuddy API fetch loads inventory from the configured server", async ({ p
   });
 
   await page.goto("/load");
-  await expect(page.locator("#bambuddy-logo")).toBeVisible();
-  await page.locator("#bambuddy-panel > summary").click();
+  await expect(page.locator('[data-tile="bambuddy"] img')).toBeVisible();
+  await page.locator('[data-tile="bambuddy"]').click();
   await page.getByLabel("Bambuddy server address").fill("http://bambuddy.test:8000");
   await page.getByLabel("Bambuddy API key").fill("test-key");
   await page.locator("#bambuddy-fetch").click();
-  await expect(page.getByText("1 loaded from API")).toBeVisible();
+  await expect(page.locator("#bambuddy-status").getByText("1 loaded from API")).toBeVisible();
   await expect(page.getByText("API yellow")).toBeVisible();
 });
 

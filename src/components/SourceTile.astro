@@ -1,0 +1,57 @@
+---
+/** A service in the Load page's picker. Selecting it opens that service's panel in the stage below. */
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
+
+interface Props {
+  id: string;
+  label: string;
+  kind: string;
+  icon?: string;
+  image?: string;
+  api?: boolean;
+  readonly?: boolean;
+  /** A pill for file-only services: name and loaded count, no description. */
+  compact?: boolean;
+}
+
+const { id, label, kind, icon, image, api = false, readonly = false, compact = false } = Astro.props;
+---
+
+<button
+  type="button"
+  data-tile={id}
+  data-compact={compact ? "true" : undefined}
+  aria-expanded="false"
+  aria-controls={id === "spoolman" ? "tour-load" : `${id}-panel`}
+  class:list={[
+    "group flex min-w-0 items-center border bg-card text-left transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-expanded:border-primary/60 aria-expanded:bg-primary/10 aria-expanded:ring-1 aria-expanded:ring-primary/30",
+    compact ? "gap-2 rounded-full py-1 pl-1.5 pr-3" : "gap-2.5 rounded-xl px-3 py-2",
+  ]}
+>
+  {
+    image ? (
+      <IconAvatar color="primary" size="sm" containerSize="sm">
+        <img slot="icon" src={image} alt="" class="size-5 object-contain" />
+      </IconAvatar>
+    ) : (
+      <IconAvatar icon={icon} color="primary" size="sm" containerSize="sm" />
+    )
+  }
+  {
+    compact ? (
+      <>
+        <span class="whitespace-nowrap text-sm font-medium">{label}</span>
+        {readonly && <span class="sr-only">Read-only</span>}
+      </>
+    ) : (
+      <span class="min-w-0 flex-1">
+        <span class="block truncate text-sm font-semibold leading-tight">{label}</span>
+        <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span class="truncate">{kind}</span>
+          {api && <span class="shrink-0 rounded-full bg-primary/10 px-1.5 text-[0.65rem] font-medium text-primary-text">API</span>}
+        </span>
+      </span>
+    )
+  }
+  <span data-tile-status class={compact ? "shrink-0 empty:hidden" : "shrink-0 self-start empty:hidden"}></span>
+</button>

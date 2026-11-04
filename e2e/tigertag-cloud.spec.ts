@@ -74,7 +74,7 @@ test("sign in to TigerTag, fetch the cloud inventory and apply a change", async 
   const writes = await routeGoogle(page);
 
   await page.goto("/load");
-  await page.locator("#tigertag-panel > summary").click();
+  await page.locator('[data-tile="tigertag"]').click();
   await page.locator("#tigertag-settings > summary").click();
   await page.locator("#tigertag-email-input").fill("me@example.com");
   await page.locator("#tigertag-password").fill("not-a-real-password");
