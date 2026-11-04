@@ -34,9 +34,7 @@ function applyMode(mode: SidebarMode): void {
 
 /** The mode the inline script in the layout head set before first paint, or the stored one. */
 function currentMode(): SidebarMode {
-  return parseSidebarMode(
-    document.documentElement.dataset["sidebar"] ?? read(local, SIDEBAR_KEY),
-  );
+  return parseSidebarMode(document.documentElement.dataset["sidebar"] ?? read(local, SIDEBAR_KEY));
 }
 
 function isTextEditing(element: Element | null): boolean {
@@ -45,14 +43,26 @@ function isTextEditing(element: Element | null): boolean {
 
 /**
  * Wires the sidebar and bottom bar: collapse state, the phone drawer, workflow progress, badges,
- * the units quick toggle and the Ctrl/Cmd+B shortcut. Does nothing on pages without a sidebar.
- * Call it before the other `wire*` functions so the drawer closes before a dialog opens.
+ * the units quick toggle and the Ctrl/Cmd+B shortcut. Does nothing on pages without a sidebar. Call
+ * it before the other `wire*` functions so the drawer closes before a dialog opens.
  */
 export function wireSidebar(): void {
   const root = document.getElementById("app-sidebar");
   if (!root) return;
   const controller = new AbortController();
   const options = { signal: controller.signal };
+
+  // Scrollbar is hidden until the user scrolls; fades out shortly after scrolling stops.
+  let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+  root.addEventListener(
+    "scroll",
+    () => {
+      root.classList.add("is-scrolling");
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => root.classList.remove("is-scrolling"), 700);
+    },
+    { passive: true, signal: controller.signal },
+  );
 
   // ---- Collapse (desktop) and peek (tablet) -----------------------------------------------
   applyMode(currentMode());
@@ -66,7 +76,8 @@ export function wireSidebar(): void {
   // ---- Phone drawer ------------------------------------------------------------------------
   const supportsPopover = typeof root.showPopover === "function";
   const openers = [...document.querySelectorAll<HTMLElement>("[data-sb-open]")];
-  const isOpen = () => (supportsPopover ? root.matches(":popover-open") : root.hasAttribute("data-open"));
+  const isOpen = () =>
+    supportsPopover ? root.matches(":popover-open") : root.hasAttribute("data-open");
   const syncOpeners = () => {
     for (const opener of openers) opener.setAttribute("aria-expanded", String(isOpen()));
   };
@@ -103,7 +114,8 @@ export function wireSidebar(): void {
   root.addEventListener(
     "click",
     (event) => {
-      const target = event.target instanceof Element ? event.target.closest("a, [data-sb-action]") : null;
+      const target =
+        event.target instanceof Element ? event.target.closest("a, [data-sb-action]") : null;
       if (target && isOpen()) closeDrawer(false);
     },
     options,
@@ -151,7 +163,11 @@ export function wireSidebar(): void {
   document.addEventListener(
     "click",
     (event) => {
-      if (root.hasAttribute("data-peek") && event.target instanceof Node && !root.contains(event.target))
+      if (
+        root.hasAttribute("data-peek") &&
+        event.target instanceof Node &&
+        !root.contains(event.target)
+      )
         peek(false);
     },
     options,
@@ -194,7 +210,10 @@ export function wireSidebar(): void {
   const renderChangelog = () => {
     const badge = root.querySelector<HTMLElement>("[data-sb-changelog-new]");
     if (!badge) return;
-    badge.hidden = !hasUnreadChangelog(read(local, CHANGELOG_READ_KEY), changelog?.dataset["version"] ?? "");
+    badge.hidden = !hasUnreadChangelog(
+      read(local, CHANGELOG_READ_KEY),
+      changelog?.dataset["version"] ?? "",
+    );
   };
   // Opening the changelog records the version as read; re-check once that has happened.
   changelog?.addEventListener("click", () => setTimeout(renderChangelog, 0), options);
@@ -216,7 +235,8 @@ export function wireSidebar(): void {
   };
   units?.addEventListener(
     "click",
-    () => updateDisplaySettings({ weightUnit: readDisplaySettings().weightUnit === "g" ? "oz" : "g" }),
+    () =>
+      updateDisplaySettings({ weightUnit: readDisplaySettings().weightUnit === "g" ? "oz" : "g" }),
     options,
   );
   document.addEventListener(DISPLAY_CHANGED, renderUnits, options);

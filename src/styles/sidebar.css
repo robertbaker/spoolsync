@@ -99,6 +99,11 @@ body.has-sidebar {
   overflow: hidden auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.app-sidebar.is-scrolling {
+  scrollbar-color: var(--muted-foreground) transparent;
 }
 
 .app-sidebar:focus-visible {
