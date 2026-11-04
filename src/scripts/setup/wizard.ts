@@ -5,6 +5,7 @@ import { SOURCE_GUIDES } from "~/lib/source-guides";
 
 import { h, showToast } from "../dom";
 import { SETUP_EVENT } from "./launch";
+import { spoolmanConnectPanel, type SpoolmanConnectDependencies } from "./spoolman-connect";
 import {
   buildSteps,
   clampStep,
@@ -23,6 +24,8 @@ const PRIMARY =
 export interface SetupOptions {
   /** How many services hold an inventory right now. */
   loadedCount(): number;
+  /** Lets the Spoolman step connect to a server instead of asking for an export. */
+  spoolman?: Omit<SpoolmanConnectDependencies, "fetchSpools">;
 }
 
 /**
@@ -30,7 +33,7 @@ export interface SetupOptions {
  * page's multi-file picker (`#smart-file`), so detection, size limits, and request revisions are
  * the ones every other load uses.
  */
-function createWizard(): () => void {
+function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
   let dialog: HTMLDialogElement | undefined;
   let opener: Element | null = null;
   const selected = new Set<SourceId>();
@@ -83,11 +86,7 @@ function createWizard(): () => void {
     });
     return [
       heading(t("wizard.choose.title")),
-      h(
-        "p",
-        { class: "mt-1 text-sm text-muted-foreground" },
-        t("wizard.choose.hint"),
-      ),
+      h("p", { class: "mt-1 text-sm text-muted-foreground" }, t("wizard.choose.hint")),
       h(
         "fieldset",
         { class: "mt-4" },
@@ -101,14 +100,32 @@ function createWizard(): () => void {
     const guide = SOURCE_GUIDES[source];
     return [
       heading(t("wizard.guide.title", { app: SOURCE_LABELS[source] })),
-      h("p", { class: "mt-1 text-xs text-muted-foreground" }, t("wizard.guide.fileType", { kind: guide.kind })),
+      h(
+        "p",
+        { class: "mt-1 text-xs text-muted-foreground" },
+        t("wizard.guide.fileType", { kind: guide.kind }),
+      ),
       h("p", { class: "mt-3 text-sm leading-6" }, guide.how),
-    ];
+      source === "spoolman" && spoolman
+        ? spoolmanConnectPanel({
+            ...spoolman,
+            fetchSpools() {
+              dismissSetup();
+              close();
+              document.getElementById("spoolman-load")?.click();
+            },
+          })
+        : null,
+    ].filter((node): node is Node => node !== null);
   }
 
   function loadStep(): Node[] {
     const chosen = normalizeSelection(selected);
-    const choose = h("button", { type: "button", class: PRIMARY, id: "setup-choose-files" }, t("wizard.load.choose"));
+    const choose = h(
+      "button",
+      { type: "button", class: PRIMARY, id: "setup-choose-files" },
+      t("wizard.load.choose"),
+    );
     choose.addEventListener("click", () => {
       const picker = document.getElementById("smart-file") as HTMLInputElement | null;
       if (!picker) {
@@ -133,11 +150,7 @@ function createWizard(): () => void {
           : t("wizard.load.hintNone"),
       ),
       h("div", { class: "mt-4" }, choose),
-      h(
-        "p",
-        { class: "mt-3 text-xs text-muted-foreground" },
-        t("wizard.load.privacy"),
-      ),
+      h("p", { class: "mt-3 text-xs text-muted-foreground" }, t("wizard.load.privacy")),
     ];
   }
 
@@ -146,7 +159,11 @@ function createWizard(): () => void {
     index = clampStep(index, steps);
     const step: SetupStep = steps[index]!;
     const content =
-      step.kind === "choose" ? chooseStep() : step.kind === "guide" ? guideStep(step.source) : loadStep();
+      step.kind === "choose"
+        ? chooseStep()
+        : step.kind === "guide"
+          ? guideStep(step.source)
+          : loadStep();
 
     const back = h("button", { type: "button", class: BUTTON }, t("wizard.back"));
     back.disabled = index === 0;
@@ -185,7 +202,10 @@ function createWizard(): () => void {
     body.replaceChildren(
       h(
         "p",
-        { class: "mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground", role: "status" },
+        {
+          class: "mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground",
+          role: "status",
+        },
         t("wizard.progress", { current: index + 1, total: steps.length }),
       ),
       ...content,
@@ -250,14 +270,18 @@ function createWizard(): () => void {
  * Offers the guide to someone with nothing loaded who has not dismissed it, and lets the footer,
  * palette, and `?setup=1` links reopen it at any time.
  */
-export function wireSetupGuide({ loadedCount }: SetupOptions): void {
-  const open = createWizard();
+export function wireSetupGuide({ loadedCount, spoolman }: SetupOptions): void {
+  const open = createWizard(spoolman);
   document.addEventListener(SETUP_EVENT, open);
   const params = new URLSearchParams(location.search);
   if (params.get("setup") === "1") {
     params.delete("setup");
     const query = params.toString();
-    history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    history.replaceState(
+      null,
+      "",
+      `${location.pathname}${query ? `?${query}` : ""}${location.hash}`,
+    );
     open();
     return;
   }

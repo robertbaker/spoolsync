@@ -1,7 +1,8 @@
+import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
 /**
  * Web presentation for every supported tool, keyed by `SourceId` so TypeScript refuses to compile
- * while a tool in the core registry (`@spoolsync/core/core/services`) has no entry here. Facts about
- * what a tool can do (read/write, API or file, formats) live only in core; this file adds
+ * while a tool in the core registry (`@spoolsync/core/core/services`) has no entry here. Facts
+ * about what a tool can do (read/write, API or file, formats) live only in core; this file adds
  * export instructions and the derived views the home, Load, credits, setup, and CLI pages share.
  * Raster logos are attached separately in `service-logos.ts` so this module stays testable.
  */
@@ -19,7 +20,6 @@ import {
   type ServiceInfo,
   type ServicePlatform,
 } from "@spoolsync/core/core/services";
-import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
 
 export { SERVICE_COUNT, SERVICE_COUNT_WORD };
 
@@ -41,14 +41,14 @@ export const SERVICE_WEB = {
   spoolman: {
     icon: "vendor/spoolman",
     kind: "API, JSON or CSV",
-    how: "Export from Spoolman (Settings → Export, JSON or CSV), or save the API export from /api/v1/export/spools?fmt=json, then choose or drop the file here. You can also fetch spools directly with your server address.",
+    how: "Export from Spoolman (Settings → Export, JSON or CSV), then choose or drop the file here. Or skip the file and connect with the address where you open Spoolman or Spoolman-NG in your browser.",
     summary: "Direct over your local network, or via export file",
     creditBy: "the open-source Spoolman project by Donkie",
   },
   spoolstock: {
     icon: "material-symbols:inventory-2-outline",
     kind: "CSV",
-    how: "Spoolstock is export-only. In the app, open Inventory and tap the CSV export icon, then choose or drop the file here. SpoolSync compares its values against other services, though Spoolstock itself does not accept imports.",
+    how: "Spoolstock is export-only. Open app.spoolstock.com/inventory and click the CSV button in the top right to download your inventory, then choose or drop the file here. SpoolSync compares its values against other services, though Spoolstock itself does not accept imports.",
     summary: "CSV export from the app's Inventory tab",
     creditBy: "Spoolstock",
   },
@@ -125,7 +125,12 @@ export const SERVICE_WEB = {
   },
 } as const satisfies Record<SourceId, ServiceWeb>;
 
-const EXTENSIONS: Record<FileFormat, string> = { json: ".json", csv: ".csv", xlsx: ".xlsx", ttag: ".ttag" };
+const EXTENSIONS: Record<FileFormat, string> = {
+  json: ".json",
+  csv: ".csv",
+  xlsx: ".xlsx",
+  ttag: ".ttag",
+};
 const MIME_TYPES: Partial<Record<FileFormat, string>> = {
   json: "application/json",
   csv: "text/csv",
@@ -233,7 +238,15 @@ function buildView(id: SourceId): ServiceView {
     cliApiFlag: core.cliApiFlag,
     cliAliases: core.cliAliases ?? [],
     creditBy: web.creditBy,
-    searchText: [core.name, core.fullName, web.kind, core.tagline, platformLabels.join(" "), read, write]
+    searchText: [
+      core.name,
+      core.fullName,
+      web.kind,
+      core.tagline,
+      platformLabels.join(" "),
+      read,
+      write,
+    ]
       .join(" ")
       .toLowerCase(),
   };
@@ -242,7 +255,9 @@ function buildView(id: SourceId): ServiceView {
 /** Every tool, in `SOURCE_IDS` order. */
 export const SERVICE_VIEWS: readonly ServiceView[] = SOURCE_IDS.map(buildView);
 
-const VIEWS_BY_ID = new Map<SourceId, ServiceView>(SERVICE_VIEWS.map((service) => [service.id, service]));
+const VIEWS_BY_ID = new Map<SourceId, ServiceView>(
+  SERVICE_VIEWS.map((service) => [service.id, service]),
+);
 
 export function serviceView(id: SourceId): ServiceView {
   return VIEWS_BY_ID.get(id)!;

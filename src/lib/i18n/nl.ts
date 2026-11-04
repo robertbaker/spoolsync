@@ -49,6 +49,16 @@ export const nl: Catalogue = {
   "wizard.done": "Klaar",
   "wizard.skipToLoad": "Direct naar bestanden laden",
   "wizard.dontShow": "Niet meer tonen",
+  "wizard.spoolman.heading": "Of verbind met je server",
+  "wizard.spoolman.hint":
+    "Export overslaan: voer het adres in waarmee je Spoolman of Spoolman-NG in je browser opent. SpoolSync leest je spoelen rechtstreeks daarvandaan.",
+  "wizard.spoolman.address": "Serveradres",
+  "wizard.spoolman.token": "API-token (Spoolman-NG, optioneel)",
+  "wizard.spoolman.connect": "Verbinden",
+  "wizard.spoolman.badAddress": "Controleer het adres",
+  "wizard.spoolman.testing": "Testen…",
+  "wizard.spoolman.failed": "Verbindingstest mislukt",
+  "wizard.spoolman.fetch": "Spoelen ophalen",
 
   "palette.placeholder": "Zoek pagina's, acties en spoelen...",
   "palette.label": "Opdrachtenpalet",

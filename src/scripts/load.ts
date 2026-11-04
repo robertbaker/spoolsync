@@ -197,8 +197,24 @@ render();
 // Weight unit and price symbol changes redraw the charts and stats; setup guide is lazy.
 document.addEventListener(DISPLAY_CHANGED, render);
 document.addEventListener(LOCALE_CHANGED, render);
-void import("./setup/wizard").then(({ wireSetupGuide }) =>
-  wireSetupGuide({ loadedCount: () => state.results.size }),
+void Promise.all([
+  import("./setup/wizard"),
+  import("@spoolsync/core/adapters/spoolman"),
+  import("~/lib/browser/storage"),
+]).then(([{ wireSetupGuide }, adapter, storage]) =>
+  wireSetupGuide({
+    loadedCount: () => state.results.size,
+    spoolman: {
+      browserEnvironment: adapter.browserEnvironment,
+      diagnoseConnection: adapter.diagnoseConnection,
+      normalizeBaseUrl: adapter.normalizeBaseUrl,
+      loadSpoolmanConnection: storage.loadSpoolmanConnection,
+      saveSpoolmanConnection: (connection) => {
+        storage.saveSpoolmanConnection(connection);
+        document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
+      },
+    },
+  }),
 );
 
 // Saving a different connection invalidates that service's fetched snapshot in storage; mirror it

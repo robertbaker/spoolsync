@@ -48,6 +48,16 @@ export const fr: Catalogue = {
   "wizard.done": "Terminé",
   "wizard.skipToLoad": "Passer au chargement des fichiers",
   "wizard.dontShow": "Ne plus afficher",
+  "wizard.spoolman.heading": "Ou connectez-vous à votre serveur",
+  "wizard.spoolman.hint":
+    "Sans export : saisissez l'adresse à laquelle vous ouvrez Spoolman ou Spoolman-NG dans votre navigateur. SpoolSync lit vos bobines directement depuis celui-ci.",
+  "wizard.spoolman.address": "Adresse du serveur",
+  "wizard.spoolman.token": "Jeton d'API (Spoolman-NG, facultatif)",
+  "wizard.spoolman.connect": "Se connecter",
+  "wizard.spoolman.badAddress": "Vérifiez l'adresse",
+  "wizard.spoolman.testing": "Test en cours…",
+  "wizard.spoolman.failed": "Échec du test de connexion",
+  "wizard.spoolman.fetch": "Récupérer les bobines",
 
   "palette.placeholder": "Rechercher des pages, des actions et des bobines...",
   "palette.label": "Palette de commandes",

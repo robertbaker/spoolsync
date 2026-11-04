@@ -56,6 +56,16 @@ export const en = {
   "wizard.done": "Done",
   "wizard.skipToLoad": "Skip to loading files",
   "wizard.dontShow": "Don't show again",
+  "wizard.spoolman.heading": "Or connect to your server",
+  "wizard.spoolman.hint":
+    "Skip the export: enter the address where you open Spoolman or Spoolman-NG in your browser. SpoolSync reads your spools straight from it.",
+  "wizard.spoolman.address": "Server address",
+  "wizard.spoolman.token": "API token (Spoolman-NG, optional)",
+  "wizard.spoolman.connect": "Connect",
+  "wizard.spoolman.badAddress": "Check the address",
+  "wizard.spoolman.testing": "Testing…",
+  "wizard.spoolman.failed": "Connection test failed",
+  "wizard.spoolman.fetch": "Fetch spools",
 
   // Command palette
   "palette.placeholder": "Search pages, actions, and spools...",
