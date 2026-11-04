@@ -4,10 +4,7 @@ import { local, read, write } from "~/lib/browser/storage/access";
 
 export const SETUP_DISMISSED_KEY = "spoolsync:setup-dismissed";
 
-export type SetupStep =
-  | { kind: "choose" }
-  | { kind: "guide"; source: SourceId }
-  | { kind: "load" };
+export type SetupStep = { kind: "choose" } | { kind: "guide"; source: SourceId } | { kind: "load" };
 
 /** Keeps known services only, once each, in the order the Load page lists them. */
 export function normalizeSelection(selected: Iterable<string>): SourceId[] {
@@ -47,7 +44,10 @@ export interface AutoOpenContext {
   dismissed: boolean;
   /** The URL's query string, so a link with its own purpose is not interrupted. */
   search: string;
-  /** Browser automation (`navigator.webdriver`) never gets an unprompted dialog in front of the page. */
+  /**
+   * Browser automation (`navigator.webdriver`) never gets an unprompted dialog in front of the
+   * page.
+   */
   automated?: boolean;
 }
 

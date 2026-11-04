@@ -36,7 +36,10 @@ function initialDraft(spool: CommonSpool): CleanupDraft {
 }
 
 /** Whether a service can take a cleaned value for a field: writable, and the field is stored. */
-export function canApplyCleanup(spool: Pick<CommonSpool, "source">, field: ComparableField): boolean {
+export function canApplyCleanup(
+  spool: Pick<CommonSpool, "source">,
+  field: ComparableField,
+): boolean {
   return isWritableSource(spool.source) && SOURCE_FIELDS[spool.source].has(field);
 }
 
@@ -47,15 +50,15 @@ interface Recorded {
 
 /**
  * Looks at every spool and proposes cleaner values. It never changes a spool: the result is a list
- * of per-field proposals to accept or reject, and warnings about values that look wrong but have
- * no single fix. The output is deterministic: spools are visited in service order and by id, fields
- * in comparison order, and nothing depends on the clock unless `today` is given.
+ * of per-field proposals to accept or reject, and warnings about values that look wrong but have no
+ * single fix. The output is deterministic: spools are visited in service order and by id, fields in
+ * comparison order, and nothing depends on the clock unless `today` is given.
  *
  * Rules run in a fixed order and each sees what the earlier ones produced, so one field gets at
  * most one proposal whose `before` is the stored value and whose `after` is the end of the chain.
  * Turning a rule off removes its step and everything that depends on it. Empty strings and `null`
- * are never converted into each other, and fields no rule reads (notes' line breaks, unknown
- * source data, cross-service IDs) are never touched.
+ * are never converted into each other, and fields no rule reads (notes' line breaks, unknown source
+ * data, cross-service IDs) are never touched.
  */
 export function proposeCleanup(
   spools: readonly CommonSpool[],
@@ -164,7 +167,8 @@ export function expandBundles(
   const bundles = new Set(
     proposals.filter((proposal) => chosen.has(proposal.id) && proposal.bundle).map((p) => p.bundle),
   );
-  for (const proposal of proposals) if (proposal.bundle && bundles.has(proposal.bundle)) chosen.add(proposal.id);
+  for (const proposal of proposals)
+    if (proposal.bundle && bundles.has(proposal.bundle)) chosen.add(proposal.id);
   return chosen;
 }
 
@@ -243,7 +247,9 @@ export interface CleanupSummary {
   warnings: number;
 }
 
-export function summarizeCleanup(result: Pick<CleanupResult, "proposals" | "warnings">): CleanupSummary {
+export function summarizeCleanup(
+  result: Pick<CleanupResult, "proposals" | "warnings">,
+): CleanupSummary {
   const byRule: Partial<Record<CleanupRuleId, number>> = {};
   for (const proposal of result.proposals)
     for (const rule of proposal.rules) byRule[rule] = (byRule[rule] ?? 0) + 1;

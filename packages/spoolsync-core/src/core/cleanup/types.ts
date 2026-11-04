@@ -2,8 +2,8 @@ import type { FieldValue } from "../comparison/types";
 import type { CommonSpool, ComparableField, SourceId } from "../model";
 
 /**
- * Every cleanup rule, in the order the engine runs them. A later rule sees the value an earlier
- * one produced, so a vendor typed as `  PRUSAMENT inc ` goes through `whitespace`, `casing`, then
+ * Every cleanup rule, in the order the engine runs them. A later rule sees the value an earlier one
+ * produced, so a vendor typed as ` PRUSAMENT inc ` goes through `whitespace`, `casing`, then
  * `vendor-alias`, and ends as one proposal for the field.
  */
 export const CLEANUP_RULE_IDS = [
@@ -25,8 +25,8 @@ export type CleanupRuleId = (typeof CLEANUP_RULE_IDS)[number];
 /**
  * - `safe`: cosmetic only (case, spacing, punctuation, a format that has one reading). Nothing about
  *   the meaning of the value changes, so the CLI applies these on request.
- * - `review`: a person should look first (an alias, a unit conversion, a value moved between
- *   fields, a guess between two readings). Never applied without an explicit choice.
+ * - `review`: a person should look first (an alias, a unit conversion, a value moved between fields,
+ *   a guess between two readings). Never applied without an explicit choice.
  */
 export type CleanupConfidence = "safe" | "review";
 

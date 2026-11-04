@@ -1,7 +1,7 @@
 import { compareGroup } from "@spoolsync/core/core/compare";
 import { matchSpools, recordKey } from "@spoolsync/core/core/match";
-import { mergeRecordEdits } from "@spoolsync/core/core/reference";
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import { mergeRecordEdits } from "@spoolsync/core/core/reference";
 import { planSync, resolutionsFromChoices } from "@spoolsync/core/planner";
 
 import { pairArg, type Options } from "./args";

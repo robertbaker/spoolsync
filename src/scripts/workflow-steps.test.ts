@@ -45,8 +45,16 @@ test("Review is current on the Sync page and Load is marked done", () => {
 });
 
 test("Apply current marks Review done only when there was something to compare", () => {
-  expect(workflowProgress("apply", 2).map((step) => step.state)).toEqual(["done", "done", "current"]);
-  expect(workflowProgress("apply", 0).map((step) => step.state)).toEqual(["todo", "todo", "current"]);
+  expect(workflowProgress("apply", 2).map((step) => step.state)).toEqual([
+    "done",
+    "done",
+    "current",
+  ]);
+  expect(workflowProgress("apply", 0).map((step) => step.state)).toEqual([
+    "todo",
+    "todo",
+    "current",
+  ]);
 });
 
 beforeEach(() => {
@@ -65,9 +73,12 @@ beforeEach(() => {
 
 test("wiring reads storage, updates when inventories change, and follows the hash", () => {
   const stop = wireWorkflowSteps();
-  const state = (id: string) => document.querySelector<HTMLElement>(`[data-step="${id}"]`)!.dataset["state"];
+  const state = (id: string) =>
+    document.querySelector<HTMLElement>(`[data-step="${id}"]`)!.dataset["state"];
   expect(state("review")).toBe("current");
-  expect(document.querySelector('[data-step="review"] a')!.getAttribute("aria-current")).toBe("step");
+  expect(document.querySelector('[data-step="review"] a')!.getAttribute("aria-current")).toBe(
+    "step",
+  );
   expect(state("load")).toBe("todo");
 
   sessionStorage.setItem("spoolsync:load:spoolman", JSON.stringify(loaded("spoolman")));
@@ -78,7 +89,9 @@ test("wiring reads storage, updates when inventories change, and follows the has
   location.hash = "#tour-apply";
   window.dispatchEvent(new Event("hashchange"));
   expect(state("apply")).toBe("current");
-  expect(document.querySelector('[data-step="review"] a')!.hasAttribute("aria-current")).toBe(false);
+  expect(document.querySelector('[data-step="review"] a')!.hasAttribute("aria-current")).toBe(
+    false,
+  );
   stop();
 });
 

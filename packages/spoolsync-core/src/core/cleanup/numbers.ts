@@ -50,7 +50,13 @@ export function parseDecimal(input: string): ParsedDecimal | null {
       normalized = parts.join("");
     } else {
       const [integer = "", fraction = ""] = parts;
-      if (fraction.length === 3 && integer.length >= 1 && integer.length <= 3 && integer !== "0" && integer !== "") {
+      if (
+        fraction.length === 3 &&
+        integer.length >= 1 &&
+        integer.length <= 3 &&
+        integer !== "0" &&
+        integer !== ""
+      ) {
         normalized = integer + fraction;
         ambiguous = true;
       } else normalized = `${integer || "0"}.${fraction}`;
@@ -65,10 +71,11 @@ export function parseDecimal(input: string): ParsedDecimal | null {
 function isGrouped(text: string, separator: string): boolean {
   const groups = text.split(separator);
   return (
-    groups.length > 1 &&
-    /^\d{1,3}$/.test(groups[0]!) &&
-    groups.slice(1).every((group) => /^\d{3}$/.test(group))
-  ) || (groups.length === 1 && /^\d+$/.test(text));
+    (groups.length > 1 &&
+      /^\d{1,3}$/.test(groups[0]!) &&
+      groups.slice(1).every((group) => /^\d{3}$/.test(group))) ||
+    (groups.length === 1 && /^\d+$/.test(text))
+  );
 }
 
 const CURRENCY_SYMBOLS: ReadonlyArray<readonly [string, string]> = [
@@ -155,9 +162,10 @@ export interface ParsedWeight {
 
 /** Reads `250`, `250 g`, `1kg`, `1,000 g`, `2.2 lb` or `8.8oz` as grams, rounded to 0.1 g. */
 export function parseWeight(input: string): ParsedWeight | null {
-  const match = /^\s*(.*?)\s*(kilograms?|kgs?|grams?|gr|g|pounds?|lbs?|ounces?|oz)?\s*\.?\s*$/i.exec(
-    input.replace(/[​-‍﻿]/g, ""),
-  );
+  const match =
+    /^\s*(.*?)\s*(kilograms?|kgs?|grams?|gr|g|pounds?|lbs?|ounces?|oz)?\s*\.?\s*$/i.exec(
+      input.replace(/[​-‍﻿]/g, ""),
+    );
   if (!match) return null;
   const parsed = parseDecimal(match[1] ?? "");
   if (!parsed) return null;

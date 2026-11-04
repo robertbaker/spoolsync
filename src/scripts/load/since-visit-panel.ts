@@ -14,8 +14,8 @@ import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { formatWeight } from "~/lib/units";
 
 import { h, showToast } from "../dom";
-import type { LoadInsights } from "./insights";
 import { button } from "../sync/presentation";
+import type { LoadInsights } from "./insights";
 
 const MOVERS_SHOWN = 5;
 
@@ -24,7 +24,8 @@ const dateOf = (iso: string): string => {
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString();
 };
 
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count} ${count === 1 ? one : many}`;
 
 function spoolButton(source: SourceId, id: string, name: string | null): HTMLElement {
   const link = h(
@@ -38,7 +39,9 @@ function spoolButton(source: SourceId, id: string, name: string | null): HTMLEle
     name ?? `ID ${id}`,
   );
   link.addEventListener("click", () =>
-    document.dispatchEvent(new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key: `${source}:${id}` } })),
+    document.dispatchEvent(
+      new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key: `${source}:${id}` } }),
+    ),
   );
   return link;
 }
@@ -50,14 +53,32 @@ function serviceBlock(visit: VisitSummary): HTMLElement {
       "div",
       { class: "rounded-lg border p-3 text-sm" },
       h("p", { class: "font-medium" }, `${label} since ${dateOf(visit.since)}`),
-      h("p", { class: "mt-1 text-muted-foreground" }, `No changes (${plural(visit.unchanged, "spool")} the same).`),
+      h(
+        "p",
+        { class: "mt-1 text-muted-foreground" },
+        `No changes (${plural(visit.unchanged, "spool")} the same).`,
+      ),
     );
   const movers = [...visit.drops, ...visit.gains]
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || a.id.localeCompare(b.id, undefined, { numeric: true }))
+    .sort(
+      (a, b) =>
+        Math.abs(b.delta) - Math.abs(a.delta) ||
+        a.id.localeCompare(b.id, undefined, { numeric: true }),
+    )
     .slice(0, MOVERS_SHOWN);
   const more = visit.counts.drops + visit.counts.gains - movers.length;
   const row = (kind: string, name: HTMLElement, detail: string) =>
-    h("li", { class: "flex flex-wrap items-baseline gap-x-2" }, h("span", { class: "text-xs font-semibold uppercase tracking-wide text-muted-foreground" }, kind), name, h("span", { class: "text-muted-foreground tabular-nums" }, detail));
+    h(
+      "li",
+      { class: "flex flex-wrap items-baseline gap-x-2" },
+      h(
+        "span",
+        { class: "text-xs font-semibold uppercase tracking-wide text-muted-foreground" },
+        kind,
+      ),
+      name,
+      h("span", { class: "text-muted-foreground tabular-nums" }, detail),
+    );
   return h(
     "div",
     { class: "rounded-lg border p-3 text-sm" },
@@ -84,18 +105,30 @@ function serviceBlock(visit: VisitSummary): HTMLElement {
           `${formatWeight(Math.abs(change.delta))} (${formatWeight(change.before)} to ${formatWeight(change.after)})`,
         ),
       ),
-      more > 0 ? h("li", { class: "text-xs text-muted-foreground" }, `and ${more} more weight changes`) : null,
+      more > 0
+        ? h("li", { class: "text-xs text-muted-foreground" }, `and ${more} more weight changes`)
+        : null,
       ...visit.added
         .slice(0, MOVERS_SHOWN)
         .map((item) => row("Added", spoolButton(visit.source, item.id, item.name), "")),
       visit.counts.added > MOVERS_SHOWN
-        ? h("li", { class: "text-xs text-muted-foreground" }, `and ${visit.counts.added - MOVERS_SHOWN} more added`)
+        ? h(
+            "li",
+            { class: "text-xs text-muted-foreground" },
+            `and ${visit.counts.added - MOVERS_SHOWN} more added`,
+          )
         : null,
-      ...visit.removed.slice(0, MOVERS_SHOWN).map((item) =>
-        row("Removed", h("span", { class: "font-medium" }, item.name ?? `ID ${item.id}`), ""),
-      ),
+      ...visit.removed
+        .slice(0, MOVERS_SHOWN)
+        .map((item) =>
+          row("Removed", h("span", { class: "font-medium" }, item.name ?? `ID ${item.id}`), ""),
+        ),
       visit.counts.removed > MOVERS_SHOWN
-        ? h("li", { class: "text-xs text-muted-foreground" }, `and ${visit.counts.removed - MOVERS_SHOWN} more removed`)
+        ? h(
+            "li",
+            { class: "text-xs text-muted-foreground" },
+            `and ${visit.counts.removed - MOVERS_SHOWN} more removed`,
+          )
         : null,
     ),
   );
@@ -123,7 +156,9 @@ export function wireSinceVisit(
 
   function visits(): VisitSummary[] {
     const fresh = [...insights.changes.values()].flatMap((entry) => summarizeVisit(entry) ?? []);
-    const loadedAt = new Map([...results].map(([source, result]) => [source, result.loadedAt] as const));
+    const loadedAt = new Map(
+      [...results].map(([source, result]) => [source, result.loadedAt] as const),
+    );
     const current = currentVisits(readVisits(), fresh, loadedAt);
     // Remember what is shown so a reload still has it; skip the write when nothing changed.
     const serialized = JSON.stringify(current);
@@ -146,7 +181,11 @@ export function wireSinceVisit(
       return;
     }
     root.hidden = false;
-    const heading = h("h3", { id: "since-visit-heading", class: "text-base font-semibold" }, "Since your last visit");
+    const heading = h(
+      "h3",
+      { id: "since-visit-heading", class: "text-base font-semibold" },
+      "Since your last visit",
+    );
     if (!shown.length) {
       root.replaceChildren(
         heading,

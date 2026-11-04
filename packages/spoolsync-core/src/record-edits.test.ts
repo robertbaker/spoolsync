@@ -118,7 +118,11 @@ describe("duplicates after cleanup", () => {
     warnings: [],
     loadedAt: "2026-01-01T00:00:00.000Z",
   });
-  const a = makeSpool("spoolman", "1", { vendor: "Prusament", name: "Orange", remainingWeight: 500 });
+  const a = makeSpool("spoolman", "1", {
+    vendor: "Prusament",
+    name: "Orange",
+    remainingWeight: 500,
+  });
   const b = makeSpool("spoolman", "2", {
     vendor: "Prusament Inc",
     name: "Orange",
@@ -131,7 +135,9 @@ describe("duplicates after cleanup", () => {
     const groups = duplicatesAfterCleanup(loaded, [
       { spoolKey: "spoolman:2", field: "vendor", after: "Prusament" },
     ]);
-    expect(groups.map((group) => group.spools.map((spool) => spool.sourceId))).toEqual([["1", "2"]]);
+    expect(groups.map((group) => group.spools.map((spool) => spool.sourceId))).toEqual([
+      ["1", "2"],
+    ]);
   });
 
   test("does not repeat duplicates that already exist and leaves the inputs alone", () => {

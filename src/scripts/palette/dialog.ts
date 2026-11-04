@@ -67,7 +67,8 @@ function renderList(): void {
           "li",
           {
             role: "presentation",
-            class: "px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+            class:
+              "px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
           },
           group,
         ),

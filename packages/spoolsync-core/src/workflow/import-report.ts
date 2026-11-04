@@ -42,7 +42,8 @@ const CHANGED = [
 /** Free-text-labelled warnings that mean a row was left out. */
 const NOT_LOADED = [/skipped/i, /appears more than once/i, /^no serial/i, /^not a /i];
 
-const matches = (patterns: RegExp[], text: string) => patterns.some((pattern) => pattern.test(text));
+const matches = (patterns: RegExp[], text: string) =>
+  patterns.some((pattern) => pattern.test(text));
 
 function located(kind: string, ref: string, reason: string): ImportReportEntry {
   return {
@@ -55,8 +56,8 @@ function located(kind: string, ref: string, reason: string): ImportReportEntry {
 /**
  * Sorts a load result's warnings into skipped rows, assumed values, and file-wide notes. Adapters
  * keep writing the same warning text; this only reads it, so `LoadResult` is unchanged. A warning
- * that names a row or record without being an assumption is a row that failed validation, and
- * those rows are not in `spools`.
+ * that names a row or record without being an assumption is a row that failed validation, and those
+ * rows are not in `spools`.
  */
 export function buildImportReport(
   result: LoadResult,
@@ -113,7 +114,10 @@ export function isCleanImport(report: ImportReport): boolean {
   return !report.skipped.length && !report.changed.length && !report.warnings.length;
 }
 
-/** Spreadsheets read cells starting with these characters as formulas; inventory files are untrusted. */
+/**
+ * Spreadsheets read cells starting with these characters as formulas; inventory files are
+ * untrusted.
+ */
 function safeCell(value: string): string {
   return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }

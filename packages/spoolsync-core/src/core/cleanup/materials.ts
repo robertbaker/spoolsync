@@ -132,11 +132,15 @@ export function formatMaterial(parsed: ParsedMaterial, keepVariants: boolean): s
 }
 
 /**
- * Whether two material spellings differ only in case, spacing and punctuation (with "plus" and
- * "+" the same). Such a change is cosmetic; anything else (nylon to PA) is a judgement call.
+ * Whether two material spellings differ only in case, spacing and punctuation (with "plus" and "+"
+ * the same). Such a change is cosmetic; anything else (nylon to PA) is a judgement call.
  */
 export function sameMaterialLetters(a: string, b: string): boolean {
-  const flatten = (text: string) => text.toLowerCase().replace(/plus/g, "+").replace(/[^a-z0-9+]/g, "");
+  const flatten = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/plus/g, "+")
+      .replace(/[^a-z0-9+]/g, "");
   return flatten(a) === flatten(b);
 }
 

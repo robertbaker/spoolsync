@@ -37,14 +37,30 @@ function currentFormat(): ReportFormat {
   };
 }
 
-function groupTable(caption: string, firstColumn: string, rows: readonly ReportRow[], format: ReportFormat) {
+function groupTable(
+  caption: string,
+  firstColumn: string,
+  rows: readonly ReportRow[],
+  format: ReportFormat,
+) {
   const header = (text: string, numeric = false) =>
     h("th", { scope: "col", class: numeric ? "num" : "" }, text);
   return h(
     "table",
     {},
     h("caption", { class: "sr-only" }, caption),
-    h("thead", {}, h("tr", {}, header(firstColumn), header("Spools", true), header("Left", true), header("Spent", true))),
+    h(
+      "thead",
+      {},
+      h(
+        "tr",
+        {},
+        header(firstColumn),
+        header("Spools", true),
+        header("Left", true),
+        header("Spent", true),
+      ),
+    ),
     h(
       "tbody",
       {},
@@ -72,12 +88,19 @@ export function reportElement(
     "section",
     { id, class: "report-sheet", "aria-label": "Inventory report" },
     h("h1", {}, "SpoolSync inventory report"),
-    h("p", { class: "notes" }, `Generated ${report.generatedAt.slice(0, 10)} from ${report.services.join(", ") || "no services"}.`),
+    h(
+      "p",
+      { class: "notes" },
+      `Generated ${report.generatedAt.slice(0, 10)} from ${report.services.join(", ") || "no services"}.`,
+    ),
     h("h2", {}, "Summary"),
     h(
       "dl",
       {},
-      ...summaryLines(report, format).flatMap(([name, value]) => [h("dt", {}, name), h("dd", {}, value)]),
+      ...summaryLines(report, format).flatMap(([name, value]) => [
+        h("dt", {}, name),
+        h("dd", {}, value),
+      ]),
     ),
     h("h2", {}, "By material"),
     groupTable("Remaining filament by material", "Material", report.byMaterial, format),
@@ -129,10 +152,12 @@ export function reportDocument(sheet: HTMLElement): string {
 }
 
 /**
- * The Inventory report: a button above the spool table opens a dialog with the report, which can
- * be printed or downloaded as HTML, Markdown or CSV. Nothing leaves the browser.
+ * The Inventory report: a button above the spool table opens a dialog with the report, which can be
+ * printed or downloaded as HTML, Markdown or CSV. Nothing leaves the browser.
  */
-export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>): { update(): void } {
+export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>): {
+  update(): void;
+} {
   const trigger = h(
     "button",
     {
@@ -185,7 +210,12 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
       else if (extension === "csv")
         // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
         download(name, `\uFEFF${reportCsv(report, format)}`, "text/csv");
-      else download(name, reportDocument(reportElement(report, format, "inventory-report")), "text/html");
+      else
+        download(
+          name,
+          reportDocument(reportElement(report, format, "inventory-report")),
+          "text/html",
+        );
     } catch {
       showToast("Could not create the report file", "error");
     }
@@ -217,7 +247,12 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
 
   function ensure(): HTMLDialogElement {
     if (dialog) return dialog;
-    preview = h("div", { class: "report-preview", tabindex: "0", role: "region", "aria-label": "Report preview" });
+    preview = h("div", {
+      class: "report-preview",
+      tabindex: "0",
+      role: "region",
+      "aria-label": "Report preview",
+    });
     archivedBox = h("input", { type: "checkbox", id: "report-archived", class: "size-4" });
     archivedBox.addEventListener("change", refresh);
     const action = (label: string, run: () => void) => {
@@ -239,7 +274,15 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
       h(
         "div",
         { class: "p-5 sm:p-6" },
-        h("h2", { id: "inventory-report-title", class: "text-xl font-bold tracking-tight", tabindex: "-1" }, "Inventory report"),
+        h(
+          "h2",
+          {
+            id: "inventory-report-title",
+            class: "text-xl font-bold tracking-tight",
+            tabindex: "-1",
+          },
+          "Inventory report",
+        ),
         h(
           "p",
           { class: "mt-1 text-sm text-muted-foreground" },

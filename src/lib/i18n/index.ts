@@ -2,8 +2,8 @@ import { local, read, write } from "../browser/storage/access";
 import { de } from "./de";
 import { en, type Catalogue, type MessageKey } from "./en";
 import { es } from "./es";
-import { fr } from "./fr";
 import { formatMessage, numberFormat, type MessageParams } from "./format";
+import { fr } from "./fr";
 import { nl } from "./nl";
 
 export type { MessageKey } from "./en";
@@ -72,7 +72,8 @@ export function initLocale(): Locale {
 
 /**
  * Saves the language (English is the default and is stored as nothing), updates `<html lang>`, and
- * tells the page so open panels can redraw. Returns false when the value is not a supported locale.
+ * tells the page so open panels can redraw. Returns false when the value is not a supported
+ * locale.
  */
 export function setLocale(locale: string): boolean {
   if (!isLocale(locale)) return false;
@@ -88,7 +89,11 @@ export function setLocale(locale: string): boolean {
  * Looks up and formats a message. Falls back per key to English, and to English formatting if a
  * translation is malformed, so a bad translation can degrade but never break a page.
  */
-export function t(key: MessageKey, params: MessageParams = {}, locale: Locale = getLocale()): string {
+export function t(
+  key: MessageKey,
+  params: MessageParams = {},
+  locale: Locale = getLocale(),
+): string {
   const source = en[key];
   const template = CATALOGUES[locale][key] ?? source;
   try {

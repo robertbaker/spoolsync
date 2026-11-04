@@ -28,7 +28,8 @@ const groupSignature = (group: DuplicateGroup) => group.spools.map(spoolKey).sor
 /**
  * Duplicate groups that only appear once the accepted cleanups are applied: spools that differ in
  * spelling today (`Prusament Inc` and `Prusament`, `PLA Plus` and `PLA+`) but would then look like
- * one spool entered twice. Uses the same detection as the Load page, so it reports and never merges.
+ * one spool entered twice. Uses the same detection as the Load page, so it reports and never
+ * merges.
  */
 export function duplicatesAfterCleanup(
   results: readonly LoadResult[],

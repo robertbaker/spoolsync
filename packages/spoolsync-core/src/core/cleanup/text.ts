@@ -160,8 +160,8 @@ function titleWord(word: string, first: boolean): string {
 
 /**
  * Title case with exceptions for brands ("eSUN"), material acronyms ("PLA+", "PETG-CF") and
- * hardness ("95A"). Only meant for text that is entirely one case; mixed-case text is left alone
- * by the caller because people write "PolyMaker" and "ColorFabb" on purpose.
+ * hardness ("95A"). Only meant for text that is entirely one case; mixed-case text is left alone by
+ * the caller because people write "PolyMaker" and "ColorFabb" on purpose.
  */
 export function titleCase(text: string): string {
   let first = true;

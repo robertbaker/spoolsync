@@ -10,8 +10,8 @@ export const CONTACT_FORM_URL = "";
 export const SOCIAL_LINKS: Record<string, string> = {};
 
 /**
- * Load and Sync are one workflow (nothing can be synced before it is loaded), so the navigation
- * has a single "Inventory" entry that stays active on both pages.
+ * Load and Sync are one workflow (nothing can be synced before it is loaded), so the navigation has
+ * a single "Inventory" entry that stays active on both pages.
  */
 export const NAV_LINKS = [
   { href: "/", label: "Home", text: "Home", icon: "material-symbols:home-outline-rounded" },

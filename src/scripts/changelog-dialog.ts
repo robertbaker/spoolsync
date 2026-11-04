@@ -32,8 +32,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** 24 by 24 stroke icons, one per kind of change, so a section never relies on color alone. */
 const KIND_ICONS: Record<SectionKind, string> = {
   breaking: "M12 3 2.5 20h19L12 3z M12 10v4 M12 17v.01",
-  features: "M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5 18 18 M18 6l-2.5 2.5 M8.5 15.5 6 18",
-  fixes: "M8 9h8v6a4 4 0 0 1-8 0V9z M9 9a3 3 0 0 1 6 0 M4 12h4 M16 12h4 M5 7l3 2 M19 7l-3 2 M5 19l3-2 M19 19l-3-2",
+  features:
+    "M12 3v4 M12 17v4 M3 12h4 M17 12h4 M6 6l2.5 2.5 M15.5 15.5 18 18 M18 6l-2.5 2.5 M8.5 15.5 6 18",
+  fixes:
+    "M8 9h8v6a4 4 0 0 1-8 0V9z M9 9a3 3 0 0 1 6 0 M4 12h4 M16 12h4 M5 7l3 2 M19 7l-3 2 M5 19l3-2 M19 19l-3-2",
   performance: "M13 2 4 14h7l-1 8 9-12h-7l1-8z",
   docs: "M6 3h9l4 4v14H6V3z M14 3v5h5 M9 13h7 M9 17h7",
   maintenance:
@@ -170,7 +172,9 @@ function renderRelease(
       "div",
       { class: "cl-release-body" },
       ...release.sections.map((section) => renderSection(section, release)),
-      release.url ? h("p", { class: "cl-compare" }, link(release.url, "Compare changes on GitHub")) : null,
+      release.url
+        ? h("p", { class: "cl-compare" }, link(release.url, "Compare changes on GitHub"))
+        : null,
     ),
   );
 }
@@ -342,7 +346,13 @@ function renderList(): void {
   if (shown.length) {
     parts.push(
       ...shown.map((release, index) =>
-        renderRelease(release, index, view!, filtering || index < OPEN_BY_DEFAULT, newVersions.has(release.version)),
+        renderRelease(
+          release,
+          index,
+          view!,
+          filtering || index < OPEN_BY_DEFAULT,
+          newVersions.has(release.version),
+        ),
       ),
     );
   } else if (view.releases.length) {
@@ -375,7 +385,9 @@ function renderList(): void {
       { class: "cl-footer" },
       link(
         CHANGELOG_PAGE_URL,
-        view.releases.length > all.length ? "See all releases on GitHub" : "Open the changelog on GitHub",
+        view.releases.length > all.length
+          ? "See all releases on GitHub"
+          : "Open the changelog on GitHub",
       ),
     ),
   );
@@ -547,12 +559,7 @@ function ensureDialog(): Elements {
         "header",
         { class: "cl-header" },
         h("span", { class: "cl-grabber", "aria-hidden": "true" }),
-        h(
-          "div",
-          { class: "cl-titlebar" },
-          h("div", { class: "cl-titles" }, title, sub),
-          close,
-        ),
+        h("div", { class: "cl-titlebar" }, h("div", { class: "cl-titles" }, title, sub), close),
         h("div", { class: "cl-status" }, badge),
         h("div", { class: "cl-tools" }, search, chips),
       ),

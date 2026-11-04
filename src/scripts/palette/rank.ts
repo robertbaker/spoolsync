@@ -14,13 +14,11 @@ export interface Rankable {
 
 /** Lower case, accents removed, so "Prusament" and "prúsament" match each other. */
 export function normalize(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-const isWordStart = (text: string, index: number) => index === 0 || /[^a-z0-9]/.test(text[index - 1]!);
+const isWordStart = (text: string, index: number) =>
+  index === 0 || /[^a-z0-9]/.test(text[index - 1]!);
 
 /** Score for one query word against text that is already normalized; null when it does not occur. */
 function tokenScore(token: string, text: string): number | null {
@@ -67,7 +65,11 @@ export function fuzzyScore(query: string, text: string): number | null {
  * Sync page ahead of an action that merely mentions it. Equal scores keep their original order,
  * which keeps the list stable while typing. An empty query returns the entries unchanged.
  */
-export function rankItems<T extends Rankable>(items: readonly T[], query: string, limit = Infinity): T[] {
+export function rankItems<T extends Rankable>(
+  items: readonly T[],
+  query: string,
+  limit = Infinity,
+): T[] {
   if (!normalize(query).trim()) return items.slice(0, limit);
   const scored: Array<{ item: T; score: number; index: number }> = [];
   items.forEach((item, index) => {
@@ -86,7 +88,10 @@ export function rankItems<T extends Rankable>(items: readonly T[], query: string
 }
 
 /** Moves recently chosen entries to the front, in the order they were chosen, keeping the rest. */
-export function withRecents<T extends { id: string }>(items: readonly T[], recentIds: readonly string[]): T[] {
+export function withRecents<T extends { id: string }>(
+  items: readonly T[],
+  recentIds: readonly string[],
+): T[] {
   const byId = new Map(items.map((item) => [item.id, item]));
   const recent = recentIds.flatMap((id) => {
     const item = byId.get(id);

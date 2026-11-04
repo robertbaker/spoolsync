@@ -1,7 +1,7 @@
 import { local, read, write } from "~/lib/browser/storage/access";
-import { formatWeight, gramsToUnit, readDisplaySettings } from "~/lib/units";
 import { readStockHistory, type StockPoint } from "~/lib/browser/storage/stock-history";
 import { combinedTrend, trendChange } from "~/lib/stock-trend";
+import { formatWeight, gramsToUnit, readDisplaySettings } from "~/lib/units";
 
 import { h } from "../dom";
 import { plural } from "./presentation";
@@ -112,9 +112,7 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
       svg(
         "text",
         { x: String(PAD.left - 6), y: String(y(tick) + 3), "text-anchor": "end", class: axisLabel },
-        document.createTextNode(
-          Math.round(gramsToUnit(tick, unit)).toLocaleString(),
-        ),
+        document.createTextNode(Math.round(gramsToUnit(tick, unit)).toLocaleString()),
       ),
     ]),
     svg(
@@ -180,23 +178,21 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
     h(
       "tbody",
       {},
-      ...[...points]
-        .reverse()
-        .map((point) =>
+      ...[...points].reverse().map((point) =>
+        h(
+          "tr",
+          { class: "border-t" },
+          h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, dayTime(point.at)),
+          h("td", { class: "py-1 pr-3 tabular-nums" }, point.spoolCount.toLocaleString()),
           h(
-            "tr",
-            { class: "border-t" },
-            h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, dayTime(point.at)),
-            h("td", { class: "py-1 pr-3 tabular-nums" }, point.spoolCount.toLocaleString()),
-            h(
-              "td",
-              { class: "py-1 pr-3 tabular-nums" },
-              gramsToUnit(point.totalGrams, unit).toLocaleString(undefined, {
-                maximumFractionDigits: unit === "oz" ? 1 : 0,
-              }),
-            ),
+            "td",
+            { class: "py-1 pr-3 tabular-nums" },
+            gramsToUnit(point.totalGrams, unit).toLocaleString(undefined, {
+              maximumFractionDigits: unit === "oz" ? 1 : 0,
+            }),
           ),
         ),
+      ),
     ),
   );
   const details = h(

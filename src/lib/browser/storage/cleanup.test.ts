@@ -53,7 +53,7 @@ describe("accepted cleanups", () => {
     saveAcceptedCleanups([entry]);
     saveAcceptedCleanups([]);
     expect(sessionStorage.getItem("spoolsync:cleanup-accepted")).toBeNull();
-    sessionStorage.setItem("spoolsync:cleanup-accepted", "[1,{\"spoolKey\":5}]");
+    sessionStorage.setItem("spoolsync:cleanup-accepted", '[1,{"spoolKey":5}]');
     expect(loadAcceptedCleanups()).toEqual([]);
     sessionStorage.setItem("spoolsync:cleanup-accepted", "not json");
     expect(loadAcceptedCleanups()).toEqual([]);

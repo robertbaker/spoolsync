@@ -152,9 +152,13 @@ export function renderLoadedChart(
           { class: "border-t" },
           h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, datum.label),
           h("td", { class: "py-1 pr-3 tabular-nums" }, datum.spools.toLocaleString()),
-          h("td", { class: "py-1 pr-3 tabular-nums" }, gramsToUnit(datum.grams, readDisplaySettings().weightUnit).toLocaleString(undefined, {
+          h(
+            "td",
+            { class: "py-1 pr-3 tabular-nums" },
+            gramsToUnit(datum.grams, readDisplaySettings().weightUnit).toLocaleString(undefined, {
               maximumFractionDigits: readDisplaySettings().weightUnit === "oz" ? 1 : 0,
-            })),
+            }),
+          ),
           h("td", { class: "py-1 tabular-nums" }, `${share(datum)}%`),
         ),
       ),

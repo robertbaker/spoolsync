@@ -58,7 +58,9 @@ export function knownTare(vendor: string | null | undefined): KnownTare | null {
   return (
     KNOWN_TARES.find((entry) => entry.aliases.includes(key)) ??
     // "Polymaker PolyTerra" typed as a brand still starts with a known name.
-    KNOWN_TARES.find((entry) => entry.aliases.some((alias) => alias.length >= 4 && key.startsWith(alias))) ??
+    KNOWN_TARES.find((entry) =>
+      entry.aliases.some((alias) => alias.length >= 4 && key.startsWith(alias)),
+    ) ??
     null
   );
 }
@@ -105,11 +107,17 @@ export function resolveTare(input: {
 }): ResolvedTare | null {
   const key = brandKey(input.vendor) || NO_BRAND_KEY;
   const custom = input.saved[key];
-  if (isTare(custom)) return { grams: custom, origin: "custom", source: "your saved value for this brand" };
+  if (isTare(custom))
+    return { grams: custom, origin: "custom", source: "your saved value for this brand" };
   if (isTare(input.recorded))
-    return { grams: input.recorded, origin: "spool", source: "the empty weight recorded for this spool" };
+    return {
+      grams: input.recorded,
+      origin: "spool",
+      source: "the empty weight recorded for this spool",
+    };
   const known = knownTare(input.vendor);
-  if (known) return { grams: known.grams, origin: "brand", source: `a typical ${known.brand} spool` };
+  if (known)
+    return { grams: known.grams, origin: "brand", source: `a typical ${known.brand} spool` };
   return null;
 }
 
@@ -145,15 +153,18 @@ export function weighIn(input: {
   current: number | null;
 }): WeighInResult {
   const { gross, tare, initial, current } = input;
-  if (gross === null) return { ok: false, error: "Enter what the scale shows with the spool on it." };
+  if (gross === null)
+    return { ok: false, error: "Enter what the scale shows with the spool on it." };
   if (tare === null) return { ok: false, error: "Enter the weight of the empty spool." };
   if (gross < tare)
     return {
       ok: false,
-      error: "The scale reading is lower than the empty spool. Check the reading or the empty weight.",
+      error:
+        "The scale reading is lower than the empty spool. Check the reading or the empty weight.",
     };
   const remaining = Math.round((gross - tare) * 10) / 10;
-  const percent = initial !== null && initial > 0 ? Math.round((remaining / initial) * 1000) / 10 : null;
+  const percent =
+    initial !== null && initial > 0 ? Math.round((remaining / initial) * 1000) / 10 : null;
   return {
     ok: true,
     remaining,
@@ -185,9 +196,5 @@ export function saveTare(vendor: string | null | undefined, grams: number): bool
 export function forgetTare(vendor: string | null | undefined): boolean {
   const tares = readTares();
   delete tares[brandKey(vendor) || NO_BRAND_KEY];
-  return write(
-    local,
-    WEIGH_IN_KEY,
-    Object.keys(tares).length ? JSON.stringify({ tares }) : null,
-  );
+  return write(local, WEIGH_IN_KEY, Object.keys(tares).length ? JSON.stringify({ tares }) : null);
 }

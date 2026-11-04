@@ -68,7 +68,10 @@ function currentFromHash(page: WorkflowStepId, hash: string): WorkflowStepId {
   return page === "apply" ? "review" : page;
 }
 
-/** Keeps the stepper in step with storage and the page hash. Returns a function that removes listeners. */
+/**
+ * Keeps the stepper in step with storage and the page hash. Returns a function that removes
+ * listeners.
+ */
 export function wireWorkflowSteps(root: ParentNode = document): () => void {
   const nav = root.querySelector<HTMLElement>("[data-workflow-steps]");
   if (!nav) return () => {};

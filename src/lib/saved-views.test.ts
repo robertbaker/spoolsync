@@ -90,8 +90,9 @@ test("the list is capped", () => {
   }
   const over = addView(views, "one more", EMPTY_VIEW);
   expect(over.ok).toBe(false);
-  expect(sanitizeViews(views.concat(views).map((v, i) => ({ ...v, id: `x${i}`, name: `n${i}` }))))
-    .toHaveLength(MAX_VIEWS);
+  expect(
+    sanitizeViews(views.concat(views).map((v, i) => ({ ...v, id: `x${i}`, name: `n${i}` }))),
+  ).toHaveLength(MAX_VIEWS);
 });
 
 test("renaming, updating, and deleting", () => {
@@ -222,9 +223,23 @@ test("damaged, oversized or hostile share parameters decode to nothing or to a c
   expect(decodeViewParam(forge({ v: 2, s: "x" }))).toBeNull();
   expect(decodeViewParam(forge([1, 2]))).toBeNull();
   const hostile = decodeViewParam(
-    forge({ v: 1, s: "<img src=x onerror=1>", i: "__proto__", o: ["nope", "up"], g: "evil", a: 9e9, b: -4 }),
+    forge({
+      v: 1,
+      s: "<img src=x onerror=1>",
+      i: "__proto__",
+      o: ["nope", "up"],
+      g: "evil",
+      a: 9e9,
+      b: -4,
+    }),
   )!;
-  expect(hostile).toMatchObject({ insight: null, sort: null, group: "none", minGrams: null, maxGrams: null });
+  expect(hostile).toMatchObject({
+    insight: null,
+    sort: null,
+    group: "none",
+    minGrams: null,
+    maxGrams: null,
+  });
 });
 
 test("share links keep only the view parameter on the page's own path", () => {

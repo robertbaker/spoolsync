@@ -1,8 +1,14 @@
-import { SOURCE_LABELS, type CommonSpool, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import {
+  SOURCE_LABELS,
+  type CommonSpool,
+  type LoadResult,
+  type SourceId,
+} from "@spoolsync/core/core/model";
 import { spoolKey, type WeightChange } from "@spoolsync/core/workflow";
 
 import { loadMatchDecisions, saveMatchDecisions } from "~/lib/browser/storage";
 import { readStockHistory } from "~/lib/browser/storage/stock-history";
+import { LOCALE_CHANGED, t } from "~/lib/i18n";
 import {
   OPEN_SPOOL_EVENT,
   detailRows,
@@ -15,7 +21,6 @@ import {
   type DetailRow,
   type SpoolDetail,
 } from "~/lib/spool-detail";
-import { LOCALE_CHANGED, t } from "~/lib/i18n";
 import { DISPLAY_CHANGED, formatMoney, formatWeight } from "~/lib/units";
 
 import { h, showToast } from "../dom";
@@ -63,7 +68,12 @@ function cellContent(row: DetailRow, value: DetailRow["values"][number]): Node |
             "aria-hidden": "true",
           });
           swatch.style.backgroundColor = `#${color}`;
-          return h("span", { class: "inline-flex items-center gap-1 text-xs" }, swatch, `#${color}`);
+          return h(
+            "span",
+            { class: "inline-flex items-center gap-1 text-xs" },
+            swatch,
+            `#${color}`,
+          );
         }),
       );
     default:
@@ -101,7 +111,11 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
     return h(
       "section",
       { class: "mt-6", "aria-labelledby": id },
-      h("h3", { id, class: "text-sm font-semibold uppercase tracking-wide text-muted-foreground" }, title),
+      h(
+        "h3",
+        { id, class: "text-sm font-semibold uppercase tracking-wide text-muted-foreground" },
+        title,
+      ),
       ...children,
     );
   }
@@ -143,7 +157,9 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
                 "th",
                 { scope: "row", class: "whitespace-nowrap text-left font-medium" },
                 row.label,
-                row.differs ? h("span", { class: "ml-2 text-xs text-warning-text" }, "differs") : null,
+                row.differs
+                  ? h("span", { class: "ml-2 text-xs text-warning-text" }, "differs")
+                  : null,
               ),
               ...row.values.map((value) =>
                 h("td", { class: "align-top break-words" }, cellContent(row, value)),
@@ -170,10 +186,19 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
                 "ul",
                 { class: "mt-1 text-xs text-muted-foreground" },
                 ...ids.map(({ label, value }) =>
-                  h("li", { class: "break-all" }, `${label}: `, h("span", { class: "font-mono" }, value)),
+                  h(
+                    "li",
+                    { class: "break-all" },
+                    `${label}: `,
+                    h("span", { class: "font-mono" }, value),
+                  ),
                 ),
               )
-            : h("p", { class: "mt-1 text-xs text-muted-foreground" }, "No ids from other services."),
+            : h(
+                "p",
+                { class: "mt-1 text-xs text-muted-foreground" },
+                "No ids from other services.",
+              ),
         );
       }),
     );
@@ -294,7 +319,11 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
       render();
       dialog?.querySelector<HTMLElement>('[data-action="watch"]')?.focus();
     });
-    const print = h("button", { type: "button", class: BUTTON, "data-action": "label" }, "Print label");
+    const print = h(
+      "button",
+      { type: "button", class: BUTTON, "data-action": "label" },
+      "Print label",
+    );
     print.addEventListener("click", () => {
       try {
         printLabelSheet([detail.spool]);
@@ -319,7 +348,8 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
       return;
     }
     const { spool } = detail;
-    const title = [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || spool.sourceId;
+    const title =
+      [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || spool.sourceId;
     const candidates = candidateList(detail);
     body.replaceChildren(
       h(
@@ -330,7 +360,12 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
           { class: "min-w-0" },
           h(
             "h2",
-            { id: "spool-drawer-title", class: "break-words text-xl font-bold tracking-tight", tabindex: "-1", "data-drawer-title": "" },
+            {
+              id: "spool-drawer-title",
+              class: "break-words text-xl font-bold tracking-tight",
+              tabindex: "-1",
+              "data-drawer-title": "",
+            },
             title,
           ),
           h(
@@ -353,24 +388,23 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
         })(),
       ),
       actions(detail),
-      section(t("drawer.weighIn"), "drawer-weigh-heading", createWeighInSection(detail, weighMemory)),
+      section(
+        t("drawer.weighIn"),
+        "drawer-weigh-heading",
+        createWeighInSection(detail, weighMemory),
+      ),
       section(t("drawer.fields"), "drawer-fields-heading", fieldTable(detail)),
       section(t("drawer.ids"), "drawer-ids-heading", idsList(detail)),
       section(t("drawer.history"), "drawer-history-heading", historyList(detail)),
       section(
         t("drawer.different"),
         "drawer-different-heading",
-        candidates ??
-          h(
-            "p",
-            { class: "mt-2 text-sm text-muted-foreground" },
-            t("drawer.noOthers"),
-          ),
+        candidates ?? h("p", { class: "mt-2 text-sm text-muted-foreground" }, t("drawer.noOthers")),
         candidates
           ? h(
               "p",
               { class: "mt-2 text-xs text-muted-foreground" },
-              "A \"different\" answer is saved in this browser. The Sync page will not suggest that pair again.",
+              'A "different" answer is saved in this browser. The Sync page will not suggest that pair again.',
             )
           : null,
       ),

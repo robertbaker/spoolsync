@@ -50,7 +50,8 @@ export function createPwaView(handlers: { install(): void; update(): void }): Pw
       role: "status",
       "aria-live": "polite",
       "data-print": "hide",
-      class: "fixed bottom-24 left-4 z-50 flex flex-col items-start gap-2 md:bottom-4 md:left-[calc(var(--sidebar-w)+1rem)]",
+      class:
+        "fixed bottom-24 left-4 z-50 flex flex-col items-start gap-2 md:bottom-4 md:left-[calc(var(--sidebar-w)+1rem)]",
     },
     offline,
     update,

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 
-import { makeSpool } from "@spoolsync/core/core/testing";
 import { DEFAULT_LOW_STOCK } from "@spoolsync/core/core/stock";
+import { makeSpool } from "@spoolsync/core/core/testing";
 import type { UniqueSpool } from "@spoolsync/core/workflow";
 
 import {
@@ -25,7 +25,8 @@ const grams: ReportFormat = {
 
 const ounces: ReportFormat = {
   unit: "oz",
-  weight: (value) => (value === null || value === undefined ? "–" : `${(value / 28.349523125).toFixed(1)} oz`),
+  weight: (value) =>
+    value === null || value === undefined ? "–" : `${(value / 28.349523125).toFixed(1)} oz`,
   money: grams.money,
 };
 
@@ -64,7 +65,12 @@ const spools = unique(
     remainingWeight: null,
     initialWeight: null,
   }),
-  makeSpool("spoolman", "5", { vendor: "Old", material: "ABS", remainingWeight: 50, archived: true }),
+  makeSpool("spoolman", "5", {
+    vendor: "Old",
+    material: "ABS",
+    remainingWeight: 50,
+    archived: true,
+  }),
 );
 
 test("totals, percent left, spend and the value still on spools", () => {
@@ -128,7 +134,14 @@ test("an empty inventory produces a valid, honest report", () => {
 
 test("markdown uses the display unit and escapes table separators in names", () => {
   const report = buildInventoryReport(
-    unique(makeSpool("spoolio", "1", { vendor: "A|B", material: "PLA", remainingWeight: 283.5, initialWeight: 1000 })),
+    unique(
+      makeSpool("spoolio", "1", {
+        vendor: "A|B",
+        material: "PLA",
+        remainingWeight: 283.5,
+        initialWeight: 1000,
+      }),
+    ),
     DEFAULT_LOW_STOCK,
     now,
   );

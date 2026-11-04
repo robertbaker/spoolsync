@@ -167,9 +167,7 @@ describe("planning with bulk edits", () => {
 
   test("without edits the plan is identical", () => {
     const [group] = groupOf(makeSpool("spoolman", "1"), linked("spoolio", "a", { name: "X" }));
-    expect(planSync([group!], new Map(), [])).toEqual(
-      planSync([group!], new Map(), [], new Map()),
-    );
+    expect(planSync([group!], new Map(), [])).toEqual(planSync([group!], new Map(), [], new Map()));
   });
 });
 

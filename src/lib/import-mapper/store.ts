@@ -1,10 +1,5 @@
 import { local, read, write } from "../browser/storage/access";
-import {
-  MAP_FIELDS,
-  isWeightUnit,
-  type ColumnMapping,
-  type MapWeightUnit,
-} from "./fields";
+import { MAP_FIELDS, isWeightUnit, type ColumnMapping, type MapWeightUnit } from "./fields";
 
 /** Column mappings remembered per column layout (see `headerSignature`). */
 export const COLUMN_MAPS_KEY = "spoolsync:column-maps";
@@ -34,7 +29,10 @@ function sanitizeMapping(raw: unknown): ColumnMapping {
   return mapping;
 }
 
-/** Keeps only well-formed, size-capped entries, so damaged or hand-edited storage cannot break the dialog. */
+/**
+ * Keeps only well-formed, size-capped entries, so damaged or hand-edited storage cannot break the
+ * dialog.
+ */
 export function sanitizeColumnMaps(raw: unknown): SavedMappings {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   const entries: Array<[string, SavedMapping]> = [];

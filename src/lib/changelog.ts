@@ -188,10 +188,7 @@ export function filterReleases(
   filter: ChangelogFilter,
 ): ChangelogRelease[] {
   const kinds = new Set<SectionKind>(filter.kinds ?? []);
-  const words = (filter.query ?? "")
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  const words = (filter.query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
   if (!kinds.size && !words.length) return [...releases];
   const result: ChangelogRelease[] = [];
   for (const release of releases) {

@@ -27,7 +27,12 @@ const SELECT = "field-input mt-0 w-auto py-1 text-xs";
  */
 export function createHistoryView(container: HTMLElement = document.createElement("div")) {
   let history = readSyncHistory();
-  const filter: Required<SyncHistoryFilter> = { source: "all", via: "all", outcome: "all", query: "" };
+  const filter: Required<SyncHistoryFilter> = {
+    source: "all",
+    via: "all",
+    outcome: "all",
+    query: "",
+  };
 
   const labelled = (text: string, control: HTMLElement) =>
     h("label", { class: "flex items-center gap-1.5 text-xs text-muted-foreground" }, text, control);
@@ -61,7 +66,10 @@ export function createHistoryView(container: HTMLElement = document.createElemen
   });
   const copy = button("Copy summary", () => {
     void copyText(formatHistorySummary(shown())).then((ok) =>
-      showToast(ok ? "History summary copied" : "Could not copy the summary", ok ? "success" : "error"),
+      showToast(
+        ok ? "History summary copied" : "Could not copy the summary",
+        ok ? "success" : "error",
+      ),
     );
   });
   const exportJson = button("Export JSON", () => {
@@ -74,18 +82,28 @@ export function createHistoryView(container: HTMLElement = document.createElemen
   exportJson.id = "sync-history-export";
   const clear = button("Clear history", () => {
     if (!history.length) return;
-    if (!confirm(`Forget ${history.length} recorded ${history.length === 1 ? "entry" : "entries"}?`))
+    if (
+      !confirm(`Forget ${history.length} recorded ${history.length === 1 ? "entry" : "entries"}?`)
+    )
       return;
     clearSyncHistory();
     history = [];
     render();
     showToast("History cleared", "info");
   });
-  const count = h("p", { class: "mt-1 text-xs text-muted-foreground", role: "status", "aria-live": "polite" });
+  const count = h("p", {
+    class: "mt-1 text-xs text-muted-foreground",
+    role: "status",
+    "aria-live": "polite",
+  });
   const list = h("div", {});
   const controls = h(
     "div",
-    { class: "mt-2 flex flex-wrap items-center gap-2", role: "group", "aria-label": "Filter the history" },
+    {
+      class: "mt-2 flex flex-wrap items-center gap-2",
+      role: "group",
+      "aria-label": "Filter the history",
+    },
     labelled("Service", source),
     labelled("Method", via),
     labelled("Result", outcome),
@@ -124,7 +142,10 @@ export function createHistoryView(container: HTMLElement = document.createElemen
   function render(): void {
     const items = [...shown()].reverse();
     const filtering =
-      filter.source !== "all" || filter.via !== "all" || filter.outcome !== "all" || filter.query.trim() !== "";
+      filter.source !== "all" ||
+      filter.via !== "all" ||
+      filter.outcome !== "all" ||
+      filter.query.trim() !== "";
     for (const control of [copy, exportJson]) control.disabled = items.length === 0;
     clear.disabled = history.length === 0;
     controls.hidden = history.length === 0;
@@ -162,7 +183,11 @@ export function createHistoryView(container: HTMLElement = document.createElemen
               h("strong", {}, "No entries match"),
               h("p", {}, "Change the filters or clear the search to see the rest."),
             )
-          : h("p", { class: "mt-2 text-sm text-muted-foreground" }, "Nothing applied or downloaded yet."),
+          : h(
+              "p",
+              { class: "mt-2 text-sm text-muted-foreground" },
+              "Nothing applied or downloaded yet.",
+            ),
     );
   }
 

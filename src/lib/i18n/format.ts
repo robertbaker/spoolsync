@@ -2,8 +2,8 @@
  * ICU-lite message formatting. A message is plain text with three constructs:
  *
  * - `{name}` inserts a parameter (numbers are formatted for the locale with `Intl.NumberFormat`).
- * - `{count, plural, one {# spool} other {# spools}}` picks a branch with `Intl.PluralRules`.
- *   `=0`, `=1`, ... select an exact number first. `other` is required. `#` is the formatted number.
+ * - `{count, plural, one {# spool} other {# spools}}` picks a branch with `Intl.PluralRules`. `=0`,
+ *   `=1`, ... select an exact number first. `other` is required. `#` is the formatted number.
  * - Everything else is literal. Braces are reserved, so a message cannot contain a literal one.
  *
  * Messages are parsed once and cached. Parsing throws on malformed input, which the catalogue test

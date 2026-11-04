@@ -27,7 +27,7 @@
     "docs:services": "bun run tools/sync-services-docs.ts",
     "docs:services:check": "bun run tools/sync-services-docs.ts --check",
     "spoolsync:sync": "bun run packages/spoolsync-cli/src/cli.ts",
-    "spoolsync:release": "bun run --filter spoolsync release",
+    "spoolsync:release": "bun run --cwd packages/spoolsync-cli release",
     "release": "bun run spoolsync:release",
     "check:packages": "tsc --project packages/tsconfig.json",
     "test:cli": "bun run --filter spoolsync test:dist"

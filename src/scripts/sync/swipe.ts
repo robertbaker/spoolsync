@@ -87,8 +87,8 @@ const prefersReducedMotion = () =>
 /**
  * Lets a touch or pen swipe answer a card. The card keeps `touch-action: pan-y`, so the browser
  * still scrolls vertically and never needs `preventDefault`. Mouse input is ignored (text selection
- * and clicks stay normal), as are gestures that start on a control. Returns a function that detaches
- * the listeners.
+ * and clicks stay normal), as are gestures that start on a control. Returns a function that
+ * detaches the listeners.
  */
 export function attachSwipe(
   element: HTMLElement,

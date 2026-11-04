@@ -1,7 +1,7 @@
 /**
  * The vocabulary of the generic column mapper: the SpoolSync fields a column can feed, how column
- * names are guessed, how a column layout is recognised again, and what makes a mapping valid.
- * Pure and free of parsing libraries, so the saved-settings code can import it on every page.
+ * names are guessed, how a column layout is recognised again, and what makes a mapping valid. Pure
+ * and free of parsing libraries, so the saved-settings code can import it on every page.
  */
 
 export const MAP_FIELDS = [
@@ -55,9 +55,27 @@ export type ColumnMapping = Partial<Record<MapField, string>>;
 
 /** Column names a field is usually called, compared after `normalizeHeader`. */
 const ALIASES: Record<MapField, readonly string[]> = {
-  vendor: ["vendor", "brand", "brandname", "manufacturer", "maker", "producer", "filamentbrand", "vendorname"],
+  vendor: [
+    "vendor",
+    "brand",
+    "brandname",
+    "manufacturer",
+    "maker",
+    "producer",
+    "filamentbrand",
+    "vendorname",
+  ],
   material: ["material", "materialtype", "filamenttype", "type", "polymer", "filamentmaterial"],
-  name: ["name", "colorname", "colourname", "filamentname", "variant", "title", "product", "colorlabel"],
+  name: [
+    "name",
+    "colorname",
+    "colourname",
+    "filamentname",
+    "variant",
+    "title",
+    "product",
+    "colorlabel",
+  ],
   color: ["color", "colour", "hex", "colorhex", "hexcolor", "hexcode", "colorcode", "colourhex"],
   remainingWeight: [
     "remaining",
@@ -79,7 +97,14 @@ const ALIASES: Record<MapField, readonly string[]> = {
     "filamentweight",
     "capacity",
   ],
-  emptySpoolWeight: ["spoolweight", "emptyspool", "emptyspoolweight", "emptyweight", "tare", "tareweight"],
+  emptySpoolWeight: [
+    "spoolweight",
+    "emptyspool",
+    "emptyspoolweight",
+    "emptyweight",
+    "tare",
+    "tareweight",
+  ],
   price: ["price", "cost", "purchaseprice", "paid", "spoolprice"],
   location: ["location", "storage", "shelf", "place", "box", "bin", "storagelocation"],
   lotNr: ["lot", "lotnr", "lotnumber", "batch", "batchnumber"],
@@ -101,7 +126,9 @@ export function normalizeHeader(header: string): string {
 
 /** The same, with a trailing unit in brackets or after an underscore dropped first: `Weight (g)`. */
 function stripUnit(header: string): string {
-  return header.replace(/[([{]\s*(g|kg|oz|lb|lbs|grams?|mm|%|usd|eur|gbp|\$|€|£)\s*[)\]}]\s*$/i, "").replace(/[_\s-]+(g|kg|oz|lb|lbs|mm)$/i, "");
+  return header
+    .replace(/[([{]\s*(g|kg|oz|lb|lbs|grams?|mm|%|usd|eur|gbp|\$|€|£)\s*[)\]}]\s*$/i, "")
+    .replace(/[_\s-]+(g|kg|oz|lb|lbs|mm)$/i, "");
 }
 
 const aliasIndex: Map<string, MapField> = (() => {
@@ -143,7 +170,8 @@ export function suggestMapping(
   for (const header of headers) {
     const key = normalizeHeader(stripUnit(header));
     const field = aliasIndex.get(key);
-    if (field) ranked.push({ header, field, rank: ALIASES[field].map(normalizeHeader).indexOf(key) });
+    if (field)
+      ranked.push({ header, field, rank: ALIASES[field].map(normalizeHeader).indexOf(key) });
   }
   ranked.sort((a, b) => a.rank - b.rank || headers.indexOf(a.header) - headers.indexOf(b.header));
   for (const { header, field } of ranked) {
@@ -222,8 +250,7 @@ export function validateMapping(mapping: ColumnMapping, headers: readonly string
     if (other) problems.push({ kind: "duplicate", header, fields: [other, field] });
     else seen.set(header, field);
   }
-  if (!mapping.vendor && !mapping.material && !mapping.name)
-    problems.push({ kind: "identity" });
+  if (!mapping.vendor && !mapping.material && !mapping.name) problems.push({ kind: "identity" });
   const notes: MappingCheck["notes"] = [];
   const weighs = (["remainingWeight", "usedWeight", "initialWeight"] as const).some(
     (field) => mapping[field] !== undefined,
@@ -235,7 +262,10 @@ export function validateMapping(mapping: ColumnMapping, headers: readonly string
 }
 
 /** Drops mapped headers the file does not have, so a saved mapping never points at nothing. */
-export function mappingForHeaders(mapping: ColumnMapping, headers: readonly string[]): ColumnMapping {
+export function mappingForHeaders(
+  mapping: ColumnMapping,
+  headers: readonly string[],
+): ColumnMapping {
   const known = new Set(headers);
   const result: ColumnMapping = {};
   for (const field of MAP_FIELDS) {

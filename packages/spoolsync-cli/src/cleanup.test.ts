@@ -20,9 +20,11 @@ describe("cleanup options", () => {
       "casing",
     ]);
     expect(parseArgs([...files, "--cleanup=all,-casing"]).cleanupRules).not.toContain("casing");
-    expect(
-      parseArgs([...files, "--cleanup=casing", "--cleanup-report=casing"]),
-    ).toMatchObject({ cleanup: true, cleanupReport: true, cleanupRules: ["casing"] });
+    expect(parseArgs([...files, "--cleanup=casing", "--cleanup-report=casing"])).toMatchObject({
+      cleanup: true,
+      cleanupReport: true,
+      cleanupRules: ["casing"],
+    });
   });
 
   test("bad rules, repeats, and conflicting rule lists are refused", () => {
@@ -144,9 +146,7 @@ describe("cleanup in the plan", () => {
     expect(section.proposals).toBeUndefined();
     const text = cleanupLines(outcome, options);
     expect(text.lines[0]).toContain("3 safe changes added to the plan, 1 to review");
-    expect(text.lines.join("\n")).toContain(
-      'spoolio:A vendor: "esun" -> "eSUN" [safe, casing]',
-    );
+    expect(text.lines.join("\n")).toContain('spoolio:A vendor: "esun" -> "eSUN" [safe, casing]');
     expect(text.lines.join("\n")).toContain("--cleanup-report");
     expect(text.warnings).toEqual([]);
   });

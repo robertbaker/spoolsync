@@ -49,7 +49,9 @@ test("a saved value beats the recorded empty weight, which beats the brand table
   });
   expect(resolveTare({ vendor: "Nobody", recorded: 0, saved: {} })).toBeNull();
   // Spools with no brand share one saved value.
-  expect(resolveTare({ vendor: null, recorded: null, saved: { [NO_BRAND_KEY]: 180 } })?.grams).toBe(180);
+  expect(resolveTare({ vendor: null, recorded: null, saved: { [NO_BRAND_KEY]: 180 } })?.grams).toBe(
+    180,
+  );
 });
 
 test("reads typed weights in the display unit and refuses nonsense", () => {

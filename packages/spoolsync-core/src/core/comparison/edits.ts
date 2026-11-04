@@ -1,9 +1,5 @@
 import type { SpoolGroup } from "../match";
-import {
-  WRITABLE_SOURCE_IDS,
-  type ComparableField,
-  type WritableSourceId,
-} from "../model";
+import { WRITABLE_SOURCE_IDS, type ComparableField, type WritableSourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
 import type { FieldValue } from "./types";
 
@@ -91,8 +87,8 @@ export function addTagToNote(note: FieldValue, tag: string): string {
 }
 
 /**
- * The value a field should take under an edit, or `undefined` when the edit leaves it alone.
- * `base` is the note as it would be without the edit: the resolved value or the member's own.
+ * The value a field should take under an edit, or `undefined` when the edit leaves it alone. `base`
+ * is the note as it would be without the edit: the resolved value or the member's own.
  */
 export function editedField(
   edit: BulkEdit | undefined,
@@ -109,9 +105,10 @@ export function editedField(
 }
 
 /** Overlays an edit on a complete set of values (used for spools that will be created). */
-export function applyEditToValues<
-  T extends { location: FieldValue; comment: FieldValue },
->(values: T, edit: BulkEdit | undefined): T {
+export function applyEditToValues<T extends { location: FieldValue; comment: FieldValue }>(
+  values: T,
+  edit: BulkEdit | undefined,
+): T {
   const next = { ...values };
   const location = editedField(edit, "location", next.location);
   if (location !== undefined) next.location = location as T["location"];

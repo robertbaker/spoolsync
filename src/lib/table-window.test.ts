@@ -28,7 +28,9 @@ test("the limit runs across sections in order and drops sections left empty", ()
     { label: "C", spools: rows("c", 3) },
   ];
   const result = windowSections(sections, 4);
-  expect(result.sections.map((section) => [section.label, section.spools.length, section.total])).toEqual([
+  expect(
+    result.sections.map((section) => [section.label, section.spools.length, section.total]),
+  ).toEqual([
     ["A", 3, 3],
     ["B", 1, 3],
   ]);

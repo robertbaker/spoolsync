@@ -4,7 +4,9 @@ const browserApiNames = joinNames(
   SERVICE_VIEWS.filter((service) => service.apiInBrowser).map((service) => service.name),
 );
 const apiWriteNames = joinNames(
-  SERVICE_VIEWS.filter((service) => service.apiWriteInBrowser).map((service) => service.connectionName),
+  SERVICE_VIEWS.filter((service) => service.apiWriteInBrowser).map(
+    (service) => service.connectionName,
+  ),
 );
 const readOnlyNames = joinNames(
   SERVICE_VIEWS.filter((service) => !service.canWrite).map((service) => service.name),

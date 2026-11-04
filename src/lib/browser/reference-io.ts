@@ -20,10 +20,10 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 /**
- * The browser's network, clock and timers for the reference fetch layer. Requests carry no
- * cookies or credentials and no referrer, so a reference service learns nothing about the visitor
- * beyond the request itself. The page is the only thing that ever calls these services; SpoolSync
- * has no server that could.
+ * The browser's network, clock and timers for the reference fetch layer. Requests carry no cookies
+ * or credentials and no referrer, so a reference service learns nothing about the visitor beyond
+ * the request itself. The page is the only thing that ever calls these services; SpoolSync has no
+ * server that could.
  */
 export const browserReferenceIO: ReferenceIO = {
   fetch: (url, init) =>

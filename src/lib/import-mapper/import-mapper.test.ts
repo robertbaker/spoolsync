@@ -85,7 +85,9 @@ test("a layout is recognised again whatever the column order or case", () => {
 
 test("a mapping needs an identifying column, real headers, and one field per header", () => {
   const headers = ["Brand", "Weight"];
-  expect(validateMapping({ vendor: "Brand", remainingWeight: "Weight" }, headers).problems).toEqual([]);
+  expect(validateMapping({ vendor: "Brand", remainingWeight: "Weight" }, headers).problems).toEqual(
+    [],
+  );
   expect(validateMapping({ remainingWeight: "Weight" }, headers).problems).toEqual([
     { kind: "identity" },
   ]);
@@ -215,7 +217,11 @@ test("conversion makes a file the Spoolman importer loads, with every value acco
 
 test("the identity rule skips rows with no brand, material or name", () => {
   const table = parseSourceTable("Brand,Type,Shelf\n,,C3\nA,,\n");
-  const conversion = convertToSpoolmanCsv(table, { vendor: "Brand", material: "Type", location: "Shelf" }, { weightUnit: "g" });
+  const conversion = convertToSpoolmanCsv(
+    table,
+    { vendor: "Brand", material: "Type", location: "Shelf" },
+    { weightUnit: "g" },
+  );
   expect(conversion.skipped.map((item) => item.row)).toEqual([1]);
   expect(conversion.skipped[0]!.reason).toContain("No brand, material, or name");
   expect(conversion.spoolCount).toBe(1);
@@ -223,7 +229,11 @@ test("the identity rule skips rows with no brand, material or name", () => {
 
 test("weights are converted from the file's unit to grams", () => {
   const table = parseSourceTable("Brand,Left,Full\nA,0.5,1\nB,10,35.27\n");
-  const mapping: ColumnMapping = { vendor: "Brand", remainingWeight: "Left", initialWeight: "Full" };
+  const mapping: ColumnMapping = {
+    vendor: "Brand",
+    remainingWeight: "Left",
+    initialWeight: "Full",
+  };
   const kg = loadSpoolmanFile(convertToSpoolmanCsv(table, mapping, { weightUnit: "kg" }).csv);
   expect(kg.spools.map((spool) => spool.remainingWeight)).toEqual([500, 10000]);
   const oz = loadSpoolmanFile(convertToSpoolmanCsv(table, mapping, { weightUnit: "oz" }).csv);
@@ -255,7 +265,9 @@ test("remaining weight wins when a row also has used weight", () => {
 });
 
 test("a spool with several colors keeps them, and filaments and vendors share ids", () => {
-  const table = parseSourceTable("Brand,Name,Hex\nA,Rainbow,\"#FF0000, 00ff00\"\nA,Rainbow,\"#FF0000, 00ff00\"\na,Other,#000\n");
+  const table = parseSourceTable(
+    'Brand,Name,Hex\nA,Rainbow,"#FF0000, 00ff00"\nA,Rainbow,"#FF0000, 00ff00"\na,Other,#000\n',
+  );
   const conversion = convertToSpoolmanCsv(
     table,
     { vendor: "Brand", name: "Name", color: "Hex" },
@@ -342,7 +354,7 @@ test("damaged or hostile stored mappings are cleaned or dropped", () => {
   const good = headerSignature(["Brand"]);
   const clean = sanitizeColumnMaps({
     [good]: {
-      mapping: { vendor: "Brand", bogus: "x", material: 7, name: "" , price: "p".repeat(500) },
+      mapping: { vendor: "Brand", bogus: "x", material: 7, name: "", price: "p".repeat(500) },
       unit: "stone",
       savedAt: "2026-01-01T00:00:00Z",
     },

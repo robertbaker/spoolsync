@@ -4,8 +4,8 @@ import Papa from "papaparse";
 
 import type { LoadResult } from "../core/model";
 import { makeSpool } from "../core/testing";
-import { loadInventoryFile } from "./load";
 import { buildImportReport, importReportCsv, isCleanImport } from "./import-report";
+import { loadInventoryFile } from "./load";
 
 const result = (warnings: string[], weights: Array<number | null> = [100]): LoadResult => ({
   source: "spoolhoarder",

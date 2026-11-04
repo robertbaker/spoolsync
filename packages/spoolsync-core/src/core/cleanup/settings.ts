@@ -1,5 +1,5 @@
-import { COMPARABLE_FIELDS, type ComparableField } from "../model";
 import type { FieldValue } from "../comparison/types";
+import { COMPARABLE_FIELDS, type ComparableField } from "../model";
 import type { AcceptedCleanup } from "./engine";
 import { CLEANUP_RULE_IDS, type CleanupRuleId } from "./types";
 
@@ -11,8 +11,8 @@ export interface CleanupSettings {
 export const DEFAULT_CLEANUP_SETTINGS: CleanupSettings = { enabled: [...CLEANUP_RULE_IDS] };
 
 /**
- * Keeps only known rule ids, in run order. Damaged or hand-edited storage falls back to every
- * rule; an explicit empty list stays empty (all rules switched off).
+ * Keeps only known rule ids, in run order. Damaged or hand-edited storage falls back to every rule;
+ * an explicit empty list stays empty (all rules switched off).
  */
 export function sanitizeCleanupSettings(raw: unknown): CleanupSettings {
   if (!raw || typeof raw !== "object" || Array.isArray(raw))

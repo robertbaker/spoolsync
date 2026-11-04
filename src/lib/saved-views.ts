@@ -36,7 +36,12 @@ const SORT_KEYS: readonly SortKey[] = [
   "remaining",
   "location",
 ];
-const INSIGHT_FILTERS: readonly string[] = ["duplicates", "watched", "missing-price", ...HEALTH_ISSUES];
+const INSIGHT_FILTERS: readonly string[] = [
+  "duplicates",
+  "watched",
+  "missing-price",
+  ...HEALTH_ISSUES,
+];
 
 /** Everything a view remembers. `search` is stored lower-cased, as the table uses it. */
 export interface ViewSettings {
@@ -301,14 +306,19 @@ function toBase64Url(text: string): string {
 }
 
 function fromBase64Url(value: string): string {
-  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const padded = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
   const binary = atob(padded);
-  return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
+  return new TextDecoder("utf-8", { fatal: true }).decode(
+    Uint8Array.from(binary, (char) => char.charCodeAt(0)),
+  );
 }
 
 /**
- * A view's settings as a short URL-safe string: only the parts that differ from an empty view,
- * as compact JSON in base64url. The name is not shared; the receiver sees "a shared view".
+ * A view's settings as a short URL-safe string: only the parts that differ from an empty view, as
+ * compact JSON in base64url. The name is not shared; the receiver sees "a shared view".
  */
 export function encodeViewParam(settings: ViewSettings): string {
   const clean = sanitizeSettings(settings);
@@ -326,14 +336,15 @@ export function encodeViewParam(settings: ViewSettings): string {
 
 /**
  * Reads a shared view back. Everything goes through {@link sanitizeSettings}, so a hand-built or
- * damaged link can only produce a valid view or `null`; it can never inject a value the table
- * would not accept itself.
+ * damaged link can only produce a valid view or `null`; it can never inject a value the table would
+ * not accept itself.
  */
 export function decodeViewParam(value: string | null | undefined): ViewSettings | null {
   if (!value || value.length > MAX_VIEW_PARAM || !/^[A-Za-z0-9_-]+$/.test(value)) return null;
   try {
     const raw = JSON.parse(fromBase64Url(value)) as Record<string, unknown> | null;
-    if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw["v"] !== SHARE_VERSION) return null;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw["v"] !== SHARE_VERSION)
+      return null;
     const order = raw["o"];
     return sanitizeSettings({
       search: raw["s"],
@@ -361,7 +372,8 @@ export function viewShareUrl(href: string, settings: ViewSettings): string {
 
 /**
  * The next stop when stepping through views with the keyboard: the saved views in order, with the
- * "current filters" stop (an empty id) between the last and the first, wrapping in either direction.
+ * "current filters" stop (an empty id) between the last and the first, wrapping in either
+ * direction.
  */
 export function cycleView(
   views: readonly SavedView[],

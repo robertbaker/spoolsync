@@ -89,9 +89,21 @@ test("the summary is plain text, newest first, with totals", () => {
 });
 
 function sampleHistory() {
-  let history = appendSyncHistory([], record({ failed: 1, succeeded: 2, error: "Timeout talking to server" }), at(0));
-  history = appendSyncHistory(history, record({ source: "filamentdb", via: "download", failed: 0 }), at(10));
-  history = appendSyncHistory(history, record({ source: "spoolman", via: "api", failed: 0, succeeded: 3 }), at(20));
+  let history = appendSyncHistory(
+    [],
+    record({ failed: 1, succeeded: 2, error: "Timeout talking to server" }),
+    at(0),
+  );
+  history = appendSyncHistory(
+    history,
+    record({ source: "filamentdb", via: "download", failed: 0 }),
+    at(10),
+  );
+  history = appendSyncHistory(
+    history,
+    record({ source: "spoolman", via: "api", failed: 0, succeeded: 3 }),
+    at(20),
+  );
   return history;
 }
 
@@ -100,12 +112,17 @@ test("filters by service, method, outcome and words, keeping the original order"
   expect(filterSyncHistory(history, {})).toHaveLength(3);
   expect(filterSyncHistory(history, { source: "all", via: "all", outcome: "all" })).toHaveLength(3);
   expect(filterSyncHistory(history, { source: "filamentdb" })).toHaveLength(1);
-  expect(filterSyncHistory(history, { via: "api" }).map((entry) => entry.source)).toEqual(["spoolman", "spoolman"]);
+  expect(filterSyncHistory(history, { via: "api" }).map((entry) => entry.source)).toEqual([
+    "spoolman",
+    "spoolman",
+  ]);
   expect(filterSyncHistory(history, { outcome: "failed" })).toHaveLength(1);
   expect(filterSyncHistory(history, { outcome: "succeeded" })).toHaveLength(2);
   expect(filterSyncHistory(history, { query: "timeout SPOOLMAN" })).toHaveLength(1);
   expect(filterSyncHistory(history, { query: "no such words" })).toEqual([]);
-  expect(filterSyncHistory(history, { source: "spoolman", outcome: "succeeded", via: "api" })).toHaveLength(1);
+  expect(
+    filterSyncHistory(history, { source: "spoolman", outcome: "succeeded", via: "api" }),
+  ).toHaveLength(1);
 });
 
 test("an entry with an error counts as failed even when no change failed", () => {
@@ -123,6 +140,8 @@ test("the JSON export carries a format marker and only what is stored", () => {
   });
   expect(parsed.entries).toEqual(history);
   expect(sanitizeSyncHistory(parsed.entries)).toEqual(history);
-  expect(syncHistoryFilename(new Date("2026-11-03T23:00:00Z"))).toBe("spoolsync-sync-history-2026-11-03.json");
+  expect(syncHistoryFilename(new Date("2026-11-03T23:00:00Z"))).toBe(
+    "spoolsync-sync-history-2026-11-03.json",
+  );
   expect(JSON.parse(syncHistoryJson([])).entries).toEqual([]);
 });

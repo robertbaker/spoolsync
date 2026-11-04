@@ -41,7 +41,14 @@ export function spoolItems(
             ? "weight unknown"
             : `${formatWeight(spool.remainingWeight, unit)} left`
         }`,
-        keywords: [spool.sourceId, spool.upc, spool.location, spool.lotNr, "spool", "weigh in scale"]
+        keywords: [
+          spool.sourceId,
+          spool.upc,
+          spool.location,
+          spool.lotNr,
+          "spool",
+          "weigh in scale",
+        ]
           .filter(Boolean)
           .join(" "),
         run: () => open(key),

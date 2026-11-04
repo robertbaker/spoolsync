@@ -39,7 +39,9 @@ export function bulkEditFromForm(values: BulkEditFormValues): BulkEditFormResult
     note: values.clearNote ? null : note,
     tag: rawTag,
   });
-  return patch ? { patch } : { error: "Enter a location, note or tag to set, or tick a Clear box." };
+  return patch
+    ? { patch }
+    : { error: "Enter a location, note or tag to set, or tick a Clear box." };
 }
 
 /** Plain-English result line used for the status region and the toast. */

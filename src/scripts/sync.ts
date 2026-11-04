@@ -1,7 +1,7 @@
-import type { MatchSuggestion } from "@spoolsync/core/core/match";
 import { recordEditsFromAccepted } from "@spoolsync/core/core/cleanup";
-import { mergeRecordEdits, referenceEditsFromAccepted } from "@spoolsync/core/core/reference";
+import type { MatchSuggestion } from "@spoolsync/core/core/match";
 import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
+import { mergeRecordEdits, referenceEditsFromAccepted } from "@spoolsync/core/core/reference";
 
 import {
   loadMatchDecisions,

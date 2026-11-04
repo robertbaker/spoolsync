@@ -6,8 +6,8 @@ import { local, read, write } from "./browser/storage/access";
 /**
  * "Since your last visit": what changed per spool between the previous file loaded for a service
  * and the one loaded now. The comparison itself is made when a file loads (see `LoadInsights`);
- * this module keeps a compact copy of the result so the panel still has it after a page reload,
- * and turns it into text. Like the snapshots it comes from, it holds ids, names and weights only.
+ * this module keeps a compact copy of the result so the panel still has it after a page reload, and
+ * turns it into text. Like the snapshots it comes from, it holds ids, names and weights only.
  */
 
 export const SINCE_VISIT_KEY = "spoolsync:since-visit";
@@ -39,7 +39,8 @@ export interface VisitSummary {
 }
 
 const capped = <T>(items: readonly T[]): T[] => items.slice(0, MAX_LISTED);
-const sum = (changes: readonly WeightChange[]): number => changes.reduce((total, change) => total + change.delta, 0);
+const sum = (changes: readonly WeightChange[]): number =>
+  changes.reduce((total, change) => total + change.delta, 0);
 
 /** The summary for one comparison, or `null` when the file had nothing earlier to compare with. */
 export function summarizeVisit(entry: {
@@ -76,14 +77,16 @@ const isCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 1_000_000;
 const isGrams = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 1e7;
-const isIso = (value: unknown): value is string => typeof value === "string" && !Number.isNaN(Date.parse(value));
+const isIso = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
 
 function cleanNamed(raw: unknown): Named[] {
   if (!Array.isArray(raw)) return [];
   const result: Named[] = [];
   for (const item of raw) {
     const entry = item as Partial<Named> | null;
-    if (!entry || typeof entry.id !== "string" || !entry.id || entry.id.length > MAX_ID_LENGTH) continue;
+    if (!entry || typeof entry.id !== "string" || !entry.id || entry.id.length > MAX_ID_LENGTH)
+      continue;
     const name = typeof entry.name === "string" ? entry.name.slice(0, MAX_NAME_LENGTH) : null;
     result.push({ id: entry.id, name });
     if (result.length >= MAX_LISTED) break;
@@ -124,7 +127,8 @@ export function sanitizeVisits(raw: unknown): Partial<Record<SourceId, VisitSumm
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return result;
   for (const source of SOURCE_IDS) {
     const entry = (raw as Record<string, unknown>)[source] as Partial<VisitSummary> | undefined;
-    if (!entry || typeof entry !== "object" || !isIso(entry.since) || !isIso(entry.loadedAt)) continue;
+    if (!entry || typeof entry !== "object" || !isIso(entry.since) || !isIso(entry.loadedAt))
+      continue;
     const counts = entry.counts as Partial<VisitSummary["counts"]> | undefined;
     if (
       !counts ||
@@ -144,7 +148,12 @@ export function sanitizeVisits(raw: unknown): Partial<Record<SourceId, VisitSumm
       removed: cleanNamed(entry.removed),
       drops: cleanChanges(entry.drops),
       gains: cleanChanges(entry.gains),
-      counts: { added: counts.added, removed: counts.removed, drops: counts.drops, gains: counts.gains },
+      counts: {
+        added: counts.added,
+        removed: counts.removed,
+        drops: counts.drops,
+        gains: counts.gains,
+      },
       unchanged: entry.unchanged,
       netGrams: entry.netGrams,
     };
@@ -187,12 +196,18 @@ export function visitTotals(visits: readonly VisitSummary[]): {
     refilled += sum(visit.gains);
     changed += visit.counts.drops + visit.counts.gains;
   }
-  return { usedGrams: Math.round(used), refilledGrams: Math.round(refilled), spoolsChanged: changed };
+  return {
+    usedGrams: Math.round(used),
+    refilledGrams: Math.round(refilled),
+    spoolsChanged: changed,
+  };
 }
 
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count} ${count === 1 ? one : many}`;
 
-const label = (item: Named): string => (item.name ? `${item.name} (ID ${item.id})` : `ID ${item.id}`);
+const label = (item: Named): string =>
+  item.name ? `${item.name} (ID ${item.id})` : `ID ${item.id}`;
 
 /** Plain text for the clipboard. `weight` formats grams in the visitor's unit. */
 export function visitText(
@@ -209,11 +224,15 @@ export function visitText(
       continue;
     }
     for (const drop of visit.drops)
-      lines.push(`- Used ${weight(-drop.delta)}: ${label(drop)} (${weight(drop.before)} to ${weight(drop.after)})`);
+      lines.push(
+        `- Used ${weight(-drop.delta)}: ${label(drop)} (${weight(drop.before)} to ${weight(drop.after)})`,
+      );
     if (visit.counts.drops > visit.drops.length)
       lines.push(`- ...and ${visit.counts.drops - visit.drops.length} more with less filament`);
     for (const gain of visit.gains)
-      lines.push(`- Gained ${weight(gain.delta)}: ${label(gain)} (${weight(gain.before)} to ${weight(gain.after)})`);
+      lines.push(
+        `- Gained ${weight(gain.delta)}: ${label(gain)} (${weight(gain.before)} to ${weight(gain.after)})`,
+      );
     if (visit.counts.gains > visit.gains.length)
       lines.push(`- ...and ${visit.counts.gains - visit.gains.length} more with more filament`);
     for (const item of visit.added) lines.push(`- Added: ${label(item)}`);
@@ -239,5 +258,9 @@ export function readVisits(): Partial<Record<SourceId, VisitSummary>> {
 /** Keeps exactly these summaries (an empty list removes the entry). Returns false when it fails. */
 export function writeVisits(visits: readonly VisitSummary[]): boolean {
   if (!visits.length) return write(local, SINCE_VISIT_KEY, null);
-  return write(local, SINCE_VISIT_KEY, JSON.stringify(Object.fromEntries(visits.map((visit) => [visit.source, visit]))));
+  return write(
+    local,
+    SINCE_VISIT_KEY,
+    JSON.stringify(Object.fromEntries(visits.map((visit) => [visit.source, visit]))),
+  );
 }

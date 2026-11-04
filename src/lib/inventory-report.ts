@@ -61,13 +61,12 @@ export interface ReportOptions {
   includeArchived?: boolean;
 }
 
-const clean = (value: string | null | undefined): string => (value ?? "").replace(/\s+/g, " ").trim();
+const clean = (value: string | null | undefined): string =>
+  (value ?? "").replace(/\s+/g, " ").trim();
 const round1 = (value: number): number => Math.round(value * 10) / 10;
 
 function title(spool: CommonSpool): string {
-  return (
-    [clean(spool.material), clean(spool.name)].filter(Boolean).join(" ") || spool.sourceId
-  );
+  return [clean(spool.material), clean(spool.name)].filter(Boolean).join(" ") || spool.sourceId;
 }
 
 function addTo(rows: Map<string, ReportRow>, label: string, spool: CommonSpool): void {
@@ -76,7 +75,8 @@ function addTo(rows: Map<string, ReportRow>, label: string, spool: CommonSpool):
   row.spools += 1;
   row.remainingGrams += spool.remainingWeight ?? 0;
   row.fullGrams += spool.initialWeight ?? 0;
-  if (spool.price !== null && Number.isFinite(spool.price)) row.spend = (row.spend ?? 0) + spool.price;
+  if (spool.price !== null && Number.isFinite(spool.price))
+    row.spend = (row.spend ?? 0) + spool.price;
   rows.set(id, row);
 }
 
@@ -156,7 +156,9 @@ export function buildInventoryReport(
       });
     }
   }
-  low.sort((a, b) => a.sort - b.sort || a.brand.localeCompare(b.brand) || a.label.localeCompare(b.label));
+  low.sort(
+    (a, b) => a.sort - b.sort || a.brand.localeCompare(b.brand) || a.label.localeCompare(b.label),
+  );
 
   return {
     generatedAt: now.toISOString(),
@@ -191,10 +193,14 @@ export function reportFilename(report: InventoryReport, extension: "md" | "csv" 
   return `spoolsync-inventory-report-${reportDate(report)}.${extension}`;
 }
 
-const plural = (count: number, one: string, many = `${one}s`) => `${count.toLocaleString()} ${count === 1 ? one : many}`;
+const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count.toLocaleString()} ${count === 1 ? one : many}`;
 
 /** Summary lines shared by the Markdown and on-screen versions. */
-export function summaryLines(report: InventoryReport, format: ReportFormat): Array<[string, string]> {
+export function summaryLines(
+  report: InventoryReport,
+  format: ReportFormat,
+): Array<[string, string]> {
   const lines: Array<[string, string]> = [
     ["Spools", report.spools.toLocaleString()],
     ["Filament left", format.weight(report.remainingGrams)],
@@ -207,7 +213,8 @@ export function summaryLines(report: InventoryReport, format: ReportFormat): Arr
       "Spent",
       `${format.money(report.spend)} on ${plural(report.pricedSpools, "priced spool")}`,
     ]);
-  if (report.valueRemaining !== null) lines.push(["Value still on spools", format.money(report.valueRemaining)]);
+  if (report.valueRemaining !== null)
+    lines.push(["Value still on spools", format.money(report.valueRemaining)]);
   return lines;
 }
 
@@ -215,7 +222,9 @@ export function summaryLines(report: InventoryReport, format: ReportFormat): Arr
 export function reportNotes(report: InventoryReport): string[] {
   const notes: string[] = [];
   if (report.unknownWeights)
-    notes.push(`${plural(report.unknownWeights, "spool")} without a recorded remaining weight count as 0 in the totals.`);
+    notes.push(
+      `${plural(report.unknownWeights, "spool")} without a recorded remaining weight count as 0 in the totals.`,
+    );
   if (report.archived)
     notes.push(
       report.includesArchived
@@ -223,11 +232,17 @@ export function reportNotes(report: InventoryReport): string[] {
         : `${plural(report.archived, "archived spool")} left out.`,
     );
   if (report.spend !== null) notes.push("Prices are as recorded, with no currency conversion.");
-  notes.push(`Linked spools are counted once across ${report.services.join(", ") || "no services"}.`);
+  notes.push(
+    `Linked spools are counted once across ${report.services.join(", ") || "no services"}.`,
+  );
   return notes;
 }
 
-const mdCell = (text: string): string => text.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+const mdCell = (text: string): string =>
+  text
+    .replace(/\\/g, "\\\\")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
 
 function mdTable(headers: string[], rows: string[][]): string[] {
   return [
@@ -307,7 +322,17 @@ const csvWeight = (grams: number | null, unit: WeightUnit): string =>
  */
 export function reportCsv(report: InventoryReport, format: ReportFormat): string {
   const unit = format.unit;
-  const header = ["section", "name", "brand", "spools", `left_${unit}`, `full_${unit}`, "percent_left", "spent", "location"];
+  const header = [
+    "section",
+    "name",
+    "brand",
+    "spools",
+    `left_${unit}`,
+    `full_${unit}`,
+    "percent_left",
+    "spent",
+    "location",
+  ];
   const rows: Array<Array<string | number>> = [
     [
       "total",

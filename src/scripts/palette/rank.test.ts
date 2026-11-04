@@ -31,7 +31,9 @@ test("prefix and word-start matches beat matches inside a word", () => {
 });
 
 test("consecutive letters beat scattered ones", () => {
-  expect(fuzzyScore("pla", "PLA basic")!).toBeGreaterThan(fuzzyScore("pla", "Polymaker Lite Aqua")!);
+  expect(fuzzyScore("pla", "PLA basic")!).toBeGreaterThan(
+    fuzzyScore("pla", "Polymaker Lite Aqua")!,
+  );
 });
 
 test("ranks title matches ahead of subtitle and keyword matches", () => {
@@ -87,8 +89,14 @@ test("results list commands first, caps spools, and hides spools without a query
 });
 
 test("aliases find an action by another name and rank like a title", () => {
-  const theme = { ...item("theme", "Toggle light or dark theme"), aliases: ["night mode", "appearance"] };
-  const units = { ...item("units", "Show weights in ounces", undefined, "mode"), aliases: ["imperial"] };
+  const theme = {
+    ...item("theme", "Toggle light or dark theme"),
+    aliases: ["night mode", "appearance"],
+  };
+  const units = {
+    ...item("units", "Show weights in ounces", undefined, "mode"),
+    aliases: ["imperial"],
+  };
   const items = [units, theme];
   expect(rankItems(items, "imperial").map((entry) => entry.id)).toEqual(["units"]);
   expect(rankItems(items, "night").map((entry) => entry.id)).toEqual(["theme"]);

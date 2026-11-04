@@ -1,3 +1,4 @@
+import { t, type MessageKey } from "~/lib/i18n";
 import type { SourceTable } from "~/lib/import-mapper/convert";
 import {
   MAP_FIELDS,
@@ -18,7 +19,6 @@ import {
   readSavedMapping,
   saveColumnMapping,
 } from "~/lib/import-mapper/store";
-import { t, type MessageKey } from "~/lib/i18n";
 
 import { h, showToast } from "../dom";
 import { download } from "../sync/presentation";
@@ -69,9 +69,8 @@ export function convertedFilename(sourceName: string): string {
  */
 export async function openColumnMapper(file: File, opener: HTMLElement | null): Promise<void> {
   // Loaded on demand: the parser and converter are only needed when a file is not recognised.
-  const { parseSourceTable, convertToSpoolmanCsv, sampleValues } = await import(
-    "~/lib/import-mapper/convert"
-  );
+  const { parseSourceTable, convertToSpoolmanCsv, sampleValues } =
+    await import("~/lib/import-mapper/convert");
   const { dryRunConversion } = await import("~/lib/import-mapper/report");
   let table: SourceTable;
   try {
@@ -90,13 +89,27 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
   const saved = readSavedMapping(signature);
   const savedMapping = saved ? mappingForHeaders(saved.mapping, table.headers) : {};
   const restored = Object.keys(savedMapping).length > 0;
-  const mapping: ColumnMapping = restored ? savedMapping : suggestMapping(table.headers, table.rows);
+  const mapping: ColumnMapping = restored
+    ? savedMapping
+    : suggestMapping(table.headers, table.rows);
   let unit: MapWeightUnit = saved?.unit ?? "g";
 
-  const title = h("h2", { id: "mapper-title", class: "text-xl font-bold tracking-tight", tabindex: "-1" }, t("map.title"));
-  const messages = h("div", { id: "mapper-messages", class: "mt-3 text-sm", "aria-live": "polite" });
+  const title = h(
+    "h2",
+    { id: "mapper-title", class: "text-xl font-bold tracking-tight", tabindex: "-1" },
+    t("map.title"),
+  );
+  const messages = h("div", {
+    id: "mapper-messages",
+    class: "mt-3 text-sm",
+    "aria-live": "polite",
+  });
   const dry = h("div", { id: "mapper-dry-run", class: "mt-3", "aria-live": "polite" });
-  const downloadButton = h("button", { type: "button", class: PRIMARY, id: "mapper-download" }, t("map.download"));
+  const downloadButton = h(
+    "button",
+    { type: "button", class: PRIMARY, id: "mapper-download" },
+    t("map.download"),
+  );
   const cancel = h("button", { type: "button", class: BUTTON }, t("map.cancel"));
   const remember = h("input", { type: "checkbox", id: "mapper-remember", class: "size-4" });
   remember.checked = true;
@@ -128,7 +141,9 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
     return h(
       "tr",
       { class: "border-t align-top" },
-      h("th", { scope: "row", class: "py-2 pr-3 text-left font-medium break-words" },
+      h(
+        "th",
+        { scope: "row", class: "py-2 pr-3 text-left font-medium break-words" },
         h("label", { for: `mapper-field-${index}` }, header),
       ),
       h("td", { class: "mapper-sample py-2 pr-3" }, samples.length ? samples.join(" · ") : "—"),
@@ -164,7 +179,11 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
       h(
         "p",
         { class: "mt-2 text-sm font-medium" },
-        t("map.fileInfo", { file: file.name, rows: table.rows.length, columns: table.headers.length }),
+        t("map.fileInfo", {
+          file: file.name,
+          rows: table.rows.length,
+          columns: table.headers.length,
+        }),
       ),
       h(
         "p",
@@ -201,7 +220,12 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
           t("map.unit"),
           unitSelect,
         ),
-        h("label", { class: "flex items-center gap-2 text-sm", for: "mapper-remember" }, remember, t("map.remember")),
+        h(
+          "label",
+          { class: "flex items-center gap-2 text-sm", for: "mapper-remember" },
+          remember,
+          t("map.remember"),
+        ),
       ),
       messages,
       dry,
@@ -217,13 +241,21 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
       ...(problems.length
         ? [
             h("p", { class: "font-semibold text-error" }, t("map.problems")),
-            h("ul", { class: "list-disc pl-5 text-error" }, ...problems.map((problem) => h("li", {}, describeProblem(problem)))),
+            h(
+              "ul",
+              { class: "list-disc pl-5 text-error" },
+              ...problems.map((problem) => h("li", {}, describeProblem(problem))),
+            ),
           ]
         : []),
       ...(notes.length
         ? [
             h("p", { class: "mt-2 font-semibold" }, t("map.warnings")),
-            h("ul", { class: "list-disc pl-5 text-muted-foreground" }, ...notes.map((note) => h("li", {}, note))),
+            h(
+              "ul",
+              { class: "list-disc pl-5 text-muted-foreground" },
+              ...notes.map((note) => h("li", {}, note)),
+            ),
           ]
         : []),
     );
@@ -234,7 +266,9 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
     const check = validateMapping(mapping, table.headers);
     renderMessages(
       check.problems,
-      check.notes.map((note) => t(note === "no-weight" ? "map.warn.noWeight" : "map.warn.bothWeights")),
+      check.notes.map((note) =>
+        t(note === "no-weight" ? "map.warn.noWeight" : "map.warn.bothWeights"),
+      ),
     );
     if (check.problems.length) {
       dry.replaceChildren();
@@ -254,7 +288,11 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
       downloadButton.disabled = conversion.spoolCount === 0;
     } catch (error) {
       dry.replaceChildren(
-        h("p", { class: "text-sm text-error" }, t("map.readError", { message: error instanceof Error ? error.message : String(error) })),
+        h(
+          "p",
+          { class: "text-sm text-error" },
+          t("map.readError", { message: error instanceof Error ? error.message : String(error) }),
+        ),
       );
       downloadButton.disabled = true;
     }

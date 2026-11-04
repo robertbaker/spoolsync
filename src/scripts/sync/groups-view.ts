@@ -88,7 +88,8 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
             "label",
             {
               for: selectId,
-              class: "touch-target mb-1 flex w-fit cursor-pointer items-center gap-2 text-xs text-muted-foreground",
+              class:
+                "touch-target mb-1 flex w-fit cursor-pointer items-center gap-2 text-xs text-muted-foreground",
             },
             select,
             "Select for bulk edit",

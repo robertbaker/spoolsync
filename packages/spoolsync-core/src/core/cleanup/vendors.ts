@@ -4,8 +4,8 @@ import type { VendorAlias } from "./types";
 /**
  * Canonical vendor names and the spellings people use for them. Matching ignores case, accents,
  * punctuation and spacing, and also ignores a trailing legal suffix (`Inc`, `GmbH`, `Co., Ltd`), so
- * each entry only needs the spellings that differ in letters. Extend it with `vendorAliases` in
- * the cleanup options; those entries are checked last and win over these.
+ * each entry only needs the spellings that differ in letters. Extend it with `vendorAliases` in the
+ * cleanup options; those entries are checked last and win over these.
  */
 export const VENDOR_ALIASES: readonly VendorAlias[] = [
   { canonical: "Prusament", aliases: ["Prusa Polymers", "Prusa Filament"] },
@@ -75,8 +75,8 @@ const LEGAL_SUFFIXES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The comparison key for a vendor: accents, case, punctuation and spacing gone, and trailing
- * legal suffixes dropped (at least one word always stays).
+ * The comparison key for a vendor: accents, case, punctuation and spacing gone, and trailing legal
+ * suffixes dropped (at least one word always stays).
  */
 export function vendorKey(text: string): string {
   const words = text

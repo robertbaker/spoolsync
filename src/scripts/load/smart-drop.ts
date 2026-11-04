@@ -10,8 +10,8 @@ import { t } from "~/lib/i18n";
 
 import { h } from "../dom";
 import { readInventoryFile } from "./file-source";
-import { importReportView } from "./import-report-view";
 import { isMappableFile, openColumnMapper } from "./import-mapper";
+import { importReportView } from "./import-report-view";
 import { plural } from "./presentation";
 import type { LoadContext } from "./state";
 
@@ -153,9 +153,7 @@ export function wireSmartDrop(context: LoadContext): void {
             t("map.open"),
           );
           map.addEventListener("click", () => void openColumnMapper(file, map));
-          row.replaceWith(
-            line("error", `${t("map.unrecognised", { file: file.name })} `, map),
-          );
+          row.replaceWith(line("error", `${t("map.unrecognised", { file: file.name })} `, map));
           continue;
         }
         row.replaceWith(

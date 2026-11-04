@@ -5,8 +5,8 @@ import { isTypingTarget } from "../shortcuts";
 import { button } from "./presentation";
 import { pairAnnouncement, resultAnnouncement, ReviewQueue, suggestionId } from "./review-queue";
 import type { SyncSession } from "./session";
-import { attachSwipe } from "./swipe";
 import { describePair, suggestionCard, suggestionRecords } from "./suggestion-card";
+import { attachSwipe } from "./swipe";
 
 export interface ReviewDependencies {
   state: SyncSession;

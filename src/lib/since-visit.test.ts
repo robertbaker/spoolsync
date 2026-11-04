@@ -53,10 +53,20 @@ test("summarizes what was used, refilled, added and removed", () => {
 
 test("nothing to compare with gives no summary, and identical files give no changes", () => {
   expect(
-    summarizeVisit({ source: "spoolman", loadedAt: "x", since: null, changes: diffFingerprints(before, after) }),
+    summarizeVisit({
+      source: "spoolman",
+      loadedAt: "x",
+      since: null,
+      changes: diffFingerprints(before, after),
+    }),
   ).toBeNull();
   expect(
-    summarizeVisit({ source: "spoolman", loadedAt: "x", since: "2026-10-01T00:00:00Z", changes: null }),
+    summarizeVisit({
+      source: "spoolman",
+      loadedAt: "x",
+      since: "2026-10-01T00:00:00Z",
+      changes: null,
+    }),
   ).toBeNull();
   const same = summarizeVisit({
     source: "spoolman",
@@ -68,7 +78,10 @@ test("nothing to compare with gives no summary, and identical files give no chan
 });
 
 test("lists are capped but the counts stay true", () => {
-  const many = Array.from({ length: MAX_LISTED + 10 }, (_, index) => [`id${index}`, 100, `S${index}`] as const);
+  const many = Array.from(
+    { length: MAX_LISTED + 10 },
+    (_, index) => [`id${index}`, 100, `S${index}`] as const,
+  );
   const summary = summarizeVisit({
     source: "spoolio",
     loadedAt: "x",
@@ -88,7 +101,11 @@ test("a summary round-trips through storage and damaged entries are dropped", ()
     SINCE_VISIT_KEY,
     JSON.stringify({
       spoolman: { ...summary, since: "not a date" },
-      spoolio: { ...summary, source: "spoolio", counts: { added: -1, removed: 0, drops: 0, gains: 0 } },
+      spoolio: {
+        ...summary,
+        source: "spoolio",
+        counts: { added: -1, removed: 0, drops: 0, gains: 0 },
+      },
       bogus: summary,
     }),
   );
@@ -104,7 +121,10 @@ test("sanitizing trims names and ignores junk lists", () => {
     spoolman: {
       ...visit(),
       added: [{ id: "a", name: "x".repeat(500) }, { id: "", name: "bad" }, 5],
-      drops: [{ id: "1", name: null, before: 1, after: 0, delta: -1 }, { id: "2", before: "x" }],
+      drops: [
+        { id: "1", name: null, before: 1, after: 0, delta: -1 },
+        { id: "2", before: "x" },
+      ],
     },
   };
   const clean = sanitizeVisits(raw).spoolman!;
@@ -118,7 +138,9 @@ test("stored summaries show only while their inventory is still the one loaded",
   const loaded = new Map([["spoolman" as const, "2026-11-03T10:00:00.000Z"]]);
   expect(currentVisits(stored, [], loaded)).toHaveLength(1);
   // An API fetch replaced the file, so the old comparison no longer describes what is on screen.
-  expect(currentVisits(stored, [], new Map([["spoolman" as const, "2026-11-04T09:00:00.000Z"]]))).toEqual([]);
+  expect(
+    currentVisits(stored, [], new Map([["spoolman" as const, "2026-11-04T09:00:00.000Z"]])),
+  ).toEqual([]);
   expect(currentVisits(stored, [], new Map())).toEqual([]);
   const fresh = { ...visit(), loadedAt: "2026-11-04T09:00:00.000Z" };
   expect(

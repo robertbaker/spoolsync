@@ -37,7 +37,11 @@ test("a spool linked by id shows every service's record, the opened one first", 
 });
 
 test("rows list every field and flag the ones the services disagree about", () => {
-  const a = makeSpool("spoolman", "12", { remainingWeight: 300, location: null, colors: ["FF0000"] });
+  const a = makeSpool("spoolman", "12", {
+    remainingWeight: 300,
+    location: null,
+    colors: ["FF0000"],
+  });
   const b = makeSpool("spoolio", "abc", {
     crossIds: { spoolmanId: 12 },
     remainingWeight: 250,
@@ -46,7 +50,11 @@ test("rows list every field and flag the ones the services disagree about", () =
   });
   const rows = detailRows([a, b]);
   const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
-  expect(byId["remainingWeight"]).toMatchObject({ kind: "weight", values: [300, 250], differs: true });
+  expect(byId["remainingWeight"]).toMatchObject({
+    kind: "weight",
+    values: [300, 250],
+    differs: true,
+  });
   // A value in one service and none in the other is a difference worth showing.
   expect(byId["location"]).toMatchObject({ values: [null, "Shelf 2"], differs: true });
   expect(byId["vendor"]!.differs).toBe(false);
@@ -69,7 +77,9 @@ test("an empty value on both sides does not count as a difference", () => {
 test("duplicates in the same service are offered as candidates for 'different'", () => {
   const first = makeSpool("spoolman", "1", { remainingWeight: 500, purchasedOn: "2025-01-01" });
   const second = makeSpool("spoolman", "2", { remainingWeight: 500, purchasedOn: "2025-01-01" });
-  const duplicates = findDuplicateSpools([{ source: "spoolman", spools: [first, second], warnings: [], loadedAt: "2026-01-01T00:00:00Z" }]);
+  const duplicates = findDuplicateSpools([
+    { source: "spoolman", spools: [first, second], warnings: [], loadedAt: "2026-01-01T00:00:00Z" },
+  ]);
   expect(duplicates.length).toBe(1);
   const detail = findSpoolDetail([first, second], "spoolman:1", none, duplicates)!;
   expect(detail.candidates).toHaveLength(1);
@@ -81,12 +91,24 @@ test("duplicates in the same service are offered as candidates for 'different'",
 });
 
 test("a confirmed link can be taken back from the spool's own drawer", () => {
-  const a = makeSpool("spoolman", "1", { name: "Alpha", vendor: "A", material: "PLA", colors: ["010203"] });
-  const b = makeSpool("spoolio", "2", { name: "Beta", vendor: "B", material: "PETG", colors: ["FFFFFF"] });
+  const a = makeSpool("spoolman", "1", {
+    name: "Alpha",
+    vendor: "A",
+    material: "PLA",
+    colors: ["010203"],
+  });
+  const b = makeSpool("spoolio", "2", {
+    name: "Beta",
+    vendor: "B",
+    material: "PETG",
+    colors: ["FFFFFF"],
+  });
   const decisions = { confirmed: [pairKey("spoolman:1", "spoolio:2")], rejected: [] };
   const detail = findSpoolDetail([a, b], "spoolman:1", decisions)!;
   expect(detail.columns.map(spoolKey)).toEqual(["spoolman:1", "spoolio:2"]);
-  expect(detail.candidates).toMatchObject([{ reason: "confirmed", pair: ["spoolman:1", "spoolio:2"] }]);
+  expect(detail.candidates).toMatchObject([
+    { reason: "confirmed", pair: ["spoolman:1", "spoolio:2"] },
+  ]);
 });
 
 test("marking two records as different stores the pair once and drops a confirmation", () => {
@@ -113,7 +135,11 @@ test("linked ids are labelled and ordered, ignoring blanks", () => {
 
 test("history combines the latest weight change with the service's last few totals", () => {
   const spool = makeSpool("spoolman", "12");
-  const point = (n: number) => ({ at: `2026-01-0${n}T00:00:00.000Z`, totalGrams: n * 100, spoolCount: n });
+  const point = (n: number) => ({
+    at: `2026-01-0${n}T00:00:00.000Z`,
+    totalGrams: n * 100,
+    spoolCount: n,
+  });
   const change = { id: "12", name: "x", before: 500, after: 400, delta: -100 };
   const history = { spoolman: [1, 2, 3, 4, 5, 6, 7].map(point), spoolio: [point(1)] };
   const result = spoolHistory(spool, new Map([["spoolman:12", change]]), history);
@@ -124,7 +150,11 @@ test("history combines the latest weight change with the service's last few tota
 });
 
 test("reports the match group and whether a changed weight could be staged for it", () => {
-  const detail = findSpoolDetail([makeSpool("spoolman", "12", { remainingWeight: 300 })], "spoolman:12", none)!;
+  const detail = findSpoolDetail(
+    [makeSpool("spoolman", "12", { remainingWeight: 300 })],
+    "spoolman:12",
+    none,
+  )!;
   expect(detail.groupId).toBeTruthy();
   expect(detail.canStageWeight).toBe(true);
 });

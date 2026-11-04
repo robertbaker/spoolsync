@@ -54,10 +54,10 @@ const EMPTY: CleanupResult = { proposals: [], warnings: [], rules: [], spoolsChe
 
 /**
  * Holds the state of the "Clean up data" panel: which rules are on, what they propose for the
- * loaded inventories, and which proposals the person accepted or rejected. It owns no DOM and
- * never changes an inventory; accepted proposals are saved for the Sync page to plan. Accepted
- * proposals are remembered with the value they were made for, so a proposal that no longer
- * matches the loaded data is dropped instead of being applied to something it was not made for.
+ * loaded inventories, and which proposals the person accepted or rejected. It owns no DOM and never
+ * changes an inventory; accepted proposals are saved for the Sync page to plan. Accepted proposals
+ * are remembered with the value they were made for, so a proposal that no longer matches the loaded
+ * data is dropped instead of being applied to something it was not made for.
  */
 export class CleanupController {
   settings: CleanupSettings;
@@ -222,11 +222,20 @@ export class CleanupController {
 
   private choose(ids: Iterable<string>, status: ProposalStatus, label: string): number {
     const known = new Map(this.result.proposals.map((proposal) => [proposal.id, proposal]));
-    const wanted = [...expandBundles(this.result.proposals, [...ids].filter((id) => known.has(id)))]
+    const wanted = [
+      ...expandBundles(
+        this.result.proposals,
+        [...ids].filter((id) => known.has(id)),
+      ),
+    ]
       // A change the service cannot take is never accepted; rejecting it is allowed.
       .filter((id) => status !== "accepted" || known.get(id)!.applicable);
     const changed = wanted.filter((id) => {
-      const current = this.accepted.has(id) ? "accepted" : this.rejected.has(id) ? "rejected" : "pending";
+      const current = this.accepted.has(id)
+        ? "accepted"
+        : this.rejected.has(id)
+          ? "rejected"
+          : "pending";
       return current !== status;
     });
     if (!changed.length) return 0;

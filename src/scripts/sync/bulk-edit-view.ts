@@ -136,7 +136,11 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
       status.textContent = bulkEditResult(0, 0);
       return;
     }
-    const changed = state.applyBulkEdit(ids, result.patch, `bulk edit: ${describeBulkEdit(result.patch)}`);
+    const changed = state.applyBulkEdit(
+      ids,
+      result.patch,
+      `bulk edit: ${describeBulkEdit(result.patch)}`,
+    );
     const unreachable = state.match.groups.filter(
       (group) => state.selected().has(group.id) && !editReachesGroup(group, result.patch),
     ).length;
@@ -165,7 +169,11 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
   const panel = h(
     "details",
     { id: "bulk-edit", class: "mt-4 rounded-xl border bg-card" },
-    h("summary", { class: "touch-target cursor-pointer px-4 py-2 text-sm font-medium" }, "Bulk edit"),
+    h(
+      "summary",
+      { class: "touch-target cursor-pointer px-4 py-2 text-sm font-medium" },
+      "Bulk edit",
+    ),
     h(
       "div",
       { class: "grid gap-4 border-t p-4" },
@@ -174,20 +182,37 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
         { class: "text-sm text-muted-foreground" },
         "Tick spools below, then set a location, a note, or a tag on all of them. Leave a box empty to leave that field alone. Edits appear in the plan preview, where you can exclude or clear them.",
       ),
-      h("div", { class: "flex flex-wrap items-center gap-2" }, selectShown, selectAll, clearSelection, count),
+      h(
+        "div",
+        { class: "flex flex-wrap items-center gap-2" },
+        selectShown,
+        selectAll,
+        clearSelection,
+        count,
+      ),
       h(
         "div",
         { class: "grid gap-4 sm:grid-cols-3" },
         h(
           "div",
           { class: "grid gap-2" },
-          field("bulk-edit-location", "Location", location, supportText("location", state.loaded.keys())),
+          field(
+            "bulk-edit-location",
+            "Location",
+            location,
+            supportText("location", state.loaded.keys()),
+          ),
           clearLocation.element,
         ),
         h(
           "div",
           { class: "grid gap-2" },
-          field("bulk-edit-note", "Note (replaces the existing note)", note, supportText("note", state.loaded.keys())),
+          field(
+            "bulk-edit-note",
+            "Note (replaces the existing note)",
+            note,
+            supportText("note", state.loaded.keys()),
+          ),
           clearNote.element,
         ),
         field(

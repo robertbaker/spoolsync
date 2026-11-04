@@ -47,8 +47,8 @@ const insightLabel = (id: string): string =>
         : ((HEALTH_LABELS as Record<string, string>)[id] ?? id);
 
 /**
- * Saved views for the inventory table: pick, save, update, rename, and delete named combinations
- * of filters, sort and grouping, plus the material and weight-range filters that belong to a view.
+ * Saved views for the inventory table: pick, save, update, rename, and delete named combinations of
+ * filters, sort and grouping, plus the material and weight-range filters that belong to a view.
  */
 export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () => boolean) {
   let views: SavedView[] = readViews();
@@ -68,7 +68,11 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   const rename = h("button", { type: "button", class: BUTTON }, "Rename");
   const remove = h("button", { type: "button", class: BUTTON }, "Delete");
   const clear = h("button", { type: "button", class: BUTTON }, "Clear filters");
-  const share = h("button", { type: "button", class: BUTTON, "data-action": "share-view" }, "Copy link");
+  const share = h(
+    "button",
+    { type: "button", class: BUTTON, "data-action": "share-view" },
+    "Copy link",
+  );
   share.title = "Copy a link that opens the Load page with these filters";
   const material = h("input", {
     id: "view-material",
@@ -114,7 +118,10 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   /** Writes the list; a blocked or full browser store means the change lasts for this visit only. */
   function persist(): void {
     if (!saveViews(views)) {
-      showToast("Could not save views in this browser; they will last until you leave the page", "warning");
+      showToast(
+        "Could not save views in this browser; they will last until you leave the page",
+        "warning",
+      );
     }
   }
 
@@ -207,11 +214,16 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   });
   update.addEventListener("click", () => {
     const view = selected();
-    if (view) finish(updateView(views, view.id, table.getViewSettings()), `Updated "${view.name}".`);
+    if (view)
+      finish(updateView(views, view.id, table.getViewSettings()), `Updated "${view.name}".`);
   });
   rename.addEventListener("click", () => {
     const view = selected();
-    if (view) finish(renameView(views, view.id, nameInput.value), `Renamed to "${nameInput.value.trim()}".`);
+    if (view)
+      finish(
+        renameView(views, view.id, nameInput.value),
+        `Renamed to "${nameInput.value.trim()}".`,
+      );
   });
   remove.addEventListener("click", () => {
     const view = selected();
@@ -250,7 +262,11 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     sharedView = decodeViewParam(params.get(VIEW_PARAM));
     params.delete(VIEW_PARAM);
     const query = params.toString();
-    history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+    history.replaceState(
+      null,
+      "",
+      `${location.pathname}${query ? `?${query}` : ""}${location.hash}`,
+    );
     if (!sharedView) showToast("That view link is damaged, so no filters were applied.", "warning");
   }
   function applyShared(): void {
@@ -267,7 +283,8 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
 
   // [ and ] step through the saved views (with "current filters" as one stop), outside text fields.
   document.addEventListener("keydown", (event) => {
-    if ((event.key !== "[" && event.key !== "]") || event.ctrlKey || event.metaKey || event.altKey) return;
+    if ((event.key !== "[" && event.key !== "]") || event.ctrlKey || event.metaKey || event.altKey)
+      return;
     if (event.defaultPrevented || isTypingTarget(document.activeElement)) return;
     if (root.hidden || !views.length || document.querySelector("dialog[open]")) return;
     event.preventDefault();
@@ -281,7 +298,12 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   });
 
   const field = (label: string, control: HTMLElement) =>
-    h("label", { class: "flex items-center gap-1.5 text-xs text-muted-foreground" }, label, control);
+    h(
+      "label",
+      { class: "flex items-center gap-1.5 text-xs text-muted-foreground" },
+      label,
+      control,
+    );
 
   root.replaceChildren(
     h(

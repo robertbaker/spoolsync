@@ -70,9 +70,13 @@ export function trendCoordinates(
   const usableWidth = width - padding * 2;
   const usableHeight = height - padding * 2;
   return scores.map((score, index) => {
-    const x = scores.length === 1 ? width / 2 : padding + (usableWidth * index) / (scores.length - 1);
+    const x =
+      scores.length === 1 ? width / 2 : padding + (usableWidth * index) / (scores.length - 1);
     const clamped = Math.min(100, Math.max(0, score));
-    return [Number(x.toFixed(2)), Number((padding + usableHeight * (1 - clamped / 100)).toFixed(2))];
+    return [
+      Number(x.toFixed(2)),
+      Number((padding + usableHeight * (1 - clamped / 100)).toFixed(2)),
+    ];
   });
 }
 
@@ -90,7 +94,10 @@ function openCleanupPanel(): void {
 const prefersReducedMotion = () =>
   typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function totalKnownGrams(results: ReadonlyMap<SourceId, LoadResult>): { grams: number; spools: number } {
+function totalKnownGrams(results: ReadonlyMap<SourceId, LoadResult>): {
+  grams: number;
+  spools: number;
+} {
   let grams = 0;
   let spools = 0;
   for (const result of results.values())
@@ -232,9 +239,10 @@ export function wireHealthDashboard(root: HTMLElement, deps: HealthDashboardDeps
         const turningOn = deps.insights.activeFilter !== filter;
         deps.insights.setFilter(turningOn ? filter : null);
         if (turningOn)
-          document
-            .getElementById("loaded-table")
-            ?.scrollIntoView({ block: "start", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+          document.getElementById("loaded-table")?.scrollIntoView({
+            block: "start",
+            behavior: prefersReducedMotion() ? "auto" : "smooth",
+          });
       });
     }
     return h(
@@ -269,14 +277,22 @@ export function wireHealthDashboard(root: HTMLElement, deps: HealthDashboardDeps
     ].join("|");
     if (signature !== recordedSignature) {
       recordedSignature = signature;
-      points = history.record({ at: now().toISOString(), score: result.score, spools: result.spools });
+      points = history.record({
+        at: now().toISOString(),
+        score: result.score,
+        spools: result.spools,
+      });
     }
     points ??= history.read();
 
     const known = totalKnownGrams(deps.results);
     const grade = t(`health.grade.${result.grade}` as MessageKey);
     content.replaceChildren(
-      h("h2", { id: "health-dashboard-heading", class: "text-lg font-semibold" }, t("health.title")),
+      h(
+        "h2",
+        { id: "health-dashboard-heading", class: "text-lg font-semibold" },
+        t("health.title"),
+      ),
       meter(result.score, result.grade),
       h(
         "p",

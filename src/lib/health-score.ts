@@ -17,9 +17,9 @@ export const HEALTH_FACTOR_IDS: readonly HealthFactorId[] = [
 ];
 
 /**
- * Points each factor can cost when every spool has the problem. They add up to 100, so a
- * completely broken inventory scores 0. Impossible values weigh most because they make every
- * total and chart wrong; a missing location weighs least because many people never track one.
+ * Points each factor can cost when every spool has the problem. They add up to 100, so a completely
+ * broken inventory scores 0. Impossible values weigh most because they make every total and chart
+ * wrong; a missing location weighs least because many people never track one.
  */
 export const HEALTH_WEIGHTS: Record<HealthFactorId, number> = {
   "negative-weight": 10,

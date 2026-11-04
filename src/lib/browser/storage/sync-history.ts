@@ -38,7 +38,10 @@ const asCount = (value: unknown): number | null =>
 /** Error text is shortened and stripped of line breaks and control characters. */
 export function cleanErrorText(text: string): string {
   // eslint-disable-next-line no-control-regex
-  return text.replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, MAX_ERROR_LENGTH);
+  return text
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .trim()
+    .slice(0, MAX_ERROR_LENGTH);
 }
 
 /** One well-formed entry, or `null` for anything damaged or hand-edited into nonsense. */
@@ -126,10 +129,7 @@ export function formatHistoryTime(at: string): string {
 
 /** One line for an entry, shared by the list and the copied summary. */
 export function describeHistoryEntry(entry: SyncHistoryEntry): string {
-  const what = [
-    plural(entry.updates, "update"),
-    `${entry.creations} new`,
-  ].join(", ");
+  const what = [plural(entry.updates, "update"), `${entry.creations} new`].join(", ");
   const how = entry.via === "api" ? "applied through the API" : "downloaded as a file";
   const result =
     entry.via === "api"
@@ -166,7 +166,8 @@ export interface SyncHistoryFilter {
   query?: string;
 }
 
-export const hasFailed = (entry: SyncHistoryEntry): boolean => entry.failed > 0 || Boolean(entry.error);
+export const hasFailed = (entry: SyncHistoryEntry): boolean =>
+  entry.failed > 0 || Boolean(entry.error);
 
 /** The entries that pass every part of the filter, in their original order. */
 export function filterSyncHistory(
@@ -188,7 +189,10 @@ export function filterSyncHistory(
 export const SYNC_HISTORY_EXPORT_FORMAT = "spoolsync-sync-history";
 
 /** The entries as a JSON document: counts and short errors only, as stored. Newest last. */
-export function syncHistoryJson(history: readonly SyncHistoryEntry[], now: Date = new Date()): string {
+export function syncHistoryJson(
+  history: readonly SyncHistoryEntry[],
+  now: Date = new Date(),
+): string {
   return `${JSON.stringify({ format: SYNC_HISTORY_EXPORT_FORMAT, version: 1, exportedAt: now.toISOString(), entries: history }, null, 2)}\n`;
 }
 
