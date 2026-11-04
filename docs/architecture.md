@@ -342,6 +342,28 @@ responsibilities:
 - FilamentDB separates file loading, common-model mapping, record mutation, export assembly, and
   API loading. File exports and API writes share the record functions; writes accept only the
   list/save operations of `FilamentDbWriteClient`.
+- Filament DB (`filamentDbApp`, hyiger/filament-db, not the FilamentDB above) embeds spools in
+  filaments, so `map.ts` turns each spool into one record, resolving variant inheritance and
+  subtracting the empty-spool weight; `load.ts` reads a snapshot or filament list and drops trashed
+  rows; `client.ts` is CLI-only because the server rejects cross-origin browser calls. Every
+  compared field maps somewhere except the barcode (Filament DB has none) and a second bed
+  temperature. `records.ts` holds the one mapping from a field change to a filament patch (brand,
+  material, color, diameter, density, temperatures, net and empty-spool weights, cost per kg) and a
+  spool patch (remaining weight, purchase date, retired, location, label); `apply.ts` sends the
+  filament PUT first, because the spool's remaining weight is converted with the empty-spool weight,
+  and `export.ts` applies the same patches to a copy of the snapshot, keeping trash and other
+  collections. Filament fields are shared by all of a filament's spools, which the log says. A new spool is added to the single existing
+  variant or standalone filament that matches its brand, material, color and name (`target.ts`);
+  templates are never targets, since Filament DB refuses spools on them, and no match or several
+  matches fail that change rather than guess. Filaments themselves are never created. `csv.ts`
+  reads the per-spool CSV and `export-csv.ts` writes the changed spools back in the columns the
+  spool importer upserts by `spoolId` (spool fields only; filament-field changes are reported, as
+  are retired flags, which the importer ignores). The filament CSV/XLSX exports carry no spool data.
+- OpenPrintTag database (reference data, not an inventory service) is a git repository of YAML with
+  no bulk export. `core/reference/openprinttag.ts` joins its brands, materials and packages into one
+  flat record per package; `tools/openprinttag-to-reference.ts` builds that JSON from a local clone,
+  and the Load page reads it as a reference file with the "OpenPrintTag database" preset
+  (`OPENPRINTTAG_MAPPING`). It states no price or empty-spool weight, so neither is mapped.
 - FilaMeter separates document contracts, mapping, file loading, document mutation, and export
   assembly. The exporter retains backup metadata and non-filament documents while replacing only
   changed filament documents.

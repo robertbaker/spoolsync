@@ -1,13 +1,13 @@
 # SpoolSync
 
-Compare filament spool inventories across <!-- services:list-inline:start -->**Spoolman / Spoolman-NG**, **Spoolstock**, **Spoolio**, **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, **FilamentDB**, **SpoolMaster**, **Spool Hoarder**, **Spool (Mac and iOS app)**, and **SpoolKeep**<!-- services:list-inline:end -->, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
+Compare filament spool inventories across <!-- services:list-inline:start -->**Spoolman / Spoolman-NG**, **Spoolstock**, **Spoolio**, **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, **FilamentDB**, **Filament DB (hyiger/filament-db)**, **SpoolMaster**, **Spool Hoarder**, **Spool (Mac and iOS app)**, and **SpoolKeep**<!-- services:list-inline:end -->, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
 <https://www.spoolsync.com>—no server, no account, and no database of its own.
 
 > ☕ **Enjoying SpoolSync?** It's free and open source. [Support development on Ko-fi](https://ko-fi.com/spool_sync).
 
 <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end -->
 
-SpoolSync supports <!-- services:count-inline:start -->thirteen<!-- services:count-inline:end --> tools. The inventory workflow takes three steps:
+SpoolSync supports <!-- services:count-inline:start -->fourteen<!-- services:count-inline:end --> tools. The inventory workflow takes three steps:
 
 1. **Load.** Fetch directly from <!-- services:api-load-inline:start -->Spoolman, TigerTag cloud, Bambuddy, or FilamentDB<!-- services:api-load-inline:end -->, or drop in export files from any supported app.
 2. **Review.** Spools are matched across services by the IDs other tools already stamp on them (such as Spoolman's `spoolstock:spool:<id>` lot number or Spoolio's `spoolmanId`). Similar spools without a shared ID are suggested for you to confirm. Wherever services disagree, you pick the value to keep.
@@ -47,21 +47,22 @@ initial weight must be resolved before export.
 
 <!-- services:start -->
 
-| Service                 | Platform                   | Read                                       | Write back                                             | Export from                                                    |
-| ----------------------- | -------------------------- | ------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------- |
-| Spoolman / Spoolman-NG  | Self-hosted                | API or JSON/CSV file                       | API or JSON file                                       | Direct over your local network, or via export file             |
-| Spoolstock              | Mobile app, Web            | CSV file                                   | Read-only (does not accept imports)                    | CSV export from the app's Inventory tab                        |
-| Spoolio                 | Web, Cloud account         | JSON file                                  | JSON file (preserves print logs and settings)          | JSON export from spoolio.net settings                          |
-| TigerTag                | Desktop app, Cloud account | Cloud or .ttag/JSON file                   | Cloud or .ttag file (changed materials only for files) | TigerTag cloud sign-in, or a .ttag / JSON backup               |
-| 3DFilamentProfiles      | Web, Cloud account         | CSV/JSON file                              | CSV/JSON file                                          | My Spools CSV or JSON export                                   |
-| Bambuddy                | Self-hosted                | API or CSV/JSON file                       | CSV file (new spools only, to avoid duplicates)        | Direct via API key, or inventory CSV export                    |
-| FilaMeter               | Web, Self-hosted           | JSON/CSV file                              | JSON/CSV file                                          | JSON backup or filament CSV from Settings                      |
-| Filadex                 | Self-hosted                | API or JSON/CSV file (API in the CLI only) | API or JSON/CSV file (API in the CLI only)             | JSON or CSV from the export menu; the CLI can also use its API |
-| FilamentDB              | Self-hosted                | API or JSON file                           | API or JSON file                                       | Direct via server address, or spools JSON from /api/spools     |
-| SpoolMaster             | Mobile app, Desktop app    | Excel file                                 | Read-only (does not accept imports)                    | Excel (.xlsx) export of the Stock sheet                        |
-| Spool Hoarder           | Mobile app, Desktop app    | CSV file                                   | Read-only (does not accept imports)                    | Inventory CSV or HueForge library CSV                          |
-| Spool (Mac and iOS app) | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                    | JSON backup from the Mac and iOS app                           |
-| SpoolKeep               | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                    | JSON backup from the Mac and iOS app                           |
+| Service                          | Platform                   | Read                                       | Write back                                                                                            | Export from                                                    |
+| -------------------------------- | -------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Spoolman / Spoolman-NG           | Self-hosted                | API or JSON/CSV file                       | API or JSON file                                                                                      | Direct over your local network, or via export file             |
+| Spoolstock                       | Mobile app, Web            | CSV file                                   | Read-only (does not accept imports)                                                                   | CSV export from the app's Inventory tab                        |
+| Spoolio                          | Web, Cloud account         | JSON file                                  | JSON file (preserves print logs and settings)                                                         | JSON export from spoolio.net settings                          |
+| TigerTag                         | Desktop app, Cloud account | Cloud or .ttag/JSON file                   | Cloud or .ttag file (changed materials only for files)                                                | TigerTag cloud sign-in, or a .ttag / JSON backup               |
+| 3DFilamentProfiles               | Web, Cloud account         | CSV/JSON file                              | CSV/JSON file                                                                                         | My Spools CSV or JSON export                                   |
+| Bambuddy                         | Self-hosted                | API or CSV/JSON file                       | CSV file (new spools only, to avoid duplicates)                                                       | Direct via API key, or inventory CSV export                    |
+| FilaMeter                        | Web, Self-hosted           | JSON/CSV file                              | JSON/CSV file                                                                                         | JSON backup or filament CSV from Settings                      |
+| Filadex                          | Self-hosted                | API or JSON/CSV file (API in the CLI only) | API or JSON/CSV file (API in the CLI only)                                                            | JSON or CSV from the export menu; the CLI can also use its API |
+| FilamentDB                       | Self-hosted                | API or JSON file                           | API or JSON file                                                                                      | Direct via server address, or spools JSON from /api/spools     |
+| Filament DB (hyiger/filament-db) | Self-hosted, Desktop app   | API or JSON/CSV file (API in the CLI only) | API or JSON/CSV file (API in the CLI only) (filament fields are shared by all of a filament's spools) | JSON snapshot or spool CSV; the CLI can also use its API       |
+| SpoolMaster                      | Mobile app, Desktop app    | Excel file                                 | Read-only (does not accept imports)                                                                   | Excel (.xlsx) export of the Stock sheet                        |
+| Spool Hoarder                    | Mobile app, Desktop app    | CSV file                                   | Read-only (does not accept imports)                                                                   | Inventory CSV or HueForge library CSV                          |
+| Spool (Mac and iOS app)          | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                                                                   | JSON backup from the Mac and iOS app                           |
+| SpoolKeep                        | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                                                                   | JSON backup from the Mac and iOS app                           |
 
 <!-- services:end -->
 

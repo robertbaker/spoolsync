@@ -2,7 +2,7 @@
 
 Compare and sync filament inventories from your terminal. `spoolsync` uses the same matching,
 planning, and export adapters as the [SpoolSync web app](https://spoolsync.com), and works across
-<!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:cli-names-inline:end -->.
+<!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, Filament DB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:cli-names-inline:end -->.
 
 > <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end --> For a walkthrough of the browser
 >
@@ -11,21 +11,22 @@ planning, and export adapters as the [SpoolSync web app](https://spoolsync.com),
 Each service has its own input option:
 
 <!-- services:cli-inputs:start -->
-| Service                 | File option      | API option         | Reads files |
-| ----------------------- | ---------------- | ------------------ | ----------- |
-| Spoolman / Spoolman-NG  | `--spoolman`     | `--spoolman-url`   | JSON, CSV   |
-| Spoolstock              | `--spoolstock`   | None               | CSV         |
-| Spoolio                 | `--spoolio`      | None               | JSON        |
-| TigerTag                | `--tigertag`     | None               | .ttag, JSON |
-| 3DFilamentProfiles      | `--three-dfp`    | None               | CSV, JSON   |
-| Bambuddy                | `--bambuddy`     | None               | CSV, JSON   |
-| FilaMeter               | `--filameter`    | None               | JSON, CSV   |
-| Filadex                 | `--filadex`      | `--filadex-url`    | JSON, CSV   |
-| FilamentDB              | `--filamentdb`   | `--filamentdb-url` | JSON        |
-| SpoolMaster             | `--spoolmaster`  | None               | Excel       |
-| Spool Hoarder           | `--spoolhoarder` | None               | CSV         |
-| Spool (Mac and iOS app) | `--spool`        | None               | JSON        |
-| SpoolKeep               | `--spoolkeep`    | None               | JSON        |
+| Service                          | File option      | API option          | Reads files |
+| -------------------------------- | ---------------- | ------------------- | ----------- |
+| Spoolman / Spoolman-NG           | `--spoolman`     | `--spoolman-url`    | JSON, CSV   |
+| Spoolstock                       | `--spoolstock`   | None                | CSV         |
+| Spoolio                          | `--spoolio`      | None                | JSON        |
+| TigerTag                         | `--tigertag`     | None                | .ttag, JSON |
+| 3DFilamentProfiles               | `--three-dfp`    | None                | CSV, JSON   |
+| Bambuddy                         | `--bambuddy`     | None                | CSV, JSON   |
+| FilaMeter                        | `--filameter`    | None                | JSON, CSV   |
+| Filadex                          | `--filadex`      | `--filadex-url`     | JSON, CSV   |
+| FilamentDB                       | `--filamentdb`   | `--filamentdb-url`  | JSON        |
+| Filament DB (hyiger/filament-db) | `--filament-db`  | `--filament-db-url` | JSON, CSV   |
+| SpoolMaster                      | `--spoolmaster`  | None                | Excel       |
+| Spool Hoarder                    | `--spoolhoarder` | None                | CSV         |
+| Spool (Mac and iOS app)          | `--spool`        | None                | JSON        |
+| SpoolKeep                        | `--spoolkeep`    | None                | JSON        |
 <!-- services:cli-inputs:end -->
 
 ## Install
@@ -350,7 +351,7 @@ a write target.
 | ------------------------------------------------------------ | ----------------------------- |
 | File inventory                                               | Output file in `--output-dir` |
 | `--empty` target                                             | Output file in `--output-dir` |
-| Direct Spoolman, Filadex, and FilamentDB                     | `--apply`                     |
+| Direct Spoolman, Filadex, FilamentDB, and Filament DB        | `--apply`                     |
 | Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep | Read-only                     |
 <!-- services:cli-writing:end -->
 
