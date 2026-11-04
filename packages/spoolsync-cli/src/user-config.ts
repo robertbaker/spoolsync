@@ -1,9 +1,10 @@
-import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import { rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import type { SourceId } from "@spoolsync/core/core/model";
 
+import { ensureDirectory } from "./ensure-directory";
 import type { Options } from "./options";
 
 /** The config key for each source's file option (the long option name without dashes). */
@@ -86,7 +87,7 @@ export async function saveUserConfig(
     throw new Error(
       "There is nothing to save. Give the options you want as defaults, such as --output-dir ./updated or --spoolio spoolio.json, along with --save-config.",
     );
-  await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+  await ensureDirectory(path.dirname(file), 0o700);
   const temporary = `${file}.${process.pid}.tmp`;
   try {
     await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
@@ -113,7 +114,7 @@ export async function clearUserConfig(file: string): Promise<boolean> {
 
 /** Writes text to a file atomically (temporary file, then rename), readable only by the owner. */
 export async function writeTextAtomic(file: string, text: string, mode = 0o600): Promise<void> {
-  await mkdir(path.dirname(file), { recursive: true });
+  await ensureDirectory(path.dirname(file));
   const temporary = `${file}.${process.pid}.tmp`;
   try {
     await writeFile(temporary, text, { mode, flag: "wx" });

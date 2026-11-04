@@ -19,9 +19,21 @@ import {
 export const MAX_MAPPER_ROWS = 50_000;
 const MAX_COLUMNS = 200;
 const MAX_FLATTEN_DEPTH = 3;
-const RECORD_KEYS = ["spools", "items", "data", "filaments", "inventory", "records", "rows", "results"];
+const RECORD_KEYS = [
+  "spools",
+  "items",
+  "data",
+  "filaments",
+  "inventory",
+  "records",
+  "rows",
+  "results",
+];
 
-/** One record, keyed by column header. The prototype is null so a header such as `__proto__` is just a name. */
+/**
+ * One record, keyed by column header. The prototype is null so a header such as `__proto__` is just
+ * a name.
+ */
 export type SourceRow = Record<string, string>;
 
 export interface SourceTable {
@@ -39,7 +51,7 @@ function parseCsvTable(text: string): SourceTable {
   const parsed = Papa.parse<string[]>(input.text, {
     delimiter: input.delimiter,
     header: false,
-    skipEmptyLines: "greedy",
+    skipEmptyLines: true,
   });
   const fatal = parsed.errors.find((error) => error.type === "Quotes");
   if (fatal) throw new Error(`The CSV has an unclosed quote near row ${(fatal.row ?? 0) + 1}.`);
@@ -49,8 +61,11 @@ function parseCsvTable(text: string): SourceTable {
   if (headers.some((header) => !header))
     throw new Error("The CSV has an unnamed column. Give each column a name and try again.");
   if (new Set(headers).size !== headers.length)
-    throw new Error("The CSV has duplicate column names. Give each column a unique name and try again.");
-  if (headers.length > MAX_COLUMNS) throw new Error(`The CSV has more than ${MAX_COLUMNS} columns.`);
+    throw new Error(
+      "The CSV has duplicate column names. Give each column a unique name and try again.",
+    );
+  if (headers.length > MAX_COLUMNS)
+    throw new Error(`The CSV has more than ${MAX_COLUMNS} columns.`);
   if (!dataRows.length) throw new Error("The file has a header but no rows.");
   if (dataRows.length > MAX_MAPPER_ROWS)
     throw new Error(`The file has more than ${MAX_MAPPER_ROWS.toLocaleString("en")} rows.`);
@@ -82,7 +97,9 @@ function flatten(value: unknown, prefix: string, depth: number, into: SourceRow)
       return;
     }
     if (depth >= MAX_FLATTEN_DEPTH) return;
-    value.forEach((item, index) => flatten(item, prefix ? `${prefix}.${index}` : String(index), depth + 1, into));
+    value.forEach((item, index) =>
+      flatten(item, prefix ? `${prefix}.${index}` : String(index), depth + 1, into),
+    );
     return;
   }
   if (depth >= MAX_FLATTEN_DEPTH) return;
@@ -105,7 +122,9 @@ function recordList(value: unknown): unknown[] {
     );
     if (Array.isArray(first)) return first;
   }
-  throw new Error("The JSON has no list of records. Expect an array of objects, or an object holding one.");
+  throw new Error(
+    "The JSON has no list of records. Expect an array of objects, or an object holding one.",
+  );
 }
 
 function parseJsonTable(text: string): SourceTable {
@@ -156,7 +175,10 @@ export function parseSourceTable(text: string): SourceTable {
  * Returns null for anything else, including `1e3` and text with digits mixed into words.
  */
 export function parseLooseNumber(raw: string): number | null {
-  let text = raw.trim().replace(/^[^\d+\-.,]+/, "").replace(/[^\d]+$/, "");
+  let text = raw
+    .trim()
+    .replace(/^[^\d+\-.,]+/, "")
+    .replace(/[^\d]+$/, "");
   if (!text || !/^[+-]?[\d.,\s'’]+$/.test(text)) return null;
   text = text.replace(/[\s'’]/g, "");
   const sign = text.startsWith("-") ? -1 : 1;
@@ -172,7 +194,8 @@ export function parseLooseNumber(raw: string): number | null {
     const parts = text.split(",");
     const last = parts.at(-1)!;
     // "1,234" reads as a thousands group; "0,125" and "12,5" are decimals.
-    const thousands = parts.length > 2 || (last.length === 3 && parts[0] !== "0" && parts[0]!.length <= 3);
+    const thousands =
+      parts.length > 2 || (last.length === 3 && parts[0] !== "0" && parts[0]!.length <= 3);
     normalized = thousands ? parts.join("") : `${parts.slice(0, -1).join("")}.${last}`;
   } else {
     const parts = text.split(".");
@@ -183,12 +206,18 @@ export function parseLooseNumber(raw: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** `RRGGBB` (upper case) from `#FF0000`, `ff0000`, `#f00`, `0xFF0000` or `#FF0000CC`; null otherwise. */
+/**
+ * `RRGGBB` (upper case) from `#FF0000`, `ff0000`, `#f00`, `0xFF0000` or `#FF0000CC`; null
+ * otherwise.
+ */
 export function parseHexColor(raw: string): string | null {
   const text = raw.trim().replace(/^#|^0x/i, "");
   if (/^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(text)) return text.slice(0, 6).toUpperCase();
   if (/^[0-9a-f]{3}$/i.test(text))
-    return [...text].map((digit) => digit + digit).join("").toUpperCase();
+    return [...text]
+      .map((digit) => digit + digit)
+      .join("")
+      .toUpperCase();
   return null;
 }
 
@@ -285,7 +314,8 @@ export function convertToSpoolmanCsv(
   options: ConvertOptions,
 ): ConvertResult {
   const check = validateMapping(mapping, table.headers);
-  if (check.problems.length) throw new Error("The column mapping has problems; fix them before converting.");
+  if (check.problems.length)
+    throw new Error("The column mapping has problems; fix them before converting.");
 
   const skipped: ConvertNote[] = [];
   const changed: ConvertNote[] = [];
@@ -302,7 +332,11 @@ export function convertToSpoolmanCsv(
       return header !== undefined && Object.hasOwn(row, header) ? (row[header] ?? "").trim() : "";
     };
     const note = (reason: string) => changed.push({ row: rowNumber, reason });
-    const number = (field: MapField, accept: (value: number) => boolean, why: string): number | null => {
+    const number = (
+      field: MapField,
+      accept: (value: number) => boolean,
+      why: string,
+    ): number | null => {
       const raw = cell(field);
       if (!raw) return null;
       const value = parseLooseNumber(raw);
@@ -330,7 +364,10 @@ export function convertToSpoolmanCsv(
       return;
     }
     if (!vendor && !material && !name) {
-      skipped.push({ row: rowNumber, reason: "No brand, material, or name, so the spool cannot be told apart." });
+      skipped.push({
+        row: rowNumber,
+        reason: "No brand, material, or name, so the spool cannot be told apart.",
+      });
       return;
     }
 
@@ -340,11 +377,14 @@ export function convertToSpoolmanCsv(
     let used = grams("usedWeight");
     if (remaining !== null && used !== null) used = null;
     if (used !== null && initial === null) {
-      note("used weight needs a full spool weight to work out what is left; remaining weight left unknown.");
+      note(
+        "used weight needs a full spool weight to work out what is left; remaining weight left unknown.",
+      );
       used = null;
     }
     if (used !== null && initial !== null) {
-      if (used > initial) note("used weight is more than the full spool weight; remaining weight set to 0.");
+      if (used > initial)
+        note("used weight is more than the full spool weight; remaining weight set to 0.");
       // Spoolman's importer rejects an empty `used_weight` cell, so the converter works it out here.
       remaining = round(Math.max(0, initial - used));
     }
@@ -361,11 +401,20 @@ export function convertToSpoolmanCsv(
 
     const flagText = cell("archived");
     const archived = parseFlag(flagText);
-    if (archived === null) note(`archived "${flagText.slice(0, 20)}" is not yes or no; treated as not archived.`);
+    if (archived === null)
+      note(`archived "${flagText.slice(0, 20)}" is not yes or no; treated as not archived.`);
 
     const price = number("price", (value) => value >= 0, "is negative");
-    const diameter = number("diameter", (value) => value > 0 && value <= 10, "is outside 0 to 10 mm");
-    const density = number("density", (value) => value > 0 && value <= 30, "is outside 0 to 30 g/cm3");
+    const diameter = number(
+      "diameter",
+      (value) => value > 0 && value <= 10,
+      "is outside 0 to 10 mm",
+    );
+    const density = number(
+      "density",
+      (value) => value > 0 && value <= 30,
+      "is outside 0 to 30 g/cm3",
+    );
 
     const filamentKey = [
       vendor,
@@ -434,7 +483,8 @@ export function sampleValues(table: SourceTable, header: string, count = 3): str
   const samples: string[] = [];
   for (const row of table.rows) {
     const value = Object.hasOwn(row, header) ? (row[header] ?? "") : "";
-    if (value && !samples.includes(value)) samples.push(value.length > 40 ? `${value.slice(0, 39)}…` : value);
+    if (value && !samples.includes(value))
+      samples.push(value.length > 40 ? `${value.slice(0, 39)}…` : value);
     if (samples.length >= count) break;
   }
   return samples;

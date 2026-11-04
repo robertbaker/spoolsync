@@ -753,8 +753,8 @@ export class ReferenceController {
   private afterChoiceChange(): void {
     this.store.saveChoices(this.choices);
     // What each accepted change was made from, read before the proposals are recomputed.
-    const previous = new Map(
-      this.acceptedEntries().map((entry) => [`${entry.spoolKey}#${entry.field}`, entry] as const),
+    const previous = new Map<string, AcceptedReference>(
+      this.acceptedEntries().map((entry) => [`${entry.spoolKey}#${entry.field}`, entry]),
     );
     this.analyze();
     const byId = new Map(this.analysis.proposals.map((proposal) => [proposal.id, proposal]));

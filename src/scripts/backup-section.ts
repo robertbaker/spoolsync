@@ -6,13 +6,14 @@ import {
   type BackupInspection,
 } from "~/lib/saved-data";
 
-import { h } from "./dom";
+import { h, setChildren } from "./dom";
 import { download } from "./sync/presentation";
 
 const BUTTON =
   "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count} ${count === 1 ? one : many}`;
 
 /** "3 preferences entries, 1 file history entry" from the groups an inspection accepted. */
 function acceptedSummary(inspection: BackupInspection): string {
@@ -21,7 +22,9 @@ function acceptedSummary(inspection: BackupInspection): string {
     const name = entry.group ?? "Other";
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
-  return [...counts].map(([name, count]) => `${name}: ${plural(count, "entry", "entries")}`).join("; ");
+  return [...counts]
+    .map(([name, count]) => `${name}: ${plural(count, "entry", "entries")}`)
+    .join("; ");
 }
 
 /**
@@ -41,7 +44,11 @@ export function backupSection(onRestored: () => void): HTMLElement {
     id: "backup-file",
     "aria-label": "Backup file to restore",
   });
-  const pick = h("label", { class: `${BUTTON} cursor-pointer`, for: "backup-file" }, "Restore from backup…");
+  const pick = h(
+    "label",
+    { class: `${BUTTON} cursor-pointer`, for: "backup-file" },
+    "Restore from backup…",
+  );
   const save = h("button", { type: "button", class: BUTTON }, "Download backup");
 
   const say = (message: string, tone: "ok" | "error" | "plain" = "plain") => {
@@ -79,7 +86,11 @@ export function backupSection(onRestored: () => void): HTMLElement {
     say(
       `${file.name}${inspection.exportedAt ? ` (saved ${new Date(inspection.exportedAt).toLocaleString()})` : ""} contains ${acceptedSummary(inspection)}.`,
     );
-    const confirm = h("button", { type: "button", class: BUTTON, "data-action": "confirm-restore" }, "Restore now");
+    const confirm = h(
+      "button",
+      { type: "button", class: BUTTON, "data-action": "confirm-restore" },
+      "Restore now",
+    );
     confirm.addEventListener("click", () => {
       try {
         const result = restoreBackup(text, replaceBox.checked ? "replace" : "merge");
@@ -87,8 +98,12 @@ export function backupSection(onRestored: () => void): HTMLElement {
         preview.replaceChildren();
         say(
           `Restored ${plural(result.accepted.length, "setting")}` +
-            (result.removed.length ? `, removed ${result.removed.length} that the backup did not have` : "") +
-            (result.skipped.length ? `; skipped ${result.skipped.length} that could not be used` : "") +
+            (result.removed.length
+              ? `, removed ${result.removed.length} that the backup did not have`
+              : "") +
+            (result.skipped.length
+              ? `; skipped ${result.skipped.length} that could not be used`
+              : "") +
             ". The page reloads when you close this.",
           "ok",
         );
@@ -96,7 +111,8 @@ export function backupSection(onRestored: () => void): HTMLElement {
         say(error instanceof Error ? error.message : "Could not restore the backup.", "error");
       }
     });
-    preview.replaceChildren(
+    setChildren(
+      preview,
       h(
         "label",
         { class: "flex items-center gap-2 text-xs", for: "backup-replace" },
@@ -128,7 +144,11 @@ function skippedList(inspection: BackupInspection): HTMLElement {
   return h(
     "details",
     { class: "mt-2 text-xs text-muted-foreground" },
-    h("summary", { class: "cursor-pointer" }, `${plural(inspection.skipped.length, "entry", "entries")} will be skipped`),
+    h(
+      "summary",
+      { class: "cursor-pointer" },
+      `${plural(inspection.skipped.length, "entry", "entries")} will be skipped`,
+    ),
     h(
       "ul",
       { class: "mt-1 list-disc pl-5" },

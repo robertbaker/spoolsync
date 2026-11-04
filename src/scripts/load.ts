@@ -11,9 +11,9 @@ import {
   toggleWatched,
 } from "~/lib/browser/storage";
 import { recordStockPoint } from "~/lib/browser/storage/stock-history";
+import { LOCALE_CHANGED } from "~/lib/i18n";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
-import { LOCALE_CHANGED } from "~/lib/i18n";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
@@ -33,17 +33,17 @@ import { createInventoryTable } from "./load/inventory-table";
 import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
-import { wireInventoryReport } from "./load/report-panel";
 import { wireReferencePanel } from "./load/reference-view";
 import { wireReorderPanel } from "./load/reorder-panel";
+import { wireInventoryReport } from "./load/report-panel";
 import { wireSinceVisit } from "./load/since-visit-panel";
 import { wireSmartDrop } from "./load/smart-drop";
 import { wireSourcePanels } from "./load/source-panels";
 import { wireSpoolDrawer } from "./load/spool-drawer";
-import { LoadState } from "./load/state";
+import { LoadState, announceChange } from "./load/state";
 import { createLoadStatusView } from "./load/status-view";
-import { renderTrendChart } from "./load/trend-chart";
 import { wireTableTools } from "./load/table-tools";
+import { renderTrendChart } from "./load/trend-chart";
 import { wireViewsPanel } from "./load/views-panel";
 import { button, download } from "./sync/presentation";
 
@@ -95,6 +95,8 @@ const reference = referenceRoot ? wireReferencePanel(referenceRoot, state.result
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
 const render = () => {
+  // The locale listener below outlives a page that was torn down (and test DOMs without this page).
+  if (!document.getElementById("loaded-table")) return;
   insights.refresh();
   renderTable();
   drawer.update();
@@ -151,7 +153,8 @@ wireConnectionPanels();
 wireSmartDrop(context);
 for (const source of SOURCE_IDS) wireFileSource(source, context);
 // A shared `?sample=1` link stores the sample inventories first (only when nothing is loaded).
-await applySampleParam(SOURCE_IDS);
+// The sidebar and stepper read storage when they start, so tell them sample data arrived.
+if (await applySampleParam(SOURCE_IDS)) announceChange();
 for (const source of SOURCE_IDS) {
   state.restore(source);
   setStatus(source);

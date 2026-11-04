@@ -1,6 +1,6 @@
 import type { WorkflowStepId } from "~/config/site";
 
-/** localStorage key holding the desktop sidebar's state. Registered in `saved-data.ts`. */
+/** LocalStorage key holding the desktop sidebar's state. Registered in `saved-data.ts`. */
 export const SIDEBAR_KEY = "spoolsync:sidebar";
 
 /** Fired on `document` to toggle the sidebar (collapse on desktop, open the drawer on phones). */
@@ -17,7 +17,9 @@ export function otherSidebarMode(mode: SidebarMode): SidebarMode {
   return mode === "expanded" ? "collapsed" : "expanded";
 }
 
-const trimPath = (path: string) => path.replace(/\/+$/, "") || "/";
+/** Paths compare without a trailing slash or the `.html` a file-format static build reports. */
+const trimPath = (path: string) =>
+  path.replace(/(?:\/index)?\.html$/, "").replace(/\/+$/, "") || "/";
 
 export interface NavTarget {
   href: string;
@@ -54,8 +56,8 @@ export interface SidebarStepInput {
 }
 
 /**
- * Adjusts the stepper's progress for the sidebar. Off the inventory pages nothing is "current",
- * so the Load step falls back to done (something is loaded) or todo.
+ * Adjusts the stepper's progress for the sidebar. Off the inventory pages nothing is "current", so
+ * the Load step falls back to done (something is loaded) or todo.
  */
 export function sidebarSteps(
   views: readonly SidebarStepInput[],

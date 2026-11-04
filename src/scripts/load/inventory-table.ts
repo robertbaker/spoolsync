@@ -21,7 +21,7 @@ import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns";
 import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
-import { byId, h } from "../dom";
+import { byId, h, setChildren } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
 
 type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
@@ -210,7 +210,10 @@ export function createInventoryTable(
     return button;
   }
 
-  /** The spool's name as a button, which opens the detail drawer for keyboard and screen reader users. */
+  /**
+   * The spool's name as a button, which opens the detail drawer for keyboard and screen reader
+   * users.
+   */
   function detailsButton(key: string, name: string | null): HTMLElement {
     return h(
       "button",
@@ -391,7 +394,14 @@ export function createInventoryTable(
     ];
     const drops = insights?.droppedWatched();
     // Only a window of rows is built; sorting, filtering and grouping above used the whole list.
-    const signature = JSON.stringify([searchQuery, lowOnly, insightFilter, extra, sort, all.length]);
+    const signature = JSON.stringify([
+      searchQuery,
+      lowOnly,
+      insightFilter,
+      extra,
+      sort,
+      all.length,
+    ]);
     if (signature !== windowSignature) {
       windowSignature = signature;
       rowLimit = WINDOW_STEP;
@@ -405,7 +415,9 @@ export function createInventoryTable(
       const flags = insights
         ? [
             insights.duplicateSpoolKeys.has(key) ? "Possible duplicate" : null,
-            ...(insights.health.byKey.get(key) ?? []).map((issue) => t(`health.factor.${issue}` as MessageKey)),
+            ...(insights.health.byKey.get(key) ?? []).map((issue) =>
+              t(`health.factor.${issue}` as MessageKey),
+            ),
             insights.missingPrice.has(key) ? t("health.factor.missing-price") : null,
           ].filter(Boolean)
         : [];
@@ -523,7 +535,8 @@ export function createInventoryTable(
             hiddenRows > WINDOW_STEP ? showAll : null,
           )
         : null;
-    container.replaceChildren(
+    setChildren(
+      container,
       h(
         "div",
         {

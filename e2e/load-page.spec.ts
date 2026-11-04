@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 import { buildXlsx } from "../packages/spoolsync-core/src/adapters/shared/xlsx-fixture";
+import { SOURCE_IDS } from "../packages/spoolsync-core/src/core/model";
+
+const SERVICE_PANELS = SOURCE_IDS.map((id) => `details[data-panel="${id}"]`).join(", ");
+const VISIBLE_SERVICE_PANELS = SOURCE_IDS.map(
+  (id) => `details[data-panel="${id}"]:not([hidden])`,
+).join(", ");
 
 const spoolio = {
   name: "export.json",
@@ -97,13 +103,14 @@ test("services can be searched and filtered, and panels open when they report", 
   page,
 }) => {
   await page.goto("/load");
-  const panels = page.locator("details[data-panel]");
-  const total = await panels.count();
+  // Only service panels count; the Load page also has panels for cleanup, reference data and so on.
+  const total = SOURCE_IDS.length;
   expect(total).toBeGreaterThanOrEqual(13);
+  await expect(page.locator(SERVICE_PANELS)).toHaveCount(total);
   await expect(page.locator("#source-count")).toHaveText(`${total} of ${total} services`);
 
   await page.getByLabel("Find a service").fill("excel");
-  await expect(page.locator("details[data-panel]:not([hidden])")).toHaveCount(1);
+  await expect(page.locator(VISIBLE_SERVICE_PANELS)).toHaveCount(1);
   await expect(page.locator("#spoolmaster-panel")).toBeVisible();
   await page.getByLabel("Find a service").fill("zzzz");
   await expect(page.locator("#source-empty")).toBeVisible();
@@ -125,7 +132,7 @@ test("services can be searched and filtered, and panels open when they report", 
   });
   await expect(panel).toHaveJSProperty("open", true);
   await page.getByRole("button", { name: "Loaded" }).click();
-  await expect(page.locator("details[data-panel]:not([hidden])")).toHaveCount(1);
+  await expect(page.locator(VISIBLE_SERVICE_PANELS)).toHaveCount(1);
 
   // Unload sits in the panel body, so using it must not collapse the panel.
   await page.getByRole("button", { name: "Unload SpoolKeep" }).click();
@@ -490,7 +497,7 @@ test("each dropped file shows a short preview of what it contained", async ({ pa
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ version: 1, filaments })),
   });
-  const preview = page.locator("#smart-message details");
+  const preview = page.locator("#smart-message details:not([data-import-report])");
   await expect(preview).toContainText("Preview");
   await expect(preview).not.toHaveJSProperty("open", true);
   await preview.locator("summary").click();
@@ -720,7 +727,7 @@ test("the plan summary can be copied", async ({ page, context }) => {
   await page.getByRole("button", { name: "Add all missing to FilaMeter" }).click();
   await page.locator("#copy-plan").click();
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  expect(text.split("\n")).toEqual([
+  expect(text.split(/\r?\n/)).toEqual([
     "SpoolSync plan: 2 changes",
     "- Spoolio: 0 updates, 1 new",
     "- FilaMeter: 0 updates, 1 new",
@@ -786,7 +793,12 @@ test("spools that are running low are flagged and can be filtered", async ({ pag
 test("table columns sort, announce their order, and keep keyboard focus", async ({ page }) => {
   await page.goto("/load");
   await page.locator("#spoolio-file").setInputFiles(lowStockFile);
-  const brands = () => page.locator("#loaded-table tbody tr td:nth-child(3)").allInnerTexts();
+  await expect(page.locator("#loaded-table tbody tr")).toHaveCount(3);
+  const brands = async () => {
+    const headers = await page.locator("#loaded-table thead th").allInnerTexts();
+    const column = headers.findIndex((header) => /^brand/i.test(header.trim())) + 1;
+    return page.locator(`#loaded-table tbody tr td:nth-child(${column})`).allInnerTexts();
+  };
   expect(await brands()).toEqual(["Zeta", "Beta", "Alpha"]);
 
   await page.getByRole("button", { name: /^Brand/ }).click();
@@ -832,7 +844,7 @@ test("the reorder list covers low spools once each and can be copied", async ({
   await page.locator("#copy-reorder").click();
   await expect(page.getByText("Copied 2 spools to reorder")).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  expect(text.split("\n")).toEqual([
+  expect(text.split(/\r?\n/)).toEqual([
     "Running low (2):",
     "- Zeta PLA Alpha: 100 g left (10%)",
     "- Alpha PETG Charlie: 150 g left (15%)",

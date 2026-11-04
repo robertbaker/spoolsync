@@ -38,10 +38,11 @@ test("the sidebar shows the version, and its changelog entry shows the changelog
 
   const dialog = page.getByRole("dialog", { name: "What's new" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("region", { name: "Version 9.9.9" })).toContainText(
+  // Each release is a collapsible entry headed by its version.
+  await expect(dialog.locator(".cl-release", { hasText: "v9.9.9" })).toContainText(
     "brand new thing",
   );
-  const current = dialog.getByRole("region", { name: `Version ${version}` });
+  const current = dialog.locator(".cl-release", { hasText: `v${version}` });
   await expect(current).toContainText("You are here");
   await expect(current).toContainText("Bug Fixes");
   await expect(current).toContainText("retain completed write logs across apply failures");

@@ -28,6 +28,10 @@ test("navigation entries are current on their path, match paths and child pages"
   expect(isNavCurrent({ href: "/" }, "/cli")).toBe(false);
   expect(isNavCurrent({ href: "/resources" }, "/resources/some-post")).toBe(true);
   expect(isNavCurrent({ href: "/resources" }, "/resourcesx")).toBe(false);
+  // A file-format static build reports pages as /load.html.
+  expect(isNavCurrent(inventory, "/sync.html")).toBe(true);
+  expect(isNavCurrent({ href: "/" }, "/index.html")).toBe(true);
+  expect(isNavCurrent({ href: "/cli" }, "/load.html")).toBe(false);
 });
 
 test("paths map to workflow steps only on the inventory pages", () => {

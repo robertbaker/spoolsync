@@ -26,7 +26,7 @@ export const NO_REFERENCE = "none";
 
 export interface AnalyzeOptions {
   policy?: ReferencePolicy;
-  /** spool key (`source:id`) to the reference id the person picked, or `NO_REFERENCE`. */
+  /** Spool key (`source:id`) to the reference id the person picked, or `NO_REFERENCE`. */
   choices?: ReadonlyMap<string, string>;
 }
 
@@ -96,7 +96,9 @@ function sameValue(
       return catalog.vendorIdentity(spool) === catalog.vendorIdentity(reference);
     case "material": {
       const [a, b] = [parseMaterial(spool), parseMaterial(reference)];
-      return a && b ? formatMaterial(a, false) === formatMaterial(b, false) : plainKey(spool) === plainKey(reference);
+      return a && b
+        ? formatMaterial(a, false) === formatMaterial(b, false)
+        : plainKey(spool) === plainKey(reference);
     }
     case "name": {
       const [a, b] = [nameTokens(spool), nameTokens(reference)];
@@ -105,7 +107,10 @@ function sameValue(
         : plainKey(spool) === plainKey(reference);
     }
     case "upc":
-      return (normalizeBarcode(spool) ?? plainKey(spool)) === (normalizeBarcode(reference) ?? plainKey(reference));
+      return (
+        (normalizeBarcode(spool) ?? plainKey(spool)) ===
+        (normalizeBarcode(reference) ?? plainKey(reference))
+      );
     default:
       return plainKey(spool) === plainKey(reference);
   }
@@ -135,8 +140,9 @@ export function diffSpool(
 }
 
 const describe = (reference: ReferenceFilament): string =>
-  [reference.vendor, reference.material, reference.colorName ?? reference.name].filter(Boolean).join(" ") ||
-  reference.id;
+  [reference.vendor, reference.material, reference.colorName ?? reference.name]
+    .filter(Boolean)
+    .join(" ") || reference.id;
 
 function proposalsFor(
   spool: CommonSpool,
@@ -214,13 +220,17 @@ export function analyzeReference(
       selected = match.candidates.find((candidate) => candidate.reference.id === choice) ?? null;
       chosen = selected !== null;
     }
-    if (!selected && choice === undefined && match.status === "matched") selected = match.candidates[0]!;
+    if (!selected && choice === undefined && match.status === "matched")
+      selected = match.candidates[0]!;
 
     const diffs = selected ? diffSpool(spool, selected.reference, catalog, policy.fields) : [];
     const color = selected ? compareColorLists(spool.colors, selected.reference.colorHexes) : null;
     const spoolNameHex = nameHexPlausibility(spool.name, spool.colors[0]);
     const referenceNameHex = selected
-      ? nameHexPlausibility(selected.reference.colorName ?? selected.reference.name, selected.reference.colorHex)
+      ? nameHexPlausibility(
+          selected.reference.colorName ?? selected.reference.name,
+          selected.reference.colorHex,
+        )
       : null;
     const mine = selected
       ? proposalsFor(
@@ -251,13 +261,18 @@ export function analyzeReference(
   return { items, proposals, summary: summarizeReference(items) };
 }
 
-/** Whether a spool's color needs a look: a mismatch against the reference, or its name and hex disagree. */
+/**
+ * Whether a spool's color needs a look: a mismatch against the reference, or its name and hex
+ * disagree.
+ */
 export const hasColorProblem = (item: ReferenceItem): boolean =>
   item.color?.verdict === "mismatch" || item.spoolNameHex?.state === "implausible";
 
 /** Whether a person still has to pick a reference for the spool. */
 export const needsChoice = (item: ReferenceItem): boolean =>
-  !item.selected && !item.chosen && (item.match.status === "ambiguous" || item.match.status === "suggested");
+  !item.selected &&
+  !item.chosen &&
+  (item.match.status === "ambiguous" || item.match.status === "suggested");
 
 export function summarizeReference(items: readonly ReferenceItem[]): ReferenceSummary {
   const all = items.flatMap((item) => item.proposals);
@@ -267,8 +282,10 @@ export function summarizeReference(items: readonly ReferenceItem[]): ReferenceSu
     ambiguous: items.filter((item) => item.match.status === "ambiguous").length,
     suggested: items.filter((item) => item.match.status === "suggested").length,
     unmatched: items.filter((item) => item.match.status === "none").length,
-    withMissing: items.filter((item) => item.diffs.some((diff) => diff.status === "missing")).length,
-    withDifferences: items.filter((item) => item.diffs.some((diff) => diff.status === "differs")).length,
+    withMissing: items.filter((item) => item.diffs.some((diff) => diff.status === "missing"))
+      .length,
+    withDifferences: items.filter((item) => item.diffs.some((diff) => diff.status === "differs"))
+      .length,
     colorMismatches: items.filter((item) => item.color?.verdict === "mismatch").length,
     colorClose: items.filter((item) => item.color?.verdict === "close").length,
     proposals: all.length,
@@ -279,7 +296,9 @@ export function summarizeReference(items: readonly ReferenceItem[]): ReferenceSu
 }
 
 /** Proposals the CLI may add to a plan unasked: fills from a confident match a service can take. */
-export function safeReferenceProposals(proposals: readonly ReferenceProposal[]): ReferenceProposal[] {
+export function safeReferenceProposals(
+  proposals: readonly ReferenceProposal[],
+): ReferenceProposal[] {
   return proposals.filter(
     (proposal) => proposal.applicable && proposal.kind === "fill" && proposal.confidence === "safe",
   );
@@ -313,7 +332,8 @@ export function acceptedReferences(
 
 /**
  * Record edits for accepted proposals, dropping any that no longer apply: the spool is gone or its
- * value changed since, or its service cannot take the field. `dropped` says how many were left out.
+ * value changed since, or its service cannot take the field. `dropped` says how many were left
+ * out.
  */
 export function referenceEditsFromAccepted(
   accepted: readonly AcceptedReference[],
@@ -349,7 +369,6 @@ export function referenceEditsFromAccepted(
 export function mergeRecordEdits(...sets: ReadonlyArray<RecordEdits | undefined>): RecordEdits {
   const merged = new Map<string, Partial<Record<ComparableField, FieldValue>>>();
   for (const set of sets)
-    for (const [key, edit] of set ?? [])
-      merged.set(key, { ...(merged.get(key) ?? {}), ...edit });
+    for (const [key, edit] of set ?? []) merged.set(key, { ...merged.get(key), ...edit });
   return merged;
 }

@@ -75,6 +75,9 @@ function snapshotBody(generatedAt: number, token: string): string {
   });
 }
 
+// One build time for the whole test, as a real deploy has: a new timestamp per request would look newer.
+const BUILT_AT = Date.now() - 60_000;
+
 test("reference data comes from the built-in snapshot without asking the service for the catalog", async ({
   page,
 }) => {
@@ -85,7 +88,7 @@ test("reference data comes from the built-in snapshot without asking the service
   await page.route("**/reference/openfilamentdatabase.json", (route) =>
     route.fulfill({
       contentType: "application/json",
-      body: snapshotBody(Date.now() - 60_000, "2026-11-04T02:16:41Z"),
+      body: snapshotBody(BUILT_AT, "2026-11-04T02:16:41Z"),
     }),
   );
 

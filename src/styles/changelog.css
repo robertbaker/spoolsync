@@ -458,7 +458,7 @@
 }
 
 .cl-hash {
-  color: color-mix(in oklch, var(--muted-foreground) 85%, transparent);
+  color: var(--muted-foreground);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   text-decoration: none;

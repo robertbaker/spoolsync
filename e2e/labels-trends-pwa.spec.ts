@@ -164,15 +164,15 @@ test.describe("trend and cost charts", () => {
     await loadSpoolio(page, [100, 200, 300], 20);
     const cost = page.locator("#loaded-cost");
     await expect(cost).toContainText("Cost per kilogram by service");
-    // 20 + 30 + 40 over 3 kg.
-    await expect(cost.getByRole("img", { name: /Spoolio: 30\.00 per kilogram/ })).toBeVisible();
+    // 20 + 30 + 40 over 3 kg. Without a display currency, amounts are plain numbers.
+    await expect(cost.getByRole("img", { name: /Spoolio: 30 per kilogram/ })).toBeVisible();
     await cost.getByRole("button", { name: "By material" }).click();
     await expect(cost).toContainText("Cost per kilogram by material");
     await expect(cost.getByRole("img")).toHaveCount(2);
     await cost.getByText("View cost as table").click();
     // PLA: spools at 30 and 40 over 2 kg; PETG: one spool at 20.
     await expect(cost.locator("tbody tr").first()).toContainText("PLA");
-    await expect(cost.locator("tbody tr").first()).toContainText("35.00");
+    await expect(cost.locator("tbody tr").first().locator("td").last()).toHaveText("35");
     await expect(cost.locator("tbody tr").last()).toContainText("PETG");
   });
 

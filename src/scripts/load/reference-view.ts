@@ -39,7 +39,7 @@ import {
   touchReferenceCache,
 } from "~/lib/browser/storage/reference";
 
-import { h, showToast } from "../dom";
+import { h, setChildren, showToast } from "../dom";
 import { displayValue } from "./cleanup-view";
 import { plural } from "./presentation";
 import {
@@ -1363,7 +1363,8 @@ export function wireReferencePanel(
 
   function draw(): void {
     const held = controller.heldCount();
-    content.replaceChildren(
+    setChildren(
+      content,
       h(
         "p",
         { class: "text-sm text-muted-foreground" },

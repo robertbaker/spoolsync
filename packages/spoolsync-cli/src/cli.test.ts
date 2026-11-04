@@ -22,6 +22,13 @@ const spawnIsolated = ((command: string[], options: { env?: Record<string, strin
     },
   } as never)) as typeof Bun.spawn;
 
+/**
+ * These tests stop the CLI with SIGINT and expect it to shut down cleanly. Windows cannot deliver a
+ * catchable SIGINT to another process (`kill("SIGINT")` terminates it; Ctrl+C in a console is the
+ * only route), so they run on POSIX systems, which is where CI runs.
+ */
+const posixTest = process.platform === "win32" ? test.skip : test;
+
 let directory: string;
 const compiled = process.env["SPOOLSYNC_CLI_PATH"];
 const cli = compiled ? path.resolve(compiled) : path.join(import.meta.dir, "cli.ts");
@@ -328,7 +335,7 @@ test("--completion prints a script for each supported shell and rejects others",
   expect(unknown.stderr).toContain('Unknown shell "powershell"');
 });
 
-test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
+posixTest("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
   const keep = path.join(directory, "keep.json");
   await writeFile(keep, JSON.stringify([{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }]));
   const child = spawnIsolated([runtime, cli, "--spoolkeep", keep, "--summary", "--watch"], {
@@ -385,7 +392,7 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
   expect(await child.exited).toBe(0);
 });
 
-test("--watch --quiet stays silent when a save does not change the result", async () => {
+posixTest("--watch --quiet stays silent when a save does not change the result", async () => {
   const keep = path.join(directory, "keep.json");
   const spools = [{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }];
   await writeFile(keep, JSON.stringify(spools));
@@ -1185,7 +1192,7 @@ async function watchSession(args: string[]) {
 const spoolioFile = (...filaments: Array<Record<string, unknown>>) =>
   JSON.stringify({ version: 1, filaments });
 
-test("--watch prints what changed since the previous run in text", async () => {
+posixTest("--watch prints what changed since the previous run in text", async () => {
   const io = path.join(directory, "spoolio.json");
   await writeFile(
     io,
@@ -1215,50 +1222,53 @@ test("--watch prints what changed since the previous run in text", async () => {
   }
 });
 
-test("--watch --format json adds changesSinceLastRun, and --quiet hides identical runs", async () => {
-  await similarPair();
-  const io = path.join(directory, "spoolio.json");
-  const original = await readFile(io, "utf8");
-  await writeFile(io, spoolioFile());
-  const watch = await watchSession([
-    "--spoolman",
-    path.join(directory, "spoolman-spools.json"),
-    "--spoolio",
-    io,
-    "--format",
-    "json",
-    "--quiet",
-  ]);
-  const documents = () =>
-    watch.state.stdout
-      .split(/\n(?=\{)/)
-      .filter(Boolean)
-      .map((text) => JSON.parse(text));
-  try {
-    await watch.until(() => documents().length === 1, "the first run");
-    expect(documents()[0]).not.toHaveProperty("changesSinceLastRun");
-    // Rewriting the same content prints nothing.
-    await writeFile(io, spoolioFile(), "utf8");
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    expect(documents()).toHaveLength(1);
-    // A matching spool appears: it is added and a new possible match is pending.
-    await writeFile(io, original);
-    await watch.until(() => documents().length === 2, "the second run");
-    const changes = documents()[1].changesSinceLastRun;
-    expect(changes.added.map((item: { key: string }) => item.key)).toEqual(["spoolio:donor"]);
-    expect(changes.removed).toEqual([]);
-    expect(changes.newPendingMatches).toEqual(
-      documents()[1].pendingMatches.map((item: { answerWith: string }) => item.answerWith),
-    );
-    expect(changes.newPendingMatches).toHaveLength(1);
-    // The remaining weight changes.
-    await writeFile(io, original.replace('"weightRemaining":150', '"weightRemaining":120'));
-    await watch.until(() => documents().length === 3, "the third run");
-    expect(documents()[2].changesSinceLastRun.remainingWeight).toEqual([
-      { key: "spoolio:donor", label: "Example PLA Blue", fromGrams: 150, toGrams: 120 },
+posixTest(
+  "--watch --format json adds changesSinceLastRun, and --quiet hides identical runs",
+  async () => {
+    await similarPair();
+    const io = path.join(directory, "spoolio.json");
+    const original = await readFile(io, "utf8");
+    await writeFile(io, spoolioFile());
+    const watch = await watchSession([
+      "--spoolman",
+      path.join(directory, "spoolman-spools.json"),
+      "--spoolio",
+      io,
+      "--format",
+      "json",
+      "--quiet",
     ]);
-    expect(documents()[2].changesSinceLastRun.newPendingMatches).toEqual([]);
-  } finally {
-    expect(await watch.stop()).toBe(0);
-  }
-});
+    const documents = () =>
+      watch.state.stdout
+        .split(/\n(?=\{)/)
+        .filter(Boolean)
+        .map((text) => JSON.parse(text));
+    try {
+      await watch.until(() => documents().length === 1, "the first run");
+      expect(documents()[0]).not.toHaveProperty("changesSinceLastRun");
+      // Rewriting the same content prints nothing.
+      await writeFile(io, spoolioFile(), "utf8");
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      expect(documents()).toHaveLength(1);
+      // A matching spool appears: it is added and a new possible match is pending.
+      await writeFile(io, original);
+      await watch.until(() => documents().length === 2, "the second run");
+      const changes = documents()[1].changesSinceLastRun;
+      expect(changes.added.map((item: { key: string }) => item.key)).toEqual(["spoolio:donor"]);
+      expect(changes.removed).toEqual([]);
+      expect(changes.newPendingMatches).toEqual(
+        documents()[1].pendingMatches.map((item: { answerWith: string }) => item.answerWith),
+      );
+      expect(changes.newPendingMatches).toHaveLength(1);
+      // The remaining weight changes.
+      await writeFile(io, original.replace('"weightRemaining":150', '"weightRemaining":120'));
+      await watch.until(() => documents().length === 3, "the third run");
+      expect(documents()[2].changesSinceLastRun.remainingWeight).toEqual([
+        { key: "spoolio:donor", label: "Example PLA Blue", fromGrams: 150, toGrams: 120 },
+      ]);
+      expect(documents()[2].changesSinceLastRun.newPendingMatches).toEqual([]);
+    } finally {
+      expect(await watch.stop()).toBe(0);
+    }
+  },
+);

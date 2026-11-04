@@ -45,7 +45,11 @@ export function wireTableTools(
           // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
           download(viewFilename("csv", stamp), `﻿${csv}`, "text/csv");
         } else {
-          download(viewFilename("json", stamp), viewJson(spools, stamp.toISOString()), "application/json");
+          download(
+            viewFilename("json", stamp),
+            viewJson(spools, stamp.toISOString()),
+            "application/json",
+          );
         }
         showToast(t("table.export.done", { count: spools.length }), "success");
       } catch {
@@ -54,10 +58,14 @@ export function wireTableTools(
     })();
   }
 
-  function chooser(): HTMLElement {
+  function chooser(): HTMLDetailsElement {
     const chosen = new Set(table.getColumns());
     const details = h("details", { class: "column-chooser", id: "column-chooser" });
-    const summary = h("summary", { class: `${BUTTON} cursor-pointer list-none` }, t("table.columns"));
+    const summary = h(
+      "summary",
+      { class: `${BUTTON} cursor-pointer list-none` },
+      t("table.columns"),
+    );
     const panel = h("div", {
       class: "column-chooser__panel",
       role: "group",
@@ -113,8 +121,26 @@ export function wireTableTools(
 
   function build(): void {
     const wasOpen = root.querySelector<HTMLDetailsElement>("#column-chooser")?.open ?? false;
-    const csv = h("button", { type: "button", id: "export-view-csv", class: BUTTON, "aria-describedby": "export-view-hint" }, t("table.export.csv"));
-    const json = h("button", { type: "button", id: "export-view-json", class: BUTTON, "aria-describedby": "export-view-hint" }, t("table.export.json"));
+    const csv = h(
+      "button",
+      {
+        type: "button",
+        id: "export-view-csv",
+        class: BUTTON,
+        "aria-describedby": "export-view-hint",
+      },
+      t("table.export.csv"),
+    );
+    const json = h(
+      "button",
+      {
+        type: "button",
+        id: "export-view-json",
+        class: BUTTON,
+        "aria-describedby": "export-view-hint",
+      },
+      t("table.export.json"),
+    );
     csv.addEventListener("click", () => exportView("csv"));
     json.addEventListener("click", () => exportView("json"));
     const columns = chooser();

@@ -17,7 +17,7 @@ import {
 import { countCleanupSpools } from "~/lib/health-score";
 import { formatMoney, formatWeight } from "~/lib/units";
 
-import { h, showToast } from "../dom";
+import { h, setChildren, showToast } from "../dom";
 import { CleanupController, type CleanupStore } from "./cleanup-controller";
 import { plural } from "./presentation";
 
@@ -59,7 +59,8 @@ export function displayValue(field: ComparableField, value: CleanupProposal["bef
 
 const spoolLabel = (spool: CommonSpool | undefined, key: string) =>
   spool
-    ? [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || `Spool ${spool.sourceId}`
+    ? [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") ||
+      `Spool ${spool.sourceId}`
     : key;
 
 function select(
@@ -193,8 +194,14 @@ export function wireCleanupPanel(
     accept.disabled = !proposal.applicable;
     accept.addEventListener("click", () =>
       act(
-        () => (status === "accepted" ? controller.reset([proposal.id]) : controller.accept([proposal.id])),
-        (count) => (status === "accepted" ? `Took back ${plural(count, "choice")}` : `Accepted ${plural(count, "change")}`),
+        () =>
+          status === "accepted"
+            ? controller.reset([proposal.id])
+            : controller.accept([proposal.id]),
+        (count) =>
+          status === "accepted"
+            ? `Took back ${plural(count, "choice")}`
+            : `Accepted ${plural(count, "change")}`,
       ),
     );
     const reject = h(
@@ -209,8 +216,14 @@ export function wireCleanupPanel(
     );
     reject.addEventListener("click", () =>
       act(
-        () => (status === "rejected" ? controller.reset([proposal.id]) : controller.reject([proposal.id])),
-        (count) => (status === "rejected" ? `Took back ${plural(count, "choice")}` : `Rejected ${plural(count, "change")}`),
+        () =>
+          status === "rejected"
+            ? controller.reset([proposal.id])
+            : controller.reject([proposal.id]),
+        (count) =>
+          status === "rejected"
+            ? `Took back ${plural(count, "choice")}`
+            : `Rejected ${plural(count, "change")}`,
       ),
     );
     const label = `${spoolLabel(spools.get(proposal.spoolKey), proposal.spoolKey)}, ${FIELD_LABELS[proposal.field]}`;
@@ -238,9 +251,17 @@ export function wireCleanupPanel(
           h(
             "p",
             { class: "mt-1 break-words" },
-            h("del", { class: "text-muted-foreground" }, displayValue(proposal.field, proposal.before)),
+            h(
+              "del",
+              { class: "text-muted-foreground" },
+              displayValue(proposal.field, proposal.before),
+            ),
             " → ",
-            h("ins", { class: "font-medium no-underline" }, displayValue(proposal.field, proposal.after)),
+            h(
+              "ins",
+              { class: "font-medium no-underline" },
+              displayValue(proposal.field, proposal.after),
+            ),
           ),
           h("p", { class: "mt-1 text-xs text-muted-foreground" }, proposal.reason),
           proposal.bundle
@@ -326,18 +347,25 @@ export function wireCleanupPanel(
     const label = controller.undoLabel();
     undo.disabled = !label;
     if (label) undo.setAttribute("aria-label", `Undo ${label}`);
-    undo.addEventListener("click", () => act(() => (controller.undo() ? 1 : 0), () => "Undone"));
+    undo.addEventListener("click", () =>
+      act(
+        () => (controller.undo() ? 1 : 0),
+        () => "Undone",
+      ),
+    );
     const acceptSafe = h(
       "button",
       { type: "button", class: BUTTON, "data-key": "accept-safe" },
       "Select all safe",
     );
-    acceptSafe.disabled = !controller.visible().some(
-      (proposal) =>
-        proposal.applicable &&
-        proposal.confidence === "safe" &&
-        controller.status(proposal) === "pending",
-    );
+    acceptSafe.disabled = !controller
+      .visible()
+      .some(
+        (proposal) =>
+          proposal.applicable &&
+          proposal.confidence === "safe" &&
+          controller.status(proposal) === "pending",
+      );
     acceptSafe.addEventListener("click", () =>
       act(
         () => controller.acceptAllSafe(),
@@ -363,7 +391,8 @@ export function wireCleanupPanel(
     for (const loaded of results.values())
       for (const spool of loaded.spools) spoolNames.set(`${spool.source}:${spool.sourceId}`, spool);
 
-    content.replaceChildren(
+    setChildren(
+      content,
       h(
         "p",
         { class: "text-sm text-muted-foreground" },
@@ -426,7 +455,10 @@ export function wireCleanupPanel(
       duplicates.length
         ? h(
             "div",
-            { class: "mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm", role: "status" },
+            {
+              class: "mt-4 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm",
+              role: "status",
+            },
             h("p", { class: "font-medium" }, "Possible duplicates after cleanup"),
             h(
               "p",
@@ -436,17 +468,24 @@ export function wireCleanupPanel(
             h(
               "ul",
               { class: "mt-1 list-disc pl-5" },
-              ...duplicates.slice(0, 8).map((group) =>
-                h(
-                  "li",
-                  {},
-                  `${SOURCE_LABELS[group.source]}: ${group.spools
-                    .map((spool) => `${spoolLabel(spool, spool.sourceId)} (ID ${spool.sourceId}${
-                      spool.remainingWeight === null ? "" : `, ${formatWeight(spool.remainingWeight)} left`
-                    })`)
-                    .join(" and ")}`,
+              ...duplicates
+                .slice(0, 8)
+                .map((group) =>
+                  h(
+                    "li",
+                    {},
+                    `${SOURCE_LABELS[group.source]}: ${group.spools
+                      .map(
+                        (spool) =>
+                          `${spoolLabel(spool, spool.sourceId)} (ID ${spool.sourceId}${
+                            spool.remainingWeight === null
+                              ? ""
+                              : `, ${formatWeight(spool.remainingWeight)} left`
+                          })`,
+                      )
+                      .join(" and ")}`,
+                  ),
                 ),
-              ),
             ),
           )
         : null,
@@ -457,7 +496,10 @@ export function wireCleanupPanel(
             { class: "mt-4 rounded-lg border" },
             h(
               "summary",
-              { class: "cursor-pointer p-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary" },
+              {
+                class:
+                  "cursor-pointer p-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-primary",
+              },
               `Values to check (${warnings.length})`,
             ),
             h(
@@ -471,16 +513,22 @@ export function wireCleanupPanel(
               h(
                 "ul",
                 { class: "mt-2 grid gap-1 text-sm" },
-                ...warnings.slice(0, 100).map((warning) =>
-                  h(
-                    "li",
-                    {},
-                    `${spoolLabel(spoolNames.get(warning.spoolKey), warning.spoolKey)} (${SOURCE_LABELS[warning.source]} ID ${warning.sourceId}), ${FIELD_LABELS[warning.field]}: ${warning.message}`,
+                ...warnings
+                  .slice(0, 100)
+                  .map((warning) =>
+                    h(
+                      "li",
+                      {},
+                      `${spoolLabel(spoolNames.get(warning.spoolKey), warning.spoolKey)} (${SOURCE_LABELS[warning.source]} ID ${warning.sourceId}), ${FIELD_LABELS[warning.field]}: ${warning.message}`,
+                    ),
                   ),
-                ),
               ),
               warnings.length > 100
-                ? h("p", { class: "mt-1 text-xs text-muted-foreground" }, `and ${warnings.length - 100} more`)
+                ? h(
+                    "p",
+                    { class: "mt-1 text-xs text-muted-foreground" },
+                    `and ${warnings.length - 100} more`,
+                  )
                 : null,
             ),
           )

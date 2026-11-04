@@ -33,7 +33,7 @@ test("model exports derive from the registry", () => {
     expect(SERVICE_CAPABILITIES[id]).toEqual(SERVICES[id].capabilities);
     expect(SOURCE_LABELS[id]).toBe(SERVICES[id].name);
   }
-  expect(WRITABLE_SOURCE_IDS).toEqual(SOURCE_IDS.filter((id) => canWrite(id)));
+  expect<readonly string[]>(WRITABLE_SOURCE_IDS).toEqual(SOURCE_IDS.filter((id) => canWrite(id)));
   for (const id of SOURCE_IDS) expect(isWritableSource(id)).toBe(canWrite(id));
 });
 

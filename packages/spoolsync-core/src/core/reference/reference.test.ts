@@ -1,15 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
+import { planSync } from "../../planner";
 import { matchSpools } from "../match";
 import { makeSpool } from "../testing";
-import { planSync } from "../../planner";
-import {
-  AMBIGUOUS_GAP,
-  MATCH_MIN,
-  ReferenceCatalog,
-  nameTokens,
-  tokenSimilarity,
-} from "./catalog";
 import {
   NO_REFERENCE,
   acceptedReferences,
@@ -21,6 +14,7 @@ import {
   referenceEditsFromAccepted,
   safeReferenceProposals,
 } from "./analyze";
+import { AMBIGUOUS_GAP, MATCH_MIN, ReferenceCatalog, nameTokens, tokenSimilarity } from "./catalog";
 import { parseReferenceFile } from "./file";
 import { GENERIC_MAPPING, parseMapping, parsePath, readPath, recordsOf } from "./mapping";
 import { parseTemperatureRange } from "./normalize";
@@ -82,15 +76,25 @@ describe("mapping paths", () => {
     expect(recordsOf({ data: { filaments: [{ a: 1 }] } }, GENERIC_MAPPING)).toEqual([{ a: 1 }]);
     expect(recordsOf({ only: [{ a: 1 }], note: "x" }, GENERIC_MAPPING)).toEqual([{ a: 1 }]);
     expect(recordsOf({ a: [{ x: 1 }], b: [{ y: 1 }] }, GENERIC_MAPPING)).toBeNull();
-    expect(recordsOf({ deep: { items: [1] } }, { ...GENERIC_MAPPING, records: "deep.items" })).toEqual([1]);
+    expect(
+      recordsOf({ deep: { items: [1] } }, { ...GENERIC_MAPPING, records: "deep.items" }),
+    ).toEqual([1]);
     expect(recordsOf({ a: [] }, { ...GENERIC_MAPPING, records: "" })).toBeNull();
   });
 
   test("validates a user mapping and reports every problem", () => {
-    const ok = parseMapping({ records: "data.items", fields: { vendor: "maker.name", colorHex: ["hex", "rgb"] } });
+    const ok = parseMapping({
+      records: "data.items",
+      fields: { vendor: "maker.name", colorHex: ["hex", "rgb"] },
+    });
     expect(ok.ok && ok.mapping.fields.vendor).toEqual(["maker.name"]);
     expect(ok.ok && ok.mapping.fields.material).toEqual(GENERIC_MAPPING.fields.material);
-    const bad = parseMapping({ records: 5, fields: { nope: "x", vendor: [] }, weightUnit: "lb", extra: 1 });
+    const bad = parseMapping({
+      records: 5,
+      fields: { nope: "x", vendor: [] },
+      weightUnit: "lb",
+      extra: 1,
+    });
     expect(bad.ok).toBe(false);
     expect(!bad.ok && bad.errors).toHaveLength(5);
   });
@@ -120,7 +124,13 @@ describe("reading a reference file", () => {
 
   test("maps JSON through the generic aliases and keeps the credit line", () => {
     const parsed = parseReferenceFile("ref.json", json);
-    expect(parsed).toMatchObject({ format: "json", records: 1, skipped: 0, attribution: "Test DB, CC0", license: "CC0" });
+    expect(parsed).toMatchObject({
+      format: "json",
+      records: 1,
+      skipped: 0,
+      attribution: "Test DB, CC0",
+      license: "CC0",
+    });
     expect(parsed.filaments[0]).toMatchObject({
       vendor: "Prusament",
       material: "PLA",
@@ -153,7 +163,12 @@ describe("reading a reference file", () => {
     expect(parsed.filaments).toHaveLength(2);
     expect(parsed.skipped).toBe(1);
     expect(parsed.warnings.join("\n")).toContain("Record 4: No brand or barcode");
-    expect(parsed.filaments[0]).toMatchObject({ material: "PLA", name: "Silk", initialWeight: 1000, colorHex: "C0C0C0" });
+    expect(parsed.filaments[0]).toMatchObject({
+      material: "PLA",
+      name: "Silk",
+      initialWeight: 1000,
+      colorHex: "C0C0C0",
+    });
     expect(parsed.filaments[1]).toMatchObject({ material: "PETG", colorHex: "000000" });
     expect(parsed.attribution).toBe("Reference file ref.csv");
   });
@@ -174,10 +189,23 @@ describe("reading a reference file", () => {
     const parsed = parseReferenceFile(
       "ref.json",
       JSON.stringify([
-        { brand: "A", material: "PLA", color_name: "Red", diameter: 17.5, nozzle_temp_min: 800, nozzle_temp_max: 230, density: 0 },
+        {
+          brand: "A",
+          material: "PLA",
+          color_name: "Red",
+          diameter: 17.5,
+          nozzle_temp_min: 800,
+          nozzle_temp_max: 230,
+          density: 0,
+        },
       ]),
     );
-    expect(parsed.filaments[0]).toMatchObject({ diameter: null, nozzleTempMin: null, nozzleTempMax: 230, density: null });
+    expect(parsed.filaments[0]).toMatchObject({
+      diameter: null,
+      nozzleTempMin: null,
+      nozzleTempMax: 230,
+      density: null,
+    });
     expect(parsed.warnings.length).toBeGreaterThanOrEqual(3);
   });
 
@@ -192,9 +220,13 @@ describe("reading a reference file", () => {
 
   test("explains files it cannot read", () => {
     expect(() => parseReferenceFile("x.json", "{oops")).toThrow("not valid JSON");
-    expect(() => parseReferenceFile("x.json", '{"a": 1}')).toThrow("Could not find a list of records");
+    expect(() => parseReferenceFile("x.json", '{"a": 1}')).toThrow(
+      "Could not find a list of records",
+    );
     expect(() => parseReferenceFile("x.json", "[]")).toThrow("no records");
-    expect(() => parseReferenceFile("x.csv", "foo,bar\n1,2")).toThrow("could be read as a filament");
+    expect(() => parseReferenceFile("x.csv", "foo,bar\n1,2")).toThrow(
+      "could be read as a filament",
+    );
   });
 
   test("temperature ranges", () => {
@@ -223,7 +255,11 @@ describe("catalog matching", () => {
   ]);
 
   test("matches through vendor aliases, case, and material spelling", () => {
-    const spool = makeSpool("spoolman", "1", { vendor: "PRUSAMENT inc", material: "pla", name: "galaxy black" });
+    const spool = makeSpool("spoolman", "1", {
+      vendor: "PRUSAMENT inc",
+      material: "pla",
+      name: "galaxy black",
+    });
     const match = catalog.match(spool);
     expect(match.status).toBe("matched");
     expect(match.candidates[0]!.reference.id).toBe("r1");
@@ -242,11 +278,16 @@ describe("catalog matching", () => {
     ]);
     const spool = makeSpool("spoolman", "1");
     expect(shuffled.match(spool)).toEqual(catalog.match(spool));
-    expect(shuffled.entries.map((entry) => entry.id)).toEqual(catalog.entries.map((entry) => entry.id));
+    expect(shuffled.entries.map((entry) => entry.id)).toEqual(
+      catalog.entries.map((entry) => entry.id),
+    );
   });
 
   test("two equally good records are ambiguous, never auto-selected", () => {
-    const twins = new ReferenceCatalog([ref({ id: "a" }), ref({ id: "b", diameter: 2.85, initialWeight: 750 })]);
+    const twins = new ReferenceCatalog([
+      ref({ id: "a" }),
+      ref({ id: "b", diameter: 2.85, initialWeight: 750 }),
+    ]);
     const spool = makeSpool("spoolman", "1", { diameter: null, initialWeight: null });
     const match = twins.match(spool);
     expect(match.status).toBe("ambiguous");
@@ -271,7 +312,10 @@ describe("catalog matching", () => {
   });
 
   test("a barcode finds the record without a brand", () => {
-    const barcoded = new ReferenceCatalog([ref({ id: "a", barcode: "1234567890123" }), ref({ id: "b", vendor: "Other" })]);
+    const barcoded = new ReferenceCatalog([
+      ref({ id: "a", barcode: "1234567890123" }),
+      ref({ id: "b", vendor: "Other" }),
+    ]);
     const spool = makeSpool("spoolman", "1", { vendor: null, upc: "1234-5678-90123" });
     const match = barcoded.match(spool);
     expect(match.status).toBe("matched");
@@ -279,12 +323,18 @@ describe("catalog matching", () => {
   });
 
   test("explains why nothing matched", () => {
-    expect(catalog.match(makeSpool("spoolman", "1", { vendor: null })).note).toContain("no brand or barcode");
-    expect(catalog.match(makeSpool("spoolman", "1", { vendor: "Nobody" })).note).toBe("No reference filament from this brand.");
+    expect(catalog.match(makeSpool("spoolman", "1", { vendor: null })).note).toContain(
+      "no brand or barcode",
+    );
+    expect(catalog.match(makeSpool("spoolman", "1", { vendor: "Nobody" })).note).toBe(
+      "No reference filament from this brand.",
+    );
   });
 
   test("custom vendor aliases are honoured", () => {
-    const aliased = new ReferenceCatalog([ref()], { vendorAliases: [{ canonical: "Prusament", aliases: ["PRZ"] }] });
+    const aliased = new ReferenceCatalog([ref()], {
+      vendorAliases: [{ canonical: "Prusament", aliases: ["PRZ"] }],
+    });
     expect(aliased.match(makeSpool("spoolman", "1", { vendor: "PRZ" })).status).toBe("matched");
   });
 });
@@ -314,8 +364,18 @@ describe("diffs and proposals", () => {
       providerId: "file",
       referenceId: "r1",
     });
-    expect(safeReferenceProposals(analysis.proposals).map((p) => p.field)).toEqual(["density", "emptySpoolWeight"]);
-    expect(analysis.summary).toMatchObject({ spools: 1, matched: 1, withMissing: 1, proposals: 6, safe: 6, applicable: 2 });
+    expect(safeReferenceProposals(analysis.proposals).map((p) => p.field)).toEqual([
+      "density",
+      "emptySpoolWeight",
+    ]);
+    expect(analysis.summary).toMatchObject({
+      spools: 1,
+      matched: 1,
+      withMissing: 1,
+      proposals: 6,
+      safe: 6,
+      applicable: 2,
+    });
   });
 
   test("zero stored for an unknown value counts as missing", () => {
@@ -334,7 +394,12 @@ describe("diffs and proposals", () => {
     const policy = { ...DEFAULT_REFERENCE_POLICY, overwrite: ["diameter" as const] };
     const overwrite = analyzeReference([spool], catalog, { policy });
     const proposal = overwrite.proposals.find((p) => p.field === "diameter")!;
-    expect(proposal).toMatchObject({ kind: "overwrite", confidence: "review", before: 2.85, after: 1.75 });
+    expect(proposal).toMatchObject({
+      kind: "overwrite",
+      confidence: "review",
+      before: 2.85,
+      after: 1.75,
+    });
     expect(safeReferenceProposals(overwrite.proposals)).not.toContain(proposal);
   });
 
@@ -347,7 +412,11 @@ describe("diffs and proposals", () => {
   });
 
   test("case, spacing, and word order are not differences", () => {
-    const spool = makeSpool("spoolman", "1", { name: "black  GALAXY", vendor: "prusament", material: "pla" });
+    const spool = makeSpool("spoolman", "1", {
+      name: "black  GALAXY",
+      vendor: "prusament",
+      material: "pla",
+    });
     const diffs = diffSpool(spool, ref(), catalog, ["name", "vendor", "material"]);
     expect(diffs.map((d) => d.status)).toEqual(["same", "same", "same"]);
   });
@@ -361,8 +430,11 @@ describe("diffs and proposals", () => {
     expect(hasColorProblem(item)).toBe(true);
     expect(item.diffs.find((d) => d.field === "colors")?.status).toBe("differs");
 
-    const close = analyzeReference([makeSpool("spoolman", "2", { name: "Galaxy Black", colors: ["202020"] })], catalog).items[0]!;
-    expect(["match", "close"]).toContain(close.color?.verdict);
+    const close = analyzeReference(
+      [makeSpool("spoolman", "2", { name: "Galaxy Black", colors: ["202020"] })],
+      catalog,
+    ).items[0]!;
+    expect(close.color?.verdict).toMatch(/^(match|close)$/);
     expect(hasColorProblem(close)).toBe(false);
   });
 
@@ -378,34 +450,48 @@ describe("diffs and proposals", () => {
 
   test("ambiguous matches wait for a choice and a choice is review-only", () => {
     const twins = new ReferenceCatalog([ref({ id: "a" }), ref({ id: "b", diameter: 2.85 })]);
-    const spool = makeSpool("spoolman", "1", { diameter: null, initialWeight: null, density: null });
+    const spool = makeSpool("spoolman", "1", {
+      diameter: null,
+      initialWeight: null,
+      density: null,
+    });
     const undecided = analyzeReference([spool], twins).items[0]!;
     expect(undecided.selected).toBeNull();
     expect(needsChoice(undecided)).toBe(true);
     expect(undecided.proposals).toEqual([]);
 
-    const picked = analyzeReference([spool], twins, { choices: new Map([["spoolman:1", "b"]]) }).items[0]!;
+    const picked = analyzeReference([spool], twins, { choices: new Map([["spoolman:1", "b"]]) })
+      .items[0]!;
     expect(picked.selected?.reference.id).toBe("b");
     expect(picked.chosen).toBe(true);
     expect(needsChoice(picked)).toBe(false);
     expect(picked.proposals.length).toBeGreaterThan(0);
-    expect(picked.proposals.every((p) => p.confidence === "review" && p.referenceId === "b")).toBe(true);
+    expect(picked.proposals.every((p) => p.confidence === "review" && p.referenceId === "b")).toBe(
+      true,
+    );
 
-    const none = analyzeReference([spool], twins, { choices: new Map([["spoolman:1", NO_REFERENCE]]) }).items[0]!;
+    const none = analyzeReference([spool], twins, {
+      choices: new Map([["spoolman:1", NO_REFERENCE]]),
+    }).items[0]!;
     expect(none.selected).toBeNull();
     expect(none.proposals).toEqual([]);
     expect(needsChoice(none)).toBe(false);
 
     // A choice for a record that is no longer a candidate is ignored.
-    const stale = analyzeReference([spool], twins, { choices: new Map([["spoolman:1", "gone"]]) }).items[0]!;
+    const stale = analyzeReference([spool], twins, { choices: new Map([["spoolman:1", "gone"]]) })
+      .items[0]!;
     expect(stale.selected).toBeNull();
     expect(needsChoice(stale)).toBe(true);
   });
 
   test("a person's choice overrides a single clear match", () => {
-    const two = new ReferenceCatalog([ref({ id: "a" }), ref({ id: "b", ...withColor("C0C0C0", "Galaxy Silver", "b") })]);
+    const two = new ReferenceCatalog([
+      ref({ id: "a" }),
+      ref({ id: "b", ...withColor("C0C0C0", "Galaxy Silver", "b") }),
+    ]);
     const spool = makeSpool("spoolman", "1", { density: null });
-    const item = analyzeReference([spool], two, { choices: new Map([["spoolman:1", "b"]]) }).items[0]!;
+    const item = analyzeReference([spool], two, { choices: new Map([["spoolman:1", "b"]]) })
+      .items[0]!;
     expect(item.selected?.reference.id).toBe("b");
     expect(item.chosen).toBe(true);
   });
@@ -449,7 +535,9 @@ describe("accepted proposals and the plan", () => {
     const { edits } = referenceEditsFromAccepted(accepted, [spoolman]);
     const { groups, suggestions } = matchSpools([spoolman, spoolio]);
     const plan = planSync(groups, new Map(), suggestions, new Map(), edits);
-    const changes = (plan.get("spoolman") ?? []).flatMap((change) => (change.kind === "update" ? change.changes : []));
+    const changes = (plan.get("spoolman") ?? []).flatMap((change) =>
+      change.kind === "update" ? change.changes : [],
+    );
     expect(changes).toEqual([{ field: "density", from: null, to: 1.24 }]);
     expect(plan.get("spoolio") ?? []).toEqual([]);
   });

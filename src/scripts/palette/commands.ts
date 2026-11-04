@@ -35,7 +35,9 @@ function available(selector: string): boolean {
 }
 
 export function openPanel(source: string): boolean {
-  const panel = document.querySelector<HTMLDetailsElement>(`details[data-panel="${CSS.escape(source)}"]`);
+  const panel = document.querySelector<HTMLDetailsElement>(
+    `details[data-panel="${CSS.escape(source)}"]`,
+  );
   if (!panel) return false;
   panel.hidden = false;
   panel.open = true;
@@ -67,7 +69,8 @@ export function handleLandingParams(): void {
   history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
   const run = () => {
     if (panel) openPanel(panel);
-    if (spool) document.dispatchEvent(new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key: spool } }));
+    if (spool)
+      document.dispatchEvent(new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key: spool } }));
   };
   // The Load script restores inventories after the page loads; give it a moment to finish.
   if (document.readyState === "complete") setTimeout(run, 250);
@@ -76,8 +79,8 @@ export function handleLandingParams(): void {
 
 function pageItems(): PaletteItem[] {
   // The Inventory entry covers two pages, so the palette lists each step of it instead.
-  const links = [
-    ...navLinks.flatMap((link) =>
+  const links: Array<{ href: string; label: string }> = [
+    ...navLinks.flatMap<{ href: string; label: string }>((link) =>
       link.matchPaths
         ? WORKFLOW_STEPS.filter((step) => step.id !== "apply").map((step) => ({
             href: step.href,
@@ -167,7 +170,8 @@ function actionItems(): PaletteItem[] {
       id: "action:language",
       title: t("palette.language"),
       subtitle: t("palette.language.sub"),
-      keywords: "language locale translation english german deutsch spanish espanol french francais dutch nederlands",
+      keywords:
+        "language locale translation english german deutsch spanish espanol french francais dutch nederlands",
       aliases: ["language", "locale", "translate", "sprache", "idioma", "langue", "taal"],
       run: () => void clickVisible("[data-open-saved-data]"),
     });
@@ -223,7 +227,8 @@ function actionItems(): PaletteItem[] {
     id: "action:cleanup",
     title: t("palette.cleanup"),
     subtitle: t("palette.loadPage"),
-    keywords: "cleanup normalize tidy fix whitespace casing vendor material price weight duplicates",
+    keywords:
+      "cleanup normalize tidy fix whitespace casing vendor material price weight duplicates",
     run: () => {
       // The panel is a native <details data-panel="cleanup"> on the Load page, so the shared
       // ?panel= landing handling opens it after a redirect.
@@ -270,7 +275,10 @@ function actionItems(): PaletteItem[] {
       subtitle: "Pick a spool, then use its Weigh in section",
       keywords: "scale tare remaining filament left weight calculator",
       aliases: ["scale", "tare", "weigh", "how much is left"],
-      run: () => document.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT, { detail: { query: "weigh " } })),
+      run: () =>
+        document.dispatchEvent(
+          new CustomEvent(OPEN_PALETTE_EVENT, { detail: { query: "weigh " } }),
+        ),
     });
   if (document.getElementById("since-visit") && !document.getElementById("since-visit")?.hidden)
     add({

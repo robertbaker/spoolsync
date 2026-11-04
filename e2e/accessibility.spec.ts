@@ -31,7 +31,23 @@ async function loadTwoServices(page: Page) {
   await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
 }
 
+/**
+ * Colors are measured as painted, so a dialog still fading in reads as low contrast. Wait for
+ * finite animations and transitions to finish (endless ones, such as spinners, are left running).
+ */
+async function settle(page: Page) {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
+}
+
 async function violations(page: Page) {
+  await settle(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21aa", "best-practice"])
     .analyze();

@@ -52,7 +52,11 @@ function table(caption: string, entries: readonly ImportReportEntry[]): HTMLElem
             h(
               "tr",
               { class: "border-t align-top" },
-              h("th", { scope: "row", class: "py-1 pr-3 font-medium whitespace-nowrap" }, entry.location),
+              h(
+                "th",
+                { scope: "row", class: "py-1 pr-3 font-medium whitespace-nowrap" },
+                entry.location,
+              ),
               h("td", { class: "py-1" }, entry.reason),
             ),
           ),
@@ -70,7 +74,7 @@ function table(caption: string, entries: readonly ImportReportEntry[]): HTMLElem
  * skipped or adjusted and why, and notes about the file. Built from the importer's own warnings, so
  * it always agrees with what was loaded. The download is a CSV safe to open in a spreadsheet.
  */
-export function importReportView(result: LoadResult, fileName: string): HTMLElement {
+export function importReportView(result: LoadResult, fileName: string): HTMLDetailsElement {
   return renderImportReport(buildImportReport(result, fileName), fileName);
 }
 
@@ -83,7 +87,7 @@ export function renderImportReport(
   report: ImportReport,
   fileName: string,
   options: { lead?: string; summaryLabel?: string } = {},
-): HTMLElement {
+): HTMLDetailsElement {
   const clean = isCleanImport(report);
   const downloadButton = h(
     "button",
@@ -103,10 +107,16 @@ export function renderImportReport(
   );
   return h(
     "details",
-    { class: "import-report mt-2 w-full rounded-lg border bg-muted/20 text-xs", "data-import-report": report.source },
+    {
+      class: "import-report mt-2 w-full rounded-lg border bg-muted/20 text-xs",
+      "data-import-report": report.source,
+    },
     h(
       "summary",
-      { class: "cursor-pointer p-2 font-medium focus-visible:outline-2 focus-visible:outline-primary" },
+      {
+        class:
+          "cursor-pointer p-2 font-medium focus-visible:outline-2 focus-visible:outline-primary",
+      },
       `${options.summaryLabel ?? "Import report"} · ${reportSummary(report)}`,
     ),
     h(
@@ -126,14 +136,23 @@ export function renderImportReport(
           ? ` ${plural(report.unknownWeight, "spool")} ${options.lead ? "would load" : "loaded"} without a remaining weight.`
           : "",
       ),
-      report.skipped.length ? table(options.lead ? "Skipped rows (would not load)" : "Skipped rows (not loaded)", report.skipped) : null,
+      report.skipped.length
+        ? table(
+            options.lead ? "Skipped rows (would not load)" : "Skipped rows (not loaded)",
+            report.skipped,
+          )
+        : null,
       report.changed.length ? table("Values adjusted on import", report.changed) : null,
       report.warnings.length
         ? h(
             "div",
             { class: "mt-3" },
             h("p", { class: "font-medium" }, "Notes about the file"),
-            h("ul", { class: "mt-1 list-disc pl-5" }, ...report.warnings.map((text) => h("li", {}, text))),
+            h(
+              "ul",
+              { class: "mt-1 list-disc pl-5" },
+              ...report.warnings.map((text) => h("li", {}, text)),
+            ),
           )
         : null,
       downloadButton,

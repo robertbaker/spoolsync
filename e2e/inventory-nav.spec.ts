@@ -51,7 +51,9 @@ test.describe("Sidebar navigation", () => {
     );
     // Links keep their accessible names when only icons are shown.
     await expect(
-      page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "CLI", exact: true }),
+      page
+        .getByRole("navigation", { name: "Main" })
+        .getByRole("link", { name: "CLI", exact: true }),
     ).toBeVisible();
 
     await page.goto("/cli");
@@ -149,7 +151,7 @@ test.describe("Inventory workflow", () => {
 
     await page.goto("/load?sample=1");
     await expect(stepper).toContainText("inventories loaded");
-    await expect(stepper.locator('[data-step="load"]')).toHaveAttribute("data-state", "done");
+    await expect(stepper.locator('[data-step="load"]')).toHaveAttribute("data-state", "current");
 
     await stepper.getByRole("link", { name: /Review/ }).click();
     await expect(page).toHaveURL(/\/sync$/);

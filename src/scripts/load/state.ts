@@ -3,7 +3,7 @@ import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 /** Fired on `document` when an inventory is stored or unloaded; the workflow stepper listens. */
 export const INVENTORIES_CHANGED_EVENT = "spoolsync:inventories-changed";
 
-function announceChange(): void {
+export function announceChange(): void {
   if (typeof document !== "undefined") document.dispatchEvent(new Event(INVENTORIES_CHANGED_EVENT));
 }
 

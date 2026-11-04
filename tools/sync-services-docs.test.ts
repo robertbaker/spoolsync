@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { resolve } from "node:path";
 
+import { OPTION_SPECS } from "../packages/spoolsync-cli/src/completion";
 import { SOURCE_IDS } from "../packages/spoolsync-core/src/core/model";
 import { countWord } from "../packages/spoolsync-core/src/core/services";
 import { SERVICE_VIEWS } from "../src/lib/services";
-import { OPTION_SPECS } from "../packages/spoolsync-cli/src/completion";
 import { GENERATORS, renderRegions, syncDocs, unknownRegions } from "./sync-services-docs";
 
 const root = resolve(import.meta.dir, "..");
@@ -36,14 +36,19 @@ test("block regions are rewritten between their markers and inline regions stay 
   expect(regions.sort()).toEqual(["count-inline", "table"]);
   expect(next).not.toContain("stale");
   expect(next).toContain("| Service");
-  expect(next).toContain(`There are ${countWord(SOURCE_IDS.length)} tools.`);
+  // The markers stay, so the region can be rewritten again.
+  expect(next).toContain(
+    `There are <!-- services:count-inline:start -->${countWord(SOURCE_IDS.length)}<!-- services:count-inline:end --> tools.`,
+  );
   expect(next.startsWith("Before\n<!-- services:start -->\n| ")).toBe(true);
   expect(renderRegions(next).text).toBe(next);
 });
 
 test("text without markers is left alone, and unknown markers are reported", () => {
   expect(renderRegions("plain").text).toBe("plain");
-  expect(unknownRegions("<!-- services:nope:start -->x<!-- services:nope:end -->")).toEqual(["nope"]);
+  expect(unknownRegions("<!-- services:nope:start -->x<!-- services:nope:end -->")).toEqual([
+    "nope",
+  ]);
   expect(unknownRegions("<!-- services:start -->x<!-- services:end -->")).toEqual([]);
 });
 

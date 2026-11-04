@@ -123,6 +123,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname === "/sw.js" || url.pathname === "/manifest.webmanifest") return;
+  // Reference-data snapshots are several MB each. The page keeps its own copy (IndexedDB), so a
+  // second copy here would only use up space.
+  if (url.pathname.startsWith("/reference/")) return;
   if (request.headers.has("range")) return;
 
   if (request.mode === "navigate") event.respondWith(page(request));

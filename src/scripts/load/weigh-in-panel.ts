@@ -30,7 +30,8 @@ function inputValue(grams: number, unit: WeightUnit): string {
 /**
  * The "Weigh in" section of the spool drawer: type what the scale shows with the spool on it, and
  * the empty spool's weight is subtracted to give the filament left. The result can be staged as a
- * bulk edit, which the Sync page then shows in its plan; nothing is written to a service from here.
+ * bulk edit, which the Sync page then shows in its plan; nothing is written to a service from
+ * here.
  */
 export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory): HTMLElement {
   const unit = readDisplaySettings().weightUnit;
@@ -38,11 +39,13 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
   const brand = spool.vendor?.trim() || null;
   const brandLabel = brand ?? "spools without a brand";
   const recordedEmpty =
-    detail.columns.map((column) => column.emptySpoolWeight).find((value) => value !== null && value > 0) ??
-    null;
+    detail.columns
+      .map((column) => column.emptySpoolWeight)
+      .find((value) => value !== null && value > 0) ?? null;
   const initial =
-    detail.columns.map((column) => column.initialWeight).find((value) => value !== null && value > 0) ??
-    null;
+    detail.columns
+      .map((column) => column.initialWeight)
+      .find((value) => value !== null && value > 0) ?? null;
   const current = spool.remainingWeight;
   const suggestion = () =>
     resolveTare({ vendor: brand, recorded: recordedEmpty, saved: readTares() });
@@ -68,7 +71,10 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
   gross.value = remembered?.gross ?? "";
   tare.value = remembered?.tare ?? (start ? inputValue(start.grams, unit) : "");
 
-  const tareNote = h("p", { id: "weigh-in-tare-note", class: "mt-1 text-xs text-muted-foreground" });
+  const tareNote = h("p", {
+    id: "weigh-in-tare-note",
+    class: "mt-1 text-xs text-muted-foreground",
+  });
   const result = h("p", {
     id: "weigh-in-result",
     class: "mt-3 min-h-6 text-sm",
@@ -76,7 +82,11 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     "aria-live": "polite",
   });
   const remember = h("button", { type: "button", class: BUTTON, "data-action": "remember-tare" });
-  const forget = h("button", { type: "button", class: BUTTON, "data-action": "forget-tare" }, "Forget saved");
+  const forget = h(
+    "button",
+    { type: "button", class: BUTTON, "data-action": "forget-tare" },
+    "Forget saved",
+  );
   const stage = h(
     "button",
     { type: "button", class: `${BUTTON} text-foreground`, "data-action": "stage-weight" },
@@ -92,7 +102,10 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     tare.setAttribute("aria-invalid", String(empty === "invalid"));
     if (scale === "invalid" || empty === "invalid")
       return { error: "Enter weights as plain numbers, from 0 up." } as const;
-    return { calculation: weighIn({ gross: scale, tare: empty, initial, current }), empty } as const;
+    return {
+      calculation: weighIn({ gross: scale, tare: empty, initial, current }),
+      empty,
+    } as const;
   }
 
   let staged: number | null = null;
@@ -109,12 +122,11 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
           ? `From ${resolved.source}.`
           : "Your own value.";
     const typicalBrand = knownTare(brand);
-    tareNote.textContent =
-      `${origin} ${
-        typicalBrand && !recordedEmpty
-          ? "Typical spools vary, so weigh your own empty spool for the best result."
-          : ""
-      }`.trim();
+    tareNote.textContent = `${origin} ${
+      typicalBrand && !recordedEmpty
+        ? "Typical spools vary, so weigh your own empty spool for the best result."
+        : ""
+    }`.trim();
 
     const canSave =
       typeof typedTare === "number" &&
@@ -127,7 +139,7 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     const state = reading();
     outcome.textContent = "";
     if ("error" in state) {
-      result.textContent = state.error;
+      result.textContent = state.error ?? "";
       result.className = "mt-3 min-h-6 text-sm text-error-text";
       stage.disabled = true;
       staged = null;
@@ -144,7 +156,8 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     }
     staged = calculation.remaining;
     const parts = [`${formatWeight(calculation.remaining, unit)} of filament left`];
-    if (calculation.percent !== null) parts.push(`${calculation.percent}% of ${formatWeight(initial, unit)}`);
+    if (calculation.percent !== null)
+      parts.push(`${calculation.percent}% of ${formatWeight(initial, unit)}`);
     let text = `${parts.join(" · ")}.`;
     if (calculation.delta !== null && current !== null)
       text +=
@@ -153,7 +166,8 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
           : ` That is ${formatWeight(Math.abs(calculation.delta), unit)} ${
               calculation.delta < 0 ? "less" : "more"
             } than the recorded ${formatWeight(current, unit)}.`;
-    if (calculation.overFull) text += " This is above the full weight, so check the empty spool weight.";
+    if (calculation.overFull)
+      text += " This is above the full weight, so check the empty spool weight.";
     result.textContent = text;
     result.className = `mt-3 min-h-6 text-sm font-medium ${calculation.overFull ? "text-warning-text" : ""}`;
     stage.disabled = !detail.canStageWeight || !detail.groupId;

@@ -466,7 +466,7 @@ describe("settings", () => {
   test("accepted entries and choices drop anything malformed", () => {
     const good = {
       spoolKey: "spoolman:1",
-      field: "density",
+      field: "density" as const,
       before: null,
       after: 1.24,
       providerId: "file",

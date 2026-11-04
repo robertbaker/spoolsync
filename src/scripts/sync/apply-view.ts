@@ -113,13 +113,13 @@ export function createApplyView(
       (sum, edit) => sum + Object.keys(edit).length,
       0,
     );
-    const counts = planState.recordEditCounts?.() ?? { cleanup: edited, reference: 0 };
-    const cleanups = counts.cleanup;
-    if (counts.reference) {
+    const editCounts = planState.recordEditCounts?.() ?? { cleanup: edited, reference: 0 };
+    const cleanups = editCounts.cleanup;
+    if (editCounts.reference) {
       sections.push(
         notice(
           "info",
-          `${counts.reference} accepted reference ${counts.reference === 1 ? "change is" : "changes are"} in this plan`,
+          `${editCounts.reference} accepted reference ${editCounts.reference === 1 ? "change is" : "changes are"} in this plan`,
           h(
             "p",
             { class: "mt-1" },
@@ -317,15 +317,21 @@ export function createApplyView(
           note ? h("p", { class: "mt-1 text-xs text-muted-foreground" }, note) : null,
           changes.length ? changeList(changes) : null,
           (fullPlan.get(source) ?? []).length
-            ? renderPreview(source, fullPlan.get(source) ?? [], excluded, {
-                isOpen: (name) => openPreviews.has(name),
-                setOpen: (name, open) => {
-                  if (open) openPreviews.add(name);
-                  else openPreviews.delete(name);
+            ? renderPreview(
+                source,
+                fullPlan.get(source) ?? [],
+                excluded,
+                {
+                  isOpen: (name) => openPreviews.has(name),
+                  setOpen: (name, open) => {
+                    if (open) openPreviews.add(name);
+                    else openPreviews.delete(name);
+                  },
+                  setExcluded: planState.setExcluded,
+                  ...(planState.clearBulkEdit ? { clearBulkEdit: planState.clearBulkEdit } : {}),
                 },
-                setExcluded: planState.setExcluded,
-                ...(planState.clearBulkEdit ? { clearBulkEdit: planState.clearBulkEdit } : {}),
-              }, bulkEdits)
+                bulkEdits,
+              )
             : null,
           status,
         ),

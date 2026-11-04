@@ -169,7 +169,11 @@ describe("material variants", () => {
     const result = propose({ material: "Silk PLA", name: "Gold" });
     const material = result.proposals.find((p) => p.field === "material");
     const name = result.proposals.find((p) => p.field === "name");
-    expect(material).toMatchObject({ after: "PLA", rule: "material-variant", confidence: "review" });
+    expect(material).toMatchObject({
+      after: "PLA",
+      rule: "material-variant",
+      confidence: "review",
+    });
     expect(name).toMatchObject({ after: "Silk Gold", rule: "material-variant" });
     expect(material?.bundle).toBeDefined();
     expect(material?.bundle).toBe(name?.bundle);
@@ -351,9 +355,7 @@ describe("engine", () => {
     const withoutCasing = proposeCleanup([spool], {
       enabled: CLEANUP_RULE_IDS.filter((id) => id !== "casing"),
     });
-    expect(withoutCasing.proposals.map((p) => [p.field, p.after])).toEqual([
-      ["vendor", "eSUN"],
-    ]);
+    expect(withoutCasing.proposals.map((p) => [p.field, p.after])).toEqual([["vendor", "eSUN"]]);
     expect(proposeCleanup([spool], { enabled: [] }).proposals).toEqual([]);
     expect(proposeCleanup([spool], { enabled: ["whitespace"] }).proposals[0]?.after).toBe("esun");
   });
@@ -467,7 +469,7 @@ describe("rule selection and stored shapes", () => {
     ]);
     expect(sanitizeCleanupSettings({ enabled: [] }).enabled).toEqual([]);
     expect(sanitizeCleanupSettings({ enabled: "casing" }).enabled).toEqual([...CLEANUP_RULE_IDS]);
-    const good = { spoolKey: "spoolman:1", field: "vendor", before: "a", after: "b" };
+    const good = { spoolKey: "spoolman:1", field: "vendor" as const, before: "a", after: "b" };
     expect(
       sanitizeAcceptedCleanups([
         good,

@@ -120,3 +120,13 @@ export function copyLine(text: string): HTMLElement {
     button,
   );
 }
+
+/**
+ * Replaces a node's children, leaving out `null`, `undefined` and `false`. The DOM's own
+ * `replaceChildren` turns `null` into the text "null", so conditional children go through here.
+ */
+export function setChildren(parent: ParentNode, ...children: Child[]): void {
+  parent.replaceChildren(
+    ...children.filter((child): child is Node | string => !!child || child === ""),
+  );
+}

@@ -1,5 +1,7 @@
-import { mkdir, mkdtemp, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+
+import { ensureDirectory } from "./ensure-directory";
 
 function normalize(filename: string, platform: NodeJS.Platform): string {
   // Windows file names are case-insensitive, so two spellings can name the same file.
@@ -112,7 +114,7 @@ export async function stageOutputFiles(
   files: readonly OutputFile[],
 ): Promise<StagedOutput> {
   files = files.map((file) => ({ ...file }));
-  await mkdir(directory, { recursive: true });
+  await ensureDirectory(directory);
   for (const file of files) {
     if (path.resolve(path.dirname(file.filename)) !== path.resolve(directory))
       throw new Error(`Export must be written inside the output directory: ${file.filename}`);
