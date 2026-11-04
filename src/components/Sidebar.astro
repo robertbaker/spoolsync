@@ -15,6 +15,7 @@ import { Icon } from "astro-icon/components";
 import type { NavLink } from "~/components/starwind/types";
 import ThemeToggle from "~/components/starwind/controls/ThemeToggle/ThemeToggle.astro";
 import { WORKFLOW_STEPS } from "~/config/site";
+import { PALETTES } from "~/lib/palettes";
 import { isNavCurrent, workflowStepForPath } from "~/lib/sidebar";
 
 interface Props {
@@ -40,7 +41,7 @@ const bottomLinks = links.slice(0, 4);
 >
   <div class="sb-head">
     <a href="/" class="sb-brand" aria-label="SpoolSync home" title="SpoolSync home">
-      <img src="/logo-mark.svg" alt="" width="32" height="32" class="sb-brand__mark" />
+      <span class="brand-mark sb-brand__mark" aria-hidden="true"></span>
       <span class="sb-label sb-brand__name">Spool<span class="text-primary-text">Sync</span></span>
     </a>
     <button
@@ -207,6 +208,29 @@ const bottomLinks = links.slice(0, 4);
     <div class="sb-row">
       <span class="sb-label sb-row__label" id="sb-theme-label">Theme</span>
       <ThemeToggle size="md" variant="outline" class="sb-themebtn" />
+    </div>
+    <div class="sb-row">
+      <span class="sb-label sb-row__label" id="sb-palette-label">Accent color</span>
+      <button
+        type="button"
+        class="sb-palettebtn"
+        data-sb-palette-toggle
+        aria-expanded="false"
+        aria-controls="sb-palette-grid"
+        aria-labelledby="sb-palette-label"
+        title="Choose an accent color"
+      >
+        <span class="sb-swatch" aria-hidden="true"></span>
+      </button>
+    </div>
+    <div id="sb-palette-grid" class="sb-palette" role="radiogroup" aria-labelledby="sb-palette-label" hidden data-sb-palette-grid>
+      {
+        PALETTES.map((palette) => (
+          <button type="button" role="radio" aria-checked="false" aria-label={palette.label} title={palette.label} data-palette-id={palette.id}>
+            <span class="sb-swatch" style={`background:${palette.swatch}`} aria-hidden="true" />
+          </button>
+        ))
+      }
     </div>
     <button
       type="button"

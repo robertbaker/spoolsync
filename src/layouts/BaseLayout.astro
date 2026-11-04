@@ -88,7 +88,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
     }
   </Fragment>
   <span slot="footer-logo" class="flex items-center gap-2 text-2xl font-extrabold tracking-tight text-foreground">
-    <img src="/logo-mark.svg" alt="" class="size-10" width="40" height="40" loading="lazy" />
+    <span class="brand-mark size-10" aria-hidden="true"></span>
     <span>Spool<span class="text-primary-text">Sync</span></span>
   </span>
   <Fragment slot="copyright-content">
@@ -138,6 +138,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   import "~/scripts/pwa";
   import { announceUpdate, wireChangelog } from "~/scripts/changelog-dialog";
   import { wireSavedData } from "~/scripts/saved-data-dialog";
+  import { wirePalettePicker } from "~/scripts/palette-picker";
   import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
   import { wirePalette } from "~/scripts/palette";
   import { wireSidebar } from "~/scripts/sidebar";
@@ -151,6 +152,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   wirePalette();
   wireSetupTriggers();
   wireSavedData();
+  wirePalettePicker();
   wireChangelog();
 
   // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state

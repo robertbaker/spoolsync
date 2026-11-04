@@ -32,3 +32,144 @@
     @apply border-border bg-muted/30 text-muted-foreground hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:bg-primary/5 data-[dragging=true]:border-primary data-[dragging=true]:bg-primary/10 data-[dragging=true]:ring-primary/20 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-6 text-center text-sm transition-all duration-150 data-[dragging=true]:ring-4;
   }
 }
+
+/*
+ * Dropdowns. Every browser gets a themed closed control with one chevron. Browsers that support
+ * customizable selects (appearance: base-select) also get a themed list with hover, selected and
+ * focus states; others keep their native list, which still follows the light/dark color scheme.
+ */
+select.field-input {
+  appearance: none;
+  cursor: pointer;
+  padding-inline-end: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+@supports (appearance: base-select) {
+  select.field-input,
+  select.field-input::picker(select) {
+    appearance: base-select;
+  }
+
+  select.field-input {
+    background-image: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  select.field-input::picker-icon {
+    color: var(--muted-foreground);
+    transition: rotate 0.2s ease;
+  }
+
+  select.field-input:open::picker-icon {
+    rotate: 180deg;
+  }
+
+  select.field-input::picker(select) {
+    margin-block: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--popover);
+    color: var(--popover-foreground);
+    box-shadow: var(--dialog-shadow);
+    max-block-size: min(20rem, 50dvh);
+    overscroll-behavior: contain;
+  }
+
+  select.field-input option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  select.field-input option:hover,
+  select.field-input option:focus-visible {
+    background: color-mix(in oklab, var(--primary) 14%, transparent);
+    outline: none;
+  }
+
+  select.field-input option:checked {
+    font-weight: 600;
+    background: color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+
+  select.field-input option::checkmark {
+    order: 1;
+    margin-inline-start: auto;
+    color: var(--primary-text, var(--primary));
+  }
+}
+
+/* Sidebar accent-color picker. */
+.sb-palettebtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+}
+.sb-palettebtn:hover {
+  background: var(--muted);
+}
+.sb-swatch {
+  display: inline-block;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--foreground) 20%, transparent);
+}
+.sb-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem 0.5rem;
+}
+.sb-palette[hidden] {
+  display: none;
+}
+.sb-palette button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: transparent;
+  cursor: pointer;
+}
+.sb-palette button:hover {
+  background: var(--muted);
+}
+.sb-palette button[aria-checked="true"] {
+  border-color: var(--foreground);
+}
+:root[data-sidebar="collapsed"] .app-sidebar .sb-palette {
+  display: none;
+}
+
+/* The brand mark takes the accent color, so it follows the chosen palette. */
+.brand-mark {
+  display: inline-block;
+  flex: none;
+  background: var(--primary);
+  -webkit-mask: url("/logo-mark.svg") center / contain no-repeat;
+  mask: url("/logo-mark.svg") center / contain no-repeat;
+}

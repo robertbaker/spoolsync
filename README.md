@@ -46,6 +46,7 @@ is unknown. Both fallbacks produce warnings. Negative weights and remaining weig
 initial weight must be resolved before export.
 
 <!-- services:start -->
+
 | Service                 | Platform                   | Read                                       | Write back                                             | Export from                                                    |
 | ----------------------- | -------------------------- | ------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------- |
 | Spoolman / Spoolman-NG  | Self-hosted                | API or JSON/CSV file                       | API or JSON file                                       | Direct over your local network, or via export file             |
@@ -61,6 +62,7 @@ initial weight must be resolved before export.
 | Spool Hoarder           | Mobile app, Desktop app    | CSV file                                   | Read-only (does not accept imports)                    | Inventory CSV or HueForge library CSV                          |
 | Spool (Mac and iOS app) | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                    | JSON backup from the Mac and iOS app                           |
 | SpoolKeep               | Mobile app, Desktop app    | JSON file                                  | Read-only (does not accept imports)                    | JSON backup from the Mac and iOS app                           |
+
 <!-- services:end -->
 
 SpoolSync can also export every loaded spool as one CSV (Load → Download all as CSV) and offers
@@ -209,7 +211,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and pull request gu
 is open source under the GNU AGPL version 3; see [LICENSE](LICENSE) for the full terms. The
 Starwind components include MIT-licensed code; see
 [src/components/starwind/UPSTREAM.md](src/components/starwind/UPSTREAM.md). Third-party asset credits
-and icon attributions are listed in [CREDITS](CREDITS).
+and icon attributions are listed in [CREDITS](CREDITS.md).
 
 ## Trademarks
 

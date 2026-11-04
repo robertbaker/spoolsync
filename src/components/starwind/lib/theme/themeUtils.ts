@@ -33,5 +33,5 @@ export function applyTheme(theme: ThemeMode): void {
 export function createThemeInitScript(storageKey: string, defaultMode: string): string {
   const safeStorageKey = escapeForInlineScript(storageKey);
   const safeDefaultMode = escapeForInlineScript(defaultMode);
-  return `(function(){var k=${safeStorageKey},t;try{t=localStorage.getItem(k)}catch{t=null}if(t!=="dark"&&t!=="light"){var d=t==="system"?"system":${safeDefaultMode};t=(d==="dark"||d==="light")?d:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")};var r=document.documentElement;r.setAttribute("data-theme",t);r.classList.toggle("dark",t==="dark");r.setAttribute("data-current-theme",t)})()`;
+  return `(function(){var k=${safeStorageKey},t;try{t=localStorage.getItem(k)}catch{t=null}if(t!=="dark"&&t!=="light"){var d=t==="system"?"system":${safeDefaultMode};t=(d==="dark"||d==="light")?d:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")};var r=document.documentElement;r.setAttribute("data-theme",t);r.classList.toggle("dark",t==="dark");r.setAttribute("data-current-theme",t);try{var p=localStorage.getItem("spoolsync:palette");if(p&&/^[a-z]+$/.test(p))r.setAttribute("data-palette",p)}catch{}})()`;
 }

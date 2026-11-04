@@ -5,6 +5,7 @@ SpoolSync is an independent open-source project and relies on graphics, icons, a
 ## Service & Provider Icons
 
 ### 3DFilamentProfiles
+
 - **Asset**: 3D printer filament spool icon
 - **Author**: Oleksandr Panasovskyi
 - **Source**: [Noun Project](https://thenounproject.com/browse/icons/term/3d-printer-filament/)
@@ -13,36 +14,43 @@ SpoolSync is an independent open-source project and relies on graphics, icons, a
   "3d printer filament by Oleksandr Panasovskyi from Noun Project (CC BY 3.0)"
 
 ### Spoolman / Spoolman-NG
+
 - **Asset**: Spoolman logo
 - **Source**: [Donkie/Spoolman](https://github.com/Donkie/Spoolman)
 - **Usage**: Used to identify software compatibility.
 
 ### Spoolstock
+
 - **Asset**: Spoolstock logo
 - **Source**: [Spoolstock](https://spoolstock.com)
 - **Usage**: Used to identify software compatibility.
 
 ### Spoolio
+
 - **Asset**: Spoolio logo
 - **Source**: [Spoolio](https://spoolio.net)
 - **Usage**: Used to identify software compatibility.
 
 ### TigerTag
+
 - **Asset**: TigerTag logo
 - **Source**: [TigerTag](https://tigertag.io) (Tiger Studio)
 - **Usage**: Used to identify hardware & software compatibility.
 
 ### Bambuddy
+
 - **Asset**: Bambuddy logo
 - **Source**: [maziggy/bambuddy](https://github.com/maziggy/bambuddy)
 - **Usage**: Used to identify software compatibility.
 
 ### FilaMeter
+
 - **Asset**: FilaMeter logo
 - **Source**: [SiloCityLabs/filameter.com](https://github.com/SiloCityLabs/filameter.com)
 - **Usage**: Used to identify software compatibility.
 
 ### Filadex
+
 - **Asset**: Filadex logo
 - **Source**: [the-luap/filadex](https://github.com/the-luap/filadex)
 - **Usage**: Used to identify software compatibility.

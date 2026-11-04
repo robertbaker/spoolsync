@@ -123,47 +123,80 @@ function rebuild(body: HTMLElement): void {
       result.className = "mt-2 text-xs text-error";
     }
   });
-  body.replaceChildren(
-    h(
-      "h2",
-      { id: "saved-data-title", class: "text-xl font-bold tracking-tight" },
-      "Saved in this browser",
-    ),
+  const transfer = h(
+    "section",
+    { class: "mt-6 border-t pt-5", "aria-label": "Move to another browser" },
+    h("p", { class: "text-sm font-semibold" }, "Move to another browser"),
     h(
       "p",
-      { class: "mt-1 text-sm text-muted-foreground" },
-      "SpoolSync remembers these so things are ready when you come back. They never leave this browser.",
+      { class: "mt-0.5 text-xs text-muted-foreground" },
+      "Export your preferences, file history, and match answers to a file, then import it elsewhere. Connections and tokens are never included.",
+    ),
+    h("div", { class: "mt-3 flex flex-wrap gap-2" }, exportButton, importButton, fileInput),
+    result,
+  );
+  const saved = h(
+    "section",
+    { class: "mt-6 border-t pt-5", "aria-labelledby": "saved-data-list-title" },
+    h("h3", { id: "saved-data-list-title", class: "text-sm font-semibold" }, "What is remembered"),
+    h(
+      "p",
+      { class: "mt-0.5 text-xs text-muted-foreground" },
+      "Forget a group to remove just that; the page reloads when you close this.",
     ),
     items.length
-      ? h("ul", { class: "mt-4", "aria-live": "polite" }, ...rows)
+      ? h("ul", { class: "mt-2", "aria-live": "polite" }, ...rows)
       : h(
           "p",
           {
             id: "saved-data-empty",
             class:
-              "mt-4 rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground",
+              "mt-3 rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground",
           },
           "Nothing is saved.",
         ),
-    displaySettingsSection(),
+  );
+  const strip = (section: HTMLElement) => {
+    // Sections inside the scrolling area own their spacing; the first one needs none.
+    section.classList.remove("mt-4", "border-t", "pt-3");
+    section.classList.add("mt-6", "border-t", "pt-5");
+    return section;
+  };
+  const display = displaySettingsSection();
+  display.classList.remove("mt-4", "border-t", "pt-3");
+  body.replaceChildren(
     h(
-      "div",
-      { class: "mt-4 border-t pt-3" },
-      h("p", { class: "text-sm font-semibold" }, "Move to another browser"),
+      "header",
+      { class: "sticky top-0 z-10 border-b bg-background px-6 pb-3 pt-5" },
+      h(
+        "h2",
+        { id: "saved-data-title", class: "text-xl font-bold tracking-tight" },
+        "Saved in this browser",
+      ),
       h(
         "p",
-        { class: "text-xs text-muted-foreground" },
-        "Export your preferences, file history, and match answers to a file, then import it elsewhere. Connections and tokens are never included.",
+        { class: "mt-1 text-sm text-muted-foreground" },
+        "SpoolSync remembers these so things are ready when you come back. They never leave this browser.",
       ),
-      h("div", { class: "mt-2 flex flex-wrap gap-2" }, exportButton, importButton, fileInput),
-      result,
     ),
-    backupSection(() => {
-      changed = true;
-    }),
     h(
       "div",
-      { class: "mt-5 flex flex-wrap items-center justify-between gap-3" },
+      { class: "px-6 pb-6 pt-5" },
+      display,
+      saved,
+      transfer,
+      strip(
+        backupSection(() => {
+          changed = true;
+        }),
+      ),
+    ),
+    h(
+      "footer",
+      {
+        class:
+          "sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t bg-background px-6 py-3",
+      },
       items.length ? everything : h("span"),
       close,
     ),
@@ -172,7 +205,7 @@ function rebuild(body: HTMLElement): void {
 
 function ensureDialog(): HTMLDialogElement {
   if (dialog) return dialog;
-  const body = h("div", { class: "p-6" });
+  const body = h("div", {});
   dialog = h(
     "dialog",
     {

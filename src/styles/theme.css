@@ -66,6 +66,68 @@
   --chart-mark: oklch(0.66 0.18 50);
 }
 
+/* Accent palettes: the picker in the sidebar sets data-palette on <html>. Filament orange is the default. */
+[data-palette="ocean"] {
+  --primary: oklch(0.62 0.17 250);
+  --accent: oklch(0.94 0.035 250);
+  --chart-mark: oklch(0.62 0.17 250);
+}
+[data-palette="ocean"].dark {
+  --primary: oklch(0.74 0.15 250);
+  --accent: oklch(0.3 0.04 250);
+  --chart-mark: oklch(0.66 0.16 250);
+}
+[data-palette="teal"] {
+  --primary: oklch(0.62 0.17 195);
+  --accent: oklch(0.94 0.035 195);
+  --chart-mark: oklch(0.62 0.17 195);
+}
+[data-palette="teal"].dark {
+  --primary: oklch(0.74 0.15 195);
+  --accent: oklch(0.3 0.04 195);
+  --chart-mark: oklch(0.66 0.16 195);
+}
+[data-palette="forest"] {
+  --primary: oklch(0.62 0.17 150);
+  --accent: oklch(0.94 0.035 150);
+  --chart-mark: oklch(0.62 0.17 150);
+}
+[data-palette="forest"].dark {
+  --primary: oklch(0.74 0.15 150);
+  --accent: oklch(0.3 0.04 150);
+  --chart-mark: oklch(0.66 0.16 150);
+}
+[data-palette="violet"] {
+  --primary: oklch(0.62 0.17 295);
+  --accent: oklch(0.94 0.035 295);
+  --chart-mark: oklch(0.62 0.17 295);
+}
+[data-palette="violet"].dark {
+  --primary: oklch(0.74 0.15 295);
+  --accent: oklch(0.3 0.04 295);
+  --chart-mark: oklch(0.66 0.16 295);
+}
+[data-palette="rose"] {
+  --primary: oklch(0.62 0.17 355);
+  --accent: oklch(0.94 0.035 355);
+  --chart-mark: oklch(0.62 0.17 355);
+}
+[data-palette="rose"].dark {
+  --primary: oklch(0.74 0.15 355);
+  --accent: oklch(0.3 0.04 355);
+  --chart-mark: oklch(0.66 0.16 355);
+}
+[data-palette="crimson"] {
+  --primary: oklch(0.62 0.17 25);
+  --accent: oklch(0.94 0.035 25);
+  --chart-mark: oklch(0.62 0.17 25);
+}
+[data-palette="crimson"].dark {
+  --primary: oklch(0.74 0.15 25);
+  --accent: oklch(0.3 0.04 25);
+  --chart-mark: oklch(0.66 0.16 25);
+}
+
 .spoolsync-tour-highlight {
   position: relative;
   z-index: 60;

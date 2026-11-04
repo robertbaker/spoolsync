@@ -47,9 +47,10 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "preferences",
     label: "Preferences",
     description:
-      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, which data-cleanup rules are on, the reference-data provider and field choices, and recently used services.",
+      "Table sort, filters, the low-stock threshold, auto-fetch, open panels, chart views, label options, saved table views, which data-cleanup rules are on, the reference-data provider and field choices, and recently used services, and your accent color.",
     keys: [
       "spoolsync:prefs",
+      "spoolsync:palette",
       "spoolsync:low-stock-percent",
       "spoolsync:open-panels",
       "spoolsync:recent-sources",
