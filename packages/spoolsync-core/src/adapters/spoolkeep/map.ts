@@ -5,10 +5,24 @@ import type { SpoolKeepRecord } from "./schema";
 export type SpoolKeepCondition = "new" | "used" | "none";
 
 /** SpoolKeep stores a colour name, or occasionally a hex code, in the same `color` field. */
-function colorFields(value: string | null | undefined): { name: string | null; colors: string[] } {
+function colorFields(value: string | null | undefined): {
+  name: string | null;
+  colors: string[];
+} {
   const text = toText(value);
   const hex = text && /^#?[0-9a-f]{6}$/i.test(text) ? toHex(text) : null;
   return { name: text, colors: hex ? [hex] : [] };
+}
+
+/** Notes, then the family when it adds to `exactType`. */
+function commentText(record: SpoolKeepRecord): string | null {
+  const family = toText(record.family);
+  const exact = toText(record.exactType);
+  const parts = [
+    toText(record.note),
+    family && exact && family.toLowerCase() !== exact.toLowerCase() ? `Family: ${family}` : null,
+  ].filter((part): part is string => part !== null);
+  return parts.length ? parts.join("\n") : null;
 }
 
 /**
@@ -45,7 +59,9 @@ export function spoolKeepToCommon(
     price: record.price != null && record.price >= 0 ? record.price : null,
     purchasedOn: null,
     lotNr: null,
-    comment: toText(record.note),
+    finish: null,
+    td: null,
+    comment: commentText(record),
     archived: condition === "none",
     raw: record,
   };

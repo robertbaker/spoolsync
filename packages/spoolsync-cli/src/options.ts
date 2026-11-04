@@ -10,6 +10,8 @@ export type Options = {
   filamentdbToken?: string;
   filamentDbUrl?: string;
   filamentDbToken?: string;
+  bambuddyUrl?: string;
+  bambuddyToken?: string;
   filadexUrl?: string;
   filadexUser?: string;
   apply: boolean;

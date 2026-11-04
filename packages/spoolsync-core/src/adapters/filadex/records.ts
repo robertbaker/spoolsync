@@ -124,6 +124,8 @@ export function createRecord(
     storageLocation: v.location ?? "",
     barcode: v.upc ?? "",
   };
+  // Filadex only uses density to seed a new material catalog entry; it is not stored per spool.
+  if (v.density != null && v.density > 0) record["density"] = String(v.density);
   if (v.colors.length > 1) warn(`${label}: ${COLOR_WARNING}`);
   setWeights(record, v.initialWeight, v.remainingWeight, label, warn);
   return record;

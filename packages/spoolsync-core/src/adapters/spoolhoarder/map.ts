@@ -31,6 +31,18 @@ function text(value: unknown): string | null {
   return typeof value === "number" ? String(value) : toText(value);
 }
 
+/** `gross`, `total` and `with spool` include the spool; `net` and `without spool` do not. */
+function isGrossBasis(basis: string): boolean {
+  if (/\bnet\b|without/.test(basis)) return false;
+  return /gross|total|with/.test(basis);
+}
+
+/** Joins filament-level and spool-level notes, keeping both when present. */
+function joinNotes(...values: unknown[]): string | null {
+  const parts = values.map(text).filter((part): part is string => part !== null);
+  return parts.length ? parts.join("\n") : null;
+}
+
 /**
  * Maps a row of Spool Hoarder's inventory CSV. `weightBasis` says whether `remainingWeight`
  * includes the empty spool; gross weights are reduced to net filament when the tare is known.
@@ -41,7 +53,7 @@ export function templateRowToCommon(row: Row, index: number): CommonSpool {
   const emptySpoolWeight = toNonNegativeNumber(field(row, "emptySpoolWeight"));
   let remainingWeight = toNonNegativeNumber(field(row, "remainingWeight"));
   const basis = text(field(row, "weightBasis"))?.toLowerCase() ?? "";
-  if (remainingWeight !== null && emptySpoolWeight !== null && /gross|total|with/.test(basis))
+  if (remainingWeight !== null && emptySpoolWeight !== null && isGrossBasis(basis))
     remainingWeight = Math.max(0, remainingWeight - emptySpoolWeight);
   const status = text(field(row, "status"))?.toLowerCase() ?? "";
   const temperature = toPositiveNumber(field(row, "extruderTemp"));
@@ -69,7 +81,9 @@ export function templateRowToCommon(row: Row, index: number): CommonSpool {
     price: toNonNegativeNumber(field(row, "price")),
     purchasedOn: null,
     lotNr: null,
-    comment: text(field(row, "notes")),
+    finish: null,
+    td: null,
+    comment: joinNotes(field(row, "filamentNotes"), field(row, "notes")),
     archived: toBoolean(field(row, "depleted")) || DEPLETED_STATUSES.has(status),
     raw: row,
   };
@@ -105,6 +119,8 @@ export function hueforgeRowToCommon(row: Row, index: number): CommonSpool {
     price: null,
     purchasedOn: null,
     lotNr: null,
+    finish: null,
+    td: toNonNegativeNumber(field(row, "td", "transmissivity")),
     comment: null,
     archived: owned !== undefined && !toBoolean(owned),
     raw: row,

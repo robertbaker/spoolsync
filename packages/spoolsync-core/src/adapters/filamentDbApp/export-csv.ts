@@ -47,6 +47,7 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
         filament: v.name ?? "",
         vendor: v.vendor ?? "",
         label: v.comment ?? "",
+        lotNumber: v.lotNr ?? "",
         totalWeight: remaining === null ? "" : remaining + (v.emptySpoolWeight ?? 0),
         purchaseDate: v.purchasedOn ?? "",
         location: v.location ?? "",
@@ -75,6 +76,7 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
           : spool.remainingWeight + (change.spool.emptySpoolWeight ?? 0);
     if (spool.purchaseDate !== undefined) row["purchaseDate"] = spool.purchaseDate ?? "";
     if (spool.label !== undefined) row["label"] = spool.label;
+    if (spool.lotNumber !== undefined) row["lotNumber"] = spool.lotNumber ?? "";
     if (spool.retired !== undefined)
       problem("The spool CSV importer ignores the retired flag, so it was not written.");
     for (const { field, to } of change.changes)

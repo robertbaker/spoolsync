@@ -34,6 +34,13 @@ export const FilamentSchema = z.looseObject({
   comment: z.string().nullish(),
   settings_extruder_temp: z.number().nullish(),
   settings_bed_temp: z.number().nullish(),
+  // Spoolman-NG only: the recommended range, beside the single overridden temperature.
+  settings_extruder_temp_min: z.number().nullish(),
+  settings_extruder_temp_max: z.number().nullish(),
+  settings_bed_temp_min: z.number().nullish(),
+  settings_bed_temp_max: z.number().nullish(),
+  // Spoolman-NG only: "matte" or "glossy".
+  finish: z.string().nullish(),
   color_hex: z.string().nullish(),
   multi_color_hexes: z.string().nullish(),
   multi_color_direction: z.string().nullish(),
@@ -52,6 +59,8 @@ export const SpoolSchema = z.looseObject({
   remaining_weight: z.number().nullish(),
   initial_weight: z.number().nullish(),
   spool_weight: z.number().nullish(),
+  // Spoolman-NG only: measured diameter that overrides the filament's.
+  diameter: z.number().nullish(),
   used_weight: z.number().optional(),
   location: z.string().nullish(),
   lot_nr: z.string().nullish(),
@@ -70,7 +79,10 @@ export type SpoolmanInfo = z.infer<typeof InfoSchema>;
 
 export const HealthSchema = z.looseObject({ status: z.string() });
 
-export const ExtraFieldSchema = z.looseObject({ key: z.string(), name: z.string().optional() });
+export const ExtraFieldSchema = z.looseObject({
+  key: z.string(),
+  name: z.string().optional(),
+});
 
 export type SpoolmanEntity = "vendor" | "filament" | "spool";
 
@@ -95,6 +107,10 @@ export type FilamentParameters = {
   comment?: string | null;
   settings_extruder_temp?: number | null;
   settings_bed_temp?: number | null;
+  settings_extruder_temp_min?: number | null;
+  settings_extruder_temp_max?: number | null;
+  settings_bed_temp_min?: number | null;
+  settings_bed_temp_max?: number | null;
   color_hex?: string | null;
   multi_color_hexes?: string | null;
   multi_color_direction?: "coaxial" | "longitudinal" | null;
@@ -107,6 +123,7 @@ export type SpoolParameters = {
   price?: number | null;
   initial_weight?: number | null;
   spool_weight?: number | null;
+  diameter?: number | null;
   remaining_weight?: number | null;
   location?: string | null;
   lot_nr?: string | null;

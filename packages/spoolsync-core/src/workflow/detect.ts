@@ -1,4 +1,10 @@
-import { SOURCE_IDS, hasServiceCapability, isBinarySource, type SourceId } from "../core/model";
+import {
+  SOURCE_IDS,
+  hasServiceCapability,
+  isBinarySource,
+  readsTextFile,
+  type SourceId,
+} from "../core/model";
 import { loadInventoryFile } from "./load";
 
 export interface DetectedInventory {
@@ -10,10 +16,11 @@ export interface DetectedInventory {
 function candidatesFor(filename: string, input: string | Uint8Array): SourceId[] {
   const extension = /\.([a-z0-9]+)$/i.exec(filename.trim())?.[1]?.toLowerCase();
   const fileSources = SOURCE_IDS.filter((source) => hasServiceCapability(source, "file-export"));
-  if (extension === "xlsx") return fileSources.filter(isBinarySource);
+  if (extension === "xlsx") return fileSources.filter((source) => !readsTextFile(source));
+  if (extension === "zip") return fileSources.filter(isBinarySource);
   if (typeof input !== "string" && input.byteLength >= 2 && input[0] === 0x50 && input[1] === 0x4b)
     return fileSources.filter(isBinarySource);
-  const text = fileSources.filter((source) => !isBinarySource(source));
+  const text = fileSources.filter(readsTextFile);
   if (extension === "csv")
     return text.filter(
       (source) => !["tigertag", "filamentdb", "spoolio", "spoolapp", "spoolkeep"].includes(source),

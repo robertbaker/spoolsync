@@ -64,3 +64,68 @@ export function diameterFromId(id: unknown): number | null {
 export function diameterId(diameter: number | null): number {
   return (diameter ?? 1.75) < 2.3 ? 56 : 221;
 }
+
+/**
+ * Aspect ids (`id_aspect1` / `id_aspect2`, the finish or special look of a filament) the app
+ * writes, with the label shown for each. 255 means no aspect. Ids outside this table are shown
+ * through the label of a linked catalogue product when there is one.
+ */
+export const NO_ASPECT = 255;
+const ASPECT_LABELS: Record<number, string> = {
+  104: "Basic",
+  145: "Rainbow",
+  24: "Tricolor",
+  252: "Bicolor",
+  91: "Glow",
+  123: "Wood",
+  232: "Marble",
+  238: "Carbon",
+  92: "Silk",
+  64: "Glitter",
+  226: "Metal",
+  216: "Neon",
+  21: "Clear",
+  67: "Translucent",
+  129: "Gloss",
+  247: "Matte",
+  134: "Satin",
+  126: "Pearl",
+  132: "Fiber",
+};
+const ASPECT_ALIASES: Record<string, number> = {
+  standard: 104,
+  matt: 247,
+  metallic: 226,
+  transparent: 67,
+  "glow in the dark": 91,
+  glossy: 129,
+  "carbon fiber": 238,
+  "carbon fibre": 238,
+  "tri color": 24,
+  "bi color": 252,
+  tricolour: 24,
+  bicolour: 252,
+};
+const aspectByKey = new Map<string, number>([
+  ...Object.entries(ASPECT_LABELS).map(([id, label]) => [key(label), Number(id)] as const),
+  ...Object.entries(ASPECT_ALIASES).map(([alias, id]) => [key(alias), id] as const),
+]);
+
+/** The label of an aspect id; null for 255 / absent, undefined for an id this table does not know. */
+export function aspectLabel(id: unknown): string | null | undefined {
+  if (typeof id !== "number" || id === NO_ASPECT) return null;
+  return ASPECT_LABELS[id];
+}
+
+/** The aspect id for a finish label, or null when TigerTag has no such aspect. */
+export function aspectId(label: string): number | null {
+  return aspectByKey.get(key(label)) ?? null;
+}
+
+/** Splits a finish such as "Matte, Silk" into its labels (at most two fit in a record). */
+export function finishLabels(finish: string | null | undefined): string[] {
+  return (finish ?? "")
+    .split(/[,/]/)
+    .map((label) => label.trim())
+    .filter(Boolean);
+}

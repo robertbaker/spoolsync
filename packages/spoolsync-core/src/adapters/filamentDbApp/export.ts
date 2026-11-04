@@ -1,6 +1,6 @@
 import type { PlannedChange } from "../../core/compare";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
-import { idOf } from "./map";
+import { idOf, isLegacyRoll, legacySpoolId } from "./map";
 import { changePatches, patchSnapshotFilament, patchSnapshotSpool } from "./records";
 import { findSpoolTarget, newSpoolFields } from "./target";
 import type { FilamentDbAppLoadResult } from "./types";
@@ -31,6 +31,15 @@ export function exportFilamentDbApp(
 
   const spools = new Map<string, Bag>();
   const filamentOf = new Map<Bag, string | null>();
+  const legacyRolls = new Map<string, Bag>();
+  const templates = new Set(
+    (filaments as Bag[]).map((filament) => idOf(filament["parentId"])).filter((id) => id !== null),
+  );
+  for (const filament of filaments as Bag[]) {
+    const filamentId = idOf(filament["_id"]);
+    if (filamentId && !filament["_deletedAt"] && isLegacyRoll(filament, templates.has(filamentId)))
+      legacyRolls.set(legacySpoolId(filamentId), filament);
+  }
   for (const filament of filaments as Bag[])
     if (Array.isArray(filament["spools"]))
       for (const spool of filament["spools"] as Bag[]) {
@@ -74,6 +83,17 @@ export function exportFilamentDbApp(
       (host["spools"] as Bag[]).push(spool);
       spools.set(String(spool["_id"]), spool);
       created++;
+      continue;
+    }
+    const legacyHost = legacyRolls.get(change.spool.sourceId);
+    if (legacyHost) {
+      const patches = changePatches(change, {
+        locationIdByName: locationIds,
+        legacyRoll: true,
+        problem,
+      });
+      patchSnapshotFilament(legacyHost, patches.filament);
+      updated++;
       continue;
     }
     const spool = spools.get(change.spool.sourceId);

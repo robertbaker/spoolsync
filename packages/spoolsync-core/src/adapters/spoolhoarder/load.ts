@@ -8,7 +8,12 @@ function detectLayout(headers: readonly string[]): Layout | null {
   const has = (name: string) => headers.includes(name);
   if (has("remainingweight") || has("spoolid") || (has("brand") && has("colorhexcodes")))
     return "template";
-  if (has("brand") && has("type") && has("color") && (has("td") || has("owned") || has("uuid")))
+  if (
+    has("brand") &&
+    has("type") &&
+    has("color") &&
+    (has("td") || has("transmissivity") || has("owned") || has("uuid"))
+  )
     return "hueforge";
   return null;
 }

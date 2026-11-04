@@ -25,6 +25,11 @@ export const inputs = [
     desc: "Load FilamentDB directly; --apply writes back (token via --filamentdb-token or FILAMENTDB_TOKEN).",
   },
   {
+    flag: "--bambuddy-url <url>",
+    copy: "--bambuddy-url",
+    desc: "Load Bambuddy directly; --apply creates, updates and archives spools (key via --bambuddy-token or BAMBUDDY_API_KEY, with the Manage inventory scope to write).",
+  },
+  {
     flag: "--filadex-url <url> --filadex-user <name>",
     copy: "--filadex-url",
     desc: "Load Filadex directly; password from FILADEX_PASSWORD.",
@@ -183,7 +188,7 @@ export const output = [
   {
     flag: "--restore-rollback <file>",
     copy: "--restore-rollback",
-    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
+    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --bambuddy-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
   },
   {
     flag: "--export-csv <file>",
@@ -210,12 +215,20 @@ export const output = [
     copy: "--version",
     desc: 'Show the installed CLI version. Add --json to get {"version": "…"} for scripts.',
   },
-  { flag: "-h, --help", copy: "--help", desc: "Show usage, resolvable fields, and source names." },
+  {
+    flag: "-h, --help",
+    copy: "--help",
+    desc: "Show usage, resolvable fields, and source names.",
+  },
 ];
 
 export const optionGroups = [
   { title: "Inputs", note: "Provide at least two.", rows: inputs },
-  { title: "Planning", note: "Optional: resolve conflicts and matches.", rows: planning },
+  {
+    title: "Planning",
+    note: "Optional: resolve conflicts and matches.",
+    rows: planning,
+  },
   { title: "Output", note: "Dry run unless specified.", rows: output },
 ];
 

@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 
+import { exportBambuddyCsv, loadBambuddyFile } from ".";
+import { makeSpool } from "../../core/testing";
 import { exportInventory, loadInventoryFile } from "../../workflow";
 
 test("Bambuddy exports warn when planned edits cannot be represented by its create-only CSV", async () => {
@@ -22,4 +24,39 @@ test("Bambuddy exports warn when planned edits cannot be represented by its crea
   expect(result.warnings).toHaveLength(1);
   expect(result.warnings[0]).toContain("1 planned update was omitted");
   expect((await loadInventoryFile("bambuddy", result.text)).spools).toEqual([]);
+});
+
+test("Bambuddy CSV export writes finish as subtype and the lot number as material_number", () => {
+  const values = makeSpool("bambuddy", "x", {
+    finish: "Silk",
+    lotNr: "B-15",
+    emptySpoolWeight: 230,
+    archived: true,
+  });
+  const loaded = loadBambuddyFile(["material", "PLA", ""].join("\n"));
+  const result = exportBambuddyCsv(loaded, [
+    {
+      kind: "create",
+      source: "bambuddy",
+      groupId: "g",
+      values,
+      links: {},
+      groupIds: {},
+    },
+  ]);
+  const [header, row] = result.csv.trim().split(String.fromCharCode(10));
+  const columns = header!.trim().split(",");
+  const cells = row!.trim().split(",");
+  expect(cells[columns.indexOf("subtype")]).toBe("Silk");
+  expect(cells[columns.indexOf("material_number")]).toBe("B-15");
+  expect(columns).not.toContain("effect_type");
+  expect(columns).not.toContain("core_weight");
+  expect(result.warnings.join(" ")).toContain("empty spool weight was omitted");
+  expect(result.warnings.join(" ")).toContain("archived state was omitted");
+  const reloaded = loadBambuddyFile(result.csv).spools[0]!;
+  expect(reloaded).toMatchObject({
+    finish: "Silk",
+    lotNr: "B-15",
+    crossIds: {},
+  });
 });

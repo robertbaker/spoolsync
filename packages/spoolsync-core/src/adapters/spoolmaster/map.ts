@@ -42,6 +42,10 @@ export function spoolmasterToCommon(row: SpoolmasterRow): CommonSpool {
   let remainingWeight = toNonNegativeNumber(values["remaining weight"]);
   if (remainingWeight === null && initialWeight !== null && percent !== null)
     remainingWeight = Math.round((initialWeight * Math.min(percent, 100)) / 100);
+  let price = toNonNegativeNumber(values["price"]);
+  const perKilo = toNonNegativeNumber(values["price / kg"]);
+  if (price === null && perKilo !== null && initialWeight !== null)
+    price = Math.round(((perKilo * initialWeight) / 1000) * 100) / 100;
   return {
     source: "spoolmaster",
     sourceId: id,
@@ -61,9 +65,11 @@ export function spoolmasterToCommon(row: SpoolmasterRow): CommonSpool {
     remainingWeight,
     emptySpoolWeight: null,
     location: text(values["location"]),
-    price: toNonNegativeNumber(values["price"]),
+    price,
     purchasedOn: date(values["date added"]),
     lotNr: text(values["batch / sku"]),
+    finish: null,
+    td: null,
     comment: text(values["notes"]),
     archived: false,
     raw: { row: row.rowNumber, ...values },

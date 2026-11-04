@@ -21,6 +21,33 @@ function colors(value: string | undefined): string[] {
   }
 }
 
+/** `filament.features` is a JSON array of labels such as ["Matte"] or ["Metallic","Silk"]. */
+function finish(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  let labels: unknown[];
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    labels = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    labels = trimmed.split(",");
+  }
+  const text = labels
+    .map((label) => (typeof label === "string" ? label.trim() : ""))
+    .filter(Boolean)
+    .join(", ");
+  return text || null;
+}
+
+/** The spool's own notes first, then the filament's notes under a heading so they stay distinct. */
+function comment(record: SpoolstockRecord): string | null {
+  const spoolNotes = toText(record.notes);
+  const filamentNotes = toText(record["filament.notes"]);
+  if (!filamentNotes) return spoolNotes;
+  const labelled = `Filament notes: ${filamentNotes}`;
+  return spoolNotes ? `${spoolNotes}\n\n${labelled}` : labelled;
+}
+
 /** Recognizes `spoolman-<id>` short IDs in legacy Spoolstock exports to preserve existing matches. */
 function spoolmanIdFromShortId(shortId: string): number | undefined {
   const match = /^spoolman-(\d+)$/.exec(shortId);
@@ -34,7 +61,10 @@ export function spoolstockToCommon(record: SpoolstockRecord): CommonSpool {
   return {
     source: "spoolstock",
     sourceId: shortId,
-    crossIds: { spoolstockShortId: shortId, ...(spoolmanId !== undefined ? { spoolmanId } : {}) },
+    crossIds: {
+      spoolstockShortId: shortId,
+      ...(spoolmanId !== undefined ? { spoolmanId } : {}),
+    },
     vendor: toText(record["filament.brand.name"]),
     material: toText(record["filament.material.name"]),
     name: toText(record["filament.name"]),
@@ -53,7 +83,9 @@ export function spoolstockToCommon(record: SpoolstockRecord): CommonSpool {
     price: toNumber(record.price),
     purchasedOn: toDate(record.purchased_on),
     lotNr: null,
-    comment: toText(record.notes),
+    finish: finish(record["filament.features"]),
+    td: null,
+    comment: comment(record),
     archived: toBoolean(record.depleted),
     raw: record,
   };

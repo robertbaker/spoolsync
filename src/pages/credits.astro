@@ -6,10 +6,29 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 import ServiceMark from "~/components/ServiceMark.astro";
 import { SERVICE_VIEWS, allServiceNames } from "~/lib/services";
+import type { SourceId } from "@spoolsync/core/core/model";
 
 // Tools that ship a bundled logo are credited here; the 3DFilamentProfiles icon has its own license text.
 const logoCredits = SERVICE_VIEWS.filter((service) => service.creditBy && service.vendorUrl);
 const genericIconTools = SERVICE_VIEWS.filter((service) => !service.creditBy && service.id !== "threeDfp");
+
+// Where each provider runs, more specific than the registry's generic platform kinds.
+const providerPlatforms: Record<SourceId, string> = {
+  spoolman: "Self-hosted",
+  spoolstock: "Mobile (Android, iOS) · Web",
+  spoolio: "Web app",
+  tigertag: "Desktop (Windows, Mac, Linux) · Cloud",
+  threeDfp: "Web",
+  bambuddy: "Self-hosted",
+  filameter: "Web · Self-hosted",
+  filadex: "Self-hosted",
+  filamentdb: "Self-hosted",
+  filamentDbApp: "Desktop · Self-hosted",
+  spoolmaster: "iOS · Mac",
+  spoolhoarder: "iOS · Mac",
+  spoolapp: "iOS · Mac",
+  spoolkeep: "iOS · Mac",
+};
 ---
 
 <BaseLayout
@@ -103,6 +122,33 @@ const genericIconTools = SERVICE_VIEWS.filter((service) => !service.creditBy && 
         </p>
       </section>
     </div>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">Service Providers</h2>
+    <p class="mt-2 text-sm text-muted-foreground">
+      The tools SpoolSync can read from and write to. Please support their authors.
+    </p>
+    <ul class="mt-6 grid gap-4 md:grid-cols-2">
+      {
+        SERVICE_VIEWS.map((service) => (
+          <li class="app-card flex flex-col">
+            <h3 class="text-lg font-semibold">
+              {service.vendorUrl ? (
+                <a
+                  href={service.vendorUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="underline hover:text-foreground"
+                >{service.fullName}</a>
+              ) : (
+                service.fullName
+              )}
+            </h3>
+            <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{providerPlatforms[service.id]}</p>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{service.tagline}</p>
+          </li>
+        ))
+      }
+    </ul>
 
     <section class="app-card mt-10" aria-labelledby="disclaimer-heading">
       <h3 id="disclaimer-heading" class="text-lg font-semibold">Trademarks & Compatibility Notice</h3>

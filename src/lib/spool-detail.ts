@@ -184,7 +184,9 @@ const FIELDS: Array<{
   { id: "location", label: "Location", kind: "text", value: (s) => s.location },
   { id: "price", label: "Price", kind: "money", value: (s) => s.price },
   { id: "purchasedOn", label: "Purchased", kind: "text", value: (s) => s.purchasedOn },
-  { id: "lotNr", label: "Lot", kind: "text", value: (s) => s.lotNr },
+  { id: "lotNr", label: "Lot / batch", kind: "text", value: (s) => s.lotNr },
+  { id: "finish", label: "Finish", kind: "text", value: (s) => s.finish },
+  { id: "td", label: "TD (transmission distance)", kind: "text", value: (s) => s.td },
   { id: "comment", label: "Notes", kind: "text", value: (s) => s.comment },
   { id: "archived", label: "Archived", kind: "flag", value: (s) => s.archived },
 ];

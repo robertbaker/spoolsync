@@ -75,6 +75,7 @@ export function savableSettings(options: Options): Record<string, unknown> {
   if (options.spoolmanUrl) settings["spoolman-url"] = options.spoolmanUrl;
   if (options.filamentdbUrl) settings["filamentdb-url"] = options.filamentdbUrl;
   if (options.filamentDbUrl) settings["filament-db-url"] = options.filamentDbUrl;
+  if (options.bambuddyUrl) settings["bambuddy-url"] = options.bambuddyUrl;
   if (options.filadexUrl) settings["filadex-url"] = options.filadexUrl;
   if (options.filadexUser) settings["filadex-user"] = options.filadexUser;
   return settings;

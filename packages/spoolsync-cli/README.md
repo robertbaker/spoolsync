@@ -18,10 +18,10 @@ Each service has its own input option:
 | Spoolio                          | `--spoolio`      | None                | JSON        |
 | TigerTag                         | `--tigertag`     | None                | .ttag, JSON |
 | 3DFilamentProfiles               | `--three-dfp`    | None                | CSV, JSON   |
-| Bambuddy                         | `--bambuddy`     | None                | CSV, JSON   |
+| Bambuddy                         | `--bambuddy`     | `--bambuddy-url`    | CSV, JSON   |
 | FilaMeter                        | `--filameter`    | None                | JSON, CSV   |
 | Filadex                          | `--filadex`      | `--filadex-url`     | JSON, CSV   |
-| FilamentDB                       | `--filamentdb`   | `--filamentdb-url`  | JSON        |
+| FilamentDB                       | `--filamentdb`   | `--filamentdb-url`  | ZIP, JSON   |
 | Filament DB (hyiger/filament-db) | `--filament-db`  | `--filament-db-url` | JSON, CSV   |
 | SpoolMaster                      | `--spoolmaster`  | None                | Excel       |
 | Spool Hoarder                    | `--spoolhoarder` | None                | CSV         |
@@ -347,12 +347,12 @@ targets. Spoolman is written only with `--apply`. Read-only sources can provide 
 a write target.
 
 <!-- services:cli-writing:start -->
-| Inventory source                                             | How it receives changes       |
-| ------------------------------------------------------------ | ----------------------------- |
-| File inventory                                               | Output file in `--output-dir` |
-| `--empty` target                                             | Output file in `--output-dir` |
-| Direct Spoolman, Filadex, FilamentDB, and Filament DB        | `--apply`                     |
-| Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep | Read-only                     |
+| Inventory source                                                | How it receives changes       |
+| --------------------------------------------------------------- | ----------------------------- |
+| File inventory                                                  | Output file in `--output-dir` |
+| `--empty` target                                                | Output file in `--output-dir` |
+| Direct Spoolman, Bambuddy, Filadex, FilamentDB, and Filament DB | `--apply`                     |
+| Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep    | Read-only                     |
 <!-- services:cli-writing:end -->
 
 `--output-dir` requires a writable file inventory or `--empty` target. A directly loaded Spoolman

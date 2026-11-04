@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { exportSpoolioJson, loadSpoolioJson } from ".";
-import { buildPlan } from "../../core/compare";
+import { buildPlan, type PlannedUpdate } from "../../core/compare";
 import { matchSpools } from "../../core/match";
 import { makeSpool } from "../../core/testing";
 
@@ -37,7 +37,11 @@ describe("loadSpoolioJson", () => {
     expect(result.spools).toHaveLength(1);
     const dual = result.spools.find((s) => s.sourceId === "a887c461-2221-4f86-b7d3-ecce1f088619")!;
     expect(dual).toMatchObject({
-      crossIds: { spoolioId: dual.sourceId, spoolmanId: 51, spoolstockShortId: "422070b7" },
+      crossIds: {
+        spoolioId: dual.sourceId,
+        spoolmanId: 51,
+        spoolstockShortId: "422070b7",
+      },
       vendor: "Mika 3D",
       material: "PLA-Silk",
       name: "Black/Orange",
@@ -98,7 +102,11 @@ describe("exportSpoolioJson", () => {
   test("preserves richer material names through Spoolio's canonical types and later note edits", () => {
     const loaded = loadSpoolioJson('{"version":1,"filaments":[]}');
     const { groups } = matchSpools([
-      makeSpool("spoolman", "900", { material: "PLA-Glow", comment: "Keep dry", price: 0 }),
+      makeSpool("spoolman", "900", {
+        material: "PLA-Glow",
+        comment: "Keep dry",
+        price: 0,
+      }),
     ]);
     const changes = buildPlan(
       groups,
@@ -182,5 +190,69 @@ describe("exportSpoolioJson", () => {
       spoolmanId: 900,
       spoolstockShortId: "zz11",
     });
+  });
+});
+
+describe("finish and lot number", () => {
+  const source =
+    '{"version":1,"filaments":[{"id":"a","finish":"Silk","abrasive":true,"batchNumber":"LOT-1","notes":"n"}]}';
+  const update = (loaded: ReturnType<typeof loadSpoolioJson>, changes: PlannedUpdate["changes"]) =>
+    exportSpoolioJson(loaded, [
+      {
+        kind: "update",
+        source: "spoolio",
+        groupId: "group",
+        spool: loaded.spools[0]!,
+        links: {},
+        changes,
+      },
+    ]);
+
+  test("reads finish and batch number", () => {
+    expect(loadSpoolioJson(source).spools[0]).toMatchObject({
+      finish: "Silk",
+      lotNr: "LOT-1",
+    });
+  });
+
+  test("writes finish and lot number and keeps abrasive", () => {
+    const loaded = loadSpoolioJson(source);
+    const output = update(loaded, [
+      { field: "finish", from: "Silk", to: "Matte" },
+      { field: "lotNr", from: "LOT-1", to: "LOT-2" },
+    ]);
+    const filament = JSON.parse(output.json).filaments[0];
+    expect(filament).toMatchObject({
+      finish: "Matte",
+      batchNumber: "LOT-2",
+      abrasive: true,
+    });
+    expect(loadSpoolioJson(output.json).spools[0]).toMatchObject({
+      finish: "Matte",
+      lotNr: "LOT-2",
+    });
+    const cleared = update(loaded, [{ field: "lotNr", from: "LOT-1", to: null }]);
+    expect(loadSpoolioJson(cleared.json).spools[0]!.lotNr).toBeNull();
+  });
+
+  test("creates filaments with finish and lot number", () => {
+    const empty = loadSpoolioJson('{"version":1,"filaments":[]}');
+    const { groups } = matchSpools([makeSpool("spoolman", "1", { finish: "Glossy", lotNr: "B7" })]);
+    const changes = buildPlan(
+      groups,
+      new Map([[groups[0]!.id, { values: {}, createIn: ["spoolio"] }]]),
+    ).get("spoolio")!;
+    const created = loadSpoolioJson(exportSpoolioJson(empty, changes).json).spools[0]!;
+    expect(created).toMatchObject({ finish: "Glossy", lotNr: "B7" });
+    const plain = matchSpools([makeSpool("spoolman", "2")]).groups;
+    const plainChanges = buildPlan(
+      plain,
+      new Map([[plain[0]!.id, { values: {}, createIn: ["spoolio"] }]]),
+    ).get("spoolio")!;
+    const plainSpool = loadSpoolioJson(exportSpoolioJson(empty, plainChanges).json).spools[0]!;
+    expect(plainSpool.finish).toBe("Standard");
+    expect(JSON.parse(exportSpoolioJson(empty, plainChanges).json).filaments[0].abrasive).toBe(
+      false,
+    );
   });
 });

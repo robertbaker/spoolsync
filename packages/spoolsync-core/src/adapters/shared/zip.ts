@@ -156,3 +156,75 @@ export async function readZipText(
   if (!entry) return undefined;
   return new TextDecoder().decode(await readZipEntry(bytes, entry)).replace(/^﻿/, "");
 }
+
+export interface ZipFile {
+  name: string;
+  data: Uint8Array;
+}
+
+/**
+ * Builds a ZIP archive of stored (uncompressed) UTF-8 entries. Stored entries need no compressor,
+ * so this runs unchanged in browsers, Bun, and Node, and every ZIP reader accepts them.
+ */
+export function writeZip(files: readonly ZipFile[], modified: Date = new Date()): Uint8Array {
+  const encoder = new TextEncoder();
+  const year = Math.min(2107, Math.max(1980, modified.getUTCFullYear()));
+  const dosTime =
+    (modified.getUTCHours() << 11) |
+    (modified.getUTCMinutes() << 5) |
+    Math.floor(modified.getUTCSeconds() / 2);
+  const dosDate =
+    ((year - 1980) << 9) | ((modified.getUTCMonth() + 1) << 5) | modified.getUTCDate();
+  const locals: Uint8Array[] = [];
+  const centrals: Uint8Array[] = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = encoder.encode(file.name);
+    const checksum = crc32(file.data);
+    const local = new Uint8Array(30 + name.length + file.data.length);
+    const localView = new DataView(local.buffer);
+    localView.setUint32(0, LOCAL_SIGNATURE, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0x0800, true);
+    localView.setUint16(10, dosTime, true);
+    localView.setUint16(12, dosDate, true);
+    localView.setUint32(14, checksum, true);
+    localView.setUint32(18, file.data.length, true);
+    localView.setUint32(22, file.data.length, true);
+    localView.setUint16(26, name.length, true);
+    local.set(name, 30);
+    local.set(file.data, 30 + name.length);
+    const central = new Uint8Array(46 + name.length);
+    const centralView = new DataView(central.buffer);
+    centralView.setUint32(0, CENTRAL_SIGNATURE, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0x0800, true);
+    centralView.setUint16(12, dosTime, true);
+    centralView.setUint16(14, dosDate, true);
+    centralView.setUint32(16, checksum, true);
+    centralView.setUint32(20, file.data.length, true);
+    centralView.setUint32(24, file.data.length, true);
+    centralView.setUint16(28, name.length, true);
+    centralView.setUint32(42, offset, true);
+    central.set(name, 46);
+    locals.push(local);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const directorySize = centrals.reduce((sum, entry) => sum + entry.length, 0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, EOCD_SIGNATURE, true);
+  endView.setUint16(8, files.length, true);
+  endView.setUint16(10, files.length, true);
+  endView.setUint32(12, directorySize, true);
+  endView.setUint32(16, offset, true);
+  const out = new Uint8Array(offset + directorySize + end.length);
+  let position = 0;
+  for (const part of [...locals, ...centrals, end]) {
+    out.set(part, position);
+    position += part.length;
+  }
+  return out;
+}

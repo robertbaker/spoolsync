@@ -1,5 +1,6 @@
 export type { FilamentDbLoadResult } from "./types";
-export { loadFilamentDbFile } from "./load";
+export { loadFilamentDbFile, loadFilamentDbZip, loadFilamentDbInput } from "./load";
+export { spoolFileName } from "./files";
 export { createRecord, updateRecord } from "./records";
 export { exportFilamentDb } from "./export";
 export { loadFilamentDb } from "./api";

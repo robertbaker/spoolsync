@@ -32,6 +32,8 @@ export interface ViewJsonSpool {
   price: number | null;
   purchasedOn: string | null;
   lotNr: string | null;
+  finish: string | null;
+  td: number | null;
   barcode: string | null;
   comment: string | null;
   archived: boolean;
@@ -71,6 +73,8 @@ export function viewJson(spools: readonly CommonSpool[], exportedAt: string): st
       price: finite(spool.price),
       purchasedOn: spool.purchasedOn,
       lotNr: spool.lotNr,
+      finish: spool.finish,
+      td: finite(spool.td),
       barcode: spool.upc,
       comment: spool.comment,
       archived: spool.archived,

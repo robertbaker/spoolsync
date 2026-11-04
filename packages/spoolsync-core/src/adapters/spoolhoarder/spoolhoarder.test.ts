@@ -62,7 +62,12 @@ describe("loadSpoolHoarderCsv inventory CSV", () => {
           remainingWeight: "0",
         }),
         templateRow({ spoolId: "a", brand: "Dup", material: "PLA" }),
-        templateRow({ spoolId: "gone", brand: "Y", material: "PLA", isDeleted: "true" }),
+        templateRow({
+          spoolId: "gone",
+          brand: "Y",
+          material: "PLA",
+          isDeleted: "true",
+        }),
       ].join("\n"),
     );
     expect(result.spools.map((spool) => spool.sourceId)).toEqual(["a", "b"]);
@@ -102,7 +107,10 @@ describe("loadSpoolHoarderCsv HueForge export", () => {
       remainingWeight: null,
       archived: false,
     });
-    expect(result.spools[1]).toMatchObject({ sourceId: "uuid-2", archived: true });
+    expect(result.spools[1]).toMatchObject({
+      sourceId: "uuid-2",
+      archived: true,
+    });
     expect(result.warnings[0]).toContain("HueForge library export");
   });
 });
@@ -116,4 +124,46 @@ test("rejects other CSV files and flows through the workflow", async () => {
     ),
   );
   expect(loaded.spools[0]?.sourceId).toBe("z");
+});
+
+describe("Spool Hoarder weight basis, notes and TD", () => {
+  const gross = (basis: string) =>
+    loadSpoolHoarderCsv(
+      `${TEMPLATE_HEADER}
+${templateRow({ spoolId: "g", brand: "X", material: "PLA", remainingWeight: "600", emptySpoolWeight: "200", weightBasis: basis })}
+`,
+    ).spools[0]!;
+
+  test("only subtracts the spool for gross, total or with-spool bases", () => {
+    expect(gross("gross").remainingWeight).toBe(400);
+    expect(gross("Total").remainingWeight).toBe(400);
+    expect(gross("with spool").remainingWeight).toBe(400);
+    expect(gross("net").remainingWeight).toBe(600);
+    expect(gross("without spool").remainingWeight).toBe(600);
+    expect(gross("").remainingWeight).toBe(600);
+  });
+
+  test("joins filament notes with spool notes", () => {
+    const load = (values: Record<string, string>) =>
+      loadSpoolHoarderCsv(
+        `${TEMPLATE_HEADER}
+${templateRow({ spoolId: "n", brand: "X", material: "PLA", ...values })}
+`,
+      ).spools[0]!;
+    expect(load({ filamentNotes: "Dry first", notes: "Shelf" }).comment).toBe("Dry first\nShelf");
+    expect(load({ filamentNotes: "Dry first" }).comment).toBe("Dry first");
+    expect(load({ notes: "Shelf" }).comment).toBe("Shelf");
+    expect(load({}).comment).toBeNull();
+  });
+
+  test("reads HueForge TD or Transmissivity into the shared td field", () => {
+    const td = loadSpoolHoarderCsv(
+      "Brand,Type,Color,Name,TD,Owned\nA,PLA,#ffffff,White,0.8,true\n",
+    );
+    expect(td.spools[0]?.td).toBe(0.8);
+    const alt = loadSpoolHoarderCsv(
+      "Brand,Type,Color,Name,Transmissivity,Owned\nA,PLA,#ffffff,White,1.2,true\n",
+    );
+    expect(alt.spools[0]?.td).toBe(1.2);
+  });
 });

@@ -60,6 +60,13 @@ export function setField(
     case "purchasedOn":
       target["purchaseDate"] = value ?? "";
       break;
+    case "lotNr":
+      target["batchNumber"] = value ?? "";
+      break;
+    case "finish":
+      // "Standard" is Spoolio's own "no particular finish". `abrasive` is never touched.
+      target["finish"] = value ?? "Standard";
+      break;
     case "comment":
       setNotes(target, value, materialNote(target["notes"]));
       break;

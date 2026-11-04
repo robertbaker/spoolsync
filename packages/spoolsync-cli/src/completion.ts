@@ -23,23 +23,67 @@ interface OptionSpec {
 
 /** Every option the CLI accepts, with what its value looks like. Kept in sync by a test. */
 export const OPTION_SPECS: readonly OptionSpec[] = [
-  { flag: "--spoolman", description: "Spoolman JSON or CSV export", kind: "file" },
+  {
+    flag: "--spoolman",
+    description: "Spoolman JSON or CSV export",
+    kind: "file",
+  },
   { flag: "--spoolstock", description: "Spoolstock CSV export", kind: "file" },
   { flag: "--spoolio", description: "Spoolio JSON export", kind: "file" },
-  { flag: "--tigertag", description: "TigerTag .ttag or JSON export", kind: "file" },
-  { flag: "--three-dfp", description: "3DFilamentProfiles CSV or JSON export", kind: "file" },
+  {
+    flag: "--tigertag",
+    description: "TigerTag .ttag or JSON export",
+    kind: "file",
+  },
+  {
+    flag: "--three-dfp",
+    description: "3DFilamentProfiles CSV or JSON export",
+    kind: "file",
+  },
   { flag: "--3dfp", description: "Alias for --three-dfp", kind: "file" },
-  { flag: "--bambuddy", description: "Bambuddy inventory CSV or API JSON", kind: "file" },
-  { flag: "--filameter", description: "FilaMeter backup JSON or CSV export", kind: "file" },
-  { flag: "--filadex", description: "Filadex JSON or CSV export", kind: "file" },
-  { flag: "--filamentdb", description: "FilamentDB spools JSON", kind: "file" },
-  { flag: "--filament-db", description: "Filament DB snapshot JSON", kind: "file" },
-  { flag: "--spoolmaster", description: "SpoolMaster Excel export", kind: "file" },
-  { flag: "--spoolhoarder", description: "Spool Hoarder inventory or HueForge CSV", kind: "file" },
-  { flag: "--spool-hoarder", description: "Alias for --spoolhoarder", kind: "file" },
+  {
+    flag: "--bambuddy",
+    description: "Bambuddy inventory CSV or API JSON",
+    kind: "file",
+  },
+  {
+    flag: "--filameter",
+    description: "FilaMeter backup JSON or CSV export",
+    kind: "file",
+  },
+  {
+    flag: "--filadex",
+    description: "Filadex JSON or CSV export",
+    kind: "file",
+  },
+  { flag: "--filamentdb", description: "FilamentDB ZIP export or spools JSON", kind: "file" },
+  {
+    flag: "--filament-db",
+    description: "Filament DB snapshot JSON",
+    kind: "file",
+  },
+  {
+    flag: "--spoolmaster",
+    description: "SpoolMaster Excel export",
+    kind: "file",
+  },
+  {
+    flag: "--spoolhoarder",
+    description: "Spool Hoarder inventory or HueForge CSV",
+    kind: "file",
+  },
+  {
+    flag: "--spool-hoarder",
+    description: "Alias for --spoolhoarder",
+    kind: "file",
+  },
   { flag: "--spool", description: "Spool app JSON backup", kind: "file" },
   { flag: "--spoolkeep", description: "SpoolKeep JSON backup", kind: "file" },
-  { flag: "--empty", description: "Start empty writable inventories", kind: "writable-sources" },
+  {
+    flag: "--empty",
+    description: "Start empty writable inventories",
+    kind: "writable-sources",
+  },
   {
     flag: "--create-in",
     description: "Create missing spools in these sources",
@@ -52,11 +96,31 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
   },
   { flag: "--confirm", description: "Confirm a suggested pair", kind: "text" },
   { flag: "--reject", description: "Reject a suggested pair", kind: "text" },
-  { flag: "--output-dir", description: "Write updated import files here", kind: "directory" },
-  { flag: "--export-csv", description: "Write every loaded spool to one CSV", kind: "file" },
-  { flag: "--config", description: "Read default options from a JSON file", kind: "file" },
-  { flag: "--watch", description: "Run again whenever an input file changes", kind: "flag" },
-  { flag: "--quiet", description: "With --watch, print only when output changes", kind: "flag" },
+  {
+    flag: "--output-dir",
+    description: "Write updated import files here",
+    kind: "directory",
+  },
+  {
+    flag: "--export-csv",
+    description: "Write every loaded spool to one CSV",
+    kind: "file",
+  },
+  {
+    flag: "--config",
+    description: "Read default options from a JSON file",
+    kind: "file",
+  },
+  {
+    flag: "--watch",
+    description: "Run again whenever an input file changes",
+    kind: "flag",
+  },
+  {
+    flag: "--quiet",
+    description: "With --watch, print only when output changes",
+    kind: "flag",
+  },
   {
     flag: "--low-threshold",
     description: "Percent of full weight that counts as low",
@@ -67,7 +131,11 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     description: "Save these options as defaults in your settings file",
     kind: "flag",
   },
-  { flag: "--no-user-config", description: "Ignore the settings file for this run", kind: "flag" },
+  {
+    flag: "--no-user-config",
+    description: "Ignore the settings file for this run",
+    kind: "flag",
+  },
   {
     flag: "--export-settings",
     description: "Write your saved settings to a file that the browser can also import",
@@ -83,10 +151,26 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     description: "Show which settings file or option supplies each default",
     kind: "flag",
   },
-  { flag: "--config-path", description: "Print where the settings file lives", kind: "flag" },
-  { flag: "--clear-config", description: "Delete the settings file", kind: "flag" },
-  { flag: "--reorder", description: "Print spools that are running low", kind: "flag" },
-  { flag: "--summary", description: "Print counts instead of planning changes", kind: "flag" },
+  {
+    flag: "--config-path",
+    description: "Print where the settings file lives",
+    kind: "flag",
+  },
+  {
+    flag: "--clear-config",
+    description: "Delete the settings file",
+    kind: "flag",
+  },
+  {
+    flag: "--reorder",
+    description: "Print spools that are running low",
+    kind: "flag",
+  },
+  {
+    flag: "--summary",
+    description: "Print counts instead of planning changes",
+    kind: "flag",
+  },
   {
     flag: "--cleanup",
     description: "Apply safe data cleanups to the plan (--cleanup=rule,rule to choose)",
@@ -127,24 +211,66 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     description: "Put back the values a rollback file recorded (--apply to write)",
     kind: "file",
   },
-  { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
+  {
+    flag: "--apply",
+    description: "Apply changes to a directly loaded service",
+    kind: "flag",
+  },
   {
     flag: "--json",
     description: "Print machine-readable output (same as --format json)",
     kind: "flag",
   },
-  { flag: "--format", description: "Output format: text or json", kind: "format" },
-  { flag: "--spoolman-url", description: "Load Spoolman directly", kind: "text" },
+  {
+    flag: "--format",
+    description: "Output format: text or json",
+    kind: "format",
+  },
+  {
+    flag: "--spoolman-url",
+    description: "Load Spoolman directly",
+    kind: "text",
+  },
   { flag: "--spoolman-token", description: "Spoolman API token", kind: "text" },
-  { flag: "--filamentdb-url", description: "Load FilamentDB directly", kind: "text" },
-  { flag: "--filamentdb-token", description: "FilamentDB session token", kind: "text" },
-  { flag: "--filament-db-url", description: "Read Filament DB directly", kind: "text" },
-  { flag: "--filament-db-token", description: "Filament DB API key", kind: "text" },
+  {
+    flag: "--filamentdb-url",
+    description: "Load FilamentDB directly",
+    kind: "text",
+  },
+  {
+    flag: "--filamentdb-token",
+    description: "FilamentDB session token",
+    kind: "text",
+  },
+  {
+    flag: "--filament-db-url",
+    description: "Read Filament DB directly",
+    kind: "text",
+  },
+  {
+    flag: "--filament-db-token",
+    description: "Filament DB API key",
+    kind: "text",
+  },
+  {
+    flag: "--bambuddy-url",
+    description: "Load Bambuddy directly",
+    kind: "text",
+  },
+  { flag: "--bambuddy-token", description: "Bambuddy API key", kind: "text" },
   { flag: "--filadex-url", description: "Load Filadex directly", kind: "text" },
   { flag: "--filadex-user", description: "Filadex username", kind: "text" },
-  { flag: "--completion", description: "Print a shell completion script", kind: "shell" },
+  {
+    flag: "--completion",
+    description: "Print a shell completion script",
+    kind: "shell",
+  },
   { flag: "--help", description: "Show help", kind: "flag" },
-  { flag: "--version", description: "Show the installed version", kind: "flag" },
+  {
+    flag: "--version",
+    description: "Show the installed version",
+    kind: "flag",
+  },
 ];
 
 const writable = WRITABLE_SOURCE_IDS.join(" ");

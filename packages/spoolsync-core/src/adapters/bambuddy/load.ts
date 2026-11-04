@@ -23,6 +23,8 @@ export function loadBambuddyFile(text: string): BambuddyLoadResult {
     throw new Error(
       "This does not look like a Bambuddy inventory CSV: a material column is required.",
     );
+  // Bambuddy's CSV export has no ID column; a row number stands in so records stay unique.
+  const syntheticIds = new Set<number>();
   const records = rows.map((rawRow, index) => {
     // Bambuddy protects spreadsheet formulas with a leading apostrophe on export.
     const row = Object.fromEntries(
@@ -34,10 +36,10 @@ export function loadBambuddyFile(text: string): BambuddyLoadResult {
     if (!toText(field(row, "material")))
       throw new Error(`Bambuddy CSV data row ${index + 1} is missing a material.`);
     const rawId = field(row, "id");
-    const id =
-      rawId === undefined || rawId === null || (typeof rawId === "string" && !rawId.trim())
-        ? index + 1
-        : numericId(rawId);
+    const noId =
+      rawId === undefined || rawId === null || (typeof rawId === "string" && !rawId.trim());
+    const id = noId ? index + 1 : numericId(rawId);
+    if (noId) syntheticIds.add(index + 1);
     if (id === null)
       throw new Error(
         `Bambuddy CSV data row ${index + 1} has an invalid ID; use a non-negative safe integer or omit the ID column.`,
@@ -64,7 +66,7 @@ export function loadBambuddyFile(text: string): BambuddyLoadResult {
   }) as BambuddySpool[];
   recordsFrom(records);
   return {
-    ...inventoryFromRecords(records),
+    ...inventoryFromRecords(records, syntheticIds),
     file: records,
     origin: "file",
   };

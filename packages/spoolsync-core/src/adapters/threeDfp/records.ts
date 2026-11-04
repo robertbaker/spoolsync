@@ -13,6 +13,8 @@ const fields: Record<string, string> = {
   price: "spool_purchase_price",
   purchasedOn: "spool_purchase_date",
   comment: "notes",
+  finish: "material_type",
+  td: "td_value",
   colors: "rgb",
   nozzleTempMin: "spool_preferred_nozzle_temp",
   bedTempMin: "spool_preferred_bed_temp",
@@ -96,12 +98,15 @@ export function createRecord(
   const shortCode = runtime.randomUUID().replaceAll("-", "").slice(0, 9);
   const links = { ...change.groupIds, ...change.links };
   const lot = links.spoolstockShortId ? `Lot: ${spoolstockLotNr(links.spoolstockShortId)}` : "";
+  const nozzleTemp = change.values.nozzleTempMin ?? change.values.nozzleTempMax;
+  const bedTemp = change.values.bedTempMin ?? change.values.bedTempMax;
   const row: Record<string, unknown> = {
     short_code: shortCode,
     spool_url: `https://spooldb.com/s/${shortCode}`,
     brand: change.values.vendor ?? "",
     material: change.values.material ?? "PLA",
-    material_type: "",
+    material_type: change.values.finish ?? "",
+    td_value: change.values.td ?? (format === "csv" ? "" : null),
     color: change.values.name ?? "",
     rgb: change.values.colors[0] ? `#${change.values.colors[0]}` : "",
     remaining_grams: change.values.remainingWeight,
@@ -113,16 +118,16 @@ export function createRecord(
     Object.assign(row, {
       spool_purchase_date: change.values.purchasedOn ?? "",
       spool_purchase_price: change.values.price ?? "",
-      spool_preferred_nozzle_temp: change.values.nozzleTempMin ?? "",
-      spool_preferred_bed_temp: change.values.bedTempMin ?? "",
+      spool_preferred_nozzle_temp: nozzleTemp ?? "",
+      spool_preferred_bed_temp: bedTemp ?? "",
     });
   else
     row["spool_properties"] = {
       purchase_date: change.values.purchasedOn,
       purchase_price: change.values.price,
       last_dried_date: null,
-      preferred_nozzle_temp: change.values.nozzleTempMin,
-      preferred_bed_temp: change.values.bedTempMin,
+      preferred_nozzle_temp: nozzleTemp,
+      preferred_bed_temp: bedTemp,
     };
   return row;
 }

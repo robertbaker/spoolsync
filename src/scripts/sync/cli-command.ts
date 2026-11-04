@@ -30,10 +30,11 @@ const API_INPUTS: Partial<Record<SourceId, { flag: string; token: string }>> = {
   spoolman: { flag: "--spoolman-url", token: "SPOOLMAN_TOKEN" },
   filamentdb: { flag: "--filamentdb-url", token: "FILAMENTDB_TOKEN" },
   filamentDbApp: { flag: "--filament-db-url", token: "FILAMENT_DB_API_KEY" },
+  bambuddy: { flag: "--bambuddy-url", token: "BAMBUDDY_API_KEY" },
 };
 
 /** Services the CLI can write directly with `--apply`. */
-const API_WRITES: ReadonlySet<SourceId> = new Set(["spoolman", "filamentdb"]);
+const API_WRITES: ReadonlySet<SourceId> = new Set(["spoolman", "filamentdb", "bambuddy"]);
 
 export interface CliCommandInput {
   loaded: ReadonlyMap<SourceId, { origin?: "api" | "file" }>;

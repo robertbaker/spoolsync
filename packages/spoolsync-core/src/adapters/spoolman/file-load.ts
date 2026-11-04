@@ -31,6 +31,23 @@ function isFlat(rows: unknown[]): boolean {
   );
 }
 
+/**
+ * Spoolman exports spools, filaments and vendors separately. Only the spool export holds inventory,
+ * so name the other two instead of reporting every row as invalid.
+ */
+function wrongExport(keys: string[]): string | undefined {
+  if (keys.some((key) => key === "filament" || key.startsWith("filament."))) return undefined;
+  const has = (...names: string[]) => names.some((name) => keys.includes(name));
+  const kind = has("material", "density", "diameter", "vendor", "vendor.name", "vendor_id")
+    ? "filament"
+    : has("name") && has("empty_spool_weight", "external_id")
+      ? "vendor"
+      : undefined;
+  return kind
+    ? `This looks like a Spoolman ${kind} export, which holds no spools. Export the spools list instead (Settings → Export → Spools).`
+    : undefined;
+}
+
 function parseRows(text: string): unknown[] {
   const trimmed = text.replace(/^﻿/, "").trimStart();
   if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
@@ -43,6 +60,11 @@ function parseRows(text: string): unknown[] {
     const spools = Array.isArray(parsed) ? parsed : (parsed as { spools?: unknown }).spools;
     if (!Array.isArray(spools))
       throw new Error('A Spoolman JSON file must be a list of spools or {"spools": [...]}.');
+    const first: unknown = spools[0];
+    if (first && typeof first === "object") {
+      const message = wrongExport(Object.keys(first));
+      if (message) throw new Error(message);
+    }
     return spools;
   }
   const input = csvInput(trimmed);
@@ -54,6 +76,8 @@ function parseRows(text: string): unknown[] {
   });
   validateCsv(csv);
   if (!csv.meta.fields?.some((field) => field.startsWith("filament."))) {
+    const message = wrongExport(csv.meta.fields ?? []);
+    if (message) throw new Error(message);
     throw new Error("This does not look like a Spoolman export: there are no filament.* columns.");
   }
   return csv.data;

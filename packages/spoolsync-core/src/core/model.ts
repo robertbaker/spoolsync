@@ -57,10 +57,18 @@ export const SOURCE_LABELS = Object.fromEntries(
 ) as Record<SourceId, string>;
 
 /** Sources whose export files are binary (ZIP-based) and must be read as bytes, not text. */
-export const BINARY_SOURCE_IDS: readonly SourceId[] = ["spoolmaster"];
+export const BINARY_SOURCE_IDS: readonly SourceId[] = ["spoolmaster", "filamentdb"];
+
+/** Binary sources that also read a plain-text file (FilamentDB: ZIP export or spools JSON). */
+export const TEXT_FALLBACK_SOURCE_IDS: readonly SourceId[] = ["filamentdb"];
 
 export function isBinarySource(source: SourceId): boolean {
   return BINARY_SOURCE_IDS.includes(source);
+}
+
+/** Whether a text file (JSON) is a valid input for the source as well as, or instead of, bytes. */
+export function readsTextFile(source: SourceId): boolean {
+  return !isBinarySource(source) || TEXT_FALLBACK_SOURCE_IDS.includes(source);
 }
 
 /**
@@ -115,7 +123,12 @@ export interface CommonSpool {
   price: number | null;
   /** `YYYY-MM-DD`. */
   purchasedOn: string | null;
+  /** Lot or batch number. */
   lotNr: string | null;
+  /** Surface finish such as Basic, Matte, Silk or Standard (free text). */
+  finish: string | null;
+  /** HueForge transmission distance (TD). */
+  td: number | null;
   comment: string | null;
   archived: boolean;
 
@@ -141,6 +154,9 @@ export const COMPARABLE_FIELDS = [
   "location",
   "price",
   "purchasedOn",
+  "lotNr",
+  "finish",
+  "td",
   "comment",
   "archived",
 ] as const satisfies readonly (keyof CommonSpool)[];

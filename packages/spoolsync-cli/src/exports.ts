@@ -37,15 +37,25 @@ export async function prepareExports(
   >,
 ) {
   // Serialize all exports before any filesystem or remote writes.
-  const pendingFiles: Array<{ filename: string; text: string }> = [];
+  const pendingFiles: Array<{ filename: string; text: string; bytes?: Uint8Array }> = [];
   const exportWarnings: Array<{ source: SourceId; message: string }> = [];
   if (options.outputDir) {
     for (const source of WRITABLE_SOURCE_IDS) {
       if (!options.inputs.has(source) && !options.empty.includes(source)) continue;
       const inventory = loaded.get(source)!;
       const result = await dependencies.exportInventory(source, inventory, plan.get(source) ?? []);
-      const filename = path.join(options.outputDir, outputBase(source));
-      pendingFiles.push({ filename, text: result.text });
+      const base = outputBase(source);
+      const filename = path.join(
+        options.outputDir,
+        result.bytes && result.extension
+          ? `${path.basename(base, path.extname(base))}.${result.extension}`
+          : base,
+      );
+      pendingFiles.push({
+        filename,
+        text: result.text,
+        ...(result.bytes ? { bytes: result.bytes } : {}),
+      });
       for (const message of result.warnings) exportWarnings.push({ source, message });
       for (const alternate of result.alternateFiles ?? []) {
         for (const message of alternate.warnings ?? [])

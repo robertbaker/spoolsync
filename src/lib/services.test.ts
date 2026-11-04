@@ -34,7 +34,7 @@ test("file input accept lists come from the read formats", () => {
   expect(serviceView("spoolmaster").accept).toContain(".xlsx");
   expect(acceptFor([])).toBe("");
   expect(acceptAllFiles()).toContain(".ttag");
-  expect(extensionList()).toBe(".json, .csv, .xlsx, .ttag");
+  expect(extensionList()).toBe(".json, .csv, .xlsx, .ttag, .zip");
 });
 
 test("the Load kind badge names every format a tool reads", () => {
@@ -52,14 +52,16 @@ test("API claims name where the integration lives", () => {
   expect(serviceView("spoolman").apiInBrowser).toBe(true);
   expect(serviceView("spoolman").apiCliOnly).toBe(false);
   expect(serviceView("spoolio").hasApi).toBe(false);
-  expect(serviceView("bambuddy").apiWriteInBrowser).toBe(false);
+  expect(serviceView("bambuddy").apiWriteInBrowser).toBe(true);
   expect(serviceView("tigertag").connectionName).toBe("TigerTag cloud");
   expect(serviceView("spoolman").connectionName).toBe("Spoolman");
 });
 
 test("read-only and writable views partition the tools", () => {
   expect(READ_ONLY_VIEWS.length + WRITABLE_VIEWS.length).toBe(SERVICE_COUNT);
-  expect(READ_ONLY_VIEWS.every((service) => service.write === "Not supported (read-only)")).toBe(true);
+  expect(READ_ONLY_VIEWS.every((service) => service.write === "Not supported (read-only)")).toBe(
+    true,
+  );
 });
 
 test("matrix filters", () => {

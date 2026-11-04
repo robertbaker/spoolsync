@@ -33,6 +33,9 @@ async function parseInventoryFile(
   if (!hasServiceCapability(source, "file-export"))
     throw new Error(`${source} does not support file exports.`);
 
+  if (source === "filamentdb")
+    return (await import("../adapters/filamentdb")).loadFilamentDbInput(input);
+
   if (isBinarySource(source)) {
     const bytes = typeof input === "string" ? undefined : input;
     if (!bytes?.byteLength)
@@ -72,8 +75,6 @@ async function parseInventoryFile(
       return (await import("../adapters/filameter")).loadFilameterFile(text);
     case "filadex":
       return (await import("../adapters/filadex")).loadFiladexFile(text);
-    case "filamentdb":
-      return (await import("../adapters/filamentdb")).loadFilamentDbFile(text);
     case "filamentDbApp":
       return (await import("../adapters/filamentDbApp")).loadFilamentDbAppFile(text);
     case "spoolhoarder":

@@ -10,7 +10,7 @@ import { button, reportExportError } from "./presentation";
 
 export interface DownloadDependencies {
   exportInventory: typeof exportInventory;
-  download(filename: string, text: string, mediaType: string): void;
+  download(filename: string, content: string | Uint8Array, mediaType: string): void;
   today(): string;
   /** Called once per finished download attempt, successful or not. */
   record?(entry: SyncHistoryRecord): void;
@@ -73,13 +73,14 @@ export class DownloadController {
       const mediaType = alternate?.mediaType ?? result.mediaType;
       const presentation = downloadPresentation(source);
       const extension =
-        presentation.extension ??
         alternate?.extension ??
+        presentation.extension ??
+        result.extension ??
         (mediaType === "text/csv" ? "csv" : "json");
       const warnings = [...result.warnings, ...(alternate?.warnings ?? [])];
       this.dependencies.download(
         `${presentation.prefix}-${this.dependencies.today()}.${extension}`,
-        alternate?.text ?? result.text,
+        alternate?.text ?? result.bytes ?? result.text,
         mediaType,
       );
       this.remember(source, changes);

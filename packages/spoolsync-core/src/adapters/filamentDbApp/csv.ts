@@ -61,6 +61,8 @@ export function loadFilamentDbAppCsv(csv: string): FilamentDbAppLoadResult {
       price: null,
       purchasedOn: date(text(row, "purchaseDate")),
       lotNr: text(row, "lotNumber"),
+      finish: null,
+      td: null,
       comment: text(row, "label"),
       archived: toBoolean(field(row, "retired")),
       raw: { filamentId, spool: row, legacyRoll: !spoolId },

@@ -70,6 +70,17 @@ and the CLI options. `core/model.ts` derives `SERVICE_CAPABILITIES`, `WritableSo
 keeps both equal. Helpers (`readSummary`, `writeSummary`, `countWord`, `SERVICE_COUNT`) produce the text
 other layers show.
 
+### Adding a comparable field to an adapter
+
+`COMPARABLE_FIELDS` (`core/model.ts`) lists the fields compared between services. `lotNr` (Lot / batch),
+`finish` (free text such as Basic, Matte, Silk) and `td` (HueForge transmission distance, numeric) are
+comparable but opt-in: `core/comparison/fields.ts` keeps them out of every service's `SOURCE_FIELDS`
+until the service lists them in `ENABLED_EXTRA_FIELDS`. To enable one for a service, map it in the
+adapter's load path (replace the `null` default), write it in every write path (file export and API
+create/update, reading `PlannedUpdate.changes` and `PlannedCreate.values`), add the field name to that
+service's entry in `ENABLED_EXTRA_FIELDS`, and add round-trip tests. The planner, conflict view, pair
+review, cleanup, CLI `--resolve`, completion and help already handle the field generically.
+
 `src/lib/services.ts` adds the web-only half, again keyed by `SourceId`: icon, the "where do I find the
 export" instructions, and card summaries. It builds `SERVICE_VIEWS`, the derived records used by the home
 page's filterable "Supported tools" matrix, the Load page panels (including each file input's `accept`
@@ -335,7 +346,12 @@ responsibilities:
 - Bambuddy separates common record validation and mapping, file loading, CSV export, and its HTTP
   client. API and file inventories use the same assembly function for spools and price warnings.
   `loadBambuddyInventory` accepts a `BambuddyInventoryClient`; `loadBambuddyApi` composes the default
-  client and optionally accepts a fetch implementation.
+  client and optionally accepts a fetch implementation. API writes (`applyToBambuddy`, taking the
+  narrow `BambuddyWriteClient`) share `payload.ts` for field mapping: creates POST the spool, updates
+  PATCH only the fields that moved against a fresh listing, and the archived flag goes through the
+  archive/restore endpoints. Records whose ID is a CSV row number carry no `bambuddyId` and are never
+  written. Writing needs an API key with the Manage inventory (`can_manage_inventory`) scope; the CSV
+  path still only creates spools and warns about fields the importer lacks.
 - Filadex separates file loading, common-model mapping, record mutation, export assembly, and API
   loading. File exports and API writes use the same record mutation functions. API writes accept
   the narrow `FiladexWriteClient` interface.
@@ -446,8 +462,8 @@ without requiring personal files from `ref/`.
 4. Export with the target's load result, or apply through a supported remote adapter. Review
    warnings when an output format cannot preserve a field. Refresh remote inventories after writes.
 
-Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, and FilamentDB writes and
-Bambuddy API reads; the CLI's direct API connections support Spoolman, FilamentDB, and Filadex
+Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, FilamentDB, and Bambuddy writes;
+the CLI's direct API connections support Spoolman, FilamentDB, Bambuddy, and Filadex
 (Filadex needs a cookie login and sends no CORS headers, so it is CLI-only). Other writes use exported files.
 See the [service table and limitations](../README.md) for format-specific behavior.
 

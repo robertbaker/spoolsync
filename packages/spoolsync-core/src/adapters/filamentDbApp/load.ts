@@ -1,6 +1,6 @@
 import type { CommonSpool } from "../../core/model";
 import { loadFilamentDbAppCsv } from "./csv";
-import { idOf, mapFilamentSpools } from "./map";
+import { idOf, isLegacyRoll, mapFilamentSpools } from "./map";
 import type { FilamentDbAppFile, FilamentDbAppFilament, FilamentDbAppLoadResult } from "./types";
 
 type Bag = Record<string, unknown>;
@@ -62,25 +62,33 @@ export function loadFilamentDbAppFile(text: string): FilamentDbAppLoadResult {
       "This does not look like a Filament DB export: no filament has a vendor or type.",
     );
   const byId = new Map(live.map((filament) => [idOf(filament["_id"]), filament] as const));
+  const templates = new Set(live.map((f) => idOf(f["parentId"])).filter((id) => id !== null));
   const spools: CommonSpool[] = [];
   let skipped = 0;
+  let legacy = 0;
   for (const filament of live) {
     const parentId = idOf(filament["parentId"]);
+    const isTemplate = templates.has(idOf(filament["_id"]) ?? "");
     const mapped = mapFilamentSpools(
       filament,
       parentId ? byId.get(parentId) : undefined,
       file.locations,
+      isTemplate,
     );
+    if (isLegacyRoll(filament, isTemplate)) legacy++;
     const declared = Array.isArray(filament["spools"]) ? filament["spools"].length : 0;
     skipped += declared - mapped.length;
     spools.push(...mapped);
   }
-  const warnings =
-    skipped > 0
-      ? [
-          `${skipped} spool${skipped === 1 ? " has" : "s have"} no id and ${skipped === 1 ? "was" : "were"} skipped.`,
-        ]
-      : [];
+  const warnings: string[] = [];
+  if (skipped > 0)
+    warnings.push(
+      `${skipped} spool${skipped === 1 ? " has" : "s have"} no id and ${skipped === 1 ? "was" : "were"} skipped.`,
+    );
+  if (legacy > 0)
+    warnings.push(
+      `${legacy} filament${legacy === 1 ? " keeps its" : "s keep their"} one roll on the filament itself, with no spool record. ${legacy === 1 ? "It was" : "They were"} loaded as one spool each (remaining = weight on the scale minus the empty spool); only the weight can be written back.`,
+    );
   return {
     source: "filamentDbApp",
     origin: "file",

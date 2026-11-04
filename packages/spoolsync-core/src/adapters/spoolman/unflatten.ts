@@ -10,6 +10,10 @@ const NUMERIC = new Set([
   "weight",
   "settings_extruder_temp",
   "settings_bed_temp",
+  "settings_extruder_temp_min",
+  "settings_extruder_temp_max",
+  "settings_bed_temp_min",
+  "settings_bed_temp_max",
   "empty_spool_weight",
 ]);
 
@@ -101,7 +105,9 @@ export function unflatten(
       mergeColumn(node, leaf, value, key);
     }
   }
-  const spool = out as Record<string, unknown> & { filament?: Record<string, unknown> };
+  const spool = out as Record<string, unknown> & {
+    filament?: Record<string, unknown>;
+  };
   if (
     spool["remaining_weight"] == null &&
     typeof spool["initial_weight"] === "number" &&

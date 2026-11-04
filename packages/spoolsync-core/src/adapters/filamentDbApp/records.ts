@@ -20,6 +20,10 @@ export interface FilamentPatch {
   cost?: number | null;
   netFilamentWeight?: number | null;
   spoolWeight?: number | null;
+  /** HueForge transmission distance; shared by all of the filament's spools. */
+  transmissionDistance?: number | null;
+  /** The scale weight of a legacy single-roll filament, which has no spool record. */
+  totalWeight?: number | null;
   "temperatures.nozzleRangeMin"?: number | null;
   "temperatures.nozzleRangeMax"?: number | null;
   "temperatures.bed"?: number | null;
@@ -32,6 +36,7 @@ export interface SpoolPatch {
   retired?: boolean;
   locationId?: string | null;
   label?: string;
+  lotNumber?: string | null;
 }
 
 export interface Patches {
@@ -41,6 +46,8 @@ export interface Patches {
 
 export interface PatchContext {
   locationIdByName: ReadonlyMap<string, string>;
+  /** The spool is a legacy single roll stored on the filament, so only its weight can be written. */
+  legacyRoll?: boolean;
   /** Reports a value that cannot be written; the API path throws, the file path warns. */
   problem: (message: string) => void;
 }
@@ -87,11 +94,34 @@ export function changePatches(
           context.problem("Filament DB keeps six colors at most, so the extra ones were dropped.");
         break;
       }
-      case "diameter":
-        filament.diameter = toNumber(to);
+      case "diameter": {
+        // Filament DB's schema rejects a diameter below 0.01 and has no way to clear it.
+        const diameter = toNumber(to);
+        if (diameter !== null && diameter >= 0.01) filament.diameter = diameter;
+        else
+          context.problem(
+            "Filament DB requires a diameter of at least 0.01 mm, so it was left unchanged.",
+          );
         break;
-      case "density":
-        filament.density = toNumber(to);
+      }
+      case "density": {
+        const density = toNumber(to);
+        if (density === null || density >= 0) filament.density = density;
+        else
+          context.problem(
+            "Filament DB does not accept a negative density, so it was left unchanged.",
+          );
+        break;
+      }
+      case "td": {
+        const td = toNumber(to);
+        if (td === null || td >= 0) filament.transmissionDistance = td;
+        else
+          context.problem("Filament DB does not accept a negative TD, so it was left unchanged.");
+        break;
+      }
+      case "lotNr":
+        spool.lotNumber = toText(to);
         break;
       case "nozzleTempMin":
         filament["temperatures.nozzleRangeMin"] = toNumber(to);
@@ -148,7 +178,31 @@ export function changePatches(
         break;
     }
   }
+  if (context.legacyRoll) return legacyPatches(change, filament, spool, context);
   return { filament, spool };
+}
+
+/**
+ * A legacy roll has no spool record: its remaining weight is the filament's own `totalWeight` (the
+ * scale weight, so the empty spool is added back), and any other spool field has no place to go.
+ */
+function legacyPatches(
+  change: Extract<PlannedChange, { kind: "update" }>,
+  filament: FilamentPatch,
+  spool: SpoolPatch,
+  context: PatchContext,
+): Patches {
+  const { remainingWeight, ...others } = spool;
+  if (Object.keys(others).length)
+    context.problem(
+      "This roll is stored on the filament itself, so only its weight can be written; the other spool fields were left unchanged. Add a spool in Filament DB to keep them.",
+    );
+  if (remainingWeight !== undefined) {
+    const tare =
+      filament.spoolWeight !== undefined ? filament.spoolWeight : change.spool.emptySpoolWeight;
+    filament.totalWeight = remainingWeight === null ? null : remainingWeight + (tare ?? 0);
+  }
+  return { filament, spool: {} };
 }
 
 /** Applies a filament patch to a filament inside a snapshot. */
@@ -181,4 +235,5 @@ export function patchSnapshotSpool(
   if (patch.retired !== undefined) spool["retired"] = patch.retired;
   if (patch.locationId !== undefined) spool["locationId"] = patch.locationId;
   if (patch.label !== undefined) spool["label"] = patch.label;
+  if (patch.lotNumber !== undefined) spool["lotNumber"] = patch.lotNumber;
 }

@@ -1,3 +1,6 @@
+import { loadBambuddyApi, type BambuddyConnection } from "./adapters/bambuddy";
+import { applyToBambuddy } from "./adapters/bambuddy/apply";
+import { BambuddyClient } from "./adapters/bambuddy/client";
 import { loadFiladex, type FiladexConnection } from "./adapters/filadex";
 import { applyToFiladex } from "./adapters/filadex/apply";
 import { FiladexClient } from "./adapters/filadex/client";
@@ -19,7 +22,7 @@ import {
 import type { PlannedChange } from "./core/compare";
 import type { LoadResult, ApplyLogEntry } from "./core/model";
 
-type ApplyService = "Spoolman" | "TigerTag" | "FilamentDB" | "Filament DB" | "Filadex";
+type ApplyService = "Spoolman" | "TigerTag" | "FilamentDB" | "Filament DB" | "Filadex" | "Bambuddy";
 
 export interface ApplyAndReloadResult {
   log: ApplyLogEntry[];
@@ -95,6 +98,16 @@ export async function applyAndReloadFilamentDbApp(
 ): Promise<ApplyAndReloadResult> {
   const log = await applyToFilamentDbApp(new FilamentDbAppClient(connection), changes, onProgress);
   return reloadAfterApply("Filament DB", log, () => loadFilamentDbApp(connection));
+}
+
+/** Applies the plan to Bambuddy through its inventory API and fetches a fresh snapshot. */
+export async function applyAndReloadBambuddy(
+  connection: BambuddyConnection,
+  changes: PlannedChange[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<ApplyAndReloadResult> {
+  const log = await applyToBambuddy(new BambuddyClient(connection), changes, onProgress);
+  return reloadAfterApply("Bambuddy", log, () => loadBambuddyApi(connection));
 }
 
 /** Applies the plan to Filadex (Node only; it needs a cookie login) and fetches a fresh snapshot. */

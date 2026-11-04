@@ -64,7 +64,7 @@ test("read and write summaries describe API, file, and read-only tools", () => {
   expect(readSummary("tigertag")).toBe("Cloud or .ttag/JSON file");
   expect(writeSummary("tigertag")).toBe("Cloud or .ttag file");
   expect(readSummary("bambuddy")).toBe("API or CSV/JSON file");
-  expect(writeSummary("bambuddy")).toBe("CSV file");
+  expect(writeSummary("bambuddy")).toBe("API or CSV file");
   expect(readSummary("spoolmaster")).toBe("Excel file");
   expect(writeSummary("spoolstock")).toBe("Not supported (read-only)");
 });
@@ -72,7 +72,7 @@ test("read and write summaries describe API, file, and read-only tools", () => {
 test("read-only tools are exactly those without import capabilities", () => {
   const readOnly = SOURCE_IDS.filter((id) => !canWrite(id));
   expect(readOnly).toEqual(["spoolstock", "spoolmaster", "spoolhoarder", "spoolapp", "spoolkeep"]);
-  expect(canWriteViaApi("bambuddy")).toBe(false);
+  expect(canWriteViaApi("bambuddy")).toBe(true);
   expect(canReadViaApi("bambuddy")).toBe(true);
   expect(canWriteViaApi("filamentdb")).toBe(true);
 });

@@ -1,7 +1,7 @@
 import type { PlannedChange } from "../../core/compare";
 import { csvText } from "../shared/tabular";
 import { exportWeights } from "../shared/weights";
-import { roundPrice } from "./map";
+import { costPerKg as pricePerKg } from "./payload";
 import type { BambuddyLoadResult } from "./types";
 
 export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedChange[]) {
@@ -24,14 +24,13 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
       warnings.push(
         `Bambuddy ${change.values.name ?? change.groupId}: empty spool weight was omitted because Bambuddy's CSV importer does not accept core_weight.`,
       );
+    if (change.values.archived)
+      warnings.push(
+        `Bambuddy ${change.values.name ?? change.groupId}: the archived state was omitted because Bambuddy's CSV importer always creates active spools.`,
+      );
     const initialWeight = change.values.initialWeight;
     const price = change.values.price;
-    const costPerKg =
-      price === 0
-        ? 0
-        : price !== null && initialWeight !== null && initialWeight > 0
-          ? roundPrice((price * 1000) / initialWeight)
-          : null;
+    const costPerKg = pricePerKg(price, initialWeight);
     if (price !== null && costPerKg === null)
       warnings.push(
         `Price was omitted for ${change.values.name ?? change.groupId}: a positive initial weight is required to calculate Bambuddy's cost per kilogram.`,
@@ -59,6 +58,7 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
     warnings.push(...weights.warnings);
     rows.push({
       material: change.values.material ?? "PLA",
+      subtype: change.values.finish ?? "",
       brand: change.values.vendor ?? "",
       color_name: change.values.name ?? "",
       rgba: change.values.colors[0] ?? "",
@@ -67,6 +67,7 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
       weight_used: weights.used,
       cost_per_kg: costPerKg ?? "",
       storage_location: change.values.location ?? "",
+      material_number: change.values.lotNr ?? "",
       note: change.values.comment ?? "",
       nozzle_temp_min: change.values.nozzleTempMin ?? "",
       nozzle_temp_max: change.values.nozzleTempMax ?? "",
@@ -86,6 +87,7 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
       [
         "material",
         "brand",
+        "subtype",
         "color_name",
         "rgba",
         "extra_colors",
@@ -93,6 +95,7 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
         "weight_used",
         "cost_per_kg",
         "storage_location",
+        "material_number",
         "note",
         "nozzle_temp_min",
         "nozzle_temp_max",

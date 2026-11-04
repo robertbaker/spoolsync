@@ -1,5 +1,6 @@
 import type { PlannedChange } from "../../core/compare";
 import { toNumber, toText } from "../../core/normalize";
+import { writeFinish } from "./finish";
 import type { FilamentDbSpool } from "./types";
 
 const hash = (hex: string | undefined) => (hex ? `#${hex}` : "");
@@ -60,6 +61,21 @@ export function updateRecord(
       case "emptySpoolWeight":
         record["weightSpool"] = toNumber(to) ?? 0;
         break;
+      case "lotNr":
+        if (to == null) delete record["batchNumber"];
+        else record["batchNumber"] = toText(to);
+        break;
+      case "finish": {
+        const finish = writeFinish(to);
+        if (to == null) delete record["finish"];
+        else if (finish) record["finish"] = finish;
+        else warn(unsupportedFinish(`FilamentDB ${change.spool.sourceId}`, to));
+        break;
+      }
+      case "td":
+        if (to == null) delete record["transmissionDistance"];
+        else record["transmissionDistance"] = toNumber(to) ?? 0;
+        break;
       case "comment":
         if (to == null) delete record["notes"];
         else record["notes"] = toText(to);
@@ -74,6 +90,9 @@ export function updateRecord(
   record["lastUpdated"] = now;
 }
 
+const unsupportedFinish = (label: string, finish: unknown) =>
+  `${label}: finish "${String(finish)}" is not one FilamentDB stores (plain, glossy, matte, silk, textured), so it was left unchanged.`;
+
 /** Builds the FilamentDB spool record for a planned creation. */
 export function createRecord(
   v: Extract<PlannedChange, { kind: "create" }>["values"],
@@ -87,6 +106,11 @@ export function createRecord(
   if (v.price !== null || v.location !== null || v.purchasedOn !== null)
     warn(`${label}: FilamentDB has no price, location, or purchase date fields.`);
   const initial = v.initialWeight ?? v.remainingWeight ?? 0;
+  const finish = writeFinish(v.finish);
+  if (v.finish !== null && !finish) warn(unsupportedFinish(label, v.finish));
+  if (v.material === null) warn(`${label}: no material, so the type defaults to PLA.`);
+  if (v.diameter === null) warn(`${label}: no diameter, so it defaults to 1.75 mm.`);
+  if (v.density === null) warn(`${label}: no density, so it defaults to 1.24 g/cm3.`);
   return {
     serial: randomUUID(),
     brand: v.vendor ?? "",
@@ -103,6 +127,9 @@ export function createRecord(
     temperatureBedMin: v.bedTempMin ?? 0,
     temperatureBedMax: v.bedTempMax ?? 0,
     ...(v.upc ? { gtin: v.upc } : {}),
+    ...(v.lotNr ? { batchNumber: v.lotNr } : {}),
+    ...(finish ? { finish } : {}),
+    ...(v.td !== null ? { transmissionDistance: v.td } : {}),
     ...(v.comment ? { notes: v.comment } : {}),
     ...(v.archived ? { deleted: true } : {}),
     createdAt: now,

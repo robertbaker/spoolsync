@@ -1,7 +1,15 @@
 import type { PlannedUpdate, SpoolValues } from "../../core/compare";
 import type { FilamentCatalog } from "./filament-catalog";
 import { filamentIdentity } from "./filament-identity";
-import { FILAMENT_FIELDS, colorParams } from "./filament-policy";
+import {
+  FILAMENT_FIELDS,
+  colorParams,
+  existingHexes,
+  filamentTemps,
+  hasDiameterOverride,
+  hasTempRanges,
+  temperatureParams,
+} from "./filament-policy";
 import type { FilamentParameters, SpoolParameters, SpoolmanSpool } from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
 
@@ -13,12 +21,19 @@ export async function applyFilamentChanges(
   client: Pick<SpoolmanWriteClient, "updateFilament">,
   catalog: FilamentCatalog,
 ): Promise<string> {
-  const filamentChanges = change.changes.filter((c) => FILAMENT_FIELDS.has(c.field));
+  // A per-spool diameter override is patched on the spool, not on the filament.
+  const filamentChanges = change.changes.filter(
+    (c) =>
+      FILAMENT_FIELDS.has(c.field) && !(c.field === "diameter" && hasDiameterOverride(current)),
+  );
   let filamentNote = "";
   if (filamentChanges.length) {
     const target = Object.fromEntries(
       filamentChanges.map((c) => [c.field, c.to]),
     ) as Partial<SpoolValues>;
+    const temps = { ...filamentTemps(current.filament) };
+    for (const key of Object.keys(temps) as Array<keyof typeof temps>)
+      if (target[key] !== undefined) temps[key] = target[key] ?? null;
     if (shared) {
       const base = filamentIdentity(current.filament);
       const filament = await catalog.filamentFor(
@@ -35,10 +50,7 @@ export async function applyFilamentChanges(
           initialWeight: current.filament.weight ?? null,
           emptySpoolWeight: current.filament.spool_weight ?? null,
           price: current.filament.price ?? null,
-          nozzleTempMin: current.filament.settings_extruder_temp ?? null,
-          nozzleTempMax: current.filament.settings_extruder_temp ?? null,
-          bedTempMin: current.filament.settings_bed_temp ?? null,
-          bedTempMax: current.filament.settings_bed_temp ?? null,
+          ...temps,
         },
         current.filament.multi_color_direction === "longitudinal" ? "longitudinal" : "coaxial",
         current.filament,
@@ -72,8 +84,11 @@ export async function applyFilamentChanges(
           colorParams(
             target.colors,
             current.filament.multi_color_direction === "longitudinal" ? "longitudinal" : "coaxial",
+            existingHexes(current.filament),
           ),
         );
+      if (["nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"].some((k) => k in target))
+        Object.assign(filamentPatch, temperatureParams(temps, hasTempRanges(current.filament)));
       if (target.diameter != null) filamentPatch.diameter = target.diameter;
       if (target.density != null) filamentPatch.density = target.density;
       if ("upc" in target) filamentPatch.article_number = target.upc ?? null;

@@ -3,7 +3,12 @@ import { describe, expect, test } from "bun:test";
 import { loadSpoolAppJson } from ".";
 
 const backup = (spools: unknown[]) =>
-  JSON.stringify({ version: "1.6", backupFormat: "json", categories: [], spools });
+  JSON.stringify({
+    version: "1.6",
+    backupFormat: "json",
+    categories: [],
+    spools,
+  });
 
 describe("loadSpoolAppJson", () => {
   test("maps single- and multi-colour spools", () => {
@@ -84,5 +89,28 @@ describe("loadSpoolAppJson", () => {
     expect(() => loadSpoolAppJson("{")).toThrow("not valid JSON");
     expect(() => loadSpoolAppJson("[]")).toThrow("Spool app backup");
     expect(() => loadSpoolAppJson('{"prints":[]}')).toThrow("Spool app backup");
+  });
+});
+
+describe("Spool app comment composition", () => {
+  test("adds product line, colour description and purchase URL after notes", () => {
+    const result = loadSpoolAppJson(
+      backup([
+        {
+          id: "P",
+          notes: "keep dry",
+          productLine: "Silk+",
+          multicolourDescription: "Red to gold",
+          purchaseUrl: "https://example.com/p",
+        },
+        { id: "Q", productLine: "Basic" },
+        { id: "R" },
+      ]),
+    );
+    expect(result.spools[0]?.comment).toBe(
+      "keep dry\nProduct line: Silk+\nColours: Red to gold\nPurchase URL: https://example.com/p",
+    );
+    expect(result.spools[1]?.comment).toBe("Product line: Basic");
+    expect(result.spools[2]?.comment).toBeNull();
   });
 });

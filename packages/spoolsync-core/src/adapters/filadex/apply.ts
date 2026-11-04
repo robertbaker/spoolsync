@@ -22,6 +22,7 @@ const NULLABLE = new Set([
   "lastDryingDate",
   "storageLocation",
   "barcode",
+  "density",
 ]);
 
 const WRITABLE = [
@@ -42,6 +43,7 @@ const WRITABLE = [
   "lastDryingDate",
   "storageLocation",
   "barcode",
+  "density",
 ] as const;
 
 function payload(record: Record<string, unknown>, only?: Set<string>): Record<string, unknown> {
@@ -100,7 +102,12 @@ export async function applyToFiladex(
         message = `Updated filament ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
       } else {
         const record = createRecord(change.values, change.groupId, names, noop);
-        const created = (await client.createFilament(payload(record))) as { id?: unknown };
+        // Explicit so the vendor and material are registered in the user's Filadex catalog.
+        const created = (await client.createFilament({
+          ...payload(record),
+          saveManufacturer: true,
+          saveMaterial: true,
+        })) as { id?: unknown };
         message = `Created filament${created?.id != null ? ` ${created.id}` : ""} (${record["name"]})`;
       }
       log.push({ groupId: change.groupId, ok: true, message });

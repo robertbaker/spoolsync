@@ -1,7 +1,7 @@
 import type { PlannedCreate, PlannedUpdate, SpoolValues } from "../../core/compare";
 import type { ComparableField } from "../../core/model";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
-import { brandId, diameterId, materialId } from "./reference";
+import { aspectId, brandId, diameterId, finishLabels, materialId, NO_ASPECT } from "./reference";
 import {
   FILAMENT_TYPE,
   CHIP_EPOCH_OFFSET,
@@ -39,6 +39,12 @@ function setColors(target: Record<string, unknown>, list: string[]): void {
   if (target["color_a"] === undefined) target["color_a"] = 255;
   // Keep whatever shape the record already used for the display list.
   target["online_color_list"] = list;
+  // Studio shows a multi-colour spool from this flag; leave any other kind (e.g. gradient) alone.
+  const type = target["online_color_type"];
+  if (list.length > 1) {
+    if (type === undefined || type === null || type === "mono")
+      target["online_color_type"] = "multi";
+  } else if (type !== "mono") target["online_color_type"] = "mono";
 }
 
 function setField(target: Record<string, unknown>, field: ComparableField, value: unknown): void {
@@ -78,13 +84,31 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
       else target["density"] = value;
       break;
     case "upc": {
+      // Reading takes `barcode` first and `sku` second, so write the same way and touch only the
+      // key that holds (or will hold) the value; the other one is a distinct identifier.
       const text = (value as string | null) ?? "";
-      delete target["barcode"];
-      delete target["sku"];
-      if (/^\d+$/.test(text)) target["barcode"] = text;
-      else if (text) target["sku"] = text;
+      const barcodeSet = target["barcode"] != null && target["barcode"] !== "";
+      if (!text) {
+        if (barcodeSet) delete target["barcode"];
+        else delete target["sku"];
+      } else if (/^\d+$/.test(text)) {
+        target["barcode"] = text;
+      } else {
+        // A non-numeric code is a SKU; a leftover barcode would take precedence over it on reading.
+        target["sku"] = text;
+        delete target["barcode"];
+      }
       break;
     }
+    case "finish": {
+      const [first, second] = finishLabels(value as string | null);
+      target["id_aspect1"] = first ? (aspectId(first) ?? NO_ASPECT) : NO_ASPECT;
+      target["id_aspect2"] = second ? (aspectId(second) ?? NO_ASPECT) : NO_ASPECT;
+      break;
+    }
+    case "td":
+      if (value != null || "TD" in target) target["TD"] = value ?? null;
+      break;
     case "initialWeight": {
       const grams = Math.max(0, Math.round((value as number | null) ?? 0));
       target["id_unit"] = 21;
@@ -163,6 +187,7 @@ function newRecord(values: SpoolValues, runtime: AdapterRuntime): TtagRecord {
     "bedTempMax",
     "density",
     "upc",
+    "td",
     "initialWeight",
     "remainingWeight",
     "emptySpoolWeight",
@@ -170,6 +195,8 @@ function newRecord(values: SpoolValues, runtime: AdapterRuntime): TtagRecord {
   ] as const) {
     setField(record, field, values[field]);
   }
+  // Without a finish the aspect guessed from the name stays.
+  if (values.finish) setField(record, "finish", values.finish);
   if (values.remainingWeight === null) record["weight_available"] = record["measure_gr"];
   return record as TtagRecord;
 }

@@ -1,5 +1,5 @@
-import { recordsFrom } from "./map";
-import type { BambuddyConnection, BambuddySpool } from "./types";
+import { numericId, recordsFrom } from "./map";
+import type { BambuddyConnection, BambuddySpool, BambuddySpoolPayload } from "./types";
 
 export type BambuddyFetch = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -9,7 +9,39 @@ export interface BambuddyInventoryClient {
   listSpools(): Promise<BambuddySpool[]>;
 }
 
-export class BambuddyClient implements BambuddyInventoryClient {
+/** Remote operations required by the write workflow, without transport or credential details. */
+export interface BambuddyWriteClient extends BambuddyInventoryClient {
+  createSpool(payload: BambuddySpoolPayload): Promise<BambuddySpool>;
+  updateSpool(id: number, payload: BambuddySpoolPayload): Promise<BambuddySpool>;
+  archiveSpool(id: number): Promise<BambuddySpool>;
+  restoreSpool(id: number): Promise<BambuddySpool>;
+}
+
+const SCOPE_HINT =
+  "Writing needs an API key with the Manage inventory scope (can_manage_inventory); reading needs Read status (can_read_status).";
+
+/** FastAPI reports problems as `{ detail: string | [{ loc, msg }] }`. */
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail))
+      return body.detail
+        .map((item) => {
+          const entry = item as { loc?: unknown[]; msg?: unknown };
+          const where = Array.isArray(entry.loc)
+            ? entry.loc.filter((p) => p !== "body").join(".")
+            : "";
+          return `${where ? `${where}: ` : ""}${String(entry.msg ?? "invalid")}`;
+        })
+        .join("; ");
+  } catch {
+    // Non-JSON error body.
+  }
+  return "";
+}
+
+export class BambuddyClient implements BambuddyWriteClient {
   readonly baseUrl: string;
 
   constructor(
@@ -31,5 +63,57 @@ export class BambuddyClient implements BambuddyInventoryClient {
         `Bambuddy returned HTTP ${response.status}. Check the address, API key, and API permissions.`,
       );
     return recordsFrom(await response.json());
+  }
+
+  private async write(
+    path: string,
+    method: "POST" | "PATCH",
+    body?: unknown,
+  ): Promise<BambuddySpool> {
+    const response = await this.fetchImpl(`${this.baseUrl}/api/v1/inventory/spools${path}`, {
+      method,
+      headers: {
+        "X-API-Key": this.connection.apiKey,
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    if (!response.ok) {
+      const detail = await errorDetail(response);
+      const hint =
+        response.status === 401
+          ? `Bambuddy rejected the API key. ${SCOPE_HINT}`
+          : response.status === 403
+            ? `The API key may not change the inventory. ${SCOPE_HINT}`
+            : "";
+      throw new Error(
+        [
+          `Bambuddy answered ${response.status}${detail ? `: ${detail.replace(/[.!]?$/, ".")}` : "."}`,
+          hint,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+    }
+    const record = (await response.json()) as BambuddySpool;
+    if (!record || typeof record !== "object" || numericId(record.id) === null)
+      throw new Error("Bambuddy answered without the saved spool.");
+    return record;
+  }
+
+  createSpool(payload: BambuddySpoolPayload): Promise<BambuddySpool> {
+    return this.write("", "POST", payload);
+  }
+
+  updateSpool(id: number, payload: BambuddySpoolPayload): Promise<BambuddySpool> {
+    return this.write(`/${id}`, "PATCH", payload);
+  }
+
+  archiveSpool(id: number): Promise<BambuddySpool> {
+    return this.write(`/${id}/archive`, "POST");
+  }
+
+  restoreSpool(id: number): Promise<BambuddySpool> {
+    return this.write(`/${id}/restore`, "POST");
   }
 }

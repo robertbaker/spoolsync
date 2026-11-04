@@ -46,8 +46,8 @@ export function button(
   return element;
 }
 
-export function download(filename: string, text: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+export function download(filename: string, content: string | Uint8Array, type: string): void {
+  const url = URL.createObjectURL(new Blob([content as BlobPart], { type }));
   const link = h("a", { href: url, download: filename });
   document.body.append(link);
   link.click();

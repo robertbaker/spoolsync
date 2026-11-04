@@ -88,6 +88,8 @@ export async function validateOutputPaths(
 export interface OutputFile {
   filename: string;
   text: string;
+  /** Written as-is instead of `text` for binary exports such as a ZIP. */
+  bytes?: Uint8Array;
 }
 
 export class ExportCommitError extends Error {
@@ -130,10 +132,14 @@ export async function stageOutputFiles(
   const cleanup = () => rm(staging, { recursive: true, force: true });
   try {
     for (let index = 0; index < files.length; index++)
-      await writeFile(path.join(staging, String(index)), files[index]!.text, {
-        encoding: "utf8",
-        flag: "wx",
-      });
+      await writeFile(
+        path.join(staging, String(index)),
+        files[index]!.bytes ?? files[index]!.text,
+        {
+          ...(files[index]!.bytes ? {} : { encoding: "utf8" as const }),
+          flag: "wx",
+        },
+      );
   } catch (error) {
     try {
       await cleanup();

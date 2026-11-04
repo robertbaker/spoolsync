@@ -87,6 +87,18 @@ test("staged exports leave previous files intact until commit and clean up after
   expect((await readdir(directory)).some((name) => name.startsWith(".spoolsync-"))).toBe(false);
 });
 
+test("binary exports are written byte for byte", async () => {
+  const output = path.join(directory, "spools.zip");
+  const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0xff, 0x00, 0x80]);
+  const staged = await stageOutputFiles(directory, [{ filename: output, text: "", bytes }]);
+  try {
+    await staged.commit();
+    expect(new Uint8Array(await readFile(output))).toEqual(bytes);
+  } finally {
+    await staged.cleanup();
+  }
+});
+
 test("invalid destinations fail before any export is replaced", async () => {
   const output = path.join(directory, "output.json");
   const blocked = path.join(directory, "blocked.json");

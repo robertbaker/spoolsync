@@ -3,7 +3,10 @@ import { toDate, toNumber, toText, uniqueHexes } from "../../core/normalize";
 import type { FiladexRecord } from "./types";
 
 /** `"200-220"`, `"210°C"` and `"215"` are all seen in the wild. */
-export function parseTemp(value: unknown): { min: number | null; max: number | null } {
+export function parseTemp(value: unknown): {
+  min: number | null;
+  max: number | null;
+} {
   const numbers = (toText(value) ?? "").match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   if (!numbers.length) return { min: null, max: null };
   return { min: Math.min(...numbers), max: Math.max(...numbers) };
@@ -32,7 +35,9 @@ export function mapRecord(record: FiladexRecord, index: number): CommonSpool {
     name: toText(record["colorName"]),
     colors: uniqueHexes([record["colorCode"]]),
     diameter: toNumber(record["diameter"]),
-    density: null,
+    // The API's filament list never returns density (it lives on the material catalog), so this
+    // only reads a value SpoolSync wrote into a file; `density` stays out of SOURCE_FIELDS.
+    density: toNumber(record["density"]),
     nozzleTempMin: temp.min,
     nozzleTempMax: temp.max,
     bedTempMin: null,
@@ -45,6 +50,8 @@ export function mapRecord(record: FiladexRecord, index: number): CommonSpool {
     price: toNumber(record["purchasePrice"]),
     purchasedOn: toDate(record["purchaseDate"]),
     lotNr: null,
+    finish: null,
+    td: null,
     comment: null,
     archived: false,
     raw: record,

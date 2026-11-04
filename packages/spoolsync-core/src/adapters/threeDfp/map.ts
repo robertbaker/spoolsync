@@ -54,6 +54,12 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
   );
   const note = toText(field(record, "notes", "comment", "description"));
   const lotNr = /^Lot:\s*(.+)$/im.exec(note ?? "")?.[1]?.trim() ?? null;
+  const nozzleTemp = toPositiveNumber(
+    field(record, "spool_preferred_nozzle_temp") ?? properties.preferred_nozzle_temp,
+  );
+  const bedTemp = toPositiveNumber(
+    field(record, "spool_preferred_bed_temp") ?? properties.preferred_bed_temp,
+  );
   return {
     source: "threeDfp",
     sourceId: id,
@@ -68,14 +74,11 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
     colors,
     diameter: null,
     density: null,
-    nozzleTempMin: toPositiveNumber(
-      field(record, "spool_preferred_nozzle_temp") ?? properties.preferred_nozzle_temp,
-    ),
-    nozzleTempMax: null,
-    bedTempMin: toPositiveNumber(
-      field(record, "spool_preferred_bed_temp") ?? properties.preferred_bed_temp,
-    ),
-    bedTempMax: null,
+    // A single preference, not a range: it fills both bounds (as Spoolman's single temperature does).
+    nozzleTempMin: nozzleTemp,
+    nozzleTempMax: nozzleTemp,
+    bedTempMin: bedTemp,
+    bedTempMax: bedTemp,
     upc: toText(field(record, "upc", "barcode")),
     initialWeight: null,
     remainingWeight: remaining,
@@ -84,6 +87,8 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
     price: toNumber(field(record, "spool_purchase_price") ?? properties.purchase_price),
     purchasedOn: toDate(field(record, "spool_purchase_date") ?? properties.purchase_date),
     lotNr,
+    finish: toText(field(record, "material_type")),
+    td: toPositiveNumber(field(record, "td_value")),
     comment: note?.replace(/^Lot:\s*.+(?:\r?\n|$)/im, "").trim() || null,
     archived: false,
     raw: record,

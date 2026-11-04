@@ -10,7 +10,13 @@ import {
 test("Bambuddy API loading supports an injected transport and retains connection identity", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const records = [
-    { id: 0, material: "PLA", label_weight: 1000, weight_used: 125, cost_per_kg: 20 },
+    {
+      id: 0,
+      material: "PLA",
+      label_weight: 1000,
+      weight_used: 125,
+      cost_per_kg: 20,
+    },
   ];
   const loaded = await loadBambuddyApi(
     { baseUrl: " https://bambuddy.test/ ", apiKey: "test-key" },

@@ -1,3 +1,4 @@
+import { BambuddyClient } from "@spoolsync/core/adapters/bambuddy";
 import { FilamentDbClient } from "@spoolsync/core/adapters/filamentdb";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
 import type { SourceId, LoadResult, WritableSourceId } from "@spoolsync/core/core/model";
@@ -5,6 +6,7 @@ import { snapshotMatchesTarget } from "@spoolsync/core/core/target";
 
 import {
   loadSpoolmanConnection,
+  loadBambuddyConnection,
   loadFilamentDbConnection,
   loadTigertagSession,
 } from "~/lib/browser/storage";
@@ -31,7 +33,10 @@ export function sourceActions(
       () => loaded.get("spoolman")!,
       changes,
       status,
-      { label: "Download Spoolman JSON", variant: fromFile ? "primary" : "outline" },
+      {
+        label: "Download Spoolman JSON",
+        variant: fromFile ? "primary" : "outline",
+      },
     );
     if (fromFile) {
       action = downloadJson;
@@ -86,14 +91,19 @@ export function sourceActions(
   } else {
     const buttons = [
       downloads.button(source, () => loaded.get(source)!, changes, status, {
-        label: `Download ${source === "bambuddy" ? "Bambuddy CSV" : "JSON"}`,
+        label: `Download ${source === "bambuddy" ? "Bambuddy CSV" : source === "filamentdb" ? "ZIP" : "JSON"}`,
         variant: "primary",
       }),
     ];
-    if (source === "threeDfp" || source === "filameter" || source === "filadex")
+    if (
+      source === "threeDfp" ||
+      source === "filameter" ||
+      source === "filadex" ||
+      source === "filamentdb"
+    )
       buttons.push(
         downloads.button(source, () => loaded.get(source)!, changes, status, {
-          label: "Download CSV",
+          label: source === "filamentdb" ? "Download JSON" : "Download CSV",
           variant: "outline",
           alternateIndex: 0,
         }),
@@ -101,6 +111,19 @@ export function sourceActions(
     for (const item of buttons)
       item.disabled =
         source === "bambuddy" ? !changes.some((change) => change.kind === "create") : false;
+    if (source === "bambuddy" && loaded.get("bambuddy")!.origin === "api") {
+      const connection = loadBambuddyConnection();
+      const apply = button(
+        `Apply ${changes.length} change${changes.length === 1 ? "" : "s"} to Bambuddy`,
+        () => void controller.run("bambuddy", changes, status),
+        "primary",
+      );
+      apply.disabled =
+        changes.length === 0 ||
+        !connection ||
+        !snapshotMatchesTarget(loaded.get("bambuddy")!, new BambuddyClient(connection).baseUrl);
+      buttons.unshift(apply);
+    }
     if (source === "filamentdb" && loaded.get("filamentdb")!.origin === "api") {
       const connection = loadFilamentDbConnection();
       const apply = button(
@@ -116,17 +139,19 @@ export function sourceActions(
     }
     action = h("div", { class: "flex flex-wrap gap-2" }, ...buttons);
     note =
-      source === "bambuddy"
-        ? "Bambuddy CSV imports always create entries. This file contains newly selected spools. Import it once, then reload your Bambuddy inventory before generating another export."
-        : source === "filadex"
-          ? "JSON preserves Filadex fields and IDs; CSV matches Filadex's own CSV import."
-          : source === "filamentdb"
-            ? loaded.get("filamentdb")!.origin === "api"
-              ? "Loaded from your server: Apply writes each changed spool through POST /api/spools. The download is a JSON list you can post yourself."
-              : "A JSON list of spools. FilamentDB takes them one at a time through POST /api/spools, or as <serial>.json files."
-            : source === "filameter"
-              ? "JSON preserves the FilaMeter backup and document IDs; CSV is available for its mapped CSV importer."
-              : "Download a 3DFilamentProfiles export in JSON or CSV.";
+      source === "bambuddy" && loaded.get("bambuddy")!.origin === "api"
+        ? "Loaded from your server: Apply creates, updates and archives spools through its API, which needs an API key with the Manage inventory scope. Writing a remaining weight locks that spool's weight against AMS auto-sync. The CSV download only creates new spools."
+        : source === "bambuddy"
+          ? "Bambuddy CSV imports always create entries. This file contains newly selected spools. Import it once, then reload your Bambuddy inventory before generating another export."
+          : source === "filadex"
+            ? "JSON preserves Filadex fields and IDs; CSV matches Filadex's own CSV import."
+            : source === "filamentdb"
+              ? loaded.get("filamentdb")!.origin === "api"
+                ? "Loaded from your server: Apply writes each changed spool through POST /api/spools. The ZIP download can go to /api/spools/import."
+                : "A ZIP of one JSON file per spool, which FilamentDB's /api/spools/import accepts. The JSON list is for POSTing one spool at a time to /api/spools."
+              : source === "filameter"
+                ? "JSON preserves the FilaMeter backup and document IDs; CSV is available for its mapped CSV importer."
+                : "Download a 3DFilamentProfiles export in JSON or CSV.";
   }
   return { action, note };
 }

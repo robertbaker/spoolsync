@@ -39,10 +39,31 @@ function temperature(filament: Bag, parent: Bag | undefined, key: string): numbe
   return toPositiveNumber(own ?? fallback);
 }
 
+/**
+ * Id of the spool SpoolSync synthesizes for a legacy single-roll filament; the CSV export uses it
+ * too.
+ */
+export const legacySpoolId = (filamentId: string) => `legacy:${filamentId}`;
+
+/**
+ * A legacy filament tracks its one roll on the filament itself (`totalWeight`, with no `spools`
+ * entries). Templates (filaments with color variants) never hold a roll.
+ */
+export function isLegacyRoll(filament: FilamentDbAppFilament, isTemplate: boolean): boolean {
+  return (
+    !isTemplate &&
+    Array.isArray(filament["spools"]) &&
+    filament["spools"].length === 0 &&
+    typeof filament["totalWeight"] === "number" &&
+    idOf(filament["_id"]) !== null
+  );
+}
+
 export function mapFilamentSpools(
   filament: FilamentDbAppFilament,
   parent: FilamentDbAppFilament | undefined,
   locations: Record<string, string>,
+  isTemplate = false,
 ): CommonSpool[] {
   if (!Array.isArray(filament["spools"])) return [];
   const vendor = toText(inherited(filament, parent, "vendor"));
@@ -60,9 +81,16 @@ export function mapFilamentSpools(
   const tare = toNonNegativeNumber(inherited(filament, parent, "spoolWeight"));
   const net = toPositiveNumber(inherited(filament, parent, "netFilamentWeight"));
   const cost = toNonNegativeNumber(inherited(filament, parent, "cost"));
+  const td = toNonNegativeNumber(inherited(filament, parent, "transmissionDistance"));
 
   const spools: CommonSpool[] = [];
-  for (const spool of filament["spools"]) {
+  const legacyId = isLegacyRoll(filament, isTemplate)
+    ? legacySpoolId(idOf(filament["_id"])!)
+    : null;
+  const rolls: unknown[] = legacyId
+    ? [{ _id: legacyId, totalWeight: filament["totalWeight"], legacyRoll: true }]
+    : (filament["spools"] as unknown[]);
+  for (const spool of rolls) {
     if (!isBag(spool)) continue;
     const id = idOf(spool["_id"]) ?? toText(spool["instanceId"]);
     if (!id) continue;
@@ -91,9 +119,12 @@ export function mapFilamentSpools(
       price: cost !== null && net !== null ? spoolPrice(cost, net) : null,
       purchasedOn: dateOf(spool["purchaseDate"]),
       lotNr: toText(spool["lotNumber"]),
+      // Filament DB has no finish field; Matte and Silk exist only as OpenPrintTag spec tags.
+      finish: null,
+      td,
       comment: toText(spool["label"]),
       archived: spool["retired"] === true,
-      raw: { filamentId: idOf(filament["_id"]), spool },
+      raw: { filamentId: idOf(filament["_id"]), spool, ...(legacyId ? { legacyRoll: true } : {}) },
     });
   }
   return spools;

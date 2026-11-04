@@ -54,15 +54,18 @@ export async function applyToFilamentDbApp(
       } else {
         const raw = change.spool.raw as { filamentId?: unknown; legacyRoll?: unknown } | null;
         const filamentId = raw?.filamentId;
-        if (raw?.legacyRoll === true)
-          throw new Error(
-            "This roll is stored on the filament itself, with no spool record to update. Open it in Filament DB and add a spool.",
-          );
+        const legacyRoll = raw?.legacyRoll === true;
         if (typeof filamentId !== "string")
           throw new Error("The spool has no filament id. Reload the inventory and try again.");
-        const patches = changePatches(change, { locationIdByName: locations, problem: fail });
-        const shared = Object.keys(patches.filament).length > 0;
-        if (shared) await client.updateFilament(filamentId, patches.filament);
+        const patches = changePatches(change, {
+          locationIdByName: locations,
+          legacyRoll,
+          problem: fail,
+        });
+        // A legacy roll's own weight is not shared with other spools.
+        const shared = Object.keys(patches.filament).some((key) => key !== "totalWeight");
+        if (Object.keys(patches.filament).length)
+          await client.updateFilament(filamentId, patches.filament);
         if (Object.keys(patches.spool).length)
           await client.updateSpool(filamentId, change.spool.sourceId, patches.spool);
         message = `Updated spool ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}${shared ? " (filament fields are shared by all its spools)" : ""}`;

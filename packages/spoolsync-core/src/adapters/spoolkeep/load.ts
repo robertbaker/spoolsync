@@ -39,6 +39,14 @@ export function loadSpoolKeepJson(text: string): LoadResult {
       return;
     }
     seen.add(record.id);
+    for (const [label, value] of [
+      ["new", record.newQuantity],
+      ["used", record.usedQuantity],
+    ] as const)
+      if (typeof value === "number" && Number.isFinite(value) && value > 0 && value % 1 !== 0)
+        warnings.push(
+          `${record.brand ?? "Filament"} ${record.color ?? record.id}: ${label} quantity ${value} is fractional; loaded as ${quantity(value)}.`,
+        );
     const units: SpoolKeepCondition[] = [
       ...Array<SpoolKeepCondition>(quantity(record.newQuantity)).fill("new"),
       ...Array<SpoolKeepCondition>(quantity(record.usedQuantity)).fill("used"),
@@ -50,7 +58,11 @@ export function loadSpoolKeepJson(text: string): LoadResult {
       warnings.push(
         `${record.brand ?? "Filament"} ${record.color ?? record.id}: SpoolKeep counts ${units.length} spools without weights; loaded as ${units.length} spools with unknown remaining weight.`,
       );
-    const counts: Record<SpoolKeepCondition, number> = { new: 0, used: 0, none: 0 };
+    const counts: Record<SpoolKeepCondition, number> = {
+      new: 0,
+      used: 0,
+      none: 0,
+    };
     for (const condition of units)
       spools.push(spoolKeepToCommon(record, condition, ++counts[condition], units.length));
   });

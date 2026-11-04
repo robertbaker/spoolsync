@@ -199,7 +199,13 @@ describe("exportSpoolmanJson", () => {
     const plan = buildPlan(
       groups,
       new Map([
-        [linked.id, { values: { remainingWeight: 800, vendor: "Anycubic Inc" }, createIn: [] }],
+        [
+          linked.id,
+          {
+            values: { remainingWeight: 800, vendor: "Anycubic Inc" },
+            createIn: [],
+          },
+        ],
         [single.id, { values: {}, createIn: ["spoolman"] }],
       ]),
     );

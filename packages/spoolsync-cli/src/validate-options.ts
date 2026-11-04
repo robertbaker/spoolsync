@@ -21,6 +21,8 @@ export function validateOptions(options: Options): void {
     filamentdbToken,
     filamentDbUrl,
     filamentDbToken,
+    bambuddyUrl,
+    bambuddyToken,
     filadexUrl,
     filadexUser,
     apply,
@@ -52,19 +54,23 @@ export function validateOptions(options: Options): void {
     throw new Error("Use either --filament-db-url or --filament-db <file>, not both.");
   if (filamentDbToken && !filamentDbUrl)
     throw new Error("--filament-db-token requires --filament-db-url.");
+  if (bambuddyUrl && inputs.has("bambuddy"))
+    throw new Error("Use either --bambuddy-url or --bambuddy <file>, not both.");
+  if (bambuddyToken && !bambuddyUrl) throw new Error("--bambuddy-token requires --bambuddy-url.");
   if (filadexUrl && inputs.has("filadex"))
     throw new Error("Use either --filadex-url or --filadex <file>, not both.");
   if (!!filadexUrl !== !!filadexUser)
     throw new Error("--filadex-url and --filadex-user must be used together.");
-  if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !filadexUrl)
+  if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
     throw new Error(
-      "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, or --filadex-url; file inputs are never written to a service.",
+      "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url; file inputs are never written to a service.",
     );
   for (const source of empty)
     if (
       inputs.has(source) ||
       (source === "spoolman" && spoolmanUrl) ||
       (source === "filamentdb" && filamentdbUrl) ||
+      (source === "bambuddy" && bambuddyUrl) ||
       (source === "filadex" && filadexUrl)
     )
       throw new Error(`Use either --empty ${source} or a file/API input for ${source}, not both.`);
@@ -74,6 +80,7 @@ export function validateOptions(options: Options): void {
     (spoolmanUrl ? 1 : 0) +
     (filamentdbUrl ? 1 : 0) +
     (filamentDbUrl ? 1 : 0) +
+    (bambuddyUrl ? 1 : 0) +
     (filadexUrl ? 1 : 0);
   if (quiet && !watch)
     throw new Error(
@@ -84,7 +91,7 @@ export function validateOptions(options: Options): void {
       throw new Error(
         "--watch cannot be combined with --apply: writing to a service on every file change is too easy to do by accident. Run --apply once, on its own.",
       );
-    if (spoolmanUrl || filamentdbUrl || filadexUrl)
+    if (spoolmanUrl || filamentdbUrl || bambuddyUrl || filadexUrl)
       throw new Error("--watch only watches files, so it cannot be used with --*-url inventories.");
     if (!inputs.size) throw new Error("--watch needs at least one file input to watch.");
   }
@@ -129,9 +136,9 @@ export function validateOptions(options: Options): void {
       throw new Error(
         `--restore-rollback puts back one service's values, so it cannot be combined with ${others.join(", ")}.`,
       );
-    if (!spoolmanUrl && !filamentdbUrl && !filadexUrl)
+    if (!spoolmanUrl && !filamentdbUrl && !bambuddyUrl && !filadexUrl)
       throw new Error(
-        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, or --filadex-url.",
+        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, --bambuddy-url, or --filadex-url.",
       );
     return;
   }
@@ -193,6 +200,7 @@ export function validateOptions(options: Options): void {
     (source === "spoolman" && !!spoolmanUrl) ||
     (source === "filamentdb" && !!filamentdbUrl) ||
     (source === "filamentDbApp" && !!filamentDbUrl) ||
+    (source === "bambuddy" && !!bambuddyUrl) ||
     (source === "filadex" && !!filadexUrl);
   for (const source of createIn)
     if (!isLoaded(source)) throw new Error(`--create-in ${source} requires --${source} input`);

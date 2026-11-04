@@ -10,7 +10,7 @@
  */
 import type { ServiceCapability, SourceId } from "./model";
 
-export type FileFormat = "json" | "csv" | "xlsx" | "ttag";
+export type FileFormat = "json" | "csv" | "xlsx" | "ttag" | "zip";
 export type ServicePlatform = "self-hosted" | "web" | "mobile" | "desktop" | "cloud";
 /** Clients that ship an API integration for the service. */
 export type ApiClient = "browser" | "cli";
@@ -115,12 +115,14 @@ export const SERVICES = {
     fullName: "Bambuddy",
     vendorUrl: "https://github.com/maziggy/bambuddy",
     platforms: ["self-hosted"],
-    capabilities: ["file-import", "file-export", "api-export"],
+    capabilities: ["file-import", "file-export", "api-import", "api-export"],
     readFormats: ["csv", "json"],
     writeFormats: ["csv"],
-    apiClients: ["browser"],
-    writeNote: "new spools only, to avoid duplicates",
+    apiClients: ["browser", "cli"],
+    writeNote:
+      "CSV creates new spools only; the API updates and archives with a key that has the inventory scope",
     cliFlag: "--bambuddy",
+    cliApiFlag: "--bambuddy-url",
     tagline: "Self-hosted control panel for Bambu Lab printers with AMS inventory.",
   },
   filameter: {
@@ -151,32 +153,34 @@ export const SERVICES = {
   filamentdb: {
     name: "FilamentDB",
     fullName: "FilamentDB",
+    vendorUrl: "https://github.com/Pixelplanet/FilamentDB",
     platforms: ["self-hosted"],
     capabilities: ["file-import", "file-export", "api-import", "api-export"],
-    readFormats: ["json"],
-    writeFormats: ["json"],
+    readFormats: ["zip", "json"],
+    writeFormats: ["zip", "json"],
     apiClients: ["browser", "cli"],
     cliFlag: "--filamentdb",
     cliApiFlag: "--filamentdb-url",
     tagline: "Self-hosted spool database with a REST API.",
   },
+  filamentDbApp: {
+    name: "Filament DB",
+    fullName: "Filament DB (hyiger/filament-db)",
+    vendorUrl: "https://github.com/hyiger/filament-db",
+    platforms: ["self-hosted", "desktop"],
+    capabilities: ["file-import", "file-export", "api-import", "api-export"],
+    readFormats: ["json", "csv"],
+    writeFormats: ["json", "csv"],
+    apiClients: ["cli"],
+    writeNote: "filament fields are shared by all of a filament's spools",
+    cliFlag: "--filament-db",
+    cliApiFlag: "--filament-db-url",
+    tagline: "MongoDB-backed filament profile and spool manager with NFC tag support.",
+  },
   spoolmaster: {
-    filamentDbApp: {
-      name: "Filament DB",
-      fullName: "Filament DB (hyiger/filament-db)",
-      vendorUrl: "https://github.com/hyiger/filament-db",
-      platforms: ["self-hosted", "desktop"],
-      capabilities: ["file-import", "file-export", "api-import", "api-export"],
-      readFormats: ["json", "csv"],
-      writeFormats: ["json", "csv"],
-      apiClients: ["cli"],
-      writeNote: "filament fields are shared by all of a filament's spools",
-      cliFlag: "--filament-db",
-      cliApiFlag: "--filament-db-url",
-      tagline: "MongoDB-backed filament profile and spool manager with NFC tag support.",
-    },
     name: "SpoolMaster",
     fullName: "SpoolMaster",
+    vendorUrl: "https://apps.apple.com/us/app/spool-master/id6757678949",
     platforms: ["mobile", "desktop"],
     capabilities: ["file-export"],
     readFormats: ["xlsx"],
@@ -188,6 +192,7 @@ export const SERVICES = {
   spoolhoarder: {
     name: "Spool Hoarder",
     fullName: "Spool Hoarder",
+    vendorUrl: "https://apps.apple.com/us/app/spool-hoarder/id6760682447",
     platforms: ["mobile", "desktop"],
     capabilities: ["file-export"],
     readFormats: ["csv"],
@@ -200,6 +205,7 @@ export const SERVICES = {
   spoolapp: {
     name: "Spool",
     fullName: "Spool (Mac and iOS app)",
+    vendorUrl: "https://apps.apple.com/us/app/spool-filament-tracker/id6756892049",
     platforms: ["mobile", "desktop"],
     capabilities: ["file-export"],
     readFormats: ["json"],
@@ -211,6 +217,7 @@ export const SERVICES = {
   spoolkeep: {
     name: "SpoolKeep",
     fullName: "SpoolKeep",
+    vendorUrl: "https://apps.apple.com/us/app/spoolkeep/id6746877203",
     platforms: ["mobile", "desktop"],
     capabilities: ["file-export"],
     readFormats: ["json"],
@@ -262,6 +269,7 @@ const FORMAT_LABELS: Record<FileFormat, string> = {
   csv: "CSV",
   xlsx: "Excel",
   ttag: ".ttag",
+  zip: "ZIP",
 };
 
 export function formatLabel(format: FileFormat): string {

@@ -1,8 +1,8 @@
 import type { PlannedChange } from "../../core/compare";
 import type { ComparableField, LoadResult } from "../../core/model";
 import { spoolstockLotNr } from "../../core/normalize";
-import { FILAMENT_FIELDS } from "./filament-policy";
-import { newSpool, setField, type Spool } from "./file-records";
+import { FILAMENT_FIELDS, hasDiameterOverride } from "./filament-policy";
+import { newSpool, setField, setTemperatures, type Spool } from "./file-records";
 import { encodeExtras } from "./schema";
 import { linkExtras } from "./spool-links";
 
@@ -53,7 +53,11 @@ export function exportSpoolmanJson(
       // A file must not contain different filament definitions under one shared ID.
       if (
         (filamentUses.get(target.filament["id"]) ?? 0) > 1 &&
-        change.changes.some((item) => FILAMENT_FIELDS.has(item.field))
+        change.changes.some(
+          (item) =>
+            FILAMENT_FIELDS.has(item.field) &&
+            !(item.field === "diameter" && hasDiameterOverride(target)),
+        )
       ) {
         target.filament["id"] = nextNew--;
         if (Object.hasOwn(target, "filament_id")) target["filament_id"] = target.filament["id"];
@@ -71,6 +75,7 @@ export function exportSpoolmanJson(
       if (!target.filament.vendor && vendorChange && vendorChange.to != null)
         target.filament.vendor = { id: nextNew--, name: vendorChange.to };
       for (const { field, to } of change.changes) setField(target, field, to);
+      setTemperatures(target, change.changes);
       if (
         change.changes.some((item) => item.field === "initialWeight") &&
         !change.changes.some((item) => item.field === "remainingWeight")

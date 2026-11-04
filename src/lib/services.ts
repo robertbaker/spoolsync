@@ -75,7 +75,7 @@ export const SERVICE_WEB = {
   bambuddy: {
     icon: "material-symbols:inventory-2-outline",
     kind: "CSV or JSON",
-    how: "Fetch directly with your Bambuddy API key, load a saved inventory API response as JSON, or export an inventory CSV. Bambuddy's CSV importer only adds new entries, so review the download before importing.",
+    how: "Fetch directly with your Bambuddy API key (Read status scope; add Manage inventory to apply changes), load a saved inventory API response as JSON, or export an inventory CSV. Bambuddy's CSV importer only adds new entries, so review the download before importing.",
     summary: "Direct via API key, or inventory CSV export",
     creditBy: "the open-source Bambuddy project",
   },
@@ -95,9 +95,9 @@ export const SERVICE_WEB = {
   },
   filamentdb: {
     icon: "material-symbols:database-outline",
-    kind: "JSON",
-    how: "Save the response of GET /api/spools from FilamentDB, or a single spool file from its data/spools folder. Extract ZIP exports first, or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token.",
-    summary: "Direct via server address, or spools JSON from /api/spools",
+    kind: "ZIP or JSON",
+    how: "Choose the ZIP from FilamentDB's export (/api/spools/export), the response of GET /api/spools, or a single spool file from its data/spools folder. Or fetch directly from your server. With user management on, POST your username and password to /api/auth/login and paste the returned token.",
+    summary: "Direct via server address, or the ZIP export / spools JSON",
   },
   filamentDbApp: {
     icon: "vendor/filament-db",
@@ -137,11 +137,13 @@ const EXTENSIONS: Record<FileFormat, string> = {
   csv: ".csv",
   xlsx: ".xlsx",
   ttag: ".ttag",
+  zip: ".zip",
 };
 const MIME_TYPES: Partial<Record<FileFormat, string>> = {
   json: "application/json",
   csv: "text/csv",
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  zip: "application/zip",
 };
 
 /** The `accept` attribute for a file input that takes these formats. */
@@ -151,7 +153,7 @@ export function acceptFor(formats: readonly FileFormat[]): string {
   return [...extensions, ...mimes].join(",");
 }
 
-const FORMAT_ORDER: readonly FileFormat[] = ["json", "csv", "xlsx", "ttag"];
+const FORMAT_ORDER: readonly FileFormat[] = ["json", "csv", "xlsx", "ttag", "zip"];
 
 /** Every format any service reads, in a stable order. */
 export function allReadFormats(): FileFormat[] {

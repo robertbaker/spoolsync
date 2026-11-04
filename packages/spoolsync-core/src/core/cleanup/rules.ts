@@ -55,7 +55,16 @@ const warn = (out: CleanupRuleOutput, field: ComparableField, message: string): 
   out.warnings.push({ field, message } satisfies CleanupFinding);
 };
 
-const TEXT_FIELDS = ["vendor", "material", "name", "upc", "location", "comment"] as const;
+const TEXT_FIELDS = [
+  "vendor",
+  "material",
+  "name",
+  "upc",
+  "location",
+  "lotNr",
+  "finish",
+  "comment",
+] as const;
 
 const whitespace: CleanupRule = {
   id: "whitespace",
@@ -70,16 +79,9 @@ const whitespace: CleanupRule = {
       if (value === null || value === "") continue;
       const cleaned = field === "comment" ? cleanMultiline(value) : cleanInline(value);
       if (cleaned === value) continue;
-      if (cleaned === "")
-        step(out, field, null, "review", "Only whitespace; treated as no value.");
+      if (cleaned === "") step(out, field, null, "review", "Only whitespace; treated as no value.");
       else
-        step(
-          out,
-          field,
-          cleaned,
-          "safe",
-          "Removed extra, non-breaking or invisible whitespace.",
-        );
+        step(out, field, cleaned, "safe", "Removed extra, non-breaking or invisible whitespace.");
     }
     return out;
   },
@@ -128,7 +130,9 @@ const vendorAlias: CleanupRule = {
       "vendor",
       canonical,
       cosmetic ? "safe" : "review",
-      cosmetic ? `Spelled as ${canonical}.` : `${quote(value)} is a known spelling of ${canonical}.`,
+      cosmetic
+        ? `Spelled as ${canonical}.`
+        : `${quote(value)} is a known spelling of ${canonical}.`,
     );
     return out;
   },
@@ -410,7 +414,11 @@ const weight: CleanupRule = {
       warn(out, "remainingWeight", `Remaining ${left} g is more than the full weight ${full} g.`);
     const empty = final.emptySpoolWeight;
     if (full !== undefined && empty !== undefined && full > 0 && empty > full)
-      warn(out, "emptySpoolWeight", `Empty spool ${empty} g is heavier than the filament ${full} g.`);
+      warn(
+        out,
+        "emptySpoolWeight",
+        `Empty spool ${empty} g is heavier than the filament ${full} g.`,
+      );
     return out;
   },
 };
@@ -488,7 +496,11 @@ const barcode: CleanupRule = {
     const value = text(draft.upc)?.trim();
     if (!value) return out;
     if (looksLikeScientific(value)) {
-      warn(out, "upc", `Barcode ${quote(value)} looks damaged by a spreadsheet (scientific notation).`);
+      warn(
+        out,
+        "upc",
+        `Barcode ${quote(value)} looks damaged by a spreadsheet (scientific notation).`,
+      );
       return out;
     }
     const digits = normalizeBarcode(value);
@@ -525,7 +537,8 @@ const date: CleanupRule = {
     } else if (original !== draft.purchasedOn) {
       step(out, "purchasedOn", original, "safe", "Removed surrounding whitespace.");
     }
-    if (today && value > today) warn(out, "purchasedOn", `Purchase date ${value} is in the future.`);
+    if (today && value > today)
+      warn(out, "purchasedOn", `Purchase date ${value} is in the future.`);
     return out;
   },
 };

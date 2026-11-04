@@ -118,6 +118,29 @@ describe("CLI arguments", () => {
     );
   });
 
+  test("--bambuddy-url loads Bambuddy over its API and can be applied", () => {
+    const options = parseArgs([
+      "--bambuddy-url",
+      "http://bambuddy.local:8000",
+      "--spoolio",
+      "a.json",
+      "--create-in",
+      "bambuddy",
+      "--apply",
+    ]);
+    expect(options.bambuddyUrl).toBe("http://bambuddy.local:8000");
+    expect(options.apply).toBe(true);
+    expect(() => parseArgs(["--bambuddy-url", "http://x", "--bambuddy", "b.csv"])).toThrow(
+      "either --bambuddy-url or --bambuddy",
+    );
+    expect(() => parseArgs(["--bambuddy-token", "k", "--bambuddy", "b.csv"])).toThrow(
+      "--bambuddy-token requires --bambuddy-url",
+    );
+    expect(() => parseArgs(["--bambuddy", "b.csv", "--spoolio", "a.json", "--apply"])).toThrow(
+      "--bambuddy-url",
+    );
+  });
+
   test("--quiet only applies with --watch", () => {
     const fileInputs = ["--spoolio", "a.json", "--spoolkeep", "b.json"];
     expect(parseArgs([...fileInputs, "--watch", "--quiet"]).quiet).toBe(true);

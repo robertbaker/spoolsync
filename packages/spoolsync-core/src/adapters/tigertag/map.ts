@@ -6,7 +6,7 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
-import { brandName, diameterFromId, materialLabel } from "./reference";
+import { aspectLabel, brandName, diameterFromId, materialLabel } from "./reference";
 import { FILAMENT_TYPE, type TtagRecord, type TigertagRaw } from "./schema";
 
 function rgbHex(record: TtagRecord, suffix: "" | "2" | "3"): string | null {
@@ -43,23 +43,58 @@ function grams(record: TtagRecord): number | null {
   return toPositiveNumber(record["capacity"]);
 }
 
+const objectOf = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+
+/** The linked catalogue product, when Studio has synced one onto the record. */
+const catalogOf = (record: TtagRecord) => objectOf(record["catalogProduct"]);
+
+/** Chip temperature bytes are 0 when unset; the catalogue product then carries the range. */
+function temperature(
+  record: TtagRecord,
+  key: string,
+  group: "nozzle" | "bed",
+  bound: "temp_min" | "temp_max",
+): number | null {
+  return (
+    toPositiveNumber(record[key]) ?? toPositiveNumber(objectOf(catalogOf(record)[group])[bound])
+  );
+}
+
+/** Aspect labels (finish), e.g. "Matte" or "Matte, Silk". */
+function finishOf(record: TtagRecord): string | null {
+  const catalog = objectOf(catalogOf(record)["filament"]);
+  const labels = (["id_aspect1", "id_aspect2"] as const).flatMap((idKey, index) => {
+    const label = aspectLabel(record[idKey]);
+    if (label !== undefined) return label ? [label] : [];
+    // An aspect id this app does not know: use the catalogue's own label for that slot.
+    return [toText(catalog[index ? "aspect2" : "aspect1"])].filter((text) => text !== null);
+  });
+  return labels.length ? labels.join(", ") : null;
+}
+
 export function tigertagToCommon(records: TtagRecord[]): CommonSpool {
   const record = records[0]!;
   const spoolmanId = toNumber(record["spoolmanId"]);
   return {
     source: "tigertag",
     sourceId: record.uid,
-    crossIds: { tigertagUid: record.uid, ...(spoolmanId !== null ? { spoolmanId } : {}) },
+    crossIds: {
+      tigertagUid: record.uid,
+      ...(spoolmanId !== null ? { spoolmanId } : {}),
+    },
     vendor: toText(record["brand"]) ?? brandName(record["id_brand"]),
     material: toText(record["material"]) ?? materialLabel(record["id_material"]),
     name: toText(record["color_name"]) ?? toText(record["name"]),
     colors: colors(record),
     diameter: diameterFromId(record["data1"]),
     density: toPositiveNumber(record["density"]),
-    nozzleTempMin: toPositiveNumber(record["data2"]),
-    nozzleTempMax: toPositiveNumber(record["data3"]),
-    bedTempMin: toPositiveNumber(record["data6"]),
-    bedTempMax: toPositiveNumber(record["data7"]),
+    nozzleTempMin: temperature(record, "data2", "nozzle", "temp_min"),
+    nozzleTempMax: temperature(record, "data3", "nozzle", "temp_max"),
+    bedTempMin: temperature(record, "data6", "bed", "temp_min"),
+    bedTempMax: temperature(record, "data7", "bed", "temp_max"),
     upc: toText(record["barcode"]) ?? toText(record["sku"]),
     initialWeight: grams(record),
     remainingWeight: toNumber(record["weight_available"]),
@@ -68,6 +103,8 @@ export function tigertagToCommon(records: TtagRecord[]): CommonSpool {
     price: null,
     purchasedOn: null,
     lotNr: null,
+    finish: finishOf(record),
+    td: toPositiveNumber(record["TD"]),
     comment: toText(record["message"]),
     archived: false,
     raw: { records } satisfies TigertagRaw,

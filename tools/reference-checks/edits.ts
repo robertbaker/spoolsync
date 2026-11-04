@@ -27,6 +27,9 @@ const editedValues: SpoolValues = {
   location: "Audit shelf",
   price: 1.25,
   purchasedOn: "2026-10-27",
+  lotNr: "AUDIT-LOT",
+  finish: "Matte",
+  td: 1.2,
   comment: "Audit note",
   archived: true,
 };

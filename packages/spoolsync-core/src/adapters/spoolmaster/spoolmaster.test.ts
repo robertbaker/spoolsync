@@ -86,6 +86,8 @@ describe("loadSpoolmasterXlsx", () => {
       price: 22,
       purchasedOn: "2026-11-02",
       lotNr: "SKU-1",
+      finish: null,
+      td: null,
       comment: "note",
       archived: false,
     });
@@ -176,7 +178,9 @@ describe("loadSpoolmasterXlsx", () => {
         ],
       },
     ]);
-    expect((await loadSpoolmasterXlsx(bytes)).spools[0]).toMatchObject({ vendor: "Sunlu" });
+    expect((await loadSpoolmasterXlsx(bytes)).spools[0]).toMatchObject({
+      vendor: "Sunlu",
+    });
   });
 
   test("rejects workbooks without a stock table and non-workbooks", async () => {
@@ -214,5 +218,35 @@ describe("loadSpoolmasterXlsx", () => {
     expect((await loadInventoryFile("spoolmaster", bytes)).spools).toHaveLength(1);
     expect(loadInventoryFile("spoolmaster", "Brand,Material")).rejects.toThrow("empty");
     expect(loadInventoryFile("spoolmaster", new Uint8Array())).rejects.toThrow("empty");
+  });
+});
+
+describe("SpoolMaster price per kilo", () => {
+  const row = (price: number | null, perKilo: number | null) => [
+    "Prusa",
+    "PLA",
+    "red",
+    null,
+    500,
+    null,
+    null,
+    price,
+    perKilo,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+  ];
+
+  test("derives price from Price / kg and the net weight only when price is empty", async () => {
+    const result = await loadSpoolmasterXlsx(
+      workbook([row(null, 30), row(12, 30), row(null, null)]),
+    );
+    expect(result.spools.map((spool) => spool.price)).toEqual([15, 12, null]);
   });
 });

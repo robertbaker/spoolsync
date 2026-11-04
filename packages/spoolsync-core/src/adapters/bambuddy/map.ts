@@ -1,5 +1,5 @@
 import type { CommonSpool } from "../../core/model";
-import { toDate, toNumber, toPositiveNumber, toText, uniqueHexes } from "../../core/normalize";
+import { toNumber, toPositiveNumber, toText, uniqueHexes } from "../../core/normalize";
 import type { BambuddyLoadResult, BambuddySpool } from "./types";
 
 export const roundPrice = (value: number) => Math.round(value * 10000) / 10000;
@@ -9,15 +9,26 @@ export function numericId(value: unknown): number | null {
   return id !== null && Number.isSafeInteger(id) && id >= 0 ? id : null;
 }
 
-export function mapSpool(spool: BambuddySpool, index: number): CommonSpool {
-  const id = String(numericId(spool.id) ?? index + 1);
+/**
+ * `syntheticIds` holds IDs this loader invented (a CSV row number, since Bambuddy's CSV export has
+ * no ID column). They keep records unique in a snapshot but are not Bambuddy IDs, so they are never
+ * stored as `bambuddyId`, and no API write may be sent to them.
+ */
+export function mapSpool(
+  spool: BambuddySpool,
+  index: number,
+  syntheticIds: ReadonlySet<number> = new Set(),
+): CommonSpool {
+  const numeric = numericId(spool.id);
+  const id = String(numeric ?? index + 1);
+  const authoritative = numeric !== null && !syntheticIds.has(numeric);
   const initialWeight = toPositiveNumber(spool.label_weight);
   const costPerKg = toNumber(spool.cost_per_kg);
   const coreWeight = toNumber(spool.core_weight);
   return {
     source: "bambuddy",
     sourceId: id,
-    crossIds: { bambuddyId: Number(id) },
+    crossIds: authoritative ? { bambuddyId: Number(id) } : {},
     vendor: toText(spool.brand),
     material: toText(spool.material),
     name: toText(spool.color_name),
@@ -52,8 +63,10 @@ export function mapSpool(spool: BambuddySpool, index: number): CommonSpool {
         : costPerKg !== null && initialWeight !== null
           ? roundPrice((costPerKg * initialWeight) / 1000)
           : null,
-    purchasedOn: toDate(spool.purchased_at),
+    purchasedOn: null,
     lotNr: toText(spool.material_number),
+    finish: toText(spool.subtype),
+    td: null,
     comment: toText(spool.note),
     archived: Boolean(spool.archived_at),
     raw: spool,
@@ -73,10 +86,13 @@ export function priceWarnings(spools: BambuddySpool[]): string[] {
 }
 
 /** Common assembly for API, JSON, and CSV inventories. */
-export function inventoryFromRecords(records: BambuddySpool[]): BambuddyLoadResult {
+export function inventoryFromRecords(
+  records: BambuddySpool[],
+  syntheticIds: ReadonlySet<number> = new Set(),
+): BambuddyLoadResult {
   return {
     source: "bambuddy",
-    spools: records.map(mapSpool),
+    spools: records.map((record, index) => mapSpool(record, index, syntheticIds)),
     warnings: priceWarnings(records),
     loadedAt: new Date().toISOString(),
   };

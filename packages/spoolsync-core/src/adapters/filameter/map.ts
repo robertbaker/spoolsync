@@ -1,6 +1,15 @@
 import type { CommonSpool } from "../../core/model";
 import { toNumber, toText, uniqueHexes } from "../../core/normalize";
+import { cssColorHex } from "./colors";
 import type { FilameterDoc } from "./types";
+
+/** `color` is a CSS value upstream: a picker hex, or a keyword such as "red" from a CSV import. */
+function filameterColors(value: unknown): string[] {
+  const hexes = uniqueHexes([value]);
+  if (hexes.length) return hexes;
+  const named = cssColorHex(value);
+  return named ? [named] : [];
+}
 
 export function isFilament(doc: unknown): doc is FilameterDoc {
   return !!doc && typeof doc === "object" && !Array.isArray(doc) && "filament" in doc;
@@ -18,7 +27,7 @@ export function mapDoc(doc: FilameterDoc, index: number): CommonSpool {
     vendor: toText(doc.brand),
     material: toText(doc.material),
     name: toText(doc.filament),
-    colors: uniqueHexes([doc.color]),
+    colors: filameterColors(doc.color),
     diameter: null,
     density: null,
     nozzleTempMin: null,
@@ -33,6 +42,8 @@ export function mapDoc(doc: FilameterDoc, index: number): CommonSpool {
     price: toNumber(doc.price),
     purchasedOn: null,
     lotNr: null,
+    finish: null,
+    td: null,
     comment: toText(doc.comments),
     archived: false,
     raw: doc,

@@ -1,0 +1,154 @@
+import { describe, expect, test } from "bun:test";
+
+import { exportThreeDfp, loadThreeDfpFile } from ".";
+import { buildPlan, type PlannedUpdate } from "../../core/compare";
+import { SOURCE_FIELDS } from "../../core/comparison/fields";
+import { matchSpools } from "../../core/match";
+import { makeSpool } from "../../core/testing";
+
+const json = JSON.stringify([
+  {
+    short_code: "AAA111",
+    brand: "Synth",
+    material: "PLA",
+    material_type: "Matte",
+    color: "Teal",
+    rgb: "#008080",
+    td_value: 3.4,
+    notes: "Lot: spoolstock:spool:410e5312\nDry box",
+    remaining_grams: 500,
+    filament_id: 77,
+    spool_properties: { preferred_nozzle_temp: 200, preferred_bed_temp: 60 },
+  },
+]);
+
+const csv =
+  "short_code,brand,material,material_type,color,rgb,td_value,notes,remaining_grams,spool_preferred_nozzle_temp,spool_preferred_bed_temp\n" +
+  "BBB222,Synth,PETG,Basic,Red,#FF0000,5.5,,800,230,70\n";
+
+const update = (
+  loaded: ReturnType<typeof loadThreeDfpFile>,
+  changes: PlannedUpdate["changes"],
+): PlannedUpdate => ({
+  kind: "update",
+  source: "threeDfp",
+  groupId: "g",
+  spool: loaded.spools[0]!,
+  links: {},
+  changes,
+});
+
+describe("3DFilamentProfiles finish and TD", () => {
+  test("reads material_type as finish and td_value as TD in both formats", () => {
+    expect(loadThreeDfpFile(json).spools[0]).toMatchObject({
+      finish: "Matte",
+      td: 3.4,
+      // Existing Lot: note parsing is unchanged.
+      lotNr: "spoolstock:spool:410e5312",
+      crossIds: { spoolstockShortId: "410e5312" },
+      comment: "Dry box",
+    });
+    expect(loadThreeDfpFile(csv).spools[0]).toMatchObject({
+      finish: "Basic",
+      td: 5.5,
+    });
+  });
+
+  test("writes them back to JSON and CSV", () => {
+    for (const [text, finishFrom] of [
+      [json, "Matte"],
+      [csv, "Basic"],
+    ] as const) {
+      const loaded = loadThreeDfpFile(text);
+      const output = exportThreeDfp(loaded, [
+        update(loaded, [
+          { field: "finish", from: finishFrom, to: "Silk" },
+          { field: "td", from: loaded.spools[0]!.td, to: 1.2 },
+        ]),
+      ]);
+      const reloaded = loadThreeDfpFile(loaded.format === "json" ? output.json : output.csv);
+      expect(reloaded.spools[0]).toMatchObject({ finish: "Silk", td: 1.2 });
+      if (loaded.format === "json") {
+        const row = JSON.parse(output.json)[0];
+        expect(row).toMatchObject({
+          material_type: "Silk",
+          td_value: 1.2,
+          filament_id: 77,
+        });
+      }
+      const cleared = exportThreeDfp(loaded, [
+        update(loaded, [
+          { field: "finish", from: finishFrom, to: null },
+          { field: "td", from: loaded.spools[0]!.td, to: null },
+        ]),
+      ]);
+      const after = loadThreeDfpFile(loaded.format === "json" ? cleared.json : cleared.csv);
+      expect(after.spools[0]).toMatchObject({ finish: null, td: null });
+    }
+  });
+
+  test("a CSV export converted to JSON keeps td_value numeric", () => {
+    const loaded = loadThreeDfpFile(csv);
+    const output = exportThreeDfp(loaded, [update(loaded, [{ field: "td", from: 5.5, to: 6 }])]);
+    expect(JSON.parse(output.json)[0].td_value).toBe(6);
+  });
+
+  test("created rows carry finish and TD", () => {
+    for (const format of ["json", "csv"] as const) {
+      const empty = loadThreeDfpFile(format === "json" ? "[]" : "short_code,brand,material\n");
+      const { groups } = matchSpools([
+        makeSpool("spoolman", "1", {
+          finish: "Satin",
+          td: 2.2,
+          nozzleTempMax: 240,
+        }),
+      ]);
+      const changes = buildPlan(
+        groups,
+        new Map([[groups[0]!.id, { values: {}, createIn: ["threeDfp"] }]]),
+      ).get("threeDfp")!;
+      const output = exportThreeDfp(empty, changes);
+      const reloaded = loadThreeDfpFile(format === "json" ? output.json : output.csv);
+      expect(reloaded.spools[0]).toMatchObject({ finish: "Satin", td: 2.2 });
+    }
+  });
+
+  test("enables finish and TD but not lot number", () => {
+    expect(SOURCE_FIELDS.threeDfp.has("finish")).toBe(true);
+    expect(SOURCE_FIELDS.threeDfp.has("td")).toBe(true);
+    expect(SOURCE_FIELDS.threeDfp.has("lotNr")).toBe(false);
+  });
+});
+
+describe("3DFilamentProfiles preferred temperatures", () => {
+  test("a single preference fills both bounds and sits out range comparison", () => {
+    expect(loadThreeDfpFile(json).spools[0]).toMatchObject({
+      nozzleTempMin: 200,
+      nozzleTempMax: 200,
+      bedTempMin: 60,
+      bedTempMax: 60,
+    });
+    for (const field of ["nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"] as const)
+      expect(SOURCE_FIELDS.threeDfp.has(field)).toBe(false);
+  });
+
+  test("a created row uses the minimum, or the maximum when that is all there is", () => {
+    const empty = loadThreeDfpFile("[]");
+    const { groups } = matchSpools([
+      makeSpool("spoolman", "1", {
+        nozzleTempMin: null,
+        nozzleTempMax: 240,
+        bedTempMin: 55,
+      }),
+    ]);
+    const changes = buildPlan(
+      groups,
+      new Map([[groups[0]!.id, { values: {}, createIn: ["threeDfp"] }]]),
+    ).get("threeDfp")!;
+    const row = JSON.parse(exportThreeDfp(empty, changes).json)[0];
+    expect(row.spool_properties).toMatchObject({
+      preferred_nozzle_temp: 240,
+      preferred_bed_temp: 55,
+    });
+  });
+});

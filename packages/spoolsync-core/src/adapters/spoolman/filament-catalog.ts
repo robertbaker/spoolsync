@@ -6,7 +6,14 @@ import {
   norm,
   type FilamentIdentity,
 } from "./filament-identity";
-import { defaultDensity, middle, colorParams } from "./filament-policy";
+import {
+  defaultDensity,
+  middle,
+  colorParams,
+  existingHexes,
+  hasTempRanges,
+  temperatureParams,
+} from "./filament-policy";
 import type { SpoolmanFilament, SpoolmanVendor } from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
 
@@ -14,6 +21,8 @@ import type { SpoolmanWriteClient } from "./write-client";
 export class FilamentCatalog {
   private readonly vendorsByName: Map<string, SpoolmanVendor>;
   private readonly filamentsByIdentity = new Map<string, Map<number, SpoolmanFilament>>();
+  /** Spoolman-NG filaments carry temperature ranges; learned from the filaments the server returns. */
+  private ranges = false;
 
   constructor(
     private readonly client: Pick<SpoolmanWriteClient, "createVendor" | "createFilament">,
@@ -25,6 +34,7 @@ export class FilamentCatalog {
   }
 
   rememberFilament(filament: SpoolmanFilament): void {
+    if (hasTempRanges(filament)) this.ranges = true;
     const key = identityKey(filamentIdentity(filament));
     const bucket = this.filamentsByIdentity.get(key) ?? new Map<number, SpoolmanFilament>();
     bucket.set(filament.id, filament);
@@ -36,11 +46,23 @@ export class FilamentCatalog {
     bucket?.delete(filament.id);
     if (!bucket?.size) this.filamentsByIdentity.delete(key);
   }
-  async vendorId(name: string | null): Promise<number | null> {
+  async vendorId(name: string | null, template?: SpoolmanVendor | null): Promise<number | null> {
     if (!name?.trim()) return null;
     const existing = this.vendorsByName.get(norm(name));
     if (existing) return existing.id;
-    const created: SpoolmanVendor = await this.client.createVendor({ name: name.trim() });
+    // Recreating the template filament's own vendor keeps what the vendor record carried.
+    const same = template && norm(template.name) === norm(name) ? template : undefined;
+    const created: SpoolmanVendor = await this.client.createVendor({
+      name: name.trim(),
+      ...(same
+        ? {
+            comment: same.comment ?? null,
+            empty_spool_weight: same.empty_spool_weight ?? null,
+            external_id: same.external_id ?? null,
+            extra: structuredClone(same.extra ?? {}),
+          }
+        : {}),
+    });
     this.vendorsByName.set(norm(name), created);
     return created.id;
   }
@@ -68,7 +90,7 @@ export class FilamentCatalog {
     template?: SpoolmanFilament,
   ): Promise<SpoolmanFilament> {
     const identity: FilamentIdentity = {
-      vendorId: await this.vendorId(values.vendor),
+      vendorId: await this.vendorId(values.vendor, template?.vendor),
       material: values.material,
       name: values.name,
       colors: values.colors,
@@ -98,9 +120,8 @@ export class FilamentCatalog {
       price: values.price,
       spool_weight: values.emptySpoolWeight,
       article_number: values.upc,
-      settings_extruder_temp: identity.nozzleTemp,
-      settings_bed_temp: identity.bedTemp,
-      ...colorParams(values.colors, direction),
+      ...temperatureParams(values, this.ranges),
+      ...colorParams(values.colors, direction, existingHexes(template)),
       ...(template
         ? {
             comment: template.comment ?? null,

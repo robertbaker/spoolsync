@@ -170,7 +170,29 @@ export async function exportInventory(
         loaded as import("../adapters/filamentdb").FilamentDbLoadResult,
         changes,
       );
-      return jsonExport(source, result);
+      // The ZIP is what FilamentDB's /api/spools/import takes; the JSON list stays available.
+      return {
+        source,
+        text: result.json,
+        bytes: result.zip,
+        extension: "zip",
+        mediaType: "application/zip",
+        total: result.total,
+        updated: result.updated,
+        created: result.created,
+        warnings: result.warnings,
+        alternateFiles: [
+          {
+            extension: "json",
+            mediaType: "application/json",
+            text: result.json,
+            label: "JSON",
+            warnings: [
+              "A JSON list is not accepted by /api/spools/import: POST each entry to /api/spools, or use the ZIP.",
+            ],
+          },
+        ],
+      };
     }
   }
 }

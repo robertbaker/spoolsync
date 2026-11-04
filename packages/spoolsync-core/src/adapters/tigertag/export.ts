@@ -1,12 +1,17 @@
 import type { PlannedChange } from "../../core/compare";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
 import { createdRecord, updatedRecords, utf8Slice } from "./records";
-import { diameterFromId, diameterId } from "./reference";
-import type { TigertagLoadResult, TtagRecord } from "./schema";
+import { aspectId, diameterFromId, diameterId, finishLabels } from "./reference";
+import type { TigertagLoadResult, TigertagRaw, TtagRecord } from "./schema";
 
 /** Drops SpoolSync's own bookkeeping keys (`__docId`) before a record leaves the app. */
 const withoutInternal = (record: TtagRecord): TtagRecord =>
   Object.fromEntries(Object.entries(record).filter(([key]) => !key.startsWith("__"))) as TtagRecord;
+
+/** Records Studio synced from the product catalogue carry `catalogProduct` and a `productKey`. */
+const catalogueLinked = (record: TtagRecord) =>
+  (typeof record["catalogProduct"] === "object" && record["catalogProduct"] !== null) ||
+  (typeof record["productKey"] === "string" && record["productKey"] !== "");
 
 export interface TtagExportResult {
   json: string;
@@ -52,7 +57,25 @@ export function exportTtag(
       );
     if (typeof values.comment === "string" && Array.from(values.comment).length > 500)
       warnings.push(`TigerTag ${label}: notes were shortened to the format's 500-character limit.`);
+    if (typeof values.finish === "string") {
+      const labels = finishLabels(values.finish);
+      const unknown = labels.slice(0, 2).filter((label) => aspectId(label) === null);
+      if (unknown.length)
+        warnings.push(
+          `TigerTag ${label}: finish ${unknown.join(", ")} is not a TigerTag aspect, so it was exported as no aspect.`,
+        );
+      if (labels.length > 2)
+        warnings.push(
+          `TigerTag ${label}: only two aspects fit in a record; ${labels.slice(2).join(", ")} was left out.`,
+        );
+    }
     if (change.kind === "update") {
+      const linked = change.spool.raw as TigertagRaw;
+      const edited = ["material", "name", "finish"].filter((field) => field in values);
+      if (edited.length && linked.records.some(catalogueLinked))
+        warnings.push(
+          `TigerTag ${label}: this record is linked to the TigerTag catalogue, which keeps its own ${edited.join(", ")}. The record now differs from the catalogue entry, and a catalogue resync in Studio may bring the catalogue values back.`,
+        );
       for (const record of updatedRecords(change)) {
         const clean = withoutInternal(record) as Record<string, unknown>;
         delete clean["deleted"];

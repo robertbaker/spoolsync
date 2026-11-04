@@ -41,6 +41,14 @@ export function downloadPresentation(source: WritableSourceId): DownloadPresenta
           };
         },
       };
+    case "filamentdb":
+      return {
+        prefix: "filamentdb-spools",
+        describe: (result) => ({
+          title: `Downloaded ${result.total} spool${result.total === 1 ? "" : "s"}`,
+          detail: `${result.updated} updated, ${result.created} new. Send the ZIP to /api/spools/import; spools with the same serial are replaced.`,
+        }),
+      };
     default:
       return {
         prefix: source.toLowerCase(),

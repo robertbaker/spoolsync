@@ -21,6 +21,8 @@ export function updateDoc(
     );
     doc.total_weight = weights.total;
     doc.used_weight = weights.used;
+    // calc_weight is derived on read upstream; a copy saved in the file would go stale.
+    if ("calc_weight" in doc) doc.calc_weight = Math.max(0, weights.total - weights.used);
     warnings.push(...weights.warnings);
   }
   for (const item of change.changes) {
@@ -34,7 +36,12 @@ export function updateDoc(
         `FilaMeter ${change.spool.sourceId}: only the primary color is exported; this format stores one color per spool.`,
       );
     if (item.field === "location") doc.location = toText(item.to) ?? "";
-    if (item.field === "price") doc.price = toNumber(item.to) ?? 0;
+    if (item.field === "price") {
+      // Upstream defaults a missing price to 0, so an emptied price is omitted rather than written.
+      const price = toNumber(item.to);
+      if (price === null) delete doc.price;
+      else doc.price = price;
+    }
     if (item.field === "comment") doc.comments = toText(item.to) ?? "";
   }
   return doc;
@@ -63,9 +70,9 @@ export function createDoc(
     color: change.values.colors[0] ? `#${change.values.colors[0]}` : "",
     total_weight: weights.total,
     used_weight: weights.used,
-    price: change.values.price ?? 0,
     location: change.values.location ?? "",
     comments: change.values.comment ?? "",
   };
+  if (change.values.price !== null) doc.price = change.values.price;
   return doc;
 }

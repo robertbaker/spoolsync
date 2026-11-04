@@ -54,8 +54,8 @@ export function filamentIdentity(filament: SpoolmanFilament): FilamentIdentity {
     diameter: filament.diameter ?? 1.75,
     density: filament.density ?? defaultDensity(filament.material ?? null),
     upc: filament.article_number ?? null,
-    nozzleTemp: filament.settings_extruder_temp ?? null,
-    bedTemp: filament.settings_bed_temp ?? null,
+    nozzleTemp: filament.settings_extruder_temp || null,
+    bedTemp: filament.settings_bed_temp || null,
   };
 }
 

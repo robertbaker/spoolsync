@@ -57,7 +57,10 @@ export async function saveRollbackBeforeWrite(
   dependencies: Pick<CliDependencies, "saveRollback" | "now">,
 ): Promise<string | undefined> {
   if (options.noRollback) return undefined;
-  const document = buildRollback(source, changes, { target: label, now: dependencies.now() });
+  const document = buildRollback(source, changes, {
+    target: label,
+    now: dependencies.now(),
+  });
   if (!document.updates.length && !document.creations.length) return undefined;
   try {
     return await dependencies.saveRollback(document, options);
@@ -124,7 +127,7 @@ export async function runRestore(
     if (candidate.source === document.source && candidate.apply) service = candidate;
   if (!service?.apply || !isWritableSource(service.source))
     throw new Error(
-      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : "--filadex-url"} <address>.`,
+      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : document.source === "bambuddy" ? "--bambuddy-url" : "--filadex-url"} <address>.`,
     );
   const inventory = await service.load();
   const plan = planRollback(document, inventory);

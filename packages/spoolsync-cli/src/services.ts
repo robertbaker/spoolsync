@@ -1,8 +1,10 @@
+import { loadBambuddyApi } from "@spoolsync/core/adapters/bambuddy";
 import { loadFiladex } from "@spoolsync/core/adapters/filadex";
 import { loadFilamentDb } from "@spoolsync/core/adapters/filamentdb";
 import { loadFilamentDbApp } from "@spoolsync/core/adapters/filamentDbApp";
 import { loadSpoolman } from "@spoolsync/core/adapters/spoolman";
 import {
+  applyAndReloadBambuddy,
   applyAndReloadFiladex,
   applyAndReloadFilamentDb,
   applyAndReloadFilamentDbApp,
@@ -31,7 +33,10 @@ export function* remoteServices(
 ): Generator<RemoteService> {
   if (options.spoolmanUrl) {
     const token = options.spoolmanToken ?? environment["SPOOLMAN_TOKEN"];
-    const connection = { baseUrl: options.spoolmanUrl, ...(token ? { token } : {}) };
+    const connection = {
+      baseUrl: options.spoolmanUrl,
+      ...(token ? { token } : {}),
+    };
     yield {
       source: "spoolman",
       label: "Spoolman",
@@ -42,7 +47,10 @@ export function* remoteServices(
   }
   if (options.filamentdbUrl) {
     const token = options.filamentdbToken ?? environment["FILAMENTDB_TOKEN"];
-    const connection = { baseUrl: options.filamentdbUrl, ...(token ? { token } : {}) };
+    const connection = {
+      baseUrl: options.filamentdbUrl,
+      ...(token ? { token } : {}),
+    };
     yield {
       source: "filamentdb",
       label: "FilamentDB",
@@ -53,7 +61,10 @@ export function* remoteServices(
   }
   if (options.filamentDbUrl) {
     const token = options.filamentDbToken ?? environment["FILAMENT_DB_API_KEY"];
-    const connection = { baseUrl: options.filamentDbUrl, ...(token ? { token } : {}) };
+    const connection = {
+      baseUrl: options.filamentDbUrl,
+      ...(token ? { token } : {}),
+    };
     yield {
       source: "filamentDbApp",
       label: "Filament DB",
@@ -62,10 +73,29 @@ export function* remoteServices(
         (await applyAndReloadFilamentDbApp(connection, changes, progress)).log,
     };
   }
+  if (options.bambuddyUrl) {
+    const apiKey = options.bambuddyToken ?? environment["BAMBUDDY_API_KEY"];
+    if (!apiKey)
+      throw new Error(
+        "Set BAMBUDDY_API_KEY (or pass --bambuddy-token) to a Bambuddy API key. Reading needs the Read status scope; --apply also needs Manage inventory.",
+      );
+    const connection = { baseUrl: options.bambuddyUrl, apiKey };
+    yield {
+      source: "bambuddy",
+      label: "Bambuddy",
+      load: () => loadBambuddyApi(connection),
+      apply: async (changes, progress) =>
+        (await applyAndReloadBambuddy(connection, changes, progress)).log,
+    };
+  }
   if (options.filadexUrl && options.filadexUser) {
     const password = environment["FILADEX_PASSWORD"];
     if (!password) throw new Error("Set FILADEX_PASSWORD to the Filadex account password.");
-    const connection = { baseUrl: options.filadexUrl, username: options.filadexUser, password };
+    const connection = {
+      baseUrl: options.filadexUrl,
+      username: options.filadexUser,
+      password,
+    };
     yield {
       source: "filadex",
       label: "Filadex",

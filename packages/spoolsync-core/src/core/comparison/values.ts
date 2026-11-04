@@ -8,6 +8,7 @@ const TOLERANCE: Partial<Record<ComparableField, number>> = {
   price: 0.005,
   density: 0.005,
   diameter: 0.005,
+  td: 0.005,
 };
 
 const normalizeText = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();

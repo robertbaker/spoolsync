@@ -40,7 +40,7 @@ describe("loadSpoolKeepJson", () => {
       colors: [],
       upc: "SKU9",
       price: 22,
-      comment: "n",
+      comment: "n\nFamily: PLA",
       nozzleTempMin: 200,
       bedTempMax: 60,
       initialWeight: null,
@@ -71,7 +71,11 @@ describe("loadSpoolKeepJson", () => {
       ]),
     );
     expect(result.spools[0]).toMatchObject({ sourceId: "R", archived: true });
-    expect(result.spools[1]).toMatchObject({ sourceId: "S", archived: true, material: "PLA" });
+    expect(result.spools[1]).toMatchObject({
+      sourceId: "S",
+      archived: true,
+      material: "PLA",
+    });
   });
 
   test("reports duplicate and malformed entries and rejects non-lists", () => {
@@ -82,5 +86,40 @@ describe("loadSpoolKeepJson", () => {
     expect(result.warnings).toHaveLength(3);
     expect(() => loadSpoolKeepJson("nope")).toThrow("not valid JSON");
     expect(() => loadSpoolKeepJson("{}")).toThrow("SpoolKeep backup");
+  });
+});
+
+describe("SpoolKeep family, condition and fractional quantities", () => {
+  test("keeps family beside exactType and marks new versus used", () => {
+    const result = loadSpoolKeepJson(
+      JSON.stringify([
+        record({
+          exactType: "PLA+",
+          note: "n",
+          newQuantity: 1,
+          usedQuantity: 1,
+        }),
+        record({ id: "S", exactType: "PLA", usedQuantity: 1 }),
+        record({ id: "T" }),
+      ]),
+    );
+    expect(result.spools.map((spool) => spool.comment)).toEqual([
+      "n\nFamily: PLA",
+      "n\nFamily: PLA",
+      null,
+      null,
+    ]);
+    expect(result.spools.map((spool) => spool.sourceId)).toEqual(["R:new-1", "R:used-1", "S", "T"]);
+  });
+
+  test("warns when a fractional quantity is floored", () => {
+    const result = loadSpoolKeepJson(
+      JSON.stringify([record({ newQuantity: 1.5, usedQuantity: 0.5 })]),
+    );
+    expect(result.spools).toHaveLength(1);
+    expect(result.warnings).toEqual([
+      "Creality blue: new quantity 1.5 is fractional; loaded as 1.",
+      "Creality blue: used quantity 0.5 is fractional; loaded as 0.",
+    ]);
   });
 });

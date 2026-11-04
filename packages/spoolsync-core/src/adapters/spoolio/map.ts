@@ -44,6 +44,8 @@ export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {
     price: toNumber(filament.price),
     purchasedOn: toDate(filament.purchaseDate),
     lotNr: toText(filament.batchNumber),
+    finish: toText(filament.finish),
+    td: null,
     comment: notesText(filament.notes),
     archived: false,
     raw: filament,

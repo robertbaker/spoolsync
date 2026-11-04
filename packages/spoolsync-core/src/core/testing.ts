@@ -33,6 +33,8 @@ export function makeSpool(
     price: null,
     purchasedOn: null,
     lotNr: null,
+    finish: null,
+    td: null,
     comment: null,
     archived: false,
     raw: {},

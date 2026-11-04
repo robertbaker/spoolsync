@@ -86,6 +86,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--filamentdb-token",
   "--filament-db-url",
   "--filament-db-token",
+  "--bambuddy-url",
+  "--bambuddy-token",
   "--filadex-url",
   "--filadex-user",
   ...Object.keys(sourceFlags),
@@ -108,6 +110,8 @@ const SINGLETON_FLAGS: string[] = [
   "--filamentdb-token",
   "--filament-db-url",
   "--filament-db-token",
+  "--bambuddy-url",
+  "--bambuddy-token",
   "--filadex-url",
   "--filadex-user",
 ];
@@ -128,6 +132,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let filamentdbToken: string | undefined;
   let filamentDbUrl: string | undefined;
   let filamentDbToken: string | undefined;
+  let bambuddyUrl: string | undefined;
+  let bambuddyToken: string | undefined;
   let filadexUrl: string | undefined;
   let filadexUser: string | undefined;
   let apply = false;
@@ -237,6 +243,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       filamentDbUrl = value(arg);
     } else if (arg === "--filament-db-token") {
       filamentDbToken = value(arg);
+    } else if (arg === "--bambuddy-url") {
+      bambuddyUrl = value(arg);
+    } else if (arg === "--bambuddy-token") {
+      bambuddyToken = value(arg);
     } else if (arg === "--filadex-url") {
       filadexUrl = value(arg);
     } else if (arg === "--filadex-user") {
@@ -321,6 +331,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(filamentdbToken ? { filamentdbToken } : {}),
     ...(filamentDbUrl ? { filamentDbUrl } : {}),
     ...(filamentDbToken ? { filamentDbToken } : {}),
+    ...(bambuddyUrl ? { bambuddyUrl } : {}),
+    ...(bambuddyToken ? { bambuddyToken } : {}),
     ...(filadexUrl ? { filadexUrl } : {}),
     ...(filadexUser ? { filadexUser } : {}),
     apply,

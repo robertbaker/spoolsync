@@ -1,5 +1,6 @@
 import type { CommonSpool } from "../../core/model";
 import { shortIdFromLotNr, toDate, toHex, toText, uniqueHexes } from "../../core/normalize";
+import { filamentTemps } from "./filament-policy";
 import { readExtra, type SpoolmanSpool } from "./schema";
 
 /**
@@ -20,10 +21,19 @@ function colors(filament: SpoolmanSpool["filament"]): string[] {
   return single ? [single] : [];
 }
 
+/** Spoolman-NG stores `matte` or `glossy`; the common model shows the capitalised word. */
+function finishLabel(value: string | null | undefined): string | null {
+  const text = toText(value);
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : null;
+}
+
 export function spoolmanToCommon(spool: SpoolmanSpool): CommonSpool {
   const { filament } = spool;
   const shortId = readExtra(spool.extra, "spoolstock_short_id") ?? shortIdFromLotNr(spool.lot_nr);
   const spoolioId = readExtra(spool.extra, "spoolsync_spoolio_id");
+  const temps = filamentTemps(filament);
+  const spoolDiameter =
+    typeof spool.diameter === "number" && spool.diameter > 0 ? spool.diameter : null;
   const tigertagUid = readExtra(spool.extra, "spoolsync_tigertag_uid");
   const initialWeight = spool.initial_weight ?? filament.weight ?? null;
   const remainingWeight =
@@ -45,12 +55,9 @@ export function spoolmanToCommon(spool: SpoolmanSpool): CommonSpool {
     material: toText(filament.material),
     name: toText(filament.name),
     colors: colors(filament),
-    diameter: filament.diameter ?? null,
+    diameter: spoolDiameter ?? filament.diameter ?? null,
     density: filament.density ?? null,
-    nozzleTempMin: filament.settings_extruder_temp ?? null,
-    nozzleTempMax: filament.settings_extruder_temp ?? null,
-    bedTempMin: filament.settings_bed_temp ?? null,
-    bedTempMax: filament.settings_bed_temp ?? null,
+    ...temps,
     upc: toText(filament.article_number),
     initialWeight,
     remainingWeight,
@@ -59,7 +66,10 @@ export function spoolmanToCommon(spool: SpoolmanSpool): CommonSpool {
     location: toText(spool.location),
     price: spool.price ?? filament.price ?? null,
     purchasedOn: toDate(readExtra(spool.extra, "spoolstock_purchased_on")),
-    lotNr: toText(spool.lot_nr),
+    // The Spoolstock convention (`spoolstock:spool:<id>`) is a link, not a lot.
+    lotNr: shortIdFromLotNr(spool.lot_nr) ? null : toText(spool.lot_nr),
+    finish: finishLabel(filament.finish),
+    td: null,
     comment: toText(spool.comment),
     archived: spool.archived ?? false,
     raw: spool,

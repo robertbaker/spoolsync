@@ -18,7 +18,10 @@ describe("parseSpoolstockCsv", () => {
   });
 
   test("accepts header-only, single-column, and delimiter-declared inventories", () => {
-    expect(parseSpoolstockCsv("short_id\n")).toEqual({ records: [], warnings: [] });
+    expect(parseSpoolstockCsv("short_id\n")).toEqual({
+      records: [],
+      warnings: [],
+    });
     expect(parseSpoolstockCsv("short_id\nabc\n")).toEqual({
       records: [{ short_id: "abc" }],
       warnings: [],
@@ -79,7 +82,8 @@ describe("loadSpoolstockCsv", () => {
       emptySpoolWeight: 140,
       price: 12,
       purchasedOn: "2025-05-06",
-      comment: "Opened for K2",
+      comment: "Opened for K2\n\nFilament notes: Reliable spool",
+      finish: null,
       archived: false,
     });
     expect(silk).toMatchObject({
@@ -97,5 +101,35 @@ describe("loadSpoolstockCsv", () => {
     expect(result.warnings).toEqual([
       "Spool dup00001 appears more than once; using the first row.",
     ]);
+  });
+});
+
+describe("finish and filament notes", () => {
+  const load = (row: Record<string, string>) => {
+    const headers = ["short_id", ...Object.keys(row)];
+    const values = ["abc", ...Object.values(row)].map(
+      (value) => `"${value.replaceAll('"', '""')}"`,
+    );
+    return loadSpoolstockCsv(`${headers.join(",")}\n${values.join(",")}\n`).spools[0]!;
+  };
+
+  test("joins filament features into the finish", () => {
+    expect(load({ "filament.features": '["Metallic","Silk"]' }).finish).toBe("Metallic, Silk");
+    expect(load({ "filament.features": '["Multicolor ", "Matte"]' }).finish).toBe(
+      "Multicolor, Matte",
+    );
+    expect(load({ "filament.features": "[]" }).finish).toBeNull();
+    expect(load({ "filament.features": "Matte" }).finish).toBe("Matte");
+    // product_family is a product line ("Ender PLA"), not a finish.
+    expect(load({ "filament.product_family": "Matte PLA" }).finish).toBeNull();
+  });
+
+  test("appends filament notes after the spool notes", () => {
+    expect(load({ notes: "Mine", "filament.notes": "Dries well" }).comment).toBe(
+      "Mine\n\nFilament notes: Dries well",
+    );
+    expect(load({ "filament.notes": "Dries well" }).comment).toBe("Filament notes: Dries well");
+    expect(load({ notes: "Mine" }).comment).toBe("Mine");
+    expect(load({ notes: "Mine", "filament.notes": " " }).comment).toBe("Mine");
   });
 });

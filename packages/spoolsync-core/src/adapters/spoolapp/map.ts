@@ -10,6 +10,22 @@ import type { SpoolAppSpool } from "./schema";
 
 const RETIRED_LIFECYCLES = new Set(["finished", "archived", "empty", "depleted", "retired"]);
 
+/** Notes first, then the app's product line, multi-colour description and shop link. */
+function commentText(spool: SpoolAppSpool): string | null {
+  const parts = [
+    toText(spool.notes),
+    labelled("Product line", spool.productLine),
+    labelled("Colours", spool.multicolourDescription),
+    labelled("Purchase URL", spool.purchaseUrl),
+  ].filter((part): part is string => part !== null);
+  return parts.length ? parts.join("\n") : null;
+}
+
+function labelled(label: string, value: string | null | undefined): string | null {
+  const content = toText(value);
+  return content ? `${label}: ${content}` : null;
+}
+
 export function spoolAppToCommon(spool: SpoolAppSpool): CommonSpool {
   const colors = uniqueHexes(
     spool.isMulticolour && spool.multiHexes?.length ? spool.multiHexes : [spool.colourHex],
@@ -40,7 +56,9 @@ export function spoolAppToCommon(spool: SpoolAppSpool): CommonSpool {
     price: toNonNegativeNumber(spool.purchasePrice),
     purchasedOn: toDate(spool.purchaseDate),
     lotNr: null,
-    comment: toText(spool.notes),
+    finish: null,
+    td: null,
+    comment: commentText(spool),
     archived: Boolean(spool.isArchived || spool.isFinished) || RETIRED_LIFECYCLES.has(lifecycle),
     raw: spool,
   };

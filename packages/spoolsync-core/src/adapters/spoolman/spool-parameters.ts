@@ -1,6 +1,13 @@
 import type { PlannedCreate, PlannedUpdate } from "../../core/compare";
-import { spoolstockLotNr } from "../../core/normalize";
-import { encodeExtras, truncateComment, type SpoolParameters, type SpoolmanSpool } from "./schema";
+import { shortIdFromLotNr, spoolstockLotNr } from "../../core/normalize";
+import { hasDiameterOverride } from "./filament-policy";
+import {
+  encodeExtras,
+  readExtra,
+  truncateComment,
+  type SpoolParameters,
+  type SpoolmanSpool,
+} from "./schema";
 import { linkExtras } from "./spool-links";
 
 export function buildSpoolPatch(
@@ -32,14 +39,27 @@ export function buildSpoolPatch(
       case "archived":
         patch.archived = to as boolean;
         break;
+      case "lotNr":
+        patch.lot_nr = (to as string | null) ?? null;
+        break;
+      case "diameter":
+        // A per-spool override (Spoolman-NG) is the effective diameter; the filament is left alone.
+        if (hasDiameterOverride(current)) patch.diameter = to as number | null;
+        break;
       default:
         break;
     }
   }
 
   const purchased = change.changes.find((c) => c.field === "purchasedOn");
+  // Replacing a Spoolstock-style lot number must not lose the link it carried.
+  const lostLink =
+    "lot_nr" in patch && !readExtra(current.extra, "spoolstock_short_id")
+      ? shortIdFromLotNr(current.lot_nr)
+      : undefined;
   const newExtras = encodeExtras({
     ...linkExtras(change.links),
+    ...(lostLink && !change.links.spoolstockShortId ? { spoolstock_short_id: lostLink } : {}),
     ...(purchased ? { spoolstock_purchased_on: purchased.to as string | null } : {}),
   });
   if (Object.keys(newExtras).length || purchased) {
@@ -47,7 +67,7 @@ export function buildSpoolPatch(
     patch.extra = { ...current.extra, ...newExtras };
     if (purchased && purchased.to == null) delete patch.extra.spoolstock_purchased_on;
   }
-  if (change.links.spoolstockShortId && !current.lot_nr) {
+  if (change.links.spoolstockShortId && !current.lot_nr && !("lot_nr" in patch)) {
     patch.lot_nr = spoolstockLotNr(change.links.spoolstockShortId);
   }
 
@@ -65,7 +85,11 @@ export function createSpoolParameters(change: PlannedCreate, filamentId: number)
     price: values.price,
     comment: truncateComment(values.comment),
     archived: values.archived,
-    lot_nr: links.spoolstockShortId ? spoolstockLotNr(links.spoolstockShortId) : null,
-    extra: encodeExtras({ ...linkExtras(links), spoolstock_purchased_on: values.purchasedOn }),
+    lot_nr:
+      values.lotNr ?? (links.spoolstockShortId ? spoolstockLotNr(links.spoolstockShortId) : null),
+    extra: encodeExtras({
+      ...linkExtras(links),
+      spoolstock_purchased_on: values.purchasedOn,
+    }),
   };
 }

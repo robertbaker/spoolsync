@@ -34,6 +34,7 @@ const STRING_KEYS = new Set<string>([
   "spoolman-url",
   "filamentdb-url",
   "filament-db-url",
+  "bambuddy-url",
   "filadex-url",
   "filadex-user",
 ]);
@@ -103,6 +104,7 @@ const INPUT_KEYS = new Set<string>([
   "spoolman-url",
   "filamentdb-url",
   "filament-db-url",
+  "bambuddy-url",
   "filadex-url",
 ]);
 
@@ -130,7 +132,7 @@ function optionsFromFile(
     if (/token|password|secret|api-?key/i.test(key))
       fail(
         configFile,
-        `"${key}" looks like a secret. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, or FILADEX_PASSWORD in the environment instead.`,
+        `"${key}" looks like a secret. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
       );
     if (!ALLOWED_KEYS.includes(key)) {
       const suggestion = closestOption(

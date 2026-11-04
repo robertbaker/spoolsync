@@ -1,10 +1,21 @@
 import type { SpoolValues } from "../../core/compare";
 import type { ComparableField } from "../../core/model";
-import { defaultDensity, colorParams, middle } from "./filament-policy";
-import { encodeExtras, truncateComment } from "./schema";
+import { shortIdFromLotNr } from "../../core/normalize";
+import {
+  defaultDensity,
+  colorParams,
+  existingHexes,
+  filamentTemps,
+  hasDiameterOverride,
+  hasTempRanges,
+  temperatureParams,
+} from "./filament-policy";
+import { encodeExtras, readExtra, truncateComment } from "./schema";
 
 export type Spool = Record<string, unknown> & {
-  filament: Record<string, unknown> & { vendor?: Record<string, unknown> | null };
+  filament: Record<string, unknown> & {
+    vendor?: Record<string, unknown> | null;
+  };
   extra?: Record<string, string>;
 };
 
@@ -19,8 +30,32 @@ export function setField(spool: Spool, field: ComparableField, value: unknown): 
     case "material":
     case "name":
     case "density":
-    case "diameter":
       filament[field] = value;
+      break;
+    case "diameter":
+      // Where a spool overrides the diameter, that override is what the inventory shows.
+      if (hasDiameterOverride(spool)) spool["diameter"] = value;
+      else filament["diameter"] = value;
+      break;
+    case "nozzleTempMin":
+    case "nozzleTempMax":
+    case "bedTempMin":
+    case "bedTempMax":
+      // Applied together by setTemperatures: one value alone cannot tell a range from a point.
+      break;
+    case "lotNr":
+      // Keep the Spoolstock link the old lot number carried before replacing it.
+      if (
+        shortIdFromLotNr(spool["lot_nr"] as string | null) &&
+        !readExtra(spool.extra, "spoolstock_short_id")
+      )
+        spool.extra = {
+          ...spool.extra,
+          ...encodeExtras({
+            spoolstock_short_id: shortIdFromLotNr(spool["lot_nr"] as string),
+          }),
+        };
+      spool["lot_nr"] = value;
       break;
     case "colors":
       Object.assign(
@@ -28,6 +63,7 @@ export function setField(spool: Spool, field: ComparableField, value: unknown): 
         colorParams(
           (value as string[]) ?? [],
           filament["multi_color_direction"] === "longitudinal" ? "longitudinal" : "coaxial",
+          existingHexes(filament as never),
         ),
       );
       break;
@@ -67,6 +103,23 @@ export function setField(spool: Spool, field: ComparableField, value: unknown): 
   }
 }
 
+/** Applies temperature changes as one set, so a min and a max change do not overwrite each other. */
+export function setTemperatures(
+  spool: Spool,
+  changes: ReadonlyArray<{ field: ComparableField; to: unknown }>,
+): void {
+  const temps = { ...filamentTemps(spool.filament) };
+  let touched = false;
+  for (const { field, to } of changes) {
+    if (field in temps) {
+      temps[field as keyof typeof temps] = (to as number | null) ?? null;
+      touched = true;
+    }
+  }
+  if (touched)
+    Object.assign(spool.filament, temperatureParams(temps, hasTempRanges(spool.filament)));
+}
+
 export function newSpool(id: number, values: SpoolValues): Spool {
   const spool: Spool = {
     id,
@@ -82,8 +135,7 @@ export function newSpool(id: number, values: SpoolValues): Spool {
       diameter: 1.75,
       weight: values.initialWeight,
       spool_weight: values.emptySpoolWeight,
-      settings_extruder_temp: middle(values.nozzleTempMin, values.nozzleTempMax),
-      settings_bed_temp: middle(values.bedTempMin, values.bedTempMax),
+      ...temperatureParams(values, false),
     },
   };
   for (const [field, value] of Object.entries(values)) {

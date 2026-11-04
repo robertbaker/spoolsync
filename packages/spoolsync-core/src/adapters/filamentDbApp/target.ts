@@ -66,6 +66,7 @@ export function newSpoolFields(
   if (values.purchasedOn) body["purchaseDate"] = values.purchasedOn;
   if (values.archived) body["retired"] = true;
   if (values.comment) body["label"] = values.comment;
+  if (values.lotNr) body["lotNumber"] = values.lotNr;
   if (values.location) {
     const id = locationIdByName.get(values.location.toLowerCase());
     if (id) body["locationId"] = id;

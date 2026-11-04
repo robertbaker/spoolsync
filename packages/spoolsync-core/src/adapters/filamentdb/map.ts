@@ -6,8 +6,14 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
+import { readFinish } from "./finish";
 import type { FilamentDbSpool } from "./types";
 
+/**
+ * `series` (a product line such as "PolyLite") is kept in the raw record but not folded into the
+ * name: `color` is already the color name, and a series prefix would stop names matching other
+ * services.
+ */
 export function mapSpool(spool: FilamentDbSpool): CommonSpool {
   const serial = String(spool["serial"]);
   return {
@@ -32,6 +38,8 @@ export function mapSpool(spool: FilamentDbSpool): CommonSpool {
     price: null,
     purchasedOn: null,
     lotNr: toText(spool["batchNumber"]),
+    finish: readFinish(spool["finish"]),
+    td: toNonNegativeNumber(spool["transmissionDistance"]),
     comment: toText(spool["notes"]),
     archived: toBoolean(spool["deleted"]),
     raw: spool,
