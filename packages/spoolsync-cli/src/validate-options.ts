@@ -28,6 +28,8 @@ export function validateOptions(options: Options): void {
     reorder,
     cleanup,
     cleanupReport,
+    reference,
+    referenceReport,
     saveConfig,
     lowThreshold,
     watch,
@@ -88,9 +90,15 @@ export function validateOptions(options: Options): void {
     throw new Error(
       `--${cleanup ? "cleanup" : "cleanup-report"} cannot be combined with --summary or --reorder, which only report what is loaded.`,
     );
+  if ((reference || referenceReport) && countsLow)
+    throw new Error(
+      `--${reference ? "reference" : "reference-report"} cannot be combined with --summary or --reorder, which only report what is loaded.`,
+    );
   // `--cleanup-report` alone only lists proposals; with `--cleanup` it adds them to the comparison.
   const cleanupOnly = cleanupReport && !cleanup;
-  const reportOnly = countsLow || cleanupOnly;
+  // The same for `--reference-report` and `--reference`.
+  const referenceOnly = Boolean(referenceReport) && !reference;
+  const reportOnly = countsLow || cleanupOnly || referenceOnly;
   if (saveConfig && (apply || watch || summary || reorder || exportCsv))
     throw new Error(
       "--save-config only saves defaults, so it cannot be combined with --apply, --watch, --summary, --reorder, or --export-csv.",
@@ -101,11 +109,15 @@ export function validateOptions(options: Options): void {
     );
   if (reportOnly && changeOptions.length)
     throw new Error(
-      `--${summary ? "summary" : reorder ? "reorder" : "cleanup-report"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
+      `--${summary ? "summary" : reorder ? "reorder" : cleanupOnly ? "cleanup-report" : "reference-report"} only reports what is loaded, so it cannot be combined with ${changeOptions.join(", ")}.`,
     );
   if (cleanup && inventories < 2 && !saveConfig)
     throw new Error(
       "--cleanup adds changes to the plan between inventories, so it needs at least two. Use --cleanup-report to list the proposals for a single inventory.",
+    );
+  if (reference && inventories < 2 && !saveConfig)
+    throw new Error(
+      "--reference adds changes to the plan between inventories, so it needs at least two. Use --reference-report to list the matches for a single inventory.",
     );
   // Saving defaults does not run a comparison, so it needs no inventories at all.
   if (inventories < 2 && !saveConfig) {

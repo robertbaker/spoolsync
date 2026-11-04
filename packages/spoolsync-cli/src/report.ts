@@ -25,6 +25,7 @@ import {
   type PendingMatch,
 } from "./json-report";
 import type { createCliPlan } from "./planning";
+import { referenceLines, referenceSection, type ReferenceOutcome } from "./reference";
 import type { CliOutput } from "./runtime";
 
 export interface WorkflowReport {
@@ -68,6 +69,7 @@ export function reportWorkflow(
       ...summary,
       pendingMatches: pendingMatches(matches.suggestions),
       ...(planning.cleanup ? { cleanup: cleanupSection(planning.cleanup, options) } : {}),
+      ...(planning.reference ? { reference: referenceSection(planning.reference, options) } : {}),
       applied,
       written: inventoryFiles,
       ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
@@ -94,6 +96,11 @@ export function reportWorkflow(
       );
     if (planning.cleanup) {
       const text = cleanupLines(planning.cleanup, options);
+      output.log(text.lines.join("\n"));
+      for (const warning of text.warnings) output.warn(warning);
+    }
+    if (planning.reference) {
+      const text = referenceLines(planning.reference, options);
       output.log(text.lines.join("\n"));
       for (const warning of text.warnings) output.warn(warning);
     }
@@ -132,6 +139,7 @@ export function reportInventoryOnly(
   written: string[],
   output: CliOutput,
   changes?: InventoryChanges,
+  reference?: ReferenceOutcome,
 ): void {
   const rule = lowStockRule((options.lowThreshold ?? 20) as number);
   const summaries = SOURCE_IDS.flatMap((source) => {
@@ -163,6 +171,7 @@ export function reportInventoryOnly(
         : {}),
       ...(options.summary || options.reorder ? {} : { spools }),
       ...(cleanup ? { cleanup: cleanupSection(cleanup, options) } : {}),
+      ...(reference ? { reference: referenceSection(reference, options) } : {}),
       ...(options.exportCsv && written.includes(options.exportCsv)
         ? { csvExport: options.exportCsv }
         : {}),
@@ -191,6 +200,11 @@ export function reportInventoryOnly(
   if (options.reorder) output.log(formatReorderList(reorder));
   if (cleanup) {
     const text = cleanupLines(cleanup, options);
+    output.log(text.lines.join("\n"));
+    for (const warning of text.warnings) output.warn(warning);
+  }
+  if (reference) {
+    const text = referenceLines(reference, options);
     output.log(text.lines.join("\n"));
     for (const warning of text.warnings) output.warn(warning);
   }

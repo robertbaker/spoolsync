@@ -155,6 +155,16 @@ export const output = [
     desc: "List every proposed cleanup and every value that looks wrong (negative weights, odd diameters, damaged barcodes) with the rule and a reason. On its own it changes and plans nothing and works with a single inventory; with --cleanup it adds the full list to the comparison.",
   },
   {
+    flag: "--reference <file>",
+    copy: "--reference",
+    desc: "Match spools to a reference file (JSON or CSV of filaments with a brand, color and optional temperatures, weights and barcode) and add the values your services are missing, from confident single matches only, to the plan. Overwrites, partial matches and ambiguous matches are listed, never applied. Needs two inventories. The CLI reads only the file you give it. Also a config key (a path).",
+  },
+  {
+    flag: "--reference-report <file>",
+    copy: "--reference-report",
+    desc: "List every reference match, difference, ambiguous choice and color check (CIEDE2000) for the file. On its own it changes and plans nothing and works with a single inventory; with --reference it adds the full list to the comparison.",
+  },
+  {
     flag: "--export-csv <file>",
     copy: "--export-csv",
     desc: "Write every loaded spool to one CSV file, tagged by service. Works with a single inventory, and never overwrites an input file.",

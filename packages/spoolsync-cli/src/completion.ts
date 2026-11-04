@@ -96,6 +96,16 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     description: "List proposed data cleanups and warnings",
     kind: "flag",
   },
+  {
+    flag: "--reference",
+    description: "Fill missing data from a reference file (JSON or CSV) in the plan",
+    kind: "file",
+  },
+  {
+    flag: "--reference-report",
+    description: "List reference-file matches, differences and color checks",
+    kind: "file",
+  },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
   {
     flag: "--json",

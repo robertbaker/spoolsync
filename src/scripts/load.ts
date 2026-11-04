@@ -34,6 +34,7 @@ import { wireLabelPrinting } from "./load/label-sheet";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
 import { wireInventoryReport } from "./load/report-panel";
+import { wireReferencePanel } from "./load/reference-view";
 import { wireReorderPanel } from "./load/reorder-panel";
 import { wireSinceVisit } from "./load/since-visit-panel";
 import { wireSmartDrop } from "./load/smart-drop";
@@ -89,6 +90,8 @@ const toolsRoot = document.getElementById("table-tools");
 const tableTools = toolsRoot
   ? wireTableTools(toolsRoot, renderTable, () => state.results.size > 0)
   : null;
+const referenceRoot = document.getElementById("reference-panel");
+const reference = referenceRoot ? wireReferencePanel(referenceRoot, state.results) : null;
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
 const render = () => {
@@ -101,6 +104,7 @@ const render = () => {
   // After the cleanup panel, whose suggestions are one input to the score.
   health?.update();
   tableTools?.update();
+  reference?.update();
   inventoryReport.update();
   sinceVisit.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);

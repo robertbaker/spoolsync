@@ -4,7 +4,7 @@ const labCache = new Map<string, [number, number, number]>();
 const MAX_CACHED_COLORS = 512;
 
 /** SRGB hex ("RRGGBB") to CIELAB (D65). */
-function hexToLab(hex: string): [number, number, number] {
+export function hexToLab(hex: string): [number, number, number] {
   const cached = labCache.get(hex);
   if (cached) return cached;
   const channel = (offset: number) => {

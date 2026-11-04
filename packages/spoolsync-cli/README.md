@@ -180,6 +180,9 @@ spoolsync --completion zsh > ~/.zfunc/_spoolsync   # zsh, with ~/.zfunc on your 
 - **`--cleanup[=rules]` and `--cleanup-report[=rules]`:** data cleanup, described in
   [Data cleanup](#data-cleanup). `--cleanup` needs two inventories; `--cleanup-report` also works
   with one.
+- **`--reference <file>` and `--reference-report <file>`:** reference data, described in
+  [Reference data](#reference-data). `--reference` needs two inventories; `--reference-report` also
+  works with one.
 - **Helpful errors:** a misspelled option suggests the closest real one, a missing input file says so,
   and a file passed to the wrong service flag names the service it looks like (for example
   `--spoolio` given a SpoolKeep backup suggests `--spoolkeep`).
@@ -223,6 +226,45 @@ spoolsync --spoolman a.json --spoolio b.json --cleanup=all,-vendor-alias
 - JSON reports gain a `cleanup` object: `rules`, `counts`, `applied` (changes added to the plan),
   `proposals` (with `--cleanup-report`), `warnings`, and `duplicatesAfterCleanup`. With
   `--cleanup-report` alone the report is `"inventory"` with a `cleanup` object.
+
+## Reference data
+
+Match your spools to a reference catalog (a JSON or CSV file of filaments, such as an export from a
+public filament database) to fill in what is missing and to check colors. The CLI reads only the
+file you give it and never contacts a reference service; fetching from the Open Filament Database
+or FilamentColors is a browser feature that needs an endpoint configured first (see
+`docs/architecture.md`).
+
+```sh
+spoolsync --spoolman spoolman.json --spoolio spoolio.json --reference filaments.json --output-dir updated
+spoolsync --spoolio spoolio.json --reference-report filaments.json     # one inventory, nothing planned
+```
+
+- **File format:** a JSON list of records (or an object holding one list, optionally with
+  `attribution` and `license` text), or CSV with a header row. Names are matched ignoring case and
+  punctuation: `brand` (also `vendor`, `manufacturer`), `material`, `color_name`, `hex`,
+  `diameter`, `density`, `nozzle_temp_min`/`nozzle_temp_max` (or a range such as `nozzle_temp`
+  `190-220`), `bed_temp_min`/`bed_temp_max`, `net_weight`, `spool_weight` (empty spool), `price`,
+  `barcode` (also `ean`, `upc`, `gtin`), and `url`. Weights of 10 or less are read as kilograms.
+- **Matching** compares the brand (using the same brand aliases as cleanup), material, name, color,
+  diameter and barcode, and scores each candidate. A spool is matched only when one record is
+  clearly ahead; when several fit about equally, or the match is only partial, the spool is
+  reported and left alone. The Load page in the browser is where such a choice is made.
+- **`--reference <file>`** adds the missing values a **confident, unambiguous** match can fill to the
+  plan, as updates to the record they came from, so they appear in `plannedChanges`, in written
+  files, and with `--apply`. Existing values are never overwritten, and a change is planned only
+  where the service is writable and stores the field. Brand and price are not filled.
+- **`--reference-report <file>`** prints every proposal (fills and would-be overwrites, with the
+  reference record and a reason), the spools that need a choice, and every color that is not a
+  match. On its own it plans and writes nothing and works with a single inventory; it cannot be
+  combined with `--summary`, `--reorder`, or options that change something. Color differences use
+  CIEDE2000: up to 2.3 is a match, up to 5 is close, above 5 is a mismatch.
+- In `--config` or the settings file, `"reference"` and `"reference-report"` are file paths.
+  `--save-config` does not save them.
+- JSON reports gain a `reference` object: `provider`, `file`, `attribution`, `license`, `catalog`,
+  `counts`, `applied` (changes added to the plan), and with `--reference-report` also `proposals`,
+  `ambiguous` and `colorChecks`. With `--reference-report` alone the report is `"inventory"` with a
+  `reference` object.
 
 ## Direct API access
 

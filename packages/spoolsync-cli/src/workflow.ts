@@ -7,6 +7,7 @@ import { ExecutionError, executeWrites } from "./execution";
 import { prepareExports } from "./exports";
 import { loadInputs } from "./inputs";
 import { createCliPlan } from "./planning";
+import { loadReferenceFile, runReference } from "./reference";
 import { reportInventoryOnly, reportWorkflow } from "./report";
 import type { CliDependencies, CliOutput } from "./runtime";
 
@@ -21,7 +22,17 @@ export async function runWorkflow(
   const loadedSpools = [...loaded.values()].flatMap((result) => result.spools);
   // `--cleanup-report` on its own lists proposals for what is loaded and plans nothing.
   const cleanupOnly = options.cleanupReport && !options.cleanup;
-  if (options.summary || options.reorder || cleanupOnly || (options.exportCsv && loaded.size < 2)) {
+  // The same for `--reference-report` without `--reference`. The reference file is read once here.
+  const referenceFile = await loadReferenceFile(options, dependencies);
+  const reference = referenceFile ? runReference(referenceFile, loaded, options) : undefined;
+  const referenceOnly = Boolean(options.referenceReport) && !options.reference;
+  if (
+    options.summary ||
+    options.reorder ||
+    cleanupOnly ||
+    referenceOnly ||
+    (options.exportCsv && loaded.size < 2)
+  ) {
     // Nothing to compare: a report of what is loaded, an export of it, or both.
     const { staged } = await prepareExports(options, loaded, new Map(), dependencies);
     const { written } = await executeWrites(staged);
@@ -32,10 +43,11 @@ export async function runWorkflow(
       written,
       output,
       previous && diffSnapshots(previous, snapshot),
+      reference,
     );
     return snapshot;
   }
-  const planning = createCliPlan(options, loaded);
+  const planning = createCliPlan(options, loaded, options.reference ? reference : undefined);
   const { staged, exportWarnings } = await prepareExports(
     options,
     loaded,

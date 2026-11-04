@@ -1,5 +1,6 @@
 import type { MatchSuggestion } from "@spoolsync/core/core/match";
 import { recordEditsFromAccepted } from "@spoolsync/core/core/cleanup";
+import { mergeRecordEdits, referenceEditsFromAccepted } from "@spoolsync/core/core/reference";
 import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 
 import {
@@ -12,6 +13,7 @@ import {
 } from "~/lib/browser/storage";
 import { loadBulkEdits, saveBulkEdits } from "~/lib/browser/storage/bulk-edits";
 import { loadAcceptedCleanups } from "~/lib/browser/storage/cleanup";
+import { loadAcceptedReferences } from "~/lib/browser/storage/reference";
 import { readPreferences } from "~/lib/preferences";
 import {
   applySampleParam,
@@ -54,6 +56,15 @@ const cleanupEdits = recordEditsFromAccepted(
   loadAcceptedCleanups(),
   [...loaded.values()].flatMap((result) => result.spools),
 ).edits;
+// Reference data accepted on the Load page, checked the same way. Applied after cleanups: the
+// person picked these values from a catalog they chose.
+const referenceEdits = referenceEditsFromAccepted(
+  loadAcceptedReferences(),
+  [...loaded.values()].flatMap((result) => result.spools),
+).edits;
+const recordEdits = mergeRecordEdits(cleanupEdits, referenceEdits);
+const countFields = (edits: typeof cleanupEdits) =>
+  [...edits.values()].reduce((sum, edit) => sum + Object.keys(edit).length, 0);
 // Come back to the same view of the differences list.
 state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
@@ -61,7 +72,11 @@ const renderApply = createApplyView(loaded, renderAll, {
   excluded: () => state.excluded(),
   decisions: () => state.matchDecisions(),
   bulkEdits: () => state.bulkEdits(),
-  recordEdits: () => cleanupEdits,
+  recordEdits: () => recordEdits,
+  recordEditCounts: () => ({
+    cleanup: countFields(cleanupEdits),
+    reference: countFields(referenceEdits),
+  }),
   clearBulkEdit: (groupId) => {
     state.clearBulkEdit([groupId], undefined, "clearing a bulk edit");
     renderAll();
