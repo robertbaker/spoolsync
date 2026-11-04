@@ -1,7 +1,12 @@
 import path from "node:path";
 
 import { FIELD_LABELS, formatValue, type PlannedChange } from "@spoolsync/core/core/compare";
-import type { ApplyLogEntry, LoadResult, WritableSourceId } from "@spoolsync/core/core/model";
+import {
+  isWritableSource,
+  type ApplyLogEntry,
+  type LoadResult,
+  type WritableSourceId,
+} from "@spoolsync/core/core/model";
 import {
   buildRollback,
   parseRollback,
@@ -116,8 +121,8 @@ export async function runRestore(
   }
   let service: RemoteService | undefined;
   for (const candidate of dependencies.remoteServices(options))
-    if (candidate.source === document.source) service = candidate;
-  if (!service)
+    if (candidate.source === document.source && candidate.apply) service = candidate;
+  if (!service?.apply || !isWritableSource(service.source))
     throw new Error(
       `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : "--filadex-url"} <address>.`,
     );

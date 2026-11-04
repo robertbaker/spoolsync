@@ -17,6 +17,7 @@ Inputs (provide at least two):
   --filameter <file>      FilaMeter backup JSON or CSV export
   --filadex <file>        Filadex JSON or CSV export
   --filamentdb <file>     FilamentDB spools JSON
+  --filament-db <file>    Filament DB snapshot JSON (read-only source)
   --spoolmaster <file>    SpoolMaster Excel (.xlsx) export (read-only source)
   --spoolhoarder <file>   Spool Hoarder inventory or HueForge CSV (read-only source)
   --spool <file>          Spool app JSON backup (read-only source)
@@ -26,6 +27,8 @@ Inputs (provide at least two):
   --spoolman-token <token> API token (or set SPOOLMAN_TOKEN)
   --filamentdb-url <url>  Load FilamentDB directly instead of from a file
   --filamentdb-token <token> Session token for installs with user management (or set FILAMENTDB_TOKEN)
+  --filament-db-url <url> Read Filament DB directly instead of from a file (never written)
+  --filament-db-token <key> API key if the server sets FILAMENTDB_API_KEY (or set FILAMENT_DB_API_KEY)
   --filadex-url <url>     Load Filadex directly instead of from a file
   --filadex-user <name>   Filadex username; the password comes from FILADEX_PASSWORD
 

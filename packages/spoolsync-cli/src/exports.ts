@@ -23,6 +23,7 @@ function outputBase(source: WritableSourceId): string {
     filameter: "filameter.json",
     filadex: "filadex.json",
     filamentdb: "filamentdb-spools.json",
+    filamentDbApp: "filament-db-snapshot.json",
   }[source];
 }
 

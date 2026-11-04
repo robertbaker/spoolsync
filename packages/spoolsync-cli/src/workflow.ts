@@ -1,5 +1,5 @@
 import { ApplyReloadError } from "@spoolsync/core/apply";
-import type { ApplyLogEntry } from "@spoolsync/core/core/model";
+import { isWritableSource, type ApplyLogEntry } from "@spoolsync/core/core/model";
 import { diffSnapshots, snapshotInventory, type InventorySnapshot } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
@@ -63,10 +63,11 @@ export async function runWorkflow(
   );
   const rollbackFiles: string[] = [];
   const apply =
-    options.apply && services.length
+    options.apply && services.some((service) => service.apply)
       ? async () => {
           const log: ApplyLogEntry[] = [];
           for (const service of services) {
+            if (!service.apply || !isWritableSource(service.source)) continue;
             try {
               const changes = planning.plan.get(service.source) ?? [];
               const rollbackFile = await saveRollbackBeforeWrite(

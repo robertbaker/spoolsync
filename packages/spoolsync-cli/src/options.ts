@@ -8,6 +8,8 @@ export type Options = {
   spoolmanToken?: string;
   filamentdbUrl?: string;
   filamentdbToken?: string;
+  filamentDbUrl?: string;
+  filamentDbToken?: string;
   filadexUrl?: string;
   filadexUser?: string;
   apply: boolean;

@@ -19,6 +19,8 @@ export function validateOptions(options: Options): void {
     spoolmanToken,
     filamentdbUrl,
     filamentdbToken,
+    filamentDbUrl,
+    filamentDbToken,
     filadexUrl,
     filadexUser,
     apply,
@@ -46,13 +48,17 @@ export function validateOptions(options: Options): void {
     throw new Error("Use either --filamentdb-url or --filamentdb <file>, not both.");
   if (filamentdbToken && !filamentdbUrl)
     throw new Error("--filamentdb-token requires --filamentdb-url.");
+  if (filamentDbUrl && inputs.has("filamentDbApp"))
+    throw new Error("Use either --filament-db-url or --filament-db <file>, not both.");
+  if (filamentDbToken && !filamentDbUrl)
+    throw new Error("--filament-db-token requires --filament-db-url.");
   if (filadexUrl && inputs.has("filadex"))
     throw new Error("Use either --filadex-url or --filadex <file>, not both.");
   if (!!filadexUrl !== !!filadexUser)
     throw new Error("--filadex-url and --filadex-user must be used together.");
-  if (apply && !spoolmanUrl && !filamentdbUrl && !filadexUrl)
+  if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !filadexUrl)
     throw new Error(
-      "--apply requires --spoolman-url, --filamentdb-url, or --filadex-url; file inputs are never written to a service.",
+      "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, or --filadex-url; file inputs are never written to a service.",
     );
   for (const source of empty)
     if (
@@ -67,6 +73,7 @@ export function validateOptions(options: Options): void {
     empty.length +
     (spoolmanUrl ? 1 : 0) +
     (filamentdbUrl ? 1 : 0) +
+    (filamentDbUrl ? 1 : 0) +
     (filadexUrl ? 1 : 0);
   if (quiet && !watch)
     throw new Error(
@@ -185,6 +192,7 @@ export function validateOptions(options: Options): void {
     empty.includes(source as WritableSourceId) ||
     (source === "spoolman" && !!spoolmanUrl) ||
     (source === "filamentdb" && !!filamentdbUrl) ||
+    (source === "filamentDbApp" && !!filamentDbUrl) ||
     (source === "filadex" && !!filadexUrl);
   for (const source of createIn)
     if (!isLoaded(source)) throw new Error(`--create-in ${source} requires --${source} input`);

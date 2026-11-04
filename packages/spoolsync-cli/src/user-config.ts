@@ -18,6 +18,7 @@ const SOURCE_KEYS: Record<SourceId, string> = {
   filameter: "filameter",
   filadex: "filadex",
   filamentdb: "filamentdb",
+  filamentDbApp: "filament-db",
   spoolmaster: "spoolmaster",
   spoolhoarder: "spoolhoarder",
   spoolapp: "spool",
@@ -73,6 +74,7 @@ export function savableSettings(options: Options): Record<string, unknown> {
   if (options.lowThreshold !== undefined) settings["low-threshold"] = options.lowThreshold;
   if (options.spoolmanUrl) settings["spoolman-url"] = options.spoolmanUrl;
   if (options.filamentdbUrl) settings["filamentdb-url"] = options.filamentdbUrl;
+  if (options.filamentDbUrl) settings["filament-db-url"] = options.filamentDbUrl;
   if (options.filadexUrl) settings["filadex-url"] = options.filadexUrl;
   if (options.filadexUser) settings["filadex-user"] = options.filadexUser;
   return settings;

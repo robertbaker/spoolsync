@@ -32,6 +32,7 @@ const sourceFlags: Record<string, SourceId> = {
   "--filameter": "filameter",
   "--filadex": "filadex",
   "--filamentdb": "filamentdb",
+  "--filament-db": "filamentDbApp",
   "--spoolmaster": "spoolmaster",
   "--spoolhoarder": "spoolhoarder",
   "--spool-hoarder": "spoolhoarder",
@@ -83,6 +84,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--spoolman-token",
   "--filamentdb-url",
   "--filamentdb-token",
+  "--filament-db-url",
+  "--filament-db-token",
   "--filadex-url",
   "--filadex-user",
   ...Object.keys(sourceFlags),
@@ -103,6 +106,8 @@ const SINGLETON_FLAGS: string[] = [
   "--spoolman-token",
   "--filamentdb-url",
   "--filamentdb-token",
+  "--filament-db-url",
+  "--filament-db-token",
   "--filadex-url",
   "--filadex-user",
 ];
@@ -121,6 +126,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let spoolmanToken: string | undefined;
   let filamentdbUrl: string | undefined;
   let filamentdbToken: string | undefined;
+  let filamentDbUrl: string | undefined;
+  let filamentDbToken: string | undefined;
   let filadexUrl: string | undefined;
   let filadexUser: string | undefined;
   let apply = false;
@@ -226,6 +233,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       filamentdbUrl = value(arg);
     } else if (arg === "--filamentdb-token") {
       filamentdbToken = value(arg);
+    } else if (arg === "--filament-db-url") {
+      filamentDbUrl = value(arg);
+    } else if (arg === "--filament-db-token") {
+      filamentDbToken = value(arg);
     } else if (arg === "--filadex-url") {
       filadexUrl = value(arg);
     } else if (arg === "--filadex-user") {
@@ -308,6 +319,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(spoolmanToken ? { spoolmanToken } : {}),
     ...(filamentdbUrl ? { filamentdbUrl } : {}),
     ...(filamentdbToken ? { filamentdbToken } : {}),
+    ...(filamentDbUrl ? { filamentDbUrl } : {}),
+    ...(filamentDbToken ? { filamentDbToken } : {}),
     ...(filadexUrl ? { filadexUrl } : {}),
     ...(filadexUser ? { filadexUser } : {}),
     apply,

@@ -14,6 +14,7 @@ const SOURCE_KEYS = [
   "filameter",
   "filadex",
   "filamentdb",
+  "filament-db",
   "spoolmaster",
   "spoolhoarder",
   "spool",
@@ -32,6 +33,7 @@ const STRING_KEYS = new Set<string>([
   "format",
   "spoolman-url",
   "filamentdb-url",
+  "filament-db-url",
   "filadex-url",
   "filadex-user",
 ]);
@@ -100,6 +102,7 @@ const INPUT_KEYS = new Set<string>([
   "empty",
   "spoolman-url",
   "filamentdb-url",
+  "filament-db-url",
   "filadex-url",
 ]);
 

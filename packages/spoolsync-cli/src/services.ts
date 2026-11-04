@@ -1,21 +1,24 @@
 import { loadFiladex } from "@spoolsync/core/adapters/filadex";
 import { loadFilamentDb } from "@spoolsync/core/adapters/filamentdb";
+import { loadFilamentDbApp } from "@spoolsync/core/adapters/filamentDbApp";
 import { loadSpoolman } from "@spoolsync/core/adapters/spoolman";
 import {
   applyAndReloadFiladex,
   applyAndReloadFilamentDb,
+  applyAndReloadFilamentDbApp,
   applyAndReloadSpoolman,
 } from "@spoolsync/core/apply";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
-import type { ApplyLogEntry, LoadResult, WritableSourceId } from "@spoolsync/core/core/model";
+import type { ApplyLogEntry, LoadResult, SourceId } from "@spoolsync/core/core/model";
 
 import type { Options } from "./args";
 
 export interface RemoteService {
-  source: WritableSourceId;
+  source: SourceId;
   label: string;
   load(): Promise<LoadResult>;
-  apply(
+  /** Absent for read-only services, which are loaded but never written. */
+  apply?(
     changes: PlannedChange[],
     progress: (done: number, total: number) => void,
   ): Promise<ApplyLogEntry[]>;
@@ -46,6 +49,17 @@ export function* remoteServices(
       load: () => loadFilamentDb(connection),
       apply: async (changes, progress) =>
         (await applyAndReloadFilamentDb(connection, changes, progress)).log,
+    };
+  }
+  if (options.filamentDbUrl) {
+    const token = options.filamentDbToken ?? environment["FILAMENT_DB_API_KEY"];
+    const connection = { baseUrl: options.filamentDbUrl, ...(token ? { token } : {}) };
+    yield {
+      source: "filamentDbApp",
+      label: "Filament DB",
+      load: () => loadFilamentDbApp(connection),
+      apply: async (changes, progress) =>
+        (await applyAndReloadFilamentDbApp(connection, changes, progress)).log,
     };
   }
   if (options.filadexUrl && options.filadexUser) {
