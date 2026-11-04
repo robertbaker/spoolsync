@@ -2,13 +2,19 @@ import type { Pagination } from "./fetch";
 import {
   FILAMENTCOLORS_MAPPING,
   OFD_MAPPING,
+  OPENPRINTTAG_MAPPING,
   REFERENCE_PRESETS,
   type ReferenceMapping,
   type ReferencePreset,
 } from "./mapping";
 import { flattenOpenFilamentDatabase, OFD_BULK_URL } from "./ofd";
+import { OPENPRINTTAG_REPOSITORY } from "./openprinttag";
 
-export type ReferenceProviderId = "file" | "openfilamentdatabase" | "filamentcolors";
+export type ReferenceProviderId =
+  | "file"
+  | "openfilamentdatabase"
+  | "filamentcolors"
+  | "openprinttag";
 
 /**
  * - `ready`: works with real data today; a remote provider ships a verified endpoint and mapping.
@@ -61,6 +67,11 @@ export interface ReferenceProvider {
   presets: readonly ReferencePreset[];
   /** Built-in endpoint settings; remote providers that are `ready` have them. */
   defaults?: ReferenceProviderDefaults;
+  /**
+   * The catalog has no endpoint a browser can fetch, so it is only available as the snapshot built
+   * into the site (`tools/reference-snapshot.ts`); without one, load a converted file instead.
+   */
+  snapshotOnly?: boolean;
   /** Adjusts one raw record before it is mapped, such as flattening a nested object. */
   prepareRecord?(record: unknown): unknown;
   /** Turns a whole response into a list of records, for a service that returns joined tables. */
@@ -153,6 +164,36 @@ export const PROVIDERS: readonly ReferenceProvider[] = [
             0,
             120,
           );
+        },
+      },
+    },
+  },
+  {
+    info: {
+      id: "openprinttag",
+      label: "OpenPrintTag database",
+      kind: "remote",
+      homepage: "https://openprinttag.org",
+      docsUrl: OPENPRINTTAG_REPOSITORY,
+      attribution: "OpenPrintTag database (github.com/OpenPrintTag/openprinttag-database)",
+      license: "MIT",
+      status: "ready",
+      remaining: [],
+    },
+    presets: [],
+    snapshotOnly: true,
+    defaults: {
+      urlTemplate: OPENPRINTTAG_REPOSITORY,
+      pagination: { kind: "none" },
+      mapping: OPENPRINTTAG_MAPPING,
+      maxPages: 1,
+      minIntervalMs: 0,
+      freshness: {
+        // The newest commit on the default branch changes whenever the data does.
+        url: "https://api.github.com/repos/OpenPrintTag/openprinttag-database/commits/main",
+        token: (document) => {
+          const sha = (document as { sha?: unknown } | null)?.sha;
+          return typeof sha === "string" && /^[0-9a-f]{7,64}$/i.test(sha) ? sha : null;
         },
       },
     },

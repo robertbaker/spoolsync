@@ -388,7 +388,16 @@ describe("providers", () => {
       "file",
       "openfilamentdatabase",
       "filamentcolors",
+      "openprinttag",
     ]);
+  });
+
+  test("OpenPrintTag is snapshot-only: a built-in mapping, and no preset to fetch", () => {
+    const found = providerById("openprinttag")!;
+    expect(found.snapshotOnly).toBe(true);
+    expect(found.info.kind).toBe("remote");
+    expect(found.defaults!.mapping.fields.barcode).toEqual(["gtin"]);
+    expect(providerById("filamentcolors")!.snapshotOnly).toBeUndefined();
   });
 });
 

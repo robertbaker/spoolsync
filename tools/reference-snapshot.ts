@@ -9,6 +9,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import { buildSnapshots } from "./reference-snapshot/build";
+import { openPrintTagSource } from "./reference-snapshot/openprinttag-source";
 
 if (process.env["SKIP_REFERENCE_SNAPSHOT"] === "1") {
   console.log(
@@ -43,7 +44,11 @@ const results = await buildSnapshots(
     now: () => Date.now(),
     log: (message) => console.log(`[reference-snapshot] ${message}`),
   },
-  { outDir, force: args.has("--force") },
+  {
+    outDir,
+    force: args.has("--force"),
+    sources: { openprinttag: openPrintTagSource() },
+  },
 );
 
 if (args.has("--strict") && results.some((result) => result.status === "failed")) process.exit(1);

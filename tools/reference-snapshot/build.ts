@@ -4,6 +4,7 @@ import {
   decodeSnapshot,
   encodeSnapshot,
   fetchReferenceCatalog,
+  normalizeReferenceRecords,
   probeFreshness,
   snapshotPath,
   type ReferenceIO,
@@ -19,7 +20,15 @@ export interface SnapshotDeps {
   log(message: string): void;
 }
 
+/**
+ * Flat records and a change token for a provider that has no endpoint to fetch (see
+ * `snapshotOnly`).
+ */
+export type SnapshotSource = () => Promise<{ records: unknown[]; token: string | null }>;
+
 export interface SnapshotOptions {
+  /** Loaders for snapshot-only providers, by provider id. A provider without one is skipped. */
+  sources?: Readonly<Record<string, SnapshotSource>>;
   /** The directory the site serves as its root (`public`); snapshots go under `reference/`. */
   outDir: string;
   /** Fetch even when the service says nothing changed, and accept a much smaller catalog. */
@@ -70,6 +79,72 @@ export async function buildSnapshots(
       results.push({ providerId: id, status, records, message });
     };
     const existing = await readExisting(deps, path);
+    if (provider.snapshotOnly) {
+      const source = options.sources?.[id];
+      if (!source) {
+        done(
+          existing ? "kept-old" : "failed",
+          existing?.filaments.length ?? 0,
+          "no source configured.",
+        );
+        continue;
+      }
+      try {
+        const { records, token } = await source();
+        if (!options.force && existing && token !== null && token === existing.sourceToken) {
+          done(
+            "unchanged",
+            existing.filaments.length,
+            `unchanged since the last snapshot (${existing.filaments.length} records).`,
+          );
+          continue;
+        }
+        const catalog = normalizeReferenceRecords(records, provider.defaults.mapping, {
+          providerId: id,
+          providerLabel: provider.info.label,
+          attribution: provider.info.attribution,
+          license: provider.info.license,
+        });
+        if (
+          !options.force &&
+          existing &&
+          catalog.filaments.length < existing.filaments.length * SHRINK_LIMIT
+        ) {
+          done(
+            "kept-old",
+            existing.filaments.length,
+            `the source gave ${catalog.filaments.length} records against ${existing.filaments.length} before; kept the old snapshot (use --force to accept).`,
+          );
+          continue;
+        }
+        await deps.writeText(
+          path,
+          encodeSnapshot({
+            providerId: id,
+            generatedAt: deps.now(),
+            sourceToken: token,
+            source: provider.defaults.urlTemplate,
+            attribution: provider.info.attribution,
+            license: provider.info.license,
+            skipped: catalog.skipped,
+            filaments: catalog.filaments,
+          }),
+        );
+        done(
+          "written",
+          catalog.filaments.length,
+          `wrote ${catalog.filaments.length} records to ${path}.`,
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        done(
+          existing ? "kept-old" : "failed",
+          existing?.filaments.length ?? 0,
+          `could not build (${reason}).`,
+        );
+      }
+      continue;
+    }
     // Taken before the download: if the service changes while it runs, the next check differs.
     const token = await probeFreshness(provider, deps.io);
     if (!options.force && existing && token !== null && token === existing.sourceToken) {

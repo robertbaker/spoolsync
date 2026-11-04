@@ -364,6 +364,11 @@ responsibilities:
   flat record per package; `tools/openprinttag-to-reference.ts` builds that JSON from a local clone,
   and the Load page reads it as a reference file with the "OpenPrintTag database" preset
   (`OPENPRINTTAG_MAPPING`). It states no price or empty-spool weight, so neither is mapped.
+  It is also a built-in, snapshot-only provider (`snapshotOnly`): no browser-fetchable address exists,
+  so `tools/reference-snapshot.ts` downloads the repository tarball at build time
+  (`reference-snapshot/openprinttag-source.ts`, Bun YAML), writes `public/reference/openprinttag.json`,
+  and uses the latest commit as the change token. A site built without it reports that and points to
+  the converter.
 - FilaMeter separates document contracts, mapping, file loading, document mutation, and export
   assembly. The exporter retains backup metadata and non-filament documents while replacing only
   changed filament documents.

@@ -127,3 +127,38 @@ describe("buildSnapshots", () => {
     expect(accepted[0]).toMatchObject({ status: "written", records: 2 });
   });
 });
+
+describe("buildSnapshots for a snapshot-only provider", () => {
+  const only = [providerById("openprinttag")!];
+  const records = [
+    { id: "p", brand: "Acme", material: "PLA", colorName: "Red", gtin: "8594173675292" },
+  ];
+  const io: ReferenceIO = {
+    now: () => 0,
+    sleep: async () => {},
+    fetch: async () => {
+      throw new Error("a snapshot-only provider is never fetched");
+    },
+  };
+
+  test("builds from its source, skips an unchanged token, and fails softly without a source", async () => {
+    const fs = disk();
+    const deps = { io, ...fs, now: () => 7, log: () => {} };
+    const sources = { openprinttag: async () => ({ records, token: "abc123" }) };
+
+    const first = await buildSnapshots(deps, { outDir: "public", providers: only, sources });
+    expect(first[0]).toMatchObject({ status: "written", records: 1 });
+    const snap = decodeSnapshot(JSON.parse(fs.files.get("public/reference/openprinttag.json")!))!;
+    expect(snap).toMatchObject({ sourceToken: "abc123", license: "MIT" });
+    expect(snap.filaments[0]).toMatchObject({ vendor: "Acme", barcode: "8594173675292" });
+
+    const second = await buildSnapshots(deps, { outDir: "public", providers: only, sources });
+    expect(second[0]!.status).toBe("unchanged");
+
+    const none = await buildSnapshots(
+      { io, ...disk(), now: () => 7, log: () => {} },
+      { outDir: "public", providers: only },
+    );
+    expect(none[0]!.status).toBe("failed");
+  });
+});

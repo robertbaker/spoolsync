@@ -503,6 +503,19 @@ export class ReferenceController {
         if (superseded()) return { kind: "stale" };
       }
 
+      // A snapshot-only catalog has no address a browser can fetch.
+      if (provider.snapshotOnly) {
+        if (base)
+          return use(
+            `The copy from ${dateOf(base.meta.fetchedAt)} is the newest this site has; newer data may exist at the source.`,
+          );
+        return {
+          kind: "error",
+          message: `${provider.info.label} is not built into this copy of the site. Convert it with tools/openprinttag-to-reference.ts and load the result as a reference file.`,
+          cancelled: false,
+        };
+      }
+
       let fetched;
       try {
         fetched = await fetchReferenceCatalog(provider, built.config, this.io, {
