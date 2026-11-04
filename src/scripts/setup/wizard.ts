@@ -1,5 +1,6 @@
 import { SOURCE_IDS, SOURCE_LABELS, type SourceId } from "@spoolsync/core/core/model";
 
+import { t } from "~/lib/i18n";
 import { SOURCE_GUIDES } from "~/lib/source-guides";
 
 import { h, showToast } from "../dom";
@@ -81,16 +82,16 @@ function createWizard(): () => void {
       );
     });
     return [
-      heading("Which apps do you use?"),
+      heading(t("wizard.choose.title")),
       h(
         "p",
         { class: "mt-1 text-sm text-muted-foreground" },
-        "Tick every app that holds spools. Next, you will see where to find each one's export.",
+        t("wizard.choose.hint"),
       ),
       h(
         "fieldset",
         { class: "mt-4" },
-        h("legend", { class: "sr-only" }, "Apps you use"),
+        h("legend", { class: "sr-only" }, t("wizard.choose.legend")),
         h("div", { class: "grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2" }, ...boxes),
       ),
     ];
@@ -99,19 +100,19 @@ function createWizard(): () => void {
   function guideStep(source: SourceId): Node[] {
     const guide = SOURCE_GUIDES[source];
     return [
-      heading(`Export from ${SOURCE_LABELS[source]}`),
-      h("p", { class: "mt-1 text-xs text-muted-foreground" }, `File type: ${guide.kind}`),
+      heading(t("wizard.guide.title", { app: SOURCE_LABELS[source] })),
+      h("p", { class: "mt-1 text-xs text-muted-foreground" }, t("wizard.guide.fileType", { kind: guide.kind })),
       h("p", { class: "mt-3 text-sm leading-6" }, guide.how),
     ];
   }
 
   function loadStep(): Node[] {
     const chosen = normalizeSelection(selected);
-    const choose = h("button", { type: "button", class: PRIMARY, id: "setup-choose-files" }, "Choose export files");
+    const choose = h("button", { type: "button", class: PRIMARY, id: "setup-choose-files" }, t("wizard.load.choose"));
     choose.addEventListener("click", () => {
       const picker = document.getElementById("smart-file") as HTMLInputElement | null;
       if (!picker) {
-        showToast("The file picker is not available on this page.", "error");
+        showToast(t("wizard.noPicker"), "error");
         return;
       }
       dismissSetup();
@@ -120,19 +121,22 @@ function createWizard(): () => void {
       picker.click();
     });
     return [
-      heading("Load your files"),
+      heading(t("wizard.load.title")),
       h(
         "p",
         { class: "mt-1 text-sm text-muted-foreground" },
         chosen.length
-          ? `Choose the export${chosen.length === 1 ? "" : "s"} you just made from ${chosen.map((id) => SOURCE_LABELS[id]).join(", ")}. You can pick several files at once; SpoolSync works out which app each belongs to.`
-          : "Choose your export files. You can pick several at once; SpoolSync works out which app each belongs to.",
+          ? t("wizard.load.hintSome", {
+              count: chosen.length,
+              apps: chosen.map((id) => SOURCE_LABELS[id]).join(", "),
+            })
+          : t("wizard.load.hintNone"),
       ),
       h("div", { class: "mt-4" }, choose),
       h(
         "p",
         { class: "mt-3 text-xs text-muted-foreground" },
-        "Files are read in this browser and are not uploaded. You can also drop them on the page.",
+        t("wizard.load.privacy"),
       ),
     ];
   }
@@ -144,7 +148,7 @@ function createWizard(): () => void {
     const content =
       step.kind === "choose" ? chooseStep() : step.kind === "guide" ? guideStep(step.source) : loadStep();
 
-    const back = h("button", { type: "button", class: BUTTON }, "Back");
+    const back = h("button", { type: "button", class: BUTTON }, t("wizard.back"));
     back.disabled = index === 0;
     back.addEventListener("click", () => {
       index -= 1;
@@ -152,8 +156,12 @@ function createWizard(): () => void {
       focusHeading();
     });
     const last = index === steps.length - 1;
-    const next = h("button", { type: "button", class: last ? BUTTON : PRIMARY }, last ? "Done" : "Next");
-    if (step.kind === "choose" && selected.size === 0) next.textContent = "Skip to loading files";
+    const next = h(
+      "button",
+      { type: "button", class: last ? BUTTON : PRIMARY },
+      last ? t("wizard.done") : t("wizard.next"),
+    );
+    if (step.kind === "choose" && selected.size === 0) next.textContent = t("wizard.skipToLoad");
     next.addEventListener("click", () => {
       if (last) {
         dismissSetup();
@@ -164,7 +172,11 @@ function createWizard(): () => void {
       render();
       focusHeading();
     });
-    const skip = h("button", { type: "button", class: `${BUTTON} text-muted-foreground` }, "Don't show again");
+    const skip = h(
+      "button",
+      { type: "button", class: `${BUTTON} text-muted-foreground` },
+      t("wizard.dontShow"),
+    );
     skip.addEventListener("click", () => {
       dismissSetup();
       close();
@@ -174,7 +186,7 @@ function createWizard(): () => void {
       h(
         "p",
         { class: "mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground", role: "status" },
-        `Step ${index + 1} of ${steps.length}`,
+        t("wizard.progress", { current: index + 1, total: steps.length }),
       ),
       ...content,
       h(

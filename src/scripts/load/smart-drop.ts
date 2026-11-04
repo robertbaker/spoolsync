@@ -6,9 +6,12 @@ import {
 } from "@spoolsync/core/core/model";
 import { detectInventorySources, type DetectedInventory } from "@spoolsync/core/workflow";
 
+import { t } from "~/lib/i18n";
+
 import { h } from "../dom";
 import { readInventoryFile } from "./file-source";
 import { importReportView } from "./import-report-view";
+import { isMappableFile, openColumnMapper } from "./import-mapper";
 import { plural } from "./presentation";
 import type { LoadContext } from "./state";
 
@@ -137,6 +140,24 @@ export function wireSmartDrop(context: LoadContext): void {
         matches = [];
       }
       if (matches.length === 0) {
+        if (isMappableFile(file.name)) {
+          // Not from a supported tool, but readable as a table: offer to map its columns to a
+          // Spoolman-format CSV. This never loads the file as an inventory.
+          const map = h(
+            "button",
+            {
+              type: "button",
+              class:
+                "rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted focus-visible:outline-2",
+            },
+            t("map.open"),
+          );
+          map.addEventListener("click", () => void openColumnMapper(file, map));
+          row.replaceWith(
+            line("error", `${t("map.unrecognised", { file: file.name })} `, map),
+          );
+          continue;
+        }
         row.replaceWith(
           line(
             "error",

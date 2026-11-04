@@ -2,6 +2,7 @@ import { SOURCE_IDS } from "@spoolsync/core/core/model";
 
 import { WORKFLOW_STEPS, type WorkflowStepId } from "~/config/site";
 import { readLoadResult } from "~/lib/browser/storage/inventories";
+import { LOCALE_CHANGED, t, type MessageKey } from "~/lib/i18n";
 
 import { INVENTORIES_CHANGED_EVENT } from "./load/state";
 
@@ -27,8 +28,6 @@ export function countLoaded(read: typeof readLoadResult = readLoadResult): numbe
   return loaded;
 }
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
 /**
  * Where the person is in Load, Review, Apply. A step is done once what it needs exists: Load needs
  * one inventory, Review needs two (there is nothing to compare with fewer). Apply is never marked
@@ -42,20 +41,24 @@ export function workflowProgress(current: WorkflowStepId, loaded: number): StepV
       return {
         id: step.id,
         state: isCurrent ? "current" : loaded > 0 ? "done" : "todo",
-        meta: loaded === 0 ? "Add exports or connect" : `${plural(loaded, "inventory", "inventories")} loaded`,
+        meta: loaded === 0 ? t("stepper.load.empty") : t("stepper.load.count", { count: loaded }),
       };
     }
     if (step.id === "review") {
       return {
         id: step.id,
         state: isCurrent ? "current" : comparable && current === "apply" ? "done" : "todo",
-        meta: comparable ? "Match and resolve" : loaded === 1 ? "Load one more to compare" : "Needs two inventories",
+        meta: comparable
+          ? t("stepper.review.ready")
+          : loaded === 1
+            ? t("stepper.review.one")
+            : t("stepper.review.none"),
       };
     }
     return {
       id: step.id,
       state: isCurrent ? "current" : "todo",
-      meta: comparable ? "Write or download" : "After review",
+      meta: comparable ? t("stepper.apply.ready") : t("stepper.apply.wait"),
     };
   });
 }
@@ -86,6 +89,8 @@ export function wireWorkflowSteps(root: ParentNode = document): () => void {
       }
       const meta = item.querySelector<HTMLElement>("[data-step-meta]");
       if (meta) meta.textContent = view.meta;
+      const label = item.querySelector<HTMLElement>(".workflow-steps__label");
+      if (label) label.textContent = t(`stepper.${view.id}` as MessageKey);
     }
     if (live) {
       const loaded = views.find((view) => view.id === "load");
@@ -98,6 +103,7 @@ export function wireWorkflowSteps(root: ParentNode = document): () => void {
   document.addEventListener(INVENTORIES_CHANGED_EVENT, render, options);
   window.addEventListener("hashchange", render, options);
   window.addEventListener("pageshow", render, options);
+  document.addEventListener(LOCALE_CHANGED, render, options);
   render();
   return () => controller.abort();
 }

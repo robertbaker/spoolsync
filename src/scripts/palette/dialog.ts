@@ -1,4 +1,5 @@
 import { local, read, write } from "~/lib/browser/storage/access";
+import { t, type MessageKey } from "~/lib/i18n";
 
 import { h } from "../dom";
 import { buildItems, buildSpoolItems } from "./commands";
@@ -55,7 +56,10 @@ function renderList(): void {
   const rows: Node[] = [];
   let group = "";
   shown.forEach((item, index) => {
-    const heading = browsing && recentIds.has(item.id) ? "Recent" : item.group;
+    const heading =
+      browsing && recentIds.has(item.id)
+        ? t("palette.recent")
+        : t(`palette.group.${item.group}` as MessageKey);
     if (heading !== group) {
       group = heading;
       rows.push(
@@ -91,8 +95,8 @@ function renderList(): void {
   });
   list.replaceChildren(...rows);
   status.textContent = shown.length
-    ? `${shown.length} ${shown.length === 1 ? "result" : "results"}`
-    : "No results";
+    ? t("palette.resultCount", { count: shown.length })
+    : t("palette.noResults");
   setActive(0, false);
   input.setAttribute("aria-expanded", String(shown.length > 0));
   if (!shown.length)
@@ -100,7 +104,7 @@ function renderList(): void {
       h(
         "li",
         { role: "presentation", class: "px-3 py-6 text-center text-sm text-muted-foreground" },
-        "Nothing matches. Try a page, a service, or a spool name.",
+        t("palette.nothingMatches"),
       ),
     );
 }
@@ -121,11 +125,11 @@ function ensure(): HTMLDialogElement {
     type: "text",
     role: "combobox",
     class: "field-input mt-0 w-full text-base",
-    placeholder: "Search pages, actions, and spools...",
+    placeholder: t("palette.placeholder"),
     autocomplete: "off",
     autocapitalize: "off",
     spellcheck: "false",
-    "aria-label": "Command palette",
+    "aria-label": t("palette.label"),
     "aria-expanded": "true",
     "aria-controls": "palette-list",
     "aria-autocomplete": "list",
@@ -133,7 +137,7 @@ function ensure(): HTMLDialogElement {
   list = h("ul", {
     id: "palette-list",
     role: "listbox",
-    "aria-label": "Results",
+    "aria-label": t("palette.results"),
     class: "mt-2 max-h-[min(60vh,24rem)] overflow-y-auto overscroll-contain",
   });
   status = h("p", { class: "sr-only", role: "status" });
@@ -142,7 +146,7 @@ function ensure(): HTMLDialogElement {
     {
       id: "palette-dialog",
       closedby: "any",
-      "aria-label": "Command palette",
+      "aria-label": t("palette.label"),
       class:
         "m-auto mt-[10vh] w-[calc(100%-2rem)] max-w-xl rounded-2xl border bg-background p-0 text-foreground shadow-layered backdrop:bg-black/25 backdrop:backdrop-blur-xs",
     },
@@ -155,9 +159,9 @@ function ensure(): HTMLDialogElement {
       h(
         "p",
         { class: "mt-2 flex gap-3 px-1 text-xs text-muted-foreground" },
-        h("span", {}, "↑↓ move"),
-        h("span", {}, "Enter choose"),
-        h("span", {}, "Esc close"),
+        h("span", { "data-palette-hint": "palette.hintMove" }, t("palette.hintMove")),
+        h("span", { "data-palette-hint": "palette.hintChoose" }, t("palette.hintChoose")),
+        h("span", { "data-palette-hint": "palette.hintClose" }, t("palette.hintClose")),
       ),
     ),
   );
@@ -194,6 +198,16 @@ function ensure(): HTMLDialogElement {
   return dialog;
 }
 
+/** Re-applies the page language to the labels built once when the palette was first created. */
+function relabel(element: HTMLDialogElement): void {
+  input.placeholder = t("palette.placeholder");
+  input.setAttribute("aria-label", t("palette.label"));
+  list.setAttribute("aria-label", t("palette.results"));
+  element.setAttribute("aria-label", t("palette.label"));
+  for (const hint of element.querySelectorAll<HTMLElement>("[data-palette-hint]"))
+    hint.textContent = t(hint.dataset["paletteHint"] as MessageKey);
+}
+
 export function isPaletteOpen(): boolean {
   return Boolean(dialog?.open);
 }
@@ -206,6 +220,7 @@ export function openPalette(query = ""): void {
   const element = ensure();
   if (element.open) return;
   opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  relabel(element);
   commands = buildItems();
   spools = buildSpoolItems();
   input.value = query;

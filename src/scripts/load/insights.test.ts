@@ -115,3 +115,37 @@ test("filters narrow to duplicates, watched spools, or one health check, and res
   insights.refresh();
   expect(insights.activeFilter).toBeNull();
 });
+
+test("spools without a usable price get their own filter, and a price of zero counts as priced", () => {
+  const results = new Map<SourceId, LoadResult>([
+    [
+      "spoolio",
+      {
+        source: "spoolio",
+        spools: [
+          makeSpool("spoolio", "1", { price: 20 }),
+          makeSpool("spoolio", "2", { price: 0 }),
+          makeSpool("spoolio", "3", { price: null }),
+          makeSpool("spoolio", "4", { price: -2 }),
+        ],
+        warnings: [],
+        loadedAt: "2026-11-01T10:00:00.000Z",
+        origin: "file",
+      },
+    ],
+  ]);
+  const insights = new LoadInsights(results, fakeStorage().storage);
+  insights.refresh();
+  expect(insights.spoolCount).toBe(4);
+  expect(insights.countFor("missing-price")).toBe(2);
+  insights.setFilter("missing-price");
+  const spools = results.get("spoolio")!.spools;
+  expect(spools.filter((spool) => insights.matches(spool)).map((spool) => spool.sourceId)).toEqual([
+    "3",
+    "4",
+  ]);
+  // Once every spool has a price the filter has nothing to show, so it clears itself.
+  for (const spool of spools) spool.price = 5;
+  insights.refresh();
+  expect(insights.activeFilter).toBeNull();
+});

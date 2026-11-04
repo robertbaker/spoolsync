@@ -15,6 +15,7 @@ import {
   type DetailRow,
   type SpoolDetail,
 } from "~/lib/spool-detail";
+import { LOCALE_CHANGED, t } from "~/lib/i18n";
 import { DISPLAY_CHANGED, formatMoney, formatWeight } from "~/lib/units";
 
 import { h, showToast } from "../dom";
@@ -352,18 +353,18 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
         })(),
       ),
       actions(detail),
-      section("Weigh in", "drawer-weigh-heading", createWeighInSection(detail, weighMemory)),
-      section("Fields by service", "drawer-fields-heading", fieldTable(detail)),
-      section("Linked ids", "drawer-ids-heading", idsList(detail)),
-      section("History", "drawer-history-heading", historyList(detail)),
+      section(t("drawer.weighIn"), "drawer-weigh-heading", createWeighInSection(detail, weighMemory)),
+      section(t("drawer.fields"), "drawer-fields-heading", fieldTable(detail)),
+      section(t("drawer.ids"), "drawer-ids-heading", idsList(detail)),
+      section(t("drawer.history"), "drawer-history-heading", historyList(detail)),
       section(
-        "Same spool or not",
+        t("drawer.different"),
         "drawer-different-heading",
         candidates ??
           h(
             "p",
             { class: "mt-2 text-sm text-muted-foreground" },
-            "No other records look like this spool.",
+            t("drawer.noOthers"),
           ),
         candidates
           ? h(
@@ -433,6 +434,9 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
   });
   // Weights follow the display unit chosen elsewhere on the page.
   document.addEventListener(DISPLAY_CHANGED, () => {
+    if (dialog?.open) render();
+  });
+  document.addEventListener(LOCALE_CHANGED, () => {
     if (dialog?.open) render();
   });
 

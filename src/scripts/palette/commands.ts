@@ -3,6 +3,7 @@ import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 import { navLinks } from "~/config/navigation";
 import { WORKFLOW_STEPS } from "~/config/site";
 import { readLoadResult } from "~/lib/browser/storage/inventories";
+import { t } from "~/lib/i18n";
 import { backupFilename, createBackup } from "~/lib/saved-data";
 import { readDisplaySettings, updateDisplaySettings } from "~/lib/units";
 
@@ -79,17 +80,17 @@ function pageItems(): PaletteItem[] {
       link.matchPaths
         ? WORKFLOW_STEPS.filter((step) => step.id !== "apply").map((step) => ({
             href: step.href,
-            label: step.id === "load" ? "Load" : "Review and apply",
+            label: step.id === "load" ? t("palette.page.load") : t("palette.page.review"),
           }))
         : [link],
     ),
-    { href: "/credits", label: "Credits" },
+    { href: "/credits", label: t("palette.page.credits") },
   ];
   return links.map((link) => ({
     id: `page:${link.href}`,
     group: "Pages" as const,
-    title: `Go to ${link.label}`,
-    subtitle: link.href === here() ? "You are here" : undefined,
+    title: t("palette.go", { page: link.label }),
+    subtitle: link.href === here() ? t("palette.here") : undefined,
     keywords: `page open ${link.href}`,
     run: () => {
       if (link.href !== here()) location.assign(link.href);
@@ -101,8 +102,8 @@ function panelItems(): PaletteItem[] {
   return SOURCE_IDS.map((source) => ({
     id: `panel:${source}`,
     group: "Panels" as const,
-    title: `Open ${SOURCE_LABELS[source]} panel`,
-    subtitle: "Load page",
+    title: t("palette.panel", { service: SOURCE_LABELS[source] }),
+    subtitle: t("palette.loadPage"),
     keywords: `${source} service source import export load`,
     run: () => {
       if (isLoadPath(location.pathname)) openPanel(source);
@@ -118,15 +119,19 @@ function actionItems(): PaletteItem[] {
   if (available("[data-theme-toggle]"))
     add({
       id: "action:theme",
-      title: "Toggle light or dark theme",
+      title: t("palette.theme"),
       keywords: "appearance mode dark light color",
       aliases: ["dark mode", "light mode", "night mode", "theme"],
       run: () => void clickVisible("[data-theme-toggle]"),
     });
   add({
     id: "action:units",
-    title: `Show weights in ${unit === "g" ? "ounces" : "grams"}`,
-    subtitle: `Currently ${unit === "g" ? "grams" : "ounces"}`,
+    title: t("palette.units", {
+      unit: t(unit === "g" ? "palette.unit.ounces" : "palette.unit.grams"),
+    }),
+    subtitle: t("palette.units.current", {
+      unit: t(unit === "g" ? "palette.unit.grams" : "palette.unit.ounces"),
+    }),
     keywords: "units weight grams ounces oz g metric imperial display",
     aliases: ["metric", "imperial", "grams", "ounces", "switch units"],
     run: () => void updateDisplaySettings({ weightUnit: unit === "g" ? "oz" : "g" }),
@@ -134,7 +139,7 @@ function actionItems(): PaletteItem[] {
   if (available("[data-open-shortcuts]"))
     add({
       id: "action:shortcuts",
-      title: "Show keyboard shortcuts",
+      title: t("palette.shortcuts"),
       keywords: "help keys hotkeys",
       aliases: ["hotkeys", "keys", "key bindings"],
       run: () => void clickVisible("[data-open-shortcuts]"),
@@ -142,15 +147,48 @@ function actionItems(): PaletteItem[] {
   if (available("[data-open-saved-data]"))
     add({
       id: "action:saved",
-      title: "Open saved settings",
+      title: t("palette.saved"),
       keywords: "preferences storage forget export import display units currency",
       aliases: ["settings", "preferences", "forget data", "privacy"],
       run: () => void clickVisible("[data-open-saved-data]"),
     });
+  if (available("[data-open-saved-data]"))
+    add({
+      id: "action:language",
+      title: t("palette.language"),
+      subtitle: t("palette.language.sub"),
+      keywords: "language locale translation english german deutsch spanish espanol french francais dutch nederlands",
+      aliases: ["language", "locale", "translate", "sprache", "idioma", "langue", "taal"],
+      run: () => void clickVisible("[data-open-saved-data]"),
+    });
+  if (available("#health-dashboard") && !document.getElementById("health-dashboard")?.hidden)
+    add({
+      id: "action:health",
+      title: t("palette.health"),
+      subtitle: t("palette.loadPage"),
+      keywords: "data health score quality todo fix missing weight color price duplicates cleanup",
+      aliases: ["health", "data quality", "score", "to do"],
+      run: () => {
+        const panel = document.getElementById("health-dashboard");
+        panel?.scrollIntoView({ block: "start", behavior: "smooth" });
+        const heading = panel?.querySelector<HTMLElement>("h2");
+        heading?.setAttribute("tabindex", "-1");
+        heading?.focus({ preventScroll: true });
+      },
+    });
+  if (available("#export-view-csv"))
+    add({
+      id: "action:export-view",
+      title: t("palette.exportView"),
+      subtitle: t("palette.loadPage"),
+      keywords: "export download filtered table view csv spools current",
+      aliases: ["export view", "export filtered", "download view"],
+      run: () => void clickVisible("#export-view-csv"),
+    });
   if (available("[data-open-changelog]"))
     add({
       id: "action:changelog",
-      title: "What is new (changelog)",
+      title: t("palette.changelog"),
       keywords: "release notes version updates",
       aliases: ["release notes", "whats new", "updates", "version"],
       run: () => void clickVisible("[data-open-changelog]"),
@@ -158,23 +196,23 @@ function actionItems(): PaletteItem[] {
   if (available("[data-tour-launcher]"))
     add({
       id: "action:tour",
-      title: "Take the tour",
+      title: t("palette.tour"),
       keywords: "guide walkthrough help intro",
       aliases: ["help", "walkthrough", "tutorial"],
       run: () => void clickVisible("[data-tour-launcher]"),
     });
   add({
     id: "action:setup",
-    title: "Open the setup guide",
-    subtitle: "Where to find each app's export",
+    title: t("palette.setup"),
+    subtitle: t("palette.setup.sub"),
     keywords: "wizard first run getting started help import",
     aliases: ["getting started", "first run", "onboarding"],
     run: openSetupGuide,
   });
   add({
     id: "action:cleanup",
-    title: "Clean up data",
-    subtitle: "Load page",
+    title: t("palette.cleanup"),
+    subtitle: t("palette.loadPage"),
     keywords: "cleanup normalize tidy fix whitespace casing vendor material price weight duplicates",
     run: () => {
       // The panel is a native <details data-panel="cleanup"> on the Load page, so the shared
@@ -186,8 +224,8 @@ function actionItems(): PaletteItem[] {
   if (available("#download-combined"))
     add({
       id: "action:download-combined",
-      title: "Download all spools as one CSV",
-      subtitle: "Load page",
+      title: t("palette.combined"),
+      subtitle: t("palette.loadPage"),
       keywords: "export combined csv inventory",
       aliases: ["export csv", "export inventory", "combined csv"],
       run: () => void clickVisible("#download-combined"),
@@ -196,8 +234,8 @@ function actionItems(): PaletteItem[] {
   if (available("#open-inventory-report"))
     add({
       id: "action:inventory-report",
-      title: "Open the inventory report",
-      subtitle: "Print, HTML, Markdown or CSV",
+      title: t("palette.report"),
+      subtitle: t("palette.report.sub"),
       keywords: "totals material brand low stock value cost summary print download",
       aliases: ["report", "print inventory", "summary", "export report"],
       run: () => void clickVisible("#open-inventory-report"),
@@ -283,8 +321,8 @@ function actionItems(): PaletteItem[] {
   if (available("#unload-all"))
     add({
       id: "action:unload-all",
-      title: "Unload all services",
-      subtitle: "Load page",
+      title: t("palette.unload"),
+      subtitle: t("palette.loadPage"),
       keywords: "clear reset remove inventories",
       aliases: ["clear all", "reset", "unload everything"],
       run: () => void clickVisible("#unload-all"),

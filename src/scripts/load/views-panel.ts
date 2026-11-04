@@ -42,7 +42,9 @@ const insightLabel = (id: string): string =>
     ? "possible duplicates"
     : id === "watched"
       ? "watched"
-      : ((HEALTH_LABELS as Record<string, string>)[id] ?? id);
+      : id === "missing-price"
+        ? "no price"
+        : ((HEALTH_LABELS as Record<string, string>)[id] ?? id);
 
 /**
  * Saved views for the inventory table: pick, save, update, rename, and delete named combinations

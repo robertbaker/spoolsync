@@ -328,3 +328,58 @@ test("files that are not backups are refused with a reason and change nothing", 
   for (const [text, message] of cases) expect(() => restoreBackup(text, "replace")).toThrow(message);
   expect(localStorage.getItem("spoolsync:chart-view")).toBe("brand");
 });
+
+test("language, table columns, column mappings and health history are saved, portable only when valid", () => {
+  localStorage.setItem("spoolsync:language", "de");
+  localStorage.setItem("spoolsync:table-columns", JSON.stringify(["name", "vendor", "bogus"]));
+  localStorage.setItem(
+    "spoolsync:column-maps",
+    JSON.stringify({
+      "2-0a1b2c3d": { mapping: { vendor: "Brand" }, unit: "g", savedAt: "2026-11-01T00:00:00Z" },
+    }),
+  );
+  localStorage.setItem(
+    "spoolsync:health-history",
+    JSON.stringify([{ at: "2026-11-01T00:00:00Z", score: 70, spools: 4 }]),
+  );
+  expect(listSavedData().map((item) => item.group.id)).toEqual(["preferences", "history"]);
+  const exported = JSON.parse(exportSettings()) as { entries: Record<string, string> };
+  expect(Object.keys(exported.entries).sort()).toEqual([
+    "spoolsync:column-maps",
+    "spoolsync:health-history",
+    "spoolsync:language",
+    "spoolsync:table-columns",
+  ]);
+
+  localStorage.clear();
+  const result = importSettings(
+    JSON.stringify({
+      format: "spoolsync-settings",
+      version: 1,
+      entries: {
+        "spoolsync:language": "klingon",
+        "spoolsync:table-columns": JSON.stringify([
+          "source",
+          "id",
+          "vendor",
+          "material",
+          "name",
+          "color",
+          "remaining",
+          "location",
+          "linked",
+        ]),
+        "spoolsync:column-maps": "{}",
+        "spoolsync:health-history": '[{"at":"nope","score":1,"spools":1}]',
+      },
+    }),
+  );
+  expect(result.imported).toEqual([]);
+  expect(result.skipped.sort()).toEqual([
+    "spoolsync:column-maps",
+    "spoolsync:health-history",
+    "spoolsync:language",
+    "spoolsync:table-columns",
+  ]);
+  expect(forgetGroup("history")).toBe(0);
+});

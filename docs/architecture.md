@@ -784,3 +784,135 @@ and the `.skeleton` and `.empty-state` blocks that Load-page panels use. `styles
 holds the report, weigh-in and since-visit styles. The new storage keys (`spoolsync:weigh-in`,
 `spoolsync:shop-template`, `spoolsync:changelog-read`, `spoolsync:since-visit`) are registered in
 `SAVED_GROUPS`.
+
+
+## Data health dashboard
+
+`#health-dashboard` (Load page, above the charts) turns the existing checks into one score and a
+to-do list. `lib/health-score.ts` is pure: `computeHealthScore` takes counts (the eight
+`HEALTH_ISSUES`, spools without a price, spools in a possible duplicate group, spools with an
+applicable cleanup suggestion) and returns a 0 to 100 score, a grade (excellent from 90, good from
+75, fair from 50, poor below), and the factors that cost points. Each factor costs
+`HEALTH_WEIGHTS[factor] * affected / spools`; the weights add up to 100 (impossible values 30,
+missing weight 15, duplicates and cleanup 10 each, color, brand and material 8 each, price 7,
+location 4), so the score means the same for 20 and 2,000 spools and a fully broken inventory scores
+0. It never reads 100 while any spool needs a look. Nothing loaded gives no score.
+
+`scripts/load/health-dashboard.ts` renders it. The meter is a `role="meter"` with `aria-valuenow`,
+`aria-valuetext` ("78 out of 100, Good") and a visible grade, so the color is never the only signal;
+a separate `role="status"` region speaks only when the score changes (never on the first draw). The
+to-do list is ranked by points. A factor button filters the inventory table through the same
+`LoadInsights` filter the chips use (toggling with `aria-pressed`, scrolling the table into view
+without animation under reduced motion); the cleanup factor opens the cleanup panel instead. Missing
+prices are not a core health check (a price is optional in most services), so `LoadInsights` tracks
+them as the extra `missing-price` filter, which saved views accept. The summary shows the tracked
+filament weight through `formatWeight`, so it follows the grams or ounces setting. `wireCleanupPanel`
+now returns `applicableSpools()`, which feeds the cleanup input; the dashboard draws after the panel
+updates.
+
+The trend is `lib/browser/storage/health-history.ts` (`spoolsync:health-history`): at most 60
+points of `{ at, score, spools }`, sanitised on read, and a point equal to the last one is skipped
+for six hours. One point is recorded per distinct set of loaded files and result, so redraws never
+add history. The chart is a small SVG on a fixed 0 to 100 scale with an `aria-label` and a
+sentence ("Up 12 points since Oct 3, 2026"). The key is in the "Stock history" saved-data group and is
+portable in settings exports and backups.
+
+## Generic import column mapper
+
+A CSV or JSON file that smart-drop cannot assign to a service shows a "Map columns..." button next
+to the "was not recognised" line (`isMappableFile`: csv, tsv, txt, json). The dialog
+(`scripts/load/import-mapper.ts`) reads the file as a table, lets the person match each header to a
+field (brand, material, color name, color hex, remaining, used or full weight, empty spool weight,
+price, location, lot, notes, archived, diameter, density, article number), and offers a weight unit
+(g, kg, oz, lb).
+
+**Decision: converter, not a source.** The mapper does not add a `SourceId`, does not touch
+`core/services.ts` or `lib/services.ts`, and never loads the mapped file as an inventory. A
+read-only comparison source would need a registry entry, a capability row, a Load panel, a
+planner/export behavior and CLI parity, and the registry is the single source for the supported
+tools list. Loading the mapped rows as Spoolman would instead overwrite a real Spoolman inventory
+in the same slot. So the mapper produces a Spoolman-format CSV to download; the person drops that
+file on the page, where it goes through the normal Spoolman file importer, request revisions,
+persistence and the usual import report. The output uses Spoolman's own export columns
+(`filament.vendor.name`, `filament.color_hex`, ...) with generated numeric spool, filament and vendor
+ids (the same filament and vendor share one id), text cells that a spreadsheet would run as a
+formula carry Spoolman's leading apostrophe, and `used_weight` is folded into `remaining_weight`
+because the importer rejects an empty `used_weight` cell.
+
+Modules (`src/lib/import-mapper/`): `fields.ts` (field list, header aliases, `suggestMapping`,
+`headerSignature`, `validateMapping`; no parser, so it is safe on every page), `store.ts`
+(`spoolsync:column-maps`, mappings per header signature, capped at 20, sanitised on read), `convert.ts`
+(`parseSourceTable`, `parseLooseNumber`, `parseHexColor`, `convertToSpoolmanCsv`; the only module
+that imports papaparse, loaded on demand), and `report.ts`. A column layout is recognised again by
+`headerSignature` (sorted, lower-cased, de-duplicated headers hashed with FNV-1a), whatever the
+column order. A mapping is valid when every mapped header exists, no header feeds two fields (the UI
+also moves a field when another column takes it), and brand, material or name is mapped. A bad
+mapping cannot produce a file: `convertToSpoolmanCsv` throws and the download stays disabled.
+
+**Dry run.** After every change the converted CSV is read back with the real `loadSpoolmanFile`, and
+`mapperImportReport` merges the converter's skipped rows and adjusted values with the importer's
+warnings into one `ImportReport`, translating the importer's `Spool N` back to the row of the original
+file. The dialog shows it with `renderImportReport` (the existing report view, now split out of
+`importReportView`) under "Dry run": no state, storage or service is touched. "Remember this mapping"
+(default on) saves the mapping and unit for that layout; unticking forgets it. "Row N" means the Nth
+data row (or JSON record), not the sheet row.
+
+Limits: 20 MB (as smart-drop), 50,000 rows, 200 columns; JSON is flattened to dotted columns three
+levels deep. A prototype-less row object keeps headers such as `__proto__` harmless. Conversion
+reasons are English, like every importer warning.
+
+## Internationalisation
+
+`lib/i18n/` is a small typed message catalogue with no dependency. `en.ts` is the source of truth;
+`MessageKey` is its key type and every other catalogue is typed `Record<MessageKey, string>`, so a
+missing or extra key fails the type check, and `i18n.test.ts` also asserts that each catalogue has
+exactly English's keys, that every message parses, and that each translation uses the same
+placeholders as English. At runtime lookup is per key: a key missing from a translation, or a
+malformed translation, falls back to English instead of showing a blank.
+
+Messages use ICU-lite (`format.ts`): `{name}` and `{count, plural, one {# spool} other {# spools}}`
+with `=N` exact matches and a required `other`, selected with `Intl.PluralRules` for the locale.
+Numbers go through a cached `Intl.NumberFormat`; `formatNumber` and `formatDate` give locale
+conventions for the rest, and `lib/units.ts` (`formatWeight`, `formatMoney`) now formats with the
+page language too. Braces are reserved (no literal braces in a message). Locales are `en`, `de`,
+`es`, `fr`, `nl`; `setLocale` stores the choice (`spoolsync:language`, English stores nothing), sets
+`<html lang>`, and fires `spoolsync:locale-changed` so open panels redraw. The language selector sits
+next to the weight unit in the Saved settings dialog, with each language named in itself.
+`wireSavedData` (run by the shared layout on every page) applies the stored language and syncs other
+tabs, so no layout file changed.
+
+Migrated so far: the progress steps, the setup guide, the command palette (chrome and action
+titles), the spool drawer's section headings, the data health dashboard, the table tools, the column
+mapper, and the display settings. Everything else, including the static Astro page text, source
+guides and importer warnings, stays English. `<html lang>` follows the chosen language, so on a
+non-English setting the not-yet-translated static text is announced by screen readers with the wrong
+language until the pages are migrated; this is the main known gap. Add strings in `en.ts` first, then
+every catalogue; `t()` never needs a call-site change for a new language beyond registering it in
+`LOCALES`, `LOCALE_NAMES` and `CATALOGUES`.
+
+**The German, Spanish, French and Dutch catalogues are machine-assisted drafts and need review by
+native speakers** (including terminology such as "spool", "inventory" and the gender and formality
+choices) before the languages are promoted in the UI or the README.
+
+New CSS for these features (`styles/health.css`) uses logical properties only (`inline-size`,
+`margin-block`, `padding-inline`, `inset-inline-start`) so right-to-left languages can be added later.
+
+## Inventory table tools
+
+The loaded-spools table gained three things, all in the browser and none changing a loaded inventory.
+
+- **Column chooser.** `lib/table-columns.ts` lists the nine columns; the choice is stored as
+  `spoolsync:table-columns` (cleared when every column shows), sanitised on read, always includes the
+  name column because it opens the spool drawer, and is portable in backups. The chooser is a
+  `details` menu with real checkboxes (Escape and an outside click close it).
+- **Export of the current view.** `lib/table-export.ts` and `scripts/load/table-tools.ts` download
+  exactly the spools in `visibleSpools()` (after search, chips, ranges, grouping and sort, in table
+  order) as CSV (core's combined-inventory writer, so formula cells are neutralised and weights are
+  grams) or as `spoolsync-view` JSON. A palette action runs the CSV export.
+- **Row windowing.** Rows are built 200 at a time (`lib/table-window.ts`): sorting, filtering and
+  grouping still use the whole list, and only the DOM is windowed, so a 5,000-spool inventory no
+  longer builds thousands of rows with listeners at once. "Show 200 more" and "Show all" add rows,
+  move focus to the first added row, and announce "Showing 400 of 5,000 spools" in a status region.
+  The window resets when the search, filters, sort or grouping change. Label printing, saved views
+  and exports use the full list. The "loaded summary" line is now `aria-live`, so filter changes
+  announce the new count.

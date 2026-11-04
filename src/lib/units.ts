@@ -1,4 +1,5 @@
 import { local, read, write } from "./browser/storage/access";
+import { getLocale } from "./i18n";
 
 const KEY = "spoolsync:display";
 const GRAMS_PER_OUNCE = 28.349523125;
@@ -57,7 +58,7 @@ export function formatWeight(grams: number | null | undefined, unit: WeightUnit 
   if (grams === null || grams === undefined || !Number.isFinite(grams)) return "–";
   const value = gramsToUnit(grams, unit);
   const digits = unit === "oz" ? 1 : 0;
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: digits })} ${unit}`;
+  return `${value.toLocaleString(getLocale(), { maximumFractionDigits: digits })} ${unit}`;
 }
 
 /** A price in the chosen currency, or a plain number when no currency is set. */
@@ -67,10 +68,10 @@ export function formatMoney(
   maximumFractionDigits = 2,
 ): string {
   if (!Number.isFinite(amount)) return "–";
-  if (!currency) return amount.toLocaleString(undefined, { maximumFractionDigits });
+  if (!currency) return amount.toLocaleString(getLocale(), { maximumFractionDigits });
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits }).format(amount);
+    return new Intl.NumberFormat(getLocale(), { style: "currency", currency, maximumFractionDigits }).format(amount);
   } catch {
-    return `${amount.toLocaleString(undefined, { maximumFractionDigits })} ${currency}`;
+    return `${amount.toLocaleString(getLocale(), { maximumFractionDigits })} ${currency}`;
   }
 }

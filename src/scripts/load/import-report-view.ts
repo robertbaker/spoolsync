@@ -71,7 +71,19 @@ function table(caption: string, entries: readonly ImportReportEntry[]): HTMLElem
  * it always agrees with what was loaded. The download is a CSV safe to open in a spreadsheet.
  */
 export function importReportView(result: LoadResult, fileName: string): HTMLElement {
-  const report = buildImportReport(result, fileName);
+  return renderImportReport(buildImportReport(result, fileName), fileName);
+}
+
+/**
+ * The same collapsed report for a report that was already built, such as the dry run of a column
+ * mapping. `lead` replaces the first sentence when the file was not read as a service in the usual
+ * way, and `summaryLabel` the closed disclosure's title.
+ */
+export function renderImportReport(
+  report: ImportReport,
+  fileName: string,
+  options: { lead?: string; summaryLabel?: string } = {},
+): HTMLElement {
   const clean = isCleanImport(report);
   const downloadButton = h(
     "button",
@@ -95,7 +107,7 @@ export function importReportView(result: LoadResult, fileName: string): HTMLElem
     h(
       "summary",
       { class: "cursor-pointer p-2 font-medium focus-visible:outline-2 focus-visible:outline-primary" },
-      `Import report · ${reportSummary(report)}`,
+      `${options.summaryLabel ?? "Import report"} · ${reportSummary(report)}`,
     ),
     h(
       "div",
@@ -103,15 +115,18 @@ export function importReportView(result: LoadResult, fileName: string): HTMLElem
       h(
         "p",
         {},
-        `${fileName} was read as ${SOURCE_LABELS[report.source]}. `,
-        clean
-          ? "Every row was loaded as written."
-          : "Rows not listed here were loaded as written.",
+        options.lead ?? `${fileName} was read as ${SOURCE_LABELS[report.source]}. `,
+        // A caller that supplies its own lead (the column mapper's dry run) says what happened itself.
+        options.lead
+          ? ""
+          : clean
+            ? "Every row was loaded as written."
+            : "Rows not listed here were loaded as written.",
         report.unknownWeight
-          ? ` ${plural(report.unknownWeight, "spool")} loaded without a remaining weight.`
+          ? ` ${plural(report.unknownWeight, "spool")} ${options.lead ? "would load" : "loaded"} without a remaining weight.`
           : "",
       ),
-      report.skipped.length ? table("Skipped rows (not loaded)", report.skipped) : null,
+      report.skipped.length ? table(options.lead ? "Skipped rows (would not load)" : "Skipped rows (not loaded)", report.skipped) : null,
       report.changed.length ? table("Values adjusted on import", report.changed) : null,
       report.warnings.length
         ? h(

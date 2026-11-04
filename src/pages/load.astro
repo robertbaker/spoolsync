@@ -200,7 +200,7 @@ const spoolman = serviceView("spoolman");
       <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
         <div>
           <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
-          <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground"></p>
+          <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground" aria-live="polite"></p>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <label id="low-threshold-wrap" hidden class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -268,6 +268,7 @@ const spoolman = serviceView("spoolman");
         </div>
       </div>
       <div id="loaded-stats" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" hidden></div>
+      <section id="health-dashboard" class="mt-5 rounded-xl border p-4" aria-labelledby="health-dashboard-heading" hidden></section>
       <div id="loaded-chart" class="mt-5 rounded-xl border p-4" hidden></div>
       <div id="loaded-insights" class="mt-5 grid gap-4 lg:grid-cols-2" hidden>
         <section id="insight-health" class="rounded-xl border p-4" aria-labelledby="insight-health-heading"></section>
@@ -281,6 +282,7 @@ const spoolman = serviceView("spoolman");
       <div id="reorder-panel" class="mt-5" hidden></div>
       <div id="cleanup-panel" class="mt-5" hidden></div>
       <div id="saved-views" class="mt-5" hidden></div>
+      <div id="table-tools" class="table-tools" hidden></div>
       <div id="loaded-table" class="mt-4"></div>
     </section>
 

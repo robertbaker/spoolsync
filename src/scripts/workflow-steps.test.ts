@@ -2,6 +2,8 @@ import { beforeEach, expect, test } from "bun:test";
 
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 
+import { reloadLocale, setLocale } from "~/lib/i18n";
+
 import { INVENTORIES_CHANGED_EVENT } from "./load/state";
 import { countLoaded, wireWorkflowSteps, workflowProgress } from "./workflow-steps";
 
@@ -83,4 +85,30 @@ test("wiring reads storage, updates when inventories change, and follows the has
 test("wiring is a no-op without the stepper", () => {
   document.body.innerHTML = "";
   expect(() => wireWorkflowSteps()()).not.toThrow();
+});
+
+test("the step names and status lines follow the chosen language, and redraw when it changes", () => {
+  document.body.innerHTML = `
+    <nav data-workflow-steps data-page="load">
+      <ol>
+        <li data-step="load"><a href="/load"><span class="workflow-steps__label">Load</span><span data-step-meta></span></a></li>
+        <li data-step="review"><a href="/sync"><span class="workflow-steps__label">Review</span><span data-step-meta></span></a></li>
+        <li data-step="apply"><a href="/sync#tour-apply"><span class="workflow-steps__label">Apply</span><span data-step-meta></span></a></li>
+      </ol>
+      <span data-workflow-live></span>
+    </nav>`;
+  localStorage.clear();
+  reloadLocale();
+  const stop = wireWorkflowSteps();
+  const label = (id: string) =>
+    document.querySelector(`[data-step="${id}"] .workflow-steps__label`)!.textContent;
+  expect(label("load")).toBe("Load");
+  setLocale("de");
+  expect(label("load")).toBe("Laden");
+  expect(label("review")).toBe("Prüfen");
+  expect(document.querySelector("[data-workflow-live]")!.textContent).toBe(
+    "Exporte hinzufügen oder verbinden",
+  );
+  stop();
+  setLocale("en");
 });

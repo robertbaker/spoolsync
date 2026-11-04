@@ -36,7 +36,7 @@ const SORT_KEYS: readonly SortKey[] = [
   "remaining",
   "location",
 ];
-const INSIGHT_FILTERS: readonly string[] = ["duplicates", "watched", ...HEALTH_ISSUES];
+const INSIGHT_FILTERS: readonly string[] = ["duplicates", "watched", "missing-price", ...HEALTH_ISSUES];
 
 /** Everything a view remembers. `search` is stored lower-cased, as the table uses it. */
 export interface ViewSettings {

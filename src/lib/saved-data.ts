@@ -2,11 +2,15 @@ import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
 import { sanitizeFileHistory } from "./browser/storage/file-history";
 import { sanitizeWatchlist } from "./browser/storage/insights";
+import { sanitizeHealthHistory } from "./browser/storage/health-history";
 import { sanitizeStockHistory } from "./browser/storage/stock-history";
+import { isLocale } from "./i18n";
+import { sanitizeColumnMaps } from "./import-mapper/store";
 import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
 import { sanitizePreferences } from "./preferences";
 import { validateShopTemplate } from "./reorder-list";
 import { sanitizeViews } from "./saved-views";
+import { isDefaultColumns, sanitizeColumns } from "./table-columns";
 import { sanitizeDisplaySettings } from "./units";
 import { sanitizeTares } from "./weigh-in";
 
@@ -64,6 +68,9 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:weigh-in",
       "spoolsync:shop-template",
       "spoolsync:changelog-read",
+      "spoolsync:language",
+      "spoolsync:table-columns",
+      "spoolsync:column-maps",
     ],
     storage: "local",
   },
@@ -94,8 +101,8 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     id: "history",
     label: "Stock history",
     description:
-      "The total remaining weight and spool count of each service at each load, for the trend chart. Never names or contents.",
-    keys: ["spoolsync:stock-history"],
+      "The total remaining weight and spool count of each service at each load, and the data health score at each load, for the trend charts. Never names or contents.",
+    keys: ["spoolsync:stock-history", "spoolsync:health-history"],
     storage: "local",
   },
   {
@@ -256,6 +263,16 @@ function isValidEntry(key: string, text: string): boolean {
         return COST_VIEWS.includes(text);
       case "spoolsync:stock-history":
         return Object.keys(sanitizeStockHistory(JSON.parse(text))).length > 0;
+      case "spoolsync:health-history":
+        return sanitizeHealthHistory(JSON.parse(text)).length > 0;
+      case "spoolsync:language":
+        return isLocale(text) && text !== "en";
+      case "spoolsync:table-columns": {
+        const value: unknown = JSON.parse(text);
+        return Array.isArray(value) && !isDefaultColumns(sanitizeColumns(value));
+      }
+      case "spoolsync:column-maps":
+        return Object.keys(sanitizeColumnMaps(JSON.parse(text))).length > 0;
       case "spoolsync:label-options": {
         const value = JSON.parse(text) as { preset?: unknown; selection?: unknown };
         return (

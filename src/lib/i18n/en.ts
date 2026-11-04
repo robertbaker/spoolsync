@@ -1,0 +1,233 @@
+/**
+ * The English source catalogue. Every other catalogue must have exactly these keys (a unit test
+ * enforces it, and the `Catalogue` type fails the build for a missing or extra key). Messages use
+ * the ICU-lite syntax in `format.ts`.
+ *
+ * Keep the wording of strings that existing tests or end-to-end checks read; English is the
+ * default, so migrating a string here must not change what an English visitor sees.
+ */
+export const en = {
+  // Language and display settings
+  "lang.label": "Language",
+  "lang.hint":
+    "Applies to the setup guide, command palette, spool details, data health, table tools, and the progress steps. Other text stays in English until it is translated.",
+  "display.title": "Display",
+  "display.hint":
+    "Changes how weights and prices are shown on the Load page. Your files and exports are never changed.",
+  "display.weightUnit": "Weight unit",
+  "display.unit.g": "Grams (g)",
+  "display.unit.oz": "Ounces (oz)",
+  "display.currency": "Price display symbol",
+  "display.currency.none": "None (show numbers as stored)",
+  "display.currency.hint":
+    "Only the symbol changes. Prices stay in each service's own currency and are not converted.",
+
+  // Progress steps
+  "stepper.load": "Load",
+  "stepper.review": "Review",
+  "stepper.apply": "Apply",
+  "stepper.load.empty": "Add exports or connect",
+  "stepper.load.count": "{count, plural, one {# inventory loaded} other {# inventories loaded}}",
+  "stepper.review.ready": "Match and resolve",
+  "stepper.review.one": "Load one more to compare",
+  "stepper.review.none": "Needs two inventories",
+  "stepper.apply.ready": "Write or download",
+  "stepper.apply.wait": "After review",
+
+  // Setup guide
+  "wizard.progress": "Step {current} of {total}",
+  "wizard.choose.title": "Which apps do you use?",
+  "wizard.choose.hint":
+    "Tick every app that holds spools. Next, you will see where to find each one's export.",
+  "wizard.choose.legend": "Apps you use",
+  "wizard.guide.title": "Export from {app}",
+  "wizard.guide.fileType": "File type: {kind}",
+  "wizard.load.title": "Load your files",
+  "wizard.load.hintSome":
+    "Choose {count, plural, one {the export} other {the exports}} you just made from {apps}. You can pick several files at once; SpoolSync works out which app each belongs to.",
+  "wizard.load.hintNone":
+    "Choose your export files. You can pick several at once; SpoolSync works out which app each belongs to.",
+  "wizard.load.choose": "Choose export files",
+  "wizard.load.privacy":
+    "Files are read in this browser and are not uploaded. You can also drop them on the page.",
+  "wizard.noPicker": "The file picker is not available on this page.",
+  "wizard.back": "Back",
+  "wizard.next": "Next",
+  "wizard.done": "Done",
+  "wizard.skipToLoad": "Skip to loading files",
+  "wizard.dontShow": "Don't show again",
+
+  // Command palette
+  "palette.placeholder": "Search pages, actions, and spools...",
+  "palette.label": "Command palette",
+  "palette.results": "Results",
+  "palette.resultCount": "{count, plural, one {# result} other {# results}}",
+  "palette.noResults": "No results",
+  "palette.nothingMatches": "Nothing matches. Try a page, a service, or a spool name.",
+  "palette.hintChoose": "Enter choose",
+  "palette.hintClose": "Esc close",
+  "palette.hintMove": "↑↓ move",
+  "palette.recent": "Recent",
+  "palette.group.Pages": "Pages",
+  "palette.group.Panels": "Panels",
+  "palette.group.Actions": "Actions",
+  "palette.group.Spools": "Spools",
+  "palette.go": "Go to {page}",
+  "palette.page.load": "Load",
+  "palette.page.review": "Review and apply",
+  "palette.page.credits": "Credits",
+  "palette.here": "You are here",
+  "palette.panel": "Open {service} panel",
+  "palette.loadPage": "Load page",
+  "palette.theme": "Toggle light or dark theme",
+  "palette.units": "Show weights in {unit}",
+  "palette.units.current": "Currently {unit}",
+  "palette.unit.grams": "grams",
+  "palette.unit.ounces": "ounces",
+  "palette.shortcuts": "Show keyboard shortcuts",
+  "palette.saved": "Open saved settings",
+  "palette.changelog": "What is new (changelog)",
+  "palette.tour": "Take the tour",
+  "palette.setup": "Open the setup guide",
+  "palette.setup.sub": "Where to find each app's export",
+  "palette.cleanup": "Clean up data",
+  "palette.combined": "Download all spools as one CSV",
+  "palette.report": "Open the inventory report",
+  "palette.report.sub": "Print, HTML, Markdown or CSV",
+  "palette.language": "Change language",
+  "palette.language.sub": "Opens saved settings",
+  "palette.health": "Show the data health to-do list",
+  "palette.exportView": "Export the current table view as CSV",
+  "palette.unload": "Unload all services",
+
+  // Spool detail drawer
+  "drawer.weighIn": "Weigh in",
+  "drawer.fields": "Fields by service",
+  "drawer.ids": "Linked ids",
+  "drawer.history": "History",
+  "drawer.different": "Same spool or not",
+  "drawer.noOthers": "No other records look like this spool.",
+
+  // Data health dashboard
+  "health.title": "Data health",
+  "health.meterLabel": "Data health score",
+  "health.valueText": "{score} out of 100, {grade}",
+  "health.announce": "Data health score {score} out of 100, {grade}",
+  "health.grade.excellent": "Excellent",
+  "health.grade.good": "Good",
+  "health.grade.fair": "Needs work",
+  "health.grade.poor": "Poor",
+  "health.summary":
+    "{count, plural, one {# spool} other {# spools}} checked against the cleanup rules and the checks below. Nothing is changed.",
+  "health.tracked":
+    "{weight} of filament is tracked across {count, plural, one {# spool} other {# spools}} with a known weight.",
+  "health.todo.title": "To do, biggest improvement first",
+  "health.todo.none": "Nothing to fix. Every spool has the data these checks look for.",
+  "health.todo.count": "{count, plural, one {# spool} other {# spools}}",
+  "health.todo.worth": "worth up to {points, plural, one {# point} other {# points}}",
+  "health.todo.show": "Show",
+  "health.todo.showing": "Showing",
+  "health.todo.review": "Review",
+  "health.todo.showAria": "Show spools with: {label}",
+  "health.todo.reviewAria": "Open the data cleanup panel: {label}",
+  "health.factor.missing-weight": "No remaining weight",
+  "health.factor.missing-color": "No color",
+  "health.factor.missing-vendor": "No brand",
+  "health.factor.missing-material": "No material",
+  "health.factor.missing-location": "No location",
+  "health.factor.negative-weight": "Negative weight",
+  "health.factor.invalid-number": "Weight is not a number",
+  "health.factor.over-initial": "Remaining exceeds full weight",
+  "health.factor.missing-price": "No price",
+  "health.factor.duplicates": "Possible duplicates",
+  "health.factor.cleanup": "Cleanup suggestions",
+  "health.trend.title": "Score over time",
+  "health.trend.aria":
+    "Score trend, {first} to {last} over {count, plural, one {# load} other {# loads}}",
+  "health.trend.up": "Up {points, plural, one {# point} other {# points}} since {date}",
+  "health.trend.down": "Down {points, plural, one {# point} other {# points}} since {date}",
+  "health.trend.same": "No change since {date}",
+  "health.trend.first": "First score saved on {date}. Load again later to see a trend.",
+
+  // Inventory table tools
+  "table.columns": "Columns",
+  "table.columns.hint": "Choose the columns to show. Name always stays so every spool can be opened.",
+  "table.columns.reset": "Show all columns",
+  "table.columns.aria": "Table columns",
+  "table.export.csv": "Export view (CSV)",
+  "table.export.json": "Export view (JSON)",
+  "table.export.done": "{count, plural, one {Exported # spool} other {Exported # spools}}",
+  "table.export.none": "There are no spools in this view to export",
+  "table.export.hint": "Exports the spools shown now, in table order, with weights in grams.",
+  "table.window.status": "Showing {shown} of {total} spools",
+  "table.window.more": "Show {count} more",
+  "table.window.all": "Show all",
+  "col.source": "Source",
+  "col.id": "ID",
+  "col.vendor": "Brand",
+  "col.material": "Material",
+  "col.name": "Name",
+  "col.color": "Color",
+  "col.remaining": "Remaining",
+  "col.location": "Location",
+  "col.linked": "Linked to",
+
+  // Column mapper
+  "map.open": "Map columns...",
+  "map.unrecognised": "{file} was not recognised as an export from a supported tool.",
+  "map.title": "Map columns",
+  "map.intro":
+    "Match each column in your file to a SpoolSync field. This creates a Spoolman-format CSV that you download and then drop on this page. Nothing is loaded or changed by this step.",
+  "map.fileInfo":
+    "{file}: {rows, plural, one {# row} other {# rows}}, {columns, plural, one {# column} other {# columns}}",
+  "map.column": "Column in your file",
+  "map.field": "SpoolSync field",
+  "map.sample": "Example values",
+  "map.ignore": "Ignore this column",
+  "map.unit": "Weights in this file are in",
+  "map.unit.g": "grams (g)",
+  "map.unit.kg": "kilograms (kg)",
+  "map.unit.oz": "ounces (oz)",
+  "map.unit.lb": "pounds (lb)",
+  "map.remember": "Remember this mapping for files with the same columns",
+  "map.restored": "Using the mapping you saved for this column layout.",
+  "map.suggested": "Suggested from the column names. Check each one before you download.",
+  "map.problems": "Fix these first",
+  "map.warnings": "Worth knowing",
+  "map.err.identity": "Map at least a brand, material, or name column.",
+  "map.err.duplicate": "The column \"{header}\" is used for both {first} and {second}.",
+  "map.err.missing": "The column \"{header}\" is not in this file.",
+  "map.warn.noWeight":
+    "No weight column is mapped, so every spool will load with an unknown remaining weight.",
+  "map.warn.bothWeights":
+    "Both remaining and used weight are mapped. Remaining weight is used when a row has both.",
+  "map.dry.title": "Dry run",
+  "map.dry.lead":
+    "Nothing was loaded. {loaded} of {rows, plural, one {# row} other {# rows}} would load from the converted file.",
+  "map.dry.checking": "Checking the converted file...",
+  "map.download": "Download Spoolman CSV",
+  "map.cancel": "Cancel",
+  "map.downloaded": "Converted file downloaded. Drop it on this page to load it.",
+  "map.readError": "Could not read this file: {message}",
+  "map.field.vendor": "Brand",
+  "map.field.material": "Material",
+  "map.field.name": "Color name",
+  "map.field.color": "Color (hex)",
+  "map.field.remainingWeight": "Remaining weight",
+  "map.field.usedWeight": "Used weight",
+  "map.field.initialWeight": "Full spool weight (net)",
+  "map.field.emptySpoolWeight": "Empty spool weight",
+  "map.field.price": "Price",
+  "map.field.location": "Location",
+  "map.field.lotNr": "Lot or batch",
+  "map.field.comment": "Notes",
+  "map.field.archived": "Archived or finished",
+  "map.field.diameter": "Diameter (mm)",
+  "map.field.density": "Density (g/cm3)",
+  "map.field.articleNumber": "Article number or barcode",
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+/** A translation: every key of the English source, no more and no fewer. */
+export type Catalogue = Record<MessageKey, string>;
