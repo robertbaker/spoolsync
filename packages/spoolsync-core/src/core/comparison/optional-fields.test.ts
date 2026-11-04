@@ -109,3 +109,19 @@ describe("lot, finish and TD fields", () => {
     ]);
   });
 });
+
+describe("records whose origin cannot carry a field", () => {
+  test("do not take part in comparison for that field", () => {
+    const ids = { spoolmanId: 1, filamentDbAppId: "a" };
+    const full = makeSpool("spoolman", "1", { crossIds: ids, diameter: 1.75 });
+    const csv = makeSpool("filamentDbApp", "a", {
+      crossIds: ids,
+      diameter: null,
+      unavailable: ["diameter"],
+    });
+    const marked = matchSpools([full, csv]).groups[0]!;
+    expect(compareGroup(marked).some((c) => c.field === "diameter")).toBe(false);
+    const plain = matchSpools([full, { ...csv, unavailable: undefined }]).groups[0]!;
+    expect(compareGroup(plain).some((c) => c.field === "diameter")).toBe(true);
+  });
+});

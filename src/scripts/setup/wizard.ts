@@ -116,7 +116,7 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
             },
           })
         : null,
-    ].filter((node): node is Node => node !== null);
+    ].filter((node) => node !== null);
   }
 
   function loadStep(): Node[] {

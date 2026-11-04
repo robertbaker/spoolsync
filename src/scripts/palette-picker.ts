@@ -39,7 +39,7 @@ export function wirePalettePicker(): void {
 
   reflect(readPalette());
   toggle.addEventListener("click", () => {
-    const open = grid.hidden;
+    const open = Boolean(grid.hidden);
     setOpen(open);
     if (open) grid.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();
   });

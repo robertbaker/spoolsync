@@ -1,4 +1,4 @@
-import type { CommonSpool } from "../../core/model";
+import type { CommonSpool, ComparableField } from "../../core/model";
 import {
   toBoolean,
   toHex,
@@ -8,6 +8,18 @@ import {
 } from "../../core/normalize";
 import { field, parseTable } from "../shared/tabular";
 import type { FilamentDbAppLoadResult } from "./types";
+
+/** The spool CSV has no columns for these, so a CSV load leaves them out of comparison. */
+const CSV_UNAVAILABLE: readonly ComparableField[] = [
+  "diameter",
+  "density",
+  "nozzleTempMin",
+  "nozzleTempMax",
+  "bedTempMin",
+  "bedTempMax",
+  "price",
+  "td",
+];
 
 const text = (row: Record<string, unknown>, ...names: string[]) => toText(field(row, ...names));
 
@@ -65,6 +77,7 @@ export function loadFilamentDbAppCsv(csv: string): FilamentDbAppLoadResult {
       td: null,
       comment: text(row, "label"),
       archived: toBoolean(field(row, "retired")),
+      unavailable: CSV_UNAVAILABLE,
       raw: { filamentId, spool: row, legacyRoll: !spoolId },
     });
   });

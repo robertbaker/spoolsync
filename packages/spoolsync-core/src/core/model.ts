@@ -132,6 +132,12 @@ export interface CommonSpool {
   comment: string | null;
   archived: boolean;
 
+  /**
+   * Fields this record's origin cannot carry (for example a CSV with no temperature columns), so
+   * comparison treats them as unsupported rather than blank.
+   */
+  unavailable?: readonly ComparableField[];
+
   raw: unknown;
 }
 

@@ -24,9 +24,10 @@ export function compareGroup(group: SpoolGroup): FieldComparison[] {
     const blank: SourceId[] = [];
     let participants = 0;
     for (const source of sources) {
-      if (!SOURCE_FIELDS[source].has(field)) continue;
+      const member = group.members[source]!;
+      if (!SOURCE_FIELDS[source].has(field) || member.unavailable?.includes(field)) continue;
       participants++;
-      const value = group.members[source]![field];
+      const value = member[field];
       if (isBlank(value)) {
         blank.push(source);
         continue;

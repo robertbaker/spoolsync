@@ -31,8 +31,8 @@ export interface PairRow {
 /** A field-by-field comparison of two records; used to review a possible match. */
 export function comparePair(a: CommonSpool, b: CommonSpool): PairRow[] {
   return PAIR_FIELDS.filter((field) => COMPARABLE_FIELDS.includes(field)).map((field) => {
-    const aStored = SOURCE_FIELDS[a.source].has(field);
-    const bStored = SOURCE_FIELDS[b.source].has(field);
+    const aStored = SOURCE_FIELDS[a.source].has(field) && !a.unavailable?.includes(field);
+    const bStored = SOURCE_FIELDS[b.source].has(field) && !b.unavailable?.includes(field);
     const status: PairStatus =
       aStored && bStored
         ? valuesEqual(field, a[field], b[field])
