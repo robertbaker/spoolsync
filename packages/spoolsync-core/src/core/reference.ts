@@ -57,12 +57,19 @@ export {
   type AnalyzeOptions,
   type ReferenceAnalysis,
 } from "./reference/analyze";
+export {
+  OPENPRINTTAG_REPOSITORY,
+  flattenOpenPrintTag,
+  type OpenPrintTagDocument,
+  type OpenPrintTagRecord,
+} from "./reference/openprinttag";
 export { OFD_BULK_URL, flattenOpenFilamentDatabase, type OfdRecord } from "./reference/ofd";
 export {
   GENERIC_FIELD_ALIASES,
   FILAMENTCOLORS_MAPPING,
   GENERIC_MAPPING,
   OFD_MAPPING,
+  OPENPRINTTAG_MAPPING,
   REFERENCE_KEYS,
   REFERENCE_PRESETS,
   fieldKey,

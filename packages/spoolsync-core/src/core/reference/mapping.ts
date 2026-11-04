@@ -194,6 +194,36 @@ export const OFD_MAPPING: ReferenceMapping = {
 };
 
 /**
+ * OpenPrintTag database, after `flattenOpenPrintTag` joined its YAML tables (see openprinttag.ts).
+ * The database is a git repository, so it is read from a local clone through a file rather than
+ * fetched. It states no list price and no empty-spool weight.
+ */
+export const OPENPRINTTAG_MAPPING: ReferenceMapping = {
+  records: "",
+  weightUnit: "g",
+  fields: {
+    id: ["id"],
+    vendor: ["brand"],
+    material: ["material"],
+    colorName: ["colorName"],
+    colorHex: ["hex"],
+    diameter: ["diameter"],
+    density: ["density"],
+    nozzleTempMin: ["nozzleMin"],
+    nozzleTempMax: ["nozzleMax"],
+    bedTempMin: ["bedMin"],
+    bedTempMax: ["bedMax"],
+    initialWeight: ["weight"],
+    barcode: ["gtin"],
+    url: ["url"],
+    sourceUrl: ["sourceUrl"],
+    imageUrl: ["imageUrl"],
+    dryingTemp: ["dryingTemp"],
+    dryingHours: ["dryingHours"],
+  },
+};
+
+/**
  * FilamentColors (https://filamentcolors.xyz/api/swatch/), a paged list of swatches. A swatch is a
  * measured color of one product, so only the brand, material, color name, hex and a product link
  * are mapped. Its filament type carries one typical hot end and bed temperature for the whole type,
@@ -223,6 +253,12 @@ export const REFERENCE_PRESETS: readonly ReferencePreset[] = [
     label: "Open Filament Database",
     providerId: "openfilamentdatabase",
     mapping: OFD_MAPPING,
+  },
+  {
+    id: "openprinttag",
+    label: "OpenPrintTag database (converted file)",
+    providerId: "file",
+    mapping: OPENPRINTTAG_MAPPING,
   },
   {
     id: "filamentcolors",
