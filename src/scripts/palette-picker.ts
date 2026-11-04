@@ -39,6 +39,15 @@ export function wirePalettePicker(): void {
 
   reflect(readPalette());
   toggle.addEventListener("click", () => {
+    // In the collapsed desktop rail there is no room for the grid: step to the next accent.
+    if (
+      document.documentElement.dataset["sidebar"] === "collapsed" &&
+      window.matchMedia("(min-width: 1024px)").matches
+    ) {
+      const index = PALETTES.findIndex((palette) => palette.id === readPalette());
+      choose(PALETTES[(index + 1) % PALETTES.length]!.id);
+      return;
+    }
     const open = Boolean(grid.hidden);
     setOpen(open);
     if (open) grid.querySelector<HTMLElement>('[aria-checked="true"]')?.focus();

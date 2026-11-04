@@ -30,6 +30,27 @@ function applyMode(mode: SidebarMode): void {
     button.setAttribute("aria-label", label);
     button.title = `${label} (Ctrl+B)`;
   }
+  syncBrand(mode);
+}
+
+/** On the desktop rail the logo expands the sidebar; elsewhere it stays the home link. */
+function railActsAsExpand(): boolean {
+  return (
+    document.documentElement.dataset["sidebar"] === "collapsed" &&
+    window.matchMedia(DESKTOP).matches
+  );
+}
+
+function syncBrand(_mode: SidebarMode): void {
+  const brand = document.querySelector<HTMLAnchorElement>(".sb-brand");
+  if (!brand) return;
+  if (railActsAsExpand()) {
+    brand.setAttribute("aria-label", "Expand sidebar");
+    brand.title = "Expand sidebar (Ctrl+B)";
+  } else {
+    brand.setAttribute("aria-label", "SpoolSync home");
+    brand.title = "SpoolSync home";
+  }
 }
 
 /** The mode the inline script in the layout head set before first paint, or the stored one. */
@@ -52,18 +73,6 @@ export function wireSidebar(): void {
   const controller = new AbortController();
   const options = { signal: controller.signal };
 
-  // Scrollbar is hidden until the user scrolls; fades out shortly after scrolling stops.
-  let scrollTimer: ReturnType<typeof setTimeout> | undefined;
-  root.addEventListener(
-    "scroll",
-    () => {
-      root.classList.add("is-scrolling");
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => root.classList.remove("is-scrolling"), 700);
-    },
-    { passive: true, signal: controller.signal },
-  );
-
   // ---- Collapse (desktop) and peek (tablet) -----------------------------------------------
   applyMode(currentMode());
   const setMode = (mode: SidebarMode) => {
@@ -72,6 +81,16 @@ export function wireSidebar(): void {
   };
   for (const button of document.querySelectorAll("[data-sb-collapse]"))
     button.addEventListener("click", () => setMode(otherSidebarMode(currentMode())), options);
+  root.querySelector(".sb-brand")?.addEventListener(
+    "click",
+    (event) => {
+      if (!railActsAsExpand()) return;
+      event.preventDefault();
+      setMode("expanded");
+    },
+    options,
+  );
+  window.matchMedia(DESKTOP).addEventListener("change", () => syncBrand(currentMode()), options);
 
   // ---- Phone drawer ------------------------------------------------------------------------
   const supportsPopover = typeof root.showPopover === "function";

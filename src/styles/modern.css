@@ -38,7 +38,13 @@ dialog::backdrop {
   backdrop-filter: blur(3px);
 }
 
-:is(#saved-data-dialog, #shortcuts-dialog, #palette-dialog, #inventory-report-dialog, #weigh-in-dialog) {
+:is(
+  #saved-data-dialog,
+  #shortcuts-dialog,
+  #palette-dialog,
+  #inventory-report-dialog,
+  #weigh-in-dialog
+) {
   border: 1px solid var(--border);
   border-radius: var(--dialog-radius);
   background: var(--background);
@@ -59,7 +65,13 @@ dialog::backdrop {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  :is(#saved-data-dialog, #shortcuts-dialog, #palette-dialog, #inventory-report-dialog, #weigh-in-dialog) {
+  :is(
+    #saved-data-dialog,
+    #shortcuts-dialog,
+    #palette-dialog,
+    #inventory-report-dialog,
+    #weigh-in-dialog
+  ) {
     opacity: 0;
     translate: 0 0.5rem;
     scale: 0.985;
@@ -71,14 +83,26 @@ dialog::backdrop {
       display 0.24s allow-discrete;
   }
 
-  :is(#saved-data-dialog, #shortcuts-dialog, #palette-dialog, #inventory-report-dialog, #weigh-in-dialog)[open] {
+  :is(
+    #saved-data-dialog,
+    #shortcuts-dialog,
+    #palette-dialog,
+    #inventory-report-dialog,
+    #weigh-in-dialog
+  )[open] {
     opacity: 1;
     translate: 0 0;
     scale: 1;
   }
 
   @starting-style {
-    :is(#saved-data-dialog, #shortcuts-dialog, #palette-dialog, #inventory-report-dialog, #weigh-in-dialog)[open] {
+    :is(
+      #saved-data-dialog,
+      #shortcuts-dialog,
+      #palette-dialog,
+      #inventory-report-dialog,
+      #weigh-in-dialog
+    )[open] {
       opacity: 0;
       translate: 0 0.5rem;
       scale: 0.985;
@@ -167,6 +191,22 @@ summary:focus-visible {
 
 :where(button, [role="button"], summary) {
   touch-action: manipulation;
+}
+
+/* Anything clickable gets the hand, including cards and badges built from buttons or links. */
+:where(
+  button:not(:disabled),
+  a[href],
+  [role="button"]:not([aria-disabled="true"]),
+  [role="link"],
+  [role="tab"],
+  [role="radio"],
+  [role="switch"],
+  summary,
+  label[for],
+  select:not(:disabled)
+) {
+  cursor: pointer;
 }
 
 button:disabled {

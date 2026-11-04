@@ -98,12 +98,8 @@ body.has-sidebar {
   color: var(--foreground);
   overflow: hidden auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.app-sidebar.is-scrolling {
-  scrollbar-color: var(--muted-foreground) transparent;
+  /* A classic scrollbar reserves a gutter even when transparent, widening the nav; it still scrolls. */
+  scrollbar-width: none;
 }
 
 .app-sidebar:focus-visible {
@@ -448,6 +444,16 @@ body.has-sidebar {
   color: color-mix(in oklab, var(--foreground) 78%, transparent);
 }
 
+.sb-row__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+:root[data-sidebar="collapsed"] .app-sidebar .sb-row__controls {
+  flex-direction: column;
+}
+
 .app-sidebar .sb-themebtn {
   inline-size: 2.75rem !important;
   block-size: 2.75rem !important;
@@ -476,6 +482,23 @@ body.has-sidebar {
 
   :root[data-sidebar="collapsed"] .app-sidebar .sb-head {
     flex-direction: column;
+  }
+
+  /* Keep the logo visibly apart from the first nav item below it. */
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-head {
+    flex: none;
+    margin-block-end: 0.75rem;
+    padding-block-end: 0.5rem;
+    border-block-end: 1px solid var(--border);
+  }
+
+  /* In the rail the logo is the expand button, so the chevron takes no space. */
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-collapse {
+    display: none;
+  }
+
+  :root[data-sidebar="collapsed"] .app-sidebar .sb-brand {
+    cursor: e-resize;
   }
 
   :root[data-sidebar="collapsed"] .app-sidebar .sb-link,
