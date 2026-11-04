@@ -16,7 +16,7 @@ import {
   userConfigPath,
   writeTextAtomic,
 } from "./user-config";
-import { runWatch } from "./watch";
+import { runWatch, stopOnQuit } from "./watch";
 import { runWorkflow } from "./workflow";
 
 const output: CliOutput = {
@@ -98,22 +98,28 @@ try {
         );
       } else if (options.watch) {
         const stop = new AbortController();
-        for (const signal of ["SIGINT", "SIGTERM"] as const)
+        // SIGBREAK is Ctrl+Break on Windows; typing q ends a watch where no signal can reach it.
+        for (const signal of ["SIGINT", "SIGTERM", "SIGBREAK"] as const)
           process.once(signal, () => stop.abort());
-        await runWatch({
-          files: [...options.inputs.values()],
-          output,
-          signal: stop.signal,
-          quiet: options.quiet,
-          run: async (runOutput, previous) => {
-            try {
-              return await runWorkflow(options, defaultDependencies, runOutput, previous);
-            } catch (error) {
-              reportError(error, options.json, runOutput);
-              return undefined;
-            }
-          },
-        });
+        const detach = stopOnQuit(process.stdin, () => stop.abort());
+        try {
+          await runWatch({
+            files: [...options.inputs.values()],
+            output,
+            signal: stop.signal,
+            quiet: options.quiet,
+            run: async (runOutput, previous) => {
+              try {
+                return await runWorkflow(options, defaultDependencies, runOutput, previous);
+              } catch (error) {
+                reportError(error, options.json, runOutput);
+                return undefined;
+              }
+            },
+          });
+        } finally {
+          detach();
+        }
       } else await runWorkflow(options, defaultDependencies, output);
     }
   }

@@ -5,11 +5,13 @@ planning, and export adapters as the [SpoolSync web app](https://spoolsync.com),
 <!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:cli-names-inline:end -->.
 
 > <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end --> For a walkthrough of the browser
+>
 > app's Load, Review, and Apply flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
 
 Each service has its own input option:
 
 <!-- services:cli-inputs:start -->
+
 | Service                 | File option      | API option         | Reads files |
 | ----------------------- | ---------------- | ------------------ | ----------- |
 | Spoolman / Spoolman-NG  | `--spoolman`     | `--spoolman-url`   | JSON, CSV   |
@@ -25,6 +27,7 @@ Each service has its own input option:
 | Spool Hoarder           | `--spoolhoarder` | None               | CSV         |
 | Spool (Mac and iOS app) | `--spool`        | None               | JSON        |
 | SpoolKeep               | `--spoolkeep`    | None               | JSON        |
+
 <!-- services:cli-inputs:end -->
 
 ## Install
@@ -126,7 +129,8 @@ Tokens and passwords are rejected in config files (they tend to be committed); u
 `SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables.
 
 Keep a plan up to date while you edit an export. `--watch` re-runs whenever an input file changes,
-reports errors and keeps going, and stops on Ctrl+C. It only watches files, and it refuses `--apply`
+reports errors and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
+also works where a signal cannot be sent, such as a Windows process started by another program). It only watches files, and it refuses `--apply`
 so a service is never written on every save:
 
 ```sh
@@ -231,9 +235,11 @@ spoolsync --spoolman a.json --spoolio b.json --cleanup=all,-vendor-alias
 
 Match your spools to a reference catalog (a JSON or CSV file of filaments, such as an export from a
 public filament database) to fill in what is missing and to check colors. The CLI reads only the
-file you give it and never contacts a reference service; fetching from the Open Filament Database
-or FilamentColors is a browser feature that needs an endpoint configured first (see
-`docs/architecture.md`).
+file you give it and never contacts a reference service. The web app publishes ready-made files of
+the Open Filament Database and FilamentColors (`/reference/openfilamentdatabase.json` and
+`/reference/filamentcolors.json`, rebuilt with each deploy); download one and pass it as
+`--reference` and the CLI reads it directly. The in-browser fetching and update checks are a browser
+feature (see `docs/architecture.md`).
 
 ```sh
 spoolsync --spoolman spoolman.json --spoolio spoolio.json --reference filaments.json --output-dir updated
@@ -259,6 +265,11 @@ spoolsync --spoolio spoolio.json --reference-report filaments.json     # one inv
   match. On its own it plans and writes nothing and works with a single inventory; it cannot be
   combined with `--summary`, `--reorder`, or options that change something. Color differences use
   CIEDE2000: up to 2.3 is a match, up to 5 is close, above 5 is a mismatch.
+- **`--fail-on-mismatch`** (with either option) makes the run exit with code 1 when a spool
+  disagrees with the reference: a value that differs from a confident match, or a color that does not
+  match. Fills for empty fields do not count, so a scheduled check stays quiet until something drifts.
+  The text report ends with `Reference check passed` or `Reference check failed`, and JSON reports
+  carry `reference.counts.mismatches`.
 - In `--config` or the settings file, `"reference"` and `"reference-report"` are file paths.
   `--save-config` does not save them.
 - JSON reports gain a `reference` object: `provider`, `file`, `attribution`, `license`, `catalog`,
@@ -269,6 +280,28 @@ spoolsync --spoolio spoolio.json --reference-report filaments.json     # one inv
 ## Direct API access
 
 Writes to a live server require the explicit `--apply` option.
+
+### Rollback files
+
+Before `--apply` writes to a service, the CLI saves a rollback file for it: a readable JSON record
+of each changed field's earlier value and the value written, plus a line for every spool that was
+created (never the whole inventory). It goes to `--rollback-dir <dir>`, or by default to a
+`rollbacks` folder beside the settings file (see `--config-path`), readable only by you, named
+`spoolsync-rollback-<service>-<time>.json`. The path is printed (stderr in text mode, `rollbackFiles`
+in JSON). If the file cannot be saved, nothing is written to that service; `--no-rollback` writes
+without one.
+
+```bash
+spoolsync --restore-rollback spoolsync-rollback-spoolman-2026-11-04T10-00-00-000.json --spoolman-url http://spoolman.local
+spoolsync --restore-rollback <file> --spoolman-url http://spoolman.local --apply
+```
+
+`--restore-rollback` names the service by its connection option. Without `--apply` it only shows what
+would be put back. A field is restored only while it still holds the value SpoolSync wrote, so edits
+made since are never overwritten; fields that changed again, spools that are gone and fields already
+restored are listed and left alone. Spools the original sync created are listed to delete by hand,
+because SpoolSync never deletes spools, and cross-service ids it stamped are not removed. A restore
+writes its own rollback file too. With `--format json` it prints a `"rollback"` report.
 
 ### Spoolman
 
@@ -315,12 +348,14 @@ targets. Spoolman is written only with `--apply`. Read-only sources can provide 
 a write target.
 
 <!-- services:cli-writing:start -->
+
 | Inventory source                                             | How it receives changes       |
 | ------------------------------------------------------------ | ----------------------------- |
 | File inventory                                               | Output file in `--output-dir` |
 | `--empty` target                                             | Output file in `--output-dir` |
 | Direct Spoolman, Filadex, and FilamentDB                     | `--apply`                     |
 | Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep | Read-only                     |
+
 <!-- services:cli-writing:end -->
 
 `--output-dir` requires a writable file inventory or `--empty` target. A directly loaded Spoolman

@@ -3,6 +3,7 @@ import type { InventoryChanges, InventorySummary } from "@spoolsync/core/workflo
 
 import type { CleanupSection } from "./cleanup";
 import type { ReferenceSection } from "./reference";
+import type { RestoreReport } from "./rollback";
 
 /**
  * The machine-readable reports behind `--format json` (and its alias `--json`).
@@ -55,6 +56,8 @@ export interface CompareReport extends ReportBase {
   written: string[];
   csvExport?: string;
   exportWarnings: Array<{ source: SourceId; message: string }>;
+  /** With `--apply`: the rollback files saved before writing to each service. */
+  rollbackFiles?: string[];
   /** With `--cleanup`: what was proposed and which safe changes joined the plan. */
   cleanup?: CleanupSection;
   /** With `--reference`: what matched, and which safe fills joined the plan. */
@@ -89,7 +92,7 @@ export interface InventoryReport extends ReportBase {
   written: string[];
 }
 
-export type CliReport = CompareReport | InventoryReport;
+export type CliReport = CompareReport | InventoryReport | RestoreReport;
 
 /** Whether the arguments ask for JSON, for failures that happen before options are parsed. */
 export function requestsJson(args: readonly string[]): boolean {

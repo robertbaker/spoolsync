@@ -46,6 +46,11 @@ const COLUMNS = [
   "price",
   "barcode",
   "url",
+  "sourceUrl",
+  "imageUrl",
+  "dryingTemp",
+  "dryingHours",
+  "buyLinks",
 ] as const satisfies readonly (keyof ReferenceFilament)[];
 
 /** The snapshot as compact JSON text. */

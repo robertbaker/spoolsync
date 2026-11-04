@@ -106,6 +106,26 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     description: "List reference-file matches, differences and color checks",
     kind: "file",
   },
+  {
+    flag: "--fail-on-mismatch",
+    description: "Exit with code 1 when a reference file disagrees with a spool",
+    kind: "flag",
+  },
+  {
+    flag: "--rollback-dir",
+    description: "Save the rollback file made before --apply here",
+    kind: "directory",
+  },
+  {
+    flag: "--no-rollback",
+    description: "With --apply, write without saving a rollback file first",
+    kind: "flag",
+  },
+  {
+    flag: "--restore-rollback",
+    description: "Put back the values a rollback file recorded (--apply to write)",
+    kind: "file",
+  },
   { flag: "--apply", description: "Apply changes to a directly loaded service", kind: "flag" },
   {
     flag: "--json",

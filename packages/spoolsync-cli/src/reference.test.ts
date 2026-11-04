@@ -7,7 +7,13 @@ import { makeSpool } from "@spoolsync/core/core/testing";
 import { parseArgs } from "./args";
 import { expandConfig } from "./config";
 import { createCliPlan } from "./planning";
-import { loadReferenceFile, referenceLines, referenceSection, runReference } from "./reference";
+import {
+  loadReferenceFile,
+  referenceLines,
+  referenceMismatches,
+  referenceSection,
+  runReference,
+} from "./reference";
 
 const files = ["--spoolman", "spools.json", "--spoolio", "inventory.json"];
 
@@ -37,11 +43,18 @@ const result = (source: SourceId, spools: LoadResult["spools"]): LoadResult => (
 });
 
 const loaded = new Map<SourceId, LoadResult>([
-  ["spoolman", result("spoolman", [makeSpool("spoolman", "1", { density: null, emptySpoolWeight: null })])],
+  [
+    "spoolman",
+    result("spoolman", [makeSpool("spoolman", "1", { density: null, emptySpoolWeight: null })]),
+  ],
   [
     "spoolio",
     result("spoolio", [
-      makeSpool("spoolio", "A", { crossIds: { spoolmanId: 1 }, density: null, emptySpoolWeight: null }),
+      makeSpool("spoolio", "A", {
+        crossIds: { spoolmanId: 1 },
+        density: null,
+        emptySpoolWeight: null,
+      }),
       makeSpool("spoolio", "B", { vendor: "Nobody", name: "Mystery", crossIds: {} }),
     ]),
   ],
@@ -56,11 +69,15 @@ const readText = async (name: string) => {
 
 describe("reference options", () => {
   test("--reference and --reference-report take a file", () => {
-    expect(parseArgs([...files, "--reference", "ref.json"])).toMatchObject({ reference: "ref.json" });
+    expect(parseArgs([...files, "--reference", "ref.json"])).toMatchObject({
+      reference: "ref.json",
+    });
     expect(parseArgs([...files, "--reference-report=ref.json"])).toMatchObject({
       referenceReport: "ref.json",
     });
-    expect(parseArgs([...files, "--reference", "ref.json", "--reference-report", "ref.json"])).toMatchObject({
+    expect(
+      parseArgs([...files, "--reference", "ref.json", "--reference-report", "ref.json"]),
+    ).toMatchObject({
       reference: "ref.json",
       referenceReport: "ref.json",
     });
@@ -72,24 +89,33 @@ describe("reference options", () => {
     expect(() => parseArgs([...files, "--reference", "a.json", "--reference", "b.json"])).toThrow(
       "only be provided once",
     );
-    expect(() => parseArgs([...files, "--reference", "a.json", "--reference-report", "b.json"])).toThrow(
-      "different files",
-    );
+    expect(() =>
+      parseArgs([...files, "--reference", "a.json", "--reference-report", "b.json"]),
+    ).toThrow("different files");
     expect(() => parseArgs(["--spoolman", "spools.json", "--reference", "ref.json"])).toThrow(
       "needs at least two",
     );
-    expect(() => parseArgs([...files, "--reference", "ref.json", "--summary"])).toThrow("cannot be combined");
+    expect(() => parseArgs([...files, "--reference", "ref.json", "--summary"])).toThrow(
+      "cannot be combined",
+    );
     expect(() => parseArgs([...files, "--reference-report", "ref.json", "--reorder"])).toThrow(
       "cannot be combined",
     );
   });
 
   test("--reference-report works with one inventory and plans nothing", () => {
-    expect(parseArgs(["--spoolman", "spools.json", "--reference-report", "ref.json"]).referenceReport).toBe(
-      "ref.json",
-    );
+    expect(
+      parseArgs(["--spoolman", "spools.json", "--reference-report", "ref.json"]).referenceReport,
+    ).toBe("ref.json");
     expect(() =>
-      parseArgs(["--spoolman", "spools.json", "--reference-report", "ref.json", "--output-dir", "out"]),
+      parseArgs([
+        "--spoolman",
+        "spools.json",
+        "--reference-report",
+        "ref.json",
+        "--output-dir",
+        "out",
+      ]),
     ).toThrow("--reference-report only reports");
   });
 
@@ -98,7 +124,9 @@ describe("reference options", () => {
       expandConfig(["--config", path.join("dir", "c.json")], {
         readText: () => JSON.stringify({ reference: value }),
       });
-    expect(expand("ref.json")).toEqual([`--reference=${path.join(path.resolve("dir"), "ref.json")}`]);
+    expect(expand("ref.json")).toEqual([
+      `--reference=${path.join(path.resolve("dir"), "ref.json")}`,
+    ]);
     expect(() => expand(true)).toThrow('"reference" must be a text value');
   });
 });
@@ -114,13 +142,18 @@ describe("loading the reference file", () => {
       loadReferenceFile(parseArgs([...files, "--reference", "gone.json"]), { readText }),
     ).rejects.toThrow('Could not load reference file "gone.json": file not found');
     await expect(
-      loadReferenceFile(parseArgs([...files, "--reference", "bad.json"]), { readText: async () => "{oops" }),
+      loadReferenceFile(parseArgs([...files, "--reference", "bad.json"]), {
+        readText: async () => "{oops",
+      }),
     ).rejects.toThrow('Could not load reference file "bad.json": "bad.json" is not valid JSON');
   });
 });
 
 describe("reference in the plan", () => {
-  const plannedFields = (planning: ReturnType<typeof createCliPlan>, source: "spoolio" | "spoolman") =>
+  const plannedFields = (
+    planning: ReturnType<typeof createCliPlan>,
+    source: "spoolio" | "spoolman",
+  ) =>
     (planning.plan.get(source) ?? [])
       .flatMap((change) => (change.kind === "update" ? change.changes.map((c) => c.field) : []))
       .sort();
@@ -168,7 +201,11 @@ describe("reference in the plan", () => {
     });
     expect(section.counts).toMatchObject({ spools: 3, matched: 2, unmatched: 1, ambiguous: 0 });
     expect(section.proposals?.length).toBe(outcome!.analysis.proposals.length);
-    expect(section.proposals?.[0]).toMatchObject({ kind: "fill", confidence: "safe", reference: expect.any(String) });
+    expect(section.proposals?.[0]).toMatchObject({
+      kind: "fill",
+      confidence: "safe",
+      reference: expect.any(String),
+    });
   });
 
   test("the JSON section without a report lists only what was applied", async () => {
@@ -188,12 +225,23 @@ describe("reference in the plan", () => {
     const odd = new Map<SourceId, LoadResult>([
       ["spoolman", result("spoolman", [makeSpool("spoolman", "9", { diameter: 2.85 })])],
     ]);
-    const options = parseArgs([...files, "--reference", "ref.json", "--reference-report", "ref.json"]);
+    const options = parseArgs([
+      ...files,
+      "--reference",
+      "ref.json",
+      "--reference-report",
+      "ref.json",
+    ]);
     const file = await loadReferenceFile(options, { readText });
     const outcome = runReference(file!, odd, options);
     expect(outcome.applied.every((p) => p.kind === "fill")).toBe(true);
     const overwrite = outcome.analysis.proposals.find((p) => p.field === "diameter");
-    expect(overwrite).toMatchObject({ kind: "overwrite", confidence: "review", before: 2.85, after: 1.75 });
+    expect(overwrite).toMatchObject({
+      kind: "overwrite",
+      confidence: "review",
+      before: 2.85,
+      after: 1.75,
+    });
     expect(outcome.edits.get("spoolman:9")?.diameter).toBeUndefined();
     const text = referenceLines(outcome, options).lines.join("\n");
     expect(text).toContain("spoolman:9 diameter");
@@ -205,7 +253,12 @@ describe("reference in the plan", () => {
       [
         "spoolman",
         result("spoolman", [
-          makeSpool("spoolman", "1", { vendor: "Polymaker", material: "PETG", name: "Red", colors: ["0000FF"] }),
+          makeSpool("spoolman", "1", {
+            vendor: "Polymaker",
+            material: "PETG",
+            name: "Red",
+            colors: ["0000FF"],
+          }),
         ]),
       ],
     ]);
@@ -214,16 +267,35 @@ describe("reference in the plan", () => {
     const outcome = runReference(file!, mixed, options);
     const section = referenceSection(outcome, options);
     expect(section.colorChecks).toEqual([
-      expect.objectContaining({ spool: "spoolman:1", spoolHex: "0000FF", referenceHex: "FF0000", verdict: "mismatch" }),
+      expect.objectContaining({
+        spool: "spoolman:1",
+        spoolHex: "0000FF",
+        referenceHex: "FF0000",
+        verdict: "mismatch",
+      }),
     ]);
-    expect(referenceLines(outcome, options).lines.join("\n")).toContain("color: #0000FF against reference #FF0000");
+    expect(referenceLines(outcome, options).lines.join("\n")).toContain(
+      "color: #0000FF against reference #FF0000",
+    );
 
     const twins = JSON.stringify([
       { brand: "Acme", material: "PLA", color_name: "Red", hex: "FF0000" },
       { brand: "Acme", material: "PLA", color_name: "Red", hex: "FE0000", diameter: 2.85 },
     ]);
     const acme = new Map<SourceId, LoadResult>([
-      ["spoolman", result("spoolman", [makeSpool("spoolman", "5", { vendor: "Acme", material: "PLA", name: "Red", colors: [], diameter: null, initialWeight: null })])],
+      [
+        "spoolman",
+        result("spoolman", [
+          makeSpool("spoolman", "5", {
+            vendor: "Acme",
+            material: "PLA",
+            name: "Red",
+            colors: [],
+            diameter: null,
+            initialWeight: null,
+          }),
+        ]),
+      ],
     ]);
     const parsedTwins = await loadReferenceFile(options, { readText: async () => twins });
     const ambiguous = runReference(parsedTwins!, acme, options);
@@ -232,5 +304,56 @@ describe("reference in the plan", () => {
     expect(section2.ambiguous?.[0]).toMatchObject({ spool: "spoolman:5", status: "ambiguous" });
     expect(section2.ambiguous?.[0]?.candidates).toHaveLength(2);
     expect(referenceLines(ambiguous, options).lines.join("\n")).toContain("fits several records");
+  });
+
+  test("--fail-on-mismatch needs a reference file", () => {
+    expect(() => parseArgs([...files, "--fail-on-mismatch"])).toThrow("needs a reference file");
+    expect(parseArgs([...files, "--reference", "ref.json", "--fail-on-mismatch"])).toMatchObject({
+      failOnMismatch: true,
+    });
+    expect(parseArgs([...files]).failOnMismatch).toBe(false);
+  });
+
+  test("mismatches count differing values and colors, not fills for empty fields", async () => {
+    const options = parseArgs([
+      "--spoolman",
+      "spools.json",
+      "--reference-report",
+      "ref.json",
+      "--fail-on-mismatch",
+    ]);
+    const file = await loadReferenceFile(options, { readText });
+
+    // Only empty fields to fill: nothing disagrees.
+    const clean = runReference(file!, loaded, options);
+    expect(clean.analysis.proposals.length).toBeGreaterThan(0);
+    expect(referenceMismatches(clean)).toEqual({ values: 0, colors: 0, total: 0 });
+    expect(referenceLines(clean, options).lines.join("\n")).toContain("Reference check passed");
+    expect(referenceSection(clean, options).counts.mismatches).toBe(0);
+
+    // A different diameter and a different color are both mismatches.
+    const odd = new Map<SourceId, LoadResult>([
+      [
+        "spoolman",
+        result("spoolman", [
+          makeSpool("spoolman", "9", { diameter: 2.85 }),
+          makeSpool("spoolman", "1", {
+            vendor: "Polymaker",
+            material: "PETG",
+            name: "Red",
+            colors: ["0000FF"],
+          }),
+        ]),
+      ],
+    ]);
+    const drift = runReference(file!, odd, options);
+    const found = referenceMismatches(drift);
+    expect(found.colors).toBe(1);
+    expect(found.values).toBeGreaterThanOrEqual(1);
+    expect(found.total).toBe(found.values + found.colors);
+    expect(referenceLines(drift, options).lines.join("\n")).toContain(
+      `Reference check failed: ${found.values} differing`,
+    );
+    expect(referenceSection(drift, options).counts.mismatches).toBe(found.total);
   });
 });

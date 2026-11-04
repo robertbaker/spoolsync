@@ -25,6 +25,7 @@ const PATH_KEYS = new Set<string>([
   "export-csv",
   "reference",
   "reference-report",
+  "rollback-dir",
 ]);
 const STRING_KEYS = new Set<string>([
   ...PATH_KEYS,

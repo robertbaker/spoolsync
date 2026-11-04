@@ -4,6 +4,8 @@
   max-inline-size: 100%;
   max-block-size: min(640px, 75vh);
   container-type: inline-size;
+  /* The sticky, blurred header paints beyond the scroller in Chromium and widens the page on phones. */
+  contain: paint;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background-color: var(--card);

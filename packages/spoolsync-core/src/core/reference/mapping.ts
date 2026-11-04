@@ -26,6 +26,11 @@ export const REFERENCE_KEYS = [
   "price",
   "barcode",
   "url",
+  "sourceUrl",
+  "imageUrl",
+  "dryingTemp",
+  "dryingHours",
+  "buyLinks",
 ] as const;
 export type ReferenceKey = (typeof REFERENCE_KEYS)[number];
 
@@ -136,6 +141,11 @@ export const GENERIC_FIELD_ALIASES: Readonly<Record<ReferenceKey, readonly strin
   price: ["price", "list_price", "msrp", "retail_price", "cost"],
   barcode: ["barcode", "upc", "ean", "ean13", "gtin", "upc_ean", "gtin13"],
   url: ["url", "link", "product_url", "product_link", "page", "website"],
+  sourceUrl: ["source_url", "record_url", "reference_url"],
+  imageUrl: ["image_url", "image", "photo", "photo_url", "thumbnail", "swatch_image"],
+  dryingTemp: ["drying_temp", "drying_temperature", "dry_temp", "dry_temperature"],
+  dryingHours: ["drying_time", "drying_hours", "dry_time", "dry_hours"],
+  buyLinks: ["buy_links", "shops"],
 };
 
 export const GENERIC_MAPPING: ReferenceMapping = {
@@ -176,6 +186,10 @@ export const OFD_MAPPING: ReferenceMapping = {
     initialWeight: ["weight"],
     emptySpoolWeight: ["emptySpool"],
     barcode: ["gtin"],
+    sourceUrl: ["sourceUrl"],
+    dryingTemp: ["dryingTemp"],
+    dryingHours: ["dryingHours"],
+    buyLinks: ["buyLinks"],
   },
 };
 
@@ -196,6 +210,8 @@ export const FILAMENTCOLORS_MAPPING: ReferenceMapping = {
     colorName: ["color_name"],
     colorHex: ["hex_color"],
     url: ["mfr_purchase_link", "amazon_purchase_link"],
+    sourceUrl: ["source_url"],
+    imageUrl: ["card_img"],
   },
 };
 

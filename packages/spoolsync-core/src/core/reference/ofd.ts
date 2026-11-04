@@ -39,6 +39,10 @@ export interface OfdRecord {
   weight: unknown;
   emptySpool: unknown;
   gtin: unknown;
+  sourceUrl: string | null;
+  dryingTemp: unknown;
+  dryingHours: unknown;
+  buyLinks: Array<{ store: string; url: string; shipsTo: string[] }>;
   discontinued: boolean;
 }
 
@@ -52,6 +56,23 @@ export function flattenOpenFilamentDatabase(document: unknown): OfdRecord[] {
   const brands = index(table(document["brands"]));
   const filaments = index(table(document["filaments"]));
   const variants = index(table(document["variants"]));
+  const materials = index(table(document["materials"]));
+  const stores = index(table(document["stores"]));
+  const linksBySize = new Map<string, Array<{ store: string; url: string; shipsTo: string[] }>>();
+  for (const link of table(document["purchase_links"])) {
+    const store = stores.get(String(link["store_id"]));
+    const name =
+      store && typeof store["name"] === "string" && store["name"].trim() ? store["name"] : null;
+    if (!store || !name || typeof link["url"] !== "string" || typeof link["size_id"] !== "string")
+      continue;
+    const shipsTo = Array.isArray(store["ships_to"])
+      ? store["ships_to"].filter((code): code is string => typeof code === "string")
+      : [];
+    linksBySize.set(link["size_id"], [
+      ...(linksBySize.get(link["size_id"]) ?? []),
+      { store: name, url: link["url"], shipsTo },
+    ]);
+  }
   const text = (value: unknown): string | null =>
     typeof value === "string" && value.trim() ? value : null;
   const out: OfdRecord[] = [];
@@ -60,6 +81,11 @@ export function flattenOpenFilamentDatabase(document: unknown): OfdRecord[] {
     const filament = variant ? filaments.get(String(variant["filament_id"])) : undefined;
     const brand = filament ? brands.get(String(filament["brand_id"])) : undefined;
     if (!variant || !filament || !brand || typeof size["id"] !== "string") continue;
+    const material = materials.get(String(filament["material_id"]));
+    const slugs = [brand["slug"], material?.["slug"], filament["slug"]];
+    const sourceUrl = slugs.every((slug) => typeof slug === "string" && slug)
+      ? `https://openfilamentdatabase.org/brands/${slugs.map((slug) => encodeURIComponent(slug as string)).join("/")}`
+      : null;
     const hexes = Array.isArray(variant["color_hexes"])
       ? variant["color_hexes"].filter((hex): hex is string => typeof hex === "string")
       : [];
@@ -80,6 +106,10 @@ export function flattenOpenFilamentDatabase(document: unknown): OfdRecord[] {
       weight: size["filament_weight"],
       emptySpool: size["spool_refill"] === true ? null : size["empty_spool_weight"],
       gtin: size["gtin"],
+      sourceUrl,
+      dryingTemp: filament["dry_temperature"],
+      dryingHours: filament["dry_time"],
+      buyLinks: linksBySize.get(size["id"]) ?? [],
       discontinued: size["discontinued"] === true || variant["discontinued"] === true,
     });
   }

@@ -32,6 +32,7 @@ import { createHistoryView } from "./history-view";
 import { createJumpBar } from "./jump-bar";
 import { renderPreview } from "./plan-preview";
 import { button, download } from "./presentation";
+import { createRollbackView, rollbackHook, rollbackToggle } from "./rollback-view";
 import { sourceActions } from "./source-actions";
 
 /** The plan's exclusions and match answers, owned by the session so they can be undone. */
@@ -66,7 +67,9 @@ export function createApplyView(
     saveLoadResult,
     undefined,
     history.record,
+    rollbackHook,
   );
+  const rollbackView = createRollbackView(loaded, controller);
   const downloads = new DownloadController({
     exportInventory,
     download,
@@ -282,6 +285,7 @@ export function createApplyView(
       );
     }
 
+    if (writable.length) sections.push(rollbackToggle());
     for (const source of writable) {
       const changes = plan.get(source) ?? [];
       const status = h("div", { class: "mt-3", "aria-live": "polite" });
@@ -342,6 +346,7 @@ export function createApplyView(
       byId("apply").after(history.container);
       history.render();
     }
+    if (!rollbackView.container.isConnected) history.container.before(rollbackView.container);
     // A toggle redraws the plan; keep the keyboard on the checkbox that was used.
     if (focusedKey)
       byId("apply")

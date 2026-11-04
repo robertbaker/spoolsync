@@ -1,10 +1,11 @@
-import { expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
+import { EventEmitter } from "node:events";
 import path from "node:path";
 
 import { snapshotInventory, type InventorySnapshot } from "@spoolsync/core/workflow";
 
 import type { CliOutput } from "./runtime";
-import { runWatch, type WatchDependencies } from "./watch";
+import { runWatch, stopOnQuit, type QuitInput, type WatchDependencies } from "./watch";
 
 function harness() {
   const handlers = new Map<string, (filename: string | null) => void>();
@@ -189,4 +190,52 @@ test("each run receives the snapshot of the last successful run", async () => {
   await done;
   // The failed second run does not erase the first run's snapshot.
   expect(seen).toEqual([undefined, snapshots[0], snapshots[0]]);
+});
+
+describe("stopOnQuit", () => {
+  const input = () => {
+    const emitter = new EventEmitter();
+    const source = {
+      on: (event: string, listener: (...values: any[]) => void) => emitter.on(event, listener),
+      off: (event: string, listener: (...values: any[]) => void) => emitter.off(event, listener),
+      setEncoding: () => {},
+      pause: () => {},
+      emit: (event: string, ...values: unknown[]) => emitter.emit(event, ...values),
+      listenerCount: (event: string) => emitter.listenerCount(event),
+    };
+    return source as typeof source & QuitInput;
+  };
+
+  test("stops on a line reading q or quit, however it is split across chunks", () => {
+    const source = input();
+    const stop = mock(() => {});
+    stopOnQuit(source, stop);
+    source.emit("data", "hello\n");
+    source.emit("data", "qu");
+    expect(stop).not.toHaveBeenCalled();
+    source.emit("data", "it\r\n");
+    expect(stop).toHaveBeenCalledTimes(1);
+    source.emit("data", " Q \n");
+    expect(stop).toHaveBeenCalledTimes(2);
+  });
+
+  test("ignores other text, an unfinished line, and the input ending", () => {
+    const source = input();
+    const stop = mock(() => {});
+    stopOnQuit(source, stop);
+    source.emit("data", "quiet\nq");
+    source.emit("end");
+    source.emit("error", new Error("closed"));
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  test("detaching removes the listeners", () => {
+    const source = input();
+    const stop = mock(() => {});
+    const detach = stopOnQuit(source, stop);
+    detach();
+    source.emit("data", "q\n");
+    expect(stop).not.toHaveBeenCalled();
+    expect(source.listenerCount("data")).toBe(0);
+  });
 });

@@ -30,6 +30,10 @@ export function validateOptions(options: Options): void {
     cleanupReport,
     reference,
     referenceReport,
+    failOnMismatch,
+    restoreRollback,
+    noRollback,
+    rollbackDir,
     saveConfig,
     lowThreshold,
     watch,
@@ -93,6 +97,40 @@ export function validateOptions(options: Options): void {
   if ((reference || referenceReport) && countsLow)
     throw new Error(
       `--${reference ? "reference" : "reference-report"} cannot be combined with --summary or --reorder, which only report what is loaded.`,
+    );
+  if (failOnMismatch && !reference && !referenceReport)
+    throw new Error(
+      "--fail-on-mismatch needs a reference file to check against. Add --reference <file> or --reference-report <file>.",
+    );
+  if (restoreRollback) {
+    const others = [
+      inputs.size && "an inventory file",
+      empty.length && "--empty",
+      summary && "--summary",
+      reorder && "--reorder",
+      cleanup && "--cleanup",
+      cleanupReport && "--cleanup-report",
+      reference && "--reference",
+      referenceReport && "--reference-report",
+      outputDir && "--output-dir",
+      exportCsv && "--export-csv",
+      watch && "--watch",
+      saveConfig && "--save-config",
+      ...changeOptions.filter((option) => option !== "--apply"),
+    ].filter(Boolean);
+    if (others.length)
+      throw new Error(
+        `--restore-rollback puts back one service's values, so it cannot be combined with ${others.join(", ")}.`,
+      );
+    if (!spoolmanUrl && !filamentdbUrl && !filadexUrl)
+      throw new Error(
+        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, or --filadex-url.",
+      );
+    return;
+  }
+  if ((noRollback || rollbackDir) && !apply && !saveConfig)
+    throw new Error(
+      `${noRollback ? "--no-rollback" : "--rollback-dir"} applies to --apply, the only time SpoolSync writes to a service.`,
     );
   // `--cleanup-report` alone only lists proposals; with `--cleanup` it adds them to the comparison.
   const cleanupOnly = cleanupReport && !cleanup;

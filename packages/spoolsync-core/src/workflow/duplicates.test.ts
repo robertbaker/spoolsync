@@ -78,3 +78,24 @@ test("chains of matches form one group, and services keep their fixed order", ()
   expect(groups.map((group) => group.id)).toEqual(["spoolman:8", "spoolstock:1"]);
   expect(groups[1]!.spools).toHaveLength(3);
 });
+
+test("a pair someone said is different is not reported, and cannot bridge two spools through a third", () => {
+  const spools = [
+    makeSpool("spoolman", "1", dup),
+    makeSpool("spoolman", "2", dup),
+    makeSpool("spoolman", "3", dup),
+  ];
+  const all = findDuplicateSpools([result("spoolman", spools)]);
+  expect(all[0]!.spools.map((spool) => spool.sourceId)).toEqual(["1", "2", "3"]);
+
+  const isDifferent = (a: CommonSpool, b: CommonSpool) =>
+    [a.sourceId, b.sourceId].sort().join("|") === "1|2" ||
+    [a.sourceId, b.sourceId].sort().join("|") === "1|3";
+  const some = findDuplicateSpools([result("spoolman", spools)], { isDifferent });
+  // Only 2 and 3 are still linked to each other; spool 1 is no longer part of any group.
+  expect(some).toHaveLength(1);
+  expect(some[0]!.spools.map((spool) => spool.sourceId)).toEqual(["2", "3"]);
+
+  const none = findDuplicateSpools([result("spoolman", spools)], { isDifferent: () => true });
+  expect(none).toEqual([]);
+});

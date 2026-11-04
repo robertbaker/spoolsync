@@ -70,6 +70,10 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--cleanup-report",
   "--reference",
   "--reference-report",
+  "--fail-on-mismatch",
+  "--rollback-dir",
+  "--no-rollback",
+  "--restore-rollback",
   "--watch",
   "--quiet",
   "--apply",
@@ -89,6 +93,8 @@ const SINGLETON_FLAGS: string[] = [
   "--cleanup-report",
   "--reference",
   "--reference-report",
+  "--rollback-dir",
+  "--restore-rollback",
   "--output-dir",
   "--low-threshold",
   "--export-csv",
@@ -123,6 +129,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let cleanup = false;
   let cleanupReport = false;
   let cleanupRules: CleanupRuleId[] | undefined;
+  let failOnMismatch = false;
+  let rollbackDir: string | undefined;
+  let noRollback = false;
+  let restoreRollback: string | undefined;
   let reference: string | undefined;
   let referenceReport: string | undefined;
   let saveConfig = false;
@@ -253,6 +263,14 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       reference = value(arg);
     } else if (arg === "--reference-report") {
       referenceReport = value(arg);
+    } else if (arg === "--rollback-dir") {
+      rollbackDir = value(arg);
+    } else if (arg === "--no-rollback") {
+      noRollback = true;
+    } else if (arg === "--restore-rollback") {
+      restoreRollback = value(arg);
+    } else if (arg === "--fail-on-mismatch") {
+      failOnMismatch = true;
     } else if (arg === "--save-config") {
       saveConfig = true;
     } else if (arg === "--low-threshold") {
@@ -300,6 +318,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(cleanupRules ? { cleanupRules } : {}),
     ...(reference ? { reference } : {}),
     ...(referenceReport ? { referenceReport } : {}),
+    failOnMismatch,
+    noRollback,
+    ...(rollbackDir ? { rollbackDir } : {}),
+    ...(restoreRollback ? { restoreRollback } : {}),
     saveConfig,
     ...(lowThreshold !== undefined ? { lowThreshold } : {}),
     watch,

@@ -12,6 +12,10 @@ const SHORTCUTS: Array<[string, string]> = [
     "While reviewing possible matches on Sync: same, different, skip for now, undo",
   ],
   ["[ · ]", "Step to the previous or next saved view of the spool table on the Load page"],
+  [
+    "A · R",
+    "On the Load page, accept or reject the reference suggestions of the spool card that has focus",
+  ],
   ["Esc", "Close a dialog or the tour"],
 ];
 

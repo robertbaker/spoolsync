@@ -81,8 +81,15 @@ function commonReasons(lists: string[][]): string[] {
  * Likely duplicate spools within each loaded service. Report-only: nothing is merged or changed,
  * and spools in different services are never compared (the Sync page handles those). Output order
  * is deterministic: services in their fixed order, groups by their first spool, spools by id.
+ *
+ * `isDifferent` lets a person's answer stand: a pair they said are different spools is never
+ * linked, so it stops being reported (and cannot pull the two into one group through a third
+ * spool).
  */
-export function findDuplicateSpools(results: readonly LoadResult[]): DuplicateGroup[] {
+export function findDuplicateSpools(
+  results: readonly LoadResult[],
+  options: { isDifferent?: (a: CommonSpool, b: CommonSpool) => boolean } = {},
+): DuplicateGroup[] {
   const groups: DuplicateGroup[] = [];
   for (const source of SOURCE_IDS) {
     const spools = results
@@ -107,6 +114,7 @@ export function findDuplicateSpools(results: readonly LoadResult[]): DuplicateGr
       for (let i = 0; i < bucket.length; i++)
         for (let j = i + 1; j < bucket.length; j++) {
           const [a, b] = [bucket[i]!, bucket[j]!];
+          if (options.isDifferent?.(a, b)) continue;
           const reasons = pairReasons(a, b);
           if (!reasons) continue;
           linked.add(a).add(b);

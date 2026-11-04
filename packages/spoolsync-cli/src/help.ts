@@ -57,10 +57,16 @@ Output:
                           before comparing; changes that need a person to look are listed, not applied.
                           <rules> is a comma list of: ${CLEANUP_RULE_IDS.join(", ")} (or all, -rule to leave one out)
   --cleanup-report[=<rules>] List every proposed cleanup and warning (alone it plans nothing and works with one inventory)
-  --reference <file>      Match spools to a reference file (JSON or CSV of filaments) and add the missing values it can fill,
+  --reference <file>      Match spools to a reference file (JSON or CSV of filaments, or a snapshot downloaded from the site) and add the missing values it can fill,
                           from confident, unambiguous matches only, to the plan; overwrites and unclear matches are listed, not applied
   --reference-report <file> List every reference match, difference, ambiguous choice and color check (alone it plans nothing and works with one inventory)
+  --fail-on-mismatch      With --reference or --reference-report, exit with code 1 when a spool's value or color differs from the reference
+                          (for a scheduled check; fills for empty fields do not count)
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
+  --rollback-dir <dir>    Where --apply saves the rollback file it makes before writing (default: a rollbacks folder beside the settings file)
+  --no-rollback           With --apply, write without saving a rollback file first
+  --restore-rollback <file> Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, or --filadex-url;
+                          fields changed since are left alone, and nothing is written without --apply
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, or Filadex inventories
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)
   --json                  Same as --format json

@@ -1,6 +1,6 @@
 import { normalizeBarcode, normalizeHex } from "../cleanup/numbers";
 import { contentId } from "./normalize";
-import type { ReferenceFilament } from "./types";
+import type { ReferenceBuyLink, ReferenceFilament } from "./types";
 
 export const DEFAULT_TTL_HOURS = 24;
 export const MAX_TTL_HOURS = 24 * 30;
@@ -85,6 +85,27 @@ function httpsUrl(value: unknown): string | null {
   }
 }
 
+/** Shop links, re-validated: `https:` only, short text, a few per record. */
+export function sanitizeBuyLinks(raw: unknown): ReferenceBuyLink[] {
+  if (!Array.isArray(raw)) return [];
+  const links: ReferenceBuyLink[] = [];
+  for (const item of raw) {
+    if (!isObject(item)) continue;
+    const store = str(item["store"], 80);
+    const url = httpsUrl(item["url"]);
+    if (!store || !url) continue;
+    const shipsTo = Array.isArray(item["shipsTo"])
+      ? item["shipsTo"]
+          .filter((code): code is string => typeof code === "string" && /^[A-Za-z]{2}$/.test(code))
+          .map((code) => code.toUpperCase())
+          .slice(0, 250)
+      : [];
+    links.push({ store, url, shipsTo });
+    if (links.length >= 5) break;
+  }
+  return links;
+}
+
 /** Re-validates a stored record; anything that does not fit is dropped rather than trusted. */
 export function sanitizeFilament(raw: unknown): ReferenceFilament | null {
   if (!isObject(raw)) return null;
@@ -124,6 +145,11 @@ export function sanitizeFilament(raw: unknown): ReferenceFilament | null {
     price: num(raw["price"]),
     barcode,
     url: httpsUrl(raw["url"]),
+    sourceUrl: httpsUrl(raw["sourceUrl"]),
+    imageUrl: httpsUrl(raw["imageUrl"]),
+    dryingTemp: num(raw["dryingTemp"]),
+    dryingHours: num(raw["dryingHours"]),
+    buyLinks: sanitizeBuyLinks(raw["buyLinks"]),
     attribution: str(raw["attribution"], 500) ?? "",
     license: str(raw["license"], 500),
   };

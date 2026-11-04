@@ -71,6 +71,73 @@ for (const colorScheme of ["light", "dark"] as const) {
       expect(await violations(page)).toEqual([]);
     });
 
+    test("reference data panel has no detectable violations with matches to review", async ({
+      page,
+    }) => {
+      const columns = [
+        "id",
+        "vendor",
+        "name",
+        "material",
+        "colorName",
+        "colorHexes",
+        "diameter",
+        "density",
+        "nozzleTempMin",
+        "nozzleTempMax",
+        "bedTempMin",
+        "bedTempMax",
+        "initialWeight",
+        "emptySpoolWeight",
+        "price",
+        "barcode",
+        "url",
+      ];
+      const row = (n: number) => [
+        `r${n}`,
+        "Prusa",
+        "PLA",
+        "PLA",
+        `Color ${n}`,
+        [`00${n}0${n}0`],
+        1.75,
+        1.24,
+        190,
+        220,
+        0,
+        60,
+        1000,
+        200,
+        null,
+        null,
+        null,
+      ];
+      await page.route("**/reference/openfilamentdatabase.json", (route) =>
+        route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            version: 1,
+            providerId: "openfilamentdatabase",
+            generatedAt: Date.now() - 60_000,
+            sourceToken: "t",
+            source: "https://api.openfilamentdatabase.org/json/all.json",
+            attribution: "Open Filament Database (openfilamentdatabase.org)",
+            license: "MIT",
+            skipped: 0,
+            columns,
+            rows: [1, 2, 3].map(row),
+          }),
+        }),
+      );
+      await loadTwoServices(page);
+      await page.locator("#reference-details > summary").click();
+      await page.locator("#reference-provider").selectOption("openfilamentdatabase");
+      await page.locator('[data-key="fetch-openfilamentdatabase"]').click();
+      await expect(page.locator("#reference-source-message")).toContainText("built into SpoolSync");
+      await expect(page.locator("#reference-details")).toContainText("Color 1");
+      expect(await violations(page)).toEqual([]);
+    });
+
     test("load page chart has no detectable violations in either view", async ({ page }) => {
       await page.goto("/load");
       await page.getByRole("button", { name: "Try it with sample data" }).click();

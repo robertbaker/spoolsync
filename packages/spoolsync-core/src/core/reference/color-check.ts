@@ -1,5 +1,5 @@
-import { colorFamily, deltaE2000, type ColorFamily } from "../color";
 import { normalizeHex } from "../cleanup/numbers";
+import { colorFamily, deltaE2000, type ColorFamily } from "../color";
 import type { ColorCheck, ColorVerdict, NameHexCheck } from "./types";
 
 /** CIEDE2000 at or under this is a match: the difference is at most just noticeable. */
@@ -163,10 +163,10 @@ export function familiesInName(name: string): ColorFamily[] {
 }
 
 /**
- * Whether a color name and a hex describe the same thing, judged by hue family. It is a plausibility
- * check, not a measurement: it says "this name does not fit that hex", never which one is right.
- * Names that carry no color word ("Galaxy", "Natural") are `unknown`, as are names with several
- * color words when any of them fits.
+ * Whether a color name and a hex describe the same thing, judged by hue family. It is a
+ * plausibility check, not a measurement: it says "this name does not fit that hex", never which one
+ * is right. Names that carry no color word ("Galaxy", "Natural") are `unknown`, as are names with
+ * several color words when any of them fits.
  */
 export function nameHexPlausibility(
   name: string | null | undefined,
@@ -177,8 +177,7 @@ export function nameHexPlausibility(
   const hexFamily = colorFamily(clean);
   const families = name ? familiesInName(name) : [];
   const neutral = name ? wordsOf(name).some((word) => NEUTRAL_WORDS.has(word)) : false;
-  if (!families.length || neutral)
-    return { state: "unknown", nameFamilies: families, hexFamily };
+  if (!families.length || neutral) return { state: "unknown", nameFamilies: families, hexFamily };
   const fits = families.some(
     (family) => family === hexFamily || NEIGHBORS[family].includes(hexFamily),
   );

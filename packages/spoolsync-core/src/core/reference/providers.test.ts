@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import { ReferenceCatalog } from "./catalog";
 import { fetchReferenceCatalog, type ReferenceIO, type ReferenceResponse } from "./fetch";
 import { flattenOpenFilamentDatabase } from "./ofd";
 import { providerById } from "./providers";
@@ -8,7 +9,7 @@ import { buildFetchConfig } from "./settings";
 // Synthetic records in the shape the live services return (checked against both on 2026-11-04).
 const ofdDocument = {
   brands: [{ id: "b1", name: "Hatchbox", slug: "hatchbox" }],
-  materials: [{ id: "m1", material: "PLA", brand_id: "b1" }],
+  materials: [{ id: "m1", material: "PLA", slug: "PLA", brand_id: "b1" }],
   filaments: [
     {
       id: "f1",
@@ -21,7 +22,19 @@ const ofdDocument = {
       max_print_temperature: 220,
       min_bed_temperature: 0,
       max_bed_temperature: 60,
+      slug: "matte",
+      dry_temperature: 50,
+      dry_time: 6,
     },
+  ],
+  stores: [
+    { id: "st1", name: "Filament Shop", ships_to: ["GB", "DE"] },
+    { id: "st2", name: "", ships_to: ["US"] },
+  ],
+  purchase_links: [
+    { store_id: "st1", size_id: "s1", url: "https://shop.example.org/hatchbox-terracotta" },
+    { store_id: "st2", size_id: "s1", url: "https://other.example.org/x" },
+    { store_id: "st1", size_id: "s3", url: "http://insecure.example.org/y" },
   ],
   variants: [
     { id: "v1", name: "Terracotta", color_hex: "#C0623A", filament_id: "f1" },
@@ -66,6 +79,7 @@ const fcPage = {
       color_name: "Blizzard White",
       filament_type: { id: 170, name: "PCTG", hot_end_temp: 270, bed_temp: 75 },
       hex_color: "E9EDED",
+      card_img: "https://filamentcolors.xyz/media/thumb.jpg",
       mfr_purchase_link: "https://americanfilament.us/products/blizzard-white",
       amazon_purchase_link: null,
     },
@@ -126,7 +140,19 @@ describe("Open Filament Database", () => {
       emptySpoolWeight: 216,
       barcode: "191314034277",
       providerId: "openfilamentdatabase",
+      sourceUrl: "https://openfilamentdatabase.org/brands/hatchbox/PLA/matte",
+      dryingTemp: 50,
+      dryingHours: 6,
     });
+    expect(first!.buyLinks).toEqual([
+      {
+        store: "Filament Shop",
+        url: "https://shop.example.org/hatchbox-terracotta",
+        shipsTo: ["GB", "DE"],
+      },
+    ]);
+    // An insecure link is dropped, and a size with no usable link has none.
+    expect(multi!.buyLinks).toEqual([]);
     expect(multi).toMatchObject({
       colorHexes: ["F4AC23", "2E56F1"],
       initialWeight: 250,
@@ -150,9 +176,52 @@ describe("FilamentColors", () => {
       colorName: "Blizzard White",
       colorHex: "E9EDED",
       url: "https://americanfilament.us/products/blizzard-white",
+      sourceUrl: "https://filamentcolors.xyz/swatch/4835/",
+      imageUrl: "https://filamentcolors.xyz/media/thumb.jpg",
       nozzleTempMax: null,
       bedTempMax: null,
       initialWeight: null,
     });
+  });
+});
+
+describe("barcode lookup", () => {
+  const record = (id: string, barcode: string | null) => ({
+    id,
+    providerId: "openfilamentdatabase",
+    providerLabel: "Open Filament Database",
+    vendor: "Hatchbox",
+    name: null,
+    material: "PLA",
+    colorName: id,
+    colorHex: null,
+    colorHexes: [],
+    diameter: null,
+    density: null,
+    nozzleTempMin: null,
+    nozzleTempMax: null,
+    bedTempMin: null,
+    bedTempMax: null,
+    initialWeight: null,
+    emptySpoolWeight: null,
+    price: null,
+    barcode,
+    url: null,
+    attribution: "x",
+    license: null,
+  });
+
+  test("matches on digits only, ignoring leading zeros, and never on short input", () => {
+    const catalog = new ReferenceCatalog([
+      record("a", "00191314034277"),
+      record("b", "5060665813013"),
+      record("c", null),
+    ]);
+    expect(catalog.lookupBarcode("191314034277").map((r) => r.id)).toEqual(["a"]);
+    expect(catalog.lookupBarcode("0191314034277").map((r) => r.id)).toEqual(["a"]);
+    expect(catalog.lookupBarcode("5060-6658 13013").map((r) => r.id)).toEqual(["b"]);
+    expect(catalog.lookupBarcode("123")).toEqual([]);
+    expect(catalog.lookupBarcode("")).toEqual([]);
+    expect(catalog.lookupBarcode("999999999999")).toEqual([]);
   });
 });

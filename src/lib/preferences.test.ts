@@ -1,6 +1,11 @@
 import { beforeEach, expect, test } from "bun:test";
 
-import { clearPreferences, readPreferences, updatePreferences } from "./preferences";
+import {
+  clearPreferences,
+  readPreferences,
+  sanitizePreferences,
+  updatePreferences,
+} from "./preferences";
 
 beforeEach(() => localStorage.clear());
 
@@ -41,4 +46,12 @@ test("saving nothing removes the entry", () => {
   updatePreferences({ lowOnly: true });
   updatePreferences({ lowOnly: undefined });
   expect(localStorage.getItem("spoolsync:prefs")).toBeNull();
+});
+
+test("the rollback preference keeps only a real boolean", () => {
+  expect(sanitizePreferences({ rollbackBeforeApply: false })).toEqual({
+    rollbackBeforeApply: false,
+  });
+  expect(sanitizePreferences({ rollbackBeforeApply: true })).toEqual({ rollbackBeforeApply: true });
+  expect(sanitizePreferences({ rollbackBeforeApply: "no" })).toEqual({});
 });

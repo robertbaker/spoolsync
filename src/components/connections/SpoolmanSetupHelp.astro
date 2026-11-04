@@ -3,7 +3,7 @@
 import Alert from "~/components/starwind/controls/Alert/Alert.astro";
 ---
 
-<div class="grid gap-4">
+<div class="grid grid-cols-[minmax(0,1fr)] gap-4">
   <Alert variant="info" style="soft" title="Allow this site in Spoolman (CORS)">
     <p>
       Spoolman only responds to web origins it trusts. Add this line to Spoolman's environment (<code>docker-compose.yml</code>

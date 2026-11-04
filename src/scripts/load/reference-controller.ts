@@ -45,6 +45,9 @@ export interface ReferenceStore {
   saveAccepted(accepted: readonly AcceptedReference[]): void;
   loadChoices(): Map<string, string>;
   saveChoices(choices: ReadonlyMap<string, string>): void;
+  /** Spools ruled out ("none of these"), remembered across visits. */
+  loadRuledOut(): string[];
+  saveRuledOut(keys: readonly string[]): void;
   /** What is kept, without the records (small, so it can be read at once). */
   loadCache(): Record<string, ReferenceCacheMeta>;
   /** The kept records of one provider; `null` when none are kept or they cannot be read. */
@@ -199,6 +202,9 @@ export class ReferenceController {
     this.settings = store.loadSettings();
     this.stored = store.loadAccepted();
     this.choices = store.loadChoices();
+    // A ruled-out spool stays ruled out in later visits, unless this tab has chosen something else.
+    for (const key of store.loadRuledOut())
+      if (!this.choices.has(key)) this.choices.set(key, NO_REFERENCE);
   }
 
   get policy(): ReferencePolicy {
@@ -252,7 +258,7 @@ export class ReferenceController {
     }
     if (pruned) {
       this.analyze();
-      this.store.saveChoices(this.choices);
+      this.persistChoices();
     }
 
     const byId = new Map(this.analysis.proposals.map((proposal) => [proposal.id, proposal]));
@@ -386,7 +392,12 @@ export class ReferenceController {
    */
   async fetchProvider(
     providerId: ReferenceProviderId,
-    options: { force?: boolean; onProgress?: (progress: FetchProgress) => void } = {},
+    options: {
+      force?: boolean;
+      /** Ask the service whether anything changed even if the copy in hand is still fresh. */
+      check?: boolean;
+      onProgress?: (progress: FetchProgress) => void;
+    } = {},
   ): Promise<FetchOutcome> {
     const provider = providerById(providerId);
     const settings = this.settings.providers[providerId];
@@ -469,7 +480,10 @@ export class ReferenceController {
       const checkable = built.builtIn && provider.defaults?.freshness !== undefined;
       if (base) {
         const now = this.io.now();
-        if (isFresh({ fetchedAt: base.meta.fetchedAt, ttlMs: base.meta.ttlMs }, now))
+        if (
+          !options.check &&
+          isFresh({ fetchedAt: base.meta.fetchedAt, ttlMs: base.meta.ttlMs }, now)
+        )
           return use(null);
         if (checkable) {
           token = await probeFreshness(provider, this.io, signal);
@@ -653,7 +667,7 @@ export class ReferenceController {
     this.rejected = entry.rejected;
     this.choices = entry.choices;
     this.analyze();
-    this.store.saveChoices(this.choices);
+    this.persistChoices();
     this.persist();
     return entry.label;
   }
@@ -750,8 +764,16 @@ export class ReferenceController {
     return true;
   }
 
-  private afterChoiceChange(): void {
+  /** Saves the choices for this tab, and which spools were ruled out for later visits. */
+  private persistChoices(): void {
     this.store.saveChoices(this.choices);
+    this.store.saveRuledOut(
+      [...this.choices].filter(([, id]) => id === NO_REFERENCE).map(([key]) => key),
+    );
+  }
+
+  private afterChoiceChange(): void {
+    this.persistChoices();
     // What each accepted change was made from, read before the proposals are recomputed.
     const previous = new Map<string, AcceptedReference>(
       this.acceptedEntries().map((entry) => [`${entry.spoolKey}#${entry.field}`, entry]),

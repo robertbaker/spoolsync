@@ -14,10 +14,12 @@ import {
   loadReferenceCache,
   loadReferenceCatalog,
   loadReferenceChoices,
+  loadReferenceRuledOut,
   loadReferenceSettings,
   saveAcceptedReferences,
   saveReferenceCacheEntry,
   saveReferenceChoices,
+  saveReferenceRuledOut,
   saveReferenceSettings,
   setCatalogBodies,
   touchReferenceCache,
@@ -184,6 +186,33 @@ describe("reference cache", () => {
     );
     expect(loadReferenceCache()).toEqual({});
     expect(localStorage.getItem("spoolsync:reference-cache")).toBeNull();
+  });
+});
+
+describe("spools ruled out", () => {
+  test("round-trip across visits, drop junk, and store nothing when empty", () => {
+    expect(loadReferenceRuledOut()).toEqual([]);
+    saveReferenceRuledOut(["spoolman:1", "spoolio:7"]);
+    expect(loadReferenceRuledOut()).toEqual(["spoolman:1", "spoolio:7"]);
+    localStorage.setItem(
+      "spoolsync:reference-ruled-out",
+      JSON.stringify(["a", 5, "", "a", "x".repeat(301), null]),
+    );
+    expect(loadReferenceRuledOut()).toEqual(["a"]);
+    localStorage.setItem("spoolsync:reference-ruled-out", "{oops");
+    expect(loadReferenceRuledOut()).toEqual([]);
+    saveReferenceRuledOut([]);
+    expect(localStorage.getItem("spoolsync:reference-ruled-out")).toBeNull();
+  });
+
+  test("are listed and forgettable under their own group, and never exported", () => {
+    saveReferenceRuledOut(["spoolman:1"]);
+    expect(listSavedData().map((item) => item.group.id)).toContain("reference-ruled-out");
+    expect(Object.keys(JSON.parse(exportSettings()).entries)).not.toContain(
+      "spoolsync:reference-ruled-out",
+    );
+    expect(forgetGroup("reference-ruled-out")).toBe(1);
+    expect(loadReferenceRuledOut()).toEqual([]);
   });
 });
 

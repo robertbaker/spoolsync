@@ -16,10 +16,7 @@ function make() {
   const saveBulkEdits = mock((_edits: ReadonlyMap<string, BulkEdit>) => {});
   const state = new SyncSession(
     new Map([
-      [
-        "spoolman",
-        snapshot("spoolman", [makeSpool("spoolman", "1"), makeSpool("spoolman", "2")]),
-      ],
+      ["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1"), makeSpool("spoolman", "2")])],
       ["spoolio", snapshot("spoolio", [])],
     ]),
     { confirmed: [], rejected: [] },

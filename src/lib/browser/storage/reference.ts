@@ -20,6 +20,10 @@ const SETTINGS_KEY = "spoolsync:reference-settings";
 const CACHE_KEY = "spoolsync:reference-cache";
 const ACCEPTED_KEY = "spoolsync:reference-accepted";
 const CHOICES_KEY = "spoolsync:reference-choices";
+const RULED_OUT_KEY = "spoolsync:reference-ruled-out";
+
+/** Most spools whose "not any of these" answer is remembered. */
+const MAX_RULED_OUT = 20_000;
 
 /** Which provider and fields are in use, and what was entered for each service. A preference. */
 export function loadReferenceSettings(): ReferenceSettings {
@@ -139,6 +143,32 @@ export function loadReferenceChoices(): Map<string, string> {
   } catch {
     return new Map();
   }
+}
+
+/**
+ * Spools a person said no reference record fits ("none of these"), kept across visits so the same
+ * question is not asked again. Only the spool key is stored, never what the spool is called.
+ */
+export function loadReferenceRuledOut(): string[] {
+  try {
+    const raw: unknown = JSON.parse(read(local, RULED_OUT_KEY) ?? "[]");
+    return Array.isArray(raw)
+      ? [
+          ...new Set(
+            raw.filter(
+              (key): key is string =>
+                typeof key === "string" && key.length > 0 && key.length <= 300,
+            ),
+          ),
+        ].slice(0, MAX_RULED_OUT)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveReferenceRuledOut(keys: readonly string[]): void {
+  write(local, RULED_OUT_KEY, keys.length ? JSON.stringify(keys.slice(0, MAX_RULED_OUT)) : null);
 }
 
 export function saveReferenceChoices(choices: ReadonlyMap<string, string>): void {

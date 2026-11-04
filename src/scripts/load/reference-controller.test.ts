@@ -32,6 +32,7 @@ function memoryStore(accepted: AcceptedReference[] = []) {
     settings: { ...DEFAULT_REFERENCE_SETTINGS } as ReferenceSettings,
     accepted,
     choices: new Map<string, string>(),
+    ruledOut: [] as string[],
     cache: {} as Record<string, ReferenceCacheMeta>,
     bodies: {} as Record<string, ReferenceFilament[]>,
     meta() {
@@ -50,6 +51,10 @@ function memoryStore(accepted: AcceptedReference[] = []) {
     loadChoices: () => new Map(state.choices),
     saveChoices: (choices) => {
       state.choices = new Map(choices);
+    },
+    loadRuledOut: () => [...state.ruledOut],
+    saveRuledOut: (keys) => {
+      state.ruledOut = [...keys];
     },
     loadCache: () => state.meta(),
     loadCatalog: async (id) => state.bodies[id] ?? null,
@@ -699,6 +704,21 @@ describe("ReferenceController snapshot and update checks", () => {
     expect(failed.kind).toBe("error");
   });
 
+  test("asking for updates checks the source even while the copy is fresh", async () => {
+    const { state, controller } = world({ snapshot: snapshotOf(5, 99 * HOUR, "5:5:d") });
+    await controller.fetchProvider("filamentcolors");
+    expect(state.probes).toBe(0);
+
+    const same = await controller.fetchProvider("filamentcolors", { check: true });
+    expect(state).toMatchObject({ probes: 1, downloads: 0 });
+    expect(same.kind === "ok" && same.info.note).toContain("nothing has changed");
+
+    state.total = 8;
+    const changed = await controller.fetchProvider("filamentcolors", { check: true });
+    expect(state).toMatchObject({ probes: 2, downloads: 1 });
+    expect(changed.kind === "ok" && changed.info).toMatchObject({ origin: "fetch", usable: 8 });
+  });
+
   test("a download that fails after the check falls back to the older copy", async () => {
     const { state, controller } = world({ total: 7, snapshot: snapshotOf(5, 52 * HOUR, "5:5:d") });
     state.downloadsFail = true;
@@ -727,5 +747,50 @@ describe("ReferenceController snapshot and update checks", () => {
     await custom.controller.fetchProvider("filamentcolors");
     expect(custom.snapshotCalls.count).toBe(0);
     expect(custom.state.probes).toBe(0);
+  });
+});
+
+describe("ReferenceController ruled-out spools", () => {
+  const makeResults = () =>
+    new Map<SourceId, LoadResult>([
+      [
+        "spoolman",
+        result("spoolman", [
+          makeSpool("spoolman", "1", { density: null }),
+          makeSpool("spoolman", "3", { vendor: "Nobody", name: "Mystery" }),
+        ]),
+      ],
+    ]);
+
+  test('"none of these" is remembered for later visits, and taking it back forgets it', () => {
+    const memory = memoryStore();
+    const first = new ReferenceController(makeResults(), memory.store, idleIO);
+    first.loadFile("ref.json", referenceFile);
+    expect(first.chooseReference("spoolman:1", NO_REFERENCE)).toBe(true);
+    expect(memory.state.ruledOut).toEqual(["spoolman:1"]);
+
+    // A later visit starts with the answer already given, even though nothing was kept for the tab.
+    memory.state.choices = new Map();
+    const later = new ReferenceController(makeResults(), memory.store, idleIO);
+    later.loadFile("ref.json", referenceFile);
+    expect(later.analysis.items.find((item) => item.spoolKey === "spoolman:1")?.chosen).toBe(true);
+    expect(
+      later.analysis.items.find((item) => item.spoolKey === "spoolman:1")?.selected,
+    ).toBeNull();
+
+    expect(later.clearReference("spoolman:1")).toBe(true);
+    expect(memory.state.ruledOut).toEqual([]);
+  });
+
+  test("picking a record is for this tab only; only ruling out is kept", () => {
+    const memory = memoryStore();
+    const controller = new ReferenceController(makeResults(), memory.store, idleIO);
+    controller.loadFile("ref.json", referenceFile);
+    const candidate = controller.analysis.items.find((item) => item.spoolKey === "spoolman:1")
+      ?.match.candidates[0];
+    expect(candidate).toBeDefined();
+    controller.chooseReference("spoolman:1", candidate!.reference.id);
+    expect(memory.state.ruledOut).toEqual([]);
+    expect(memory.state.choices.get("spoolman:1")).toBe(candidate!.reference.id);
   });
 });

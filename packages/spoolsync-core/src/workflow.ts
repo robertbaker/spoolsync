@@ -24,6 +24,18 @@ export {
   type SnapshotSpool,
 } from "./workflow/changes";
 export { duplicateKeys, findDuplicateSpools, type DuplicateGroup } from "./workflow/duplicates";
+export {
+  ROLLBACK_FORMAT,
+  buildRollback,
+  parseRollback,
+  planRollback,
+  serializeRollback,
+  type RollbackCreation,
+  type RollbackDocument,
+  type RollbackPlan,
+  type RollbackSkip,
+  type RollbackUpdate,
+} from "./workflow/rollback";
 export { applyCleanupToResults, duplicatesAfterCleanup } from "./workflow/cleanup";
 export {
   checkInventoryHealth,

@@ -143,9 +143,7 @@ describe("CleanupController", () => {
     controller.accept(["spoolman:1#vendor", "spoolman:1#name"]);
     results.set(
       "spoolman",
-      result("spoolman", [
-        makeSpool("spoolman", "1", { vendor: "ESUN 3D", name: "red" }),
-      ]),
+      result("spoolman", [makeSpool("spoolman", "1", { vendor: "ESUN 3D", name: "red" })]),
     );
     controller.refresh();
     expect(controller.dropped).toBe(1);

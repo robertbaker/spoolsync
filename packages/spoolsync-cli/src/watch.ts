@@ -43,6 +43,43 @@ export interface WatchRequest {
 }
 
 /**
+ * Stops watching when a line reading `q` or `quit` arrives on `input`. Windows cannot deliver a
+ * catchable SIGINT to another process (only Ctrl+C in a console), so this is the route for anything
+ * that drives the CLI from outside, and a plain way to stop for people who do not reach for Ctrl+C.
+ * Other text, and the input ending, are ignored, so `< /dev/null` never stops a watch. Returns a
+ * function that detaches the listener so the process can exit.
+ */
+/** The part of a readable stream `stopOnQuit` uses (`process.stdin` fits). */
+export interface QuitInput {
+  on(event: "data", listener: (chunk: string | Uint8Array) => void): unknown;
+  on(event: "error", listener: () => void): unknown;
+  off(event: "data", listener: (chunk: string | Uint8Array) => void): unknown;
+  off(event: "error", listener: () => void): unknown;
+  setEncoding(encoding: "utf8"): unknown;
+  pause(): unknown;
+}
+
+export function stopOnQuit(input: QuitInput, onStop: () => void): () => void {
+  let pending = "";
+  const onData = (chunk: string | Uint8Array) => {
+    pending += typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk);
+    const lines = pending.split(/\r?\n/);
+    pending = lines.pop() ?? "";
+    if (lines.some((line) => /^\s*(q|quit)\s*$/i.test(line))) onStop();
+  };
+  input.setEncoding("utf8");
+  input.on("data", onData);
+  // An input that fails or ends must not take the watch down with it.
+  const ignore = () => {};
+  input.on("error", ignore);
+  return () => {
+    input.off("data", onData);
+    input.off("error", ignore);
+    input.pause();
+  };
+}
+
+/**
  * Runs once, then again whenever one of the files changes, until the signal aborts. Changes that
  * arrive while a run is in progress cause exactly one more run afterwards. Each run after the first
  * is told the previous snapshot so it can print what changed. Status lines go to stderr so
@@ -109,7 +146,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
 
   await execute();
   output.error(
-    `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C to stop.`,
+    `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C (or type q and press Enter) to stop.`,
   );
 
   const watchers = [...targets].map(([directory, names]) =>

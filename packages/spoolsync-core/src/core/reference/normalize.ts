@@ -1,3 +1,4 @@
+import { formatMaterial, nameMentions, parseMaterial } from "../cleanup/materials";
 import {
   normalizeBarcode,
   normalizeHex,
@@ -7,8 +8,8 @@ import {
   parseTemperature,
   parseWeight,
 } from "../cleanup/numbers";
-import { formatMaterial, nameMentions, parseMaterial } from "../cleanup/materials";
 import { cleanInline } from "../cleanup/text";
+import { sanitizeBuyLinks } from "./cache";
 import { fieldKey, readPath, type ReferenceKey, type ReferenceMapping } from "./mapping";
 import type { ReferenceFilament } from "./types";
 
@@ -31,6 +32,8 @@ const DIAMETER_RANGE: readonly [number, number] = [0.5, 10];
 const DENSITY_RANGE: readonly [number, number] = [0.5, 5];
 const WEIGHT_RANGE: readonly [number, number] = [1, 20_000];
 const EMPTY_SPOOL_RANGE: readonly [number, number] = [1, 3_000];
+const DRYING_TEMP_RANGE: readonly [number, number] = [30, 120];
+const DRYING_HOURS_RANGE: readonly [number, number] = [0.5, 48];
 const MAX_PRICE = 100_000;
 const MAX_TEXT = 200;
 
@@ -44,7 +47,11 @@ function scalar(value: unknown): string | number | null {
 }
 
 /** The first non-empty scalar among a key's paths. */
-function pick(record: unknown, mapping: ReferenceMapping, key: ReferenceKey): string | number | null {
+function pick(
+  record: unknown,
+  mapping: ReferenceMapping,
+  key: ReferenceKey,
+): string | number | null {
   for (const path of mapping.fields[key] ?? []) {
     const value = scalar(readPath(record, path));
     if (value !== null) return value;
@@ -72,13 +79,17 @@ export function hexFromCell(value: string | number | null, strict: boolean): str
 
 /** `rgb(255, 0, 0)` and `255,0,0` as hex. */
 function hexFromRgb(value: string): string | null {
-  const match = /^(?:rgba?\()?\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*(?:[,/ ]\s*[\d.]+%?\s*)?\)?$/i.exec(
-    value.trim(),
-  );
+  const match =
+    /^(?:rgba?\()?\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*(?:[,/ ]\s*[\d.]+%?\s*)?\)?$/i.exec(
+      value.trim(),
+    );
   if (!match) return null;
   const channels = [match[1], match[2], match[3]].map(Number);
   if (channels.some((channel) => channel > 255)) return null;
-  return channels.map((channel) => channel.toString(16).padStart(2, "0")).join("").toUpperCase();
+  return channels
+    .map((channel) => channel.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
 }
 
 function colorFromCell(value: string | number | null, strict: boolean): string | null {
@@ -184,9 +195,9 @@ function httpsUrl(value: string | null): string | null {
 }
 
 /**
- * Turns one provider or file record into a `ReferenceFilament`. Values that cannot be read are
- * left empty with a warning, never guessed; a record with neither a brand nor a barcode, or with
- * nothing to describe the filament, is skipped.
+ * Turns one provider or file record into a `ReferenceFilament`. Values that cannot be read are left
+ * empty with a warning, never guessed; a record with neither a brand nor a barcode, or with nothing
+ * to describe the filament, is skipped.
  */
 export function normalizeReferenceRecord(
   record: unknown,
@@ -246,17 +257,23 @@ export function normalizeReferenceRecord(
     if (parsed) {
       material = formatMaterial(parsed, false);
       // A finish ("Silk") belongs to the product, not the polymer; keep it where matching sees it.
-      const missing = parsed.variants.filter((variant) => !productName || !nameMentions(productName, variant));
+      const missing = parsed.variants.filter(
+        (variant) => !productName || !nameMentions(productName, variant),
+      );
       if (missing.length) productName = [...missing, productName].filter(Boolean).join(" ");
     } else material = rawMaterial;
   }
 
   const barcodeRaw = text(pick(record, mapping, "barcode"));
   const barcode = barcodeRaw ? normalizeBarcode(barcodeRaw) : null;
-  if (barcodeRaw && !barcode) warnings.push(`Barcode ${JSON.stringify(barcodeRaw)} was not usable.`);
+  if (barcodeRaw && !barcode)
+    warnings.push(`Barcode ${JSON.stringify(barcodeRaw)} was not usable.`);
 
   if (!vendor && !barcode)
-    return { filament: null, warnings: [...warnings, "No brand or barcode, so it cannot be matched."] };
+    return {
+      filament: null,
+      warnings: [...warnings, "No brand or barcode, so it cannot be matched."],
+    };
   if (!productName && !colorName && !colorHex && !material)
     return {
       filament: null,
@@ -279,13 +296,37 @@ export function normalizeReferenceRecord(
     else warnings.push(`Density ${densityRaw} was not usable.`);
   }
 
-  let nozzleTempMin = temperature(pick(record, mapping, "nozzleTempMin"), NOZZLE_RANGE, "Nozzle temperature", warnings);
-  let nozzleTempMax = temperature(pick(record, mapping, "nozzleTempMax"), NOZZLE_RANGE, "Nozzle temperature", warnings);
-  let bedTempMin = temperature(pick(record, mapping, "bedTempMin"), BED_RANGE, "Bed temperature", warnings);
-  let bedTempMax = temperature(pick(record, mapping, "bedTempMax"), BED_RANGE, "Bed temperature", warnings);
+  let nozzleTempMin = temperature(
+    pick(record, mapping, "nozzleTempMin"),
+    NOZZLE_RANGE,
+    "Nozzle temperature",
+    warnings,
+  );
+  let nozzleTempMax = temperature(
+    pick(record, mapping, "nozzleTempMax"),
+    NOZZLE_RANGE,
+    "Nozzle temperature",
+    warnings,
+  );
+  let bedTempMin = temperature(
+    pick(record, mapping, "bedTempMin"),
+    BED_RANGE,
+    "Bed temperature",
+    warnings,
+  );
+  let bedTempMax = temperature(
+    pick(record, mapping, "bedTempMax"),
+    BED_RANGE,
+    "Bed temperature",
+    warnings,
+  );
   // A written range fills only the ends the record does not state itself.
   const nozzleRange = parseTemperatureRange(pick(record, mapping, "nozzleTempRange"));
-  if (nozzleRange && inRange(nozzleRange.min, NOZZLE_RANGE) && inRange(nozzleRange.max, NOZZLE_RANGE)) {
+  if (
+    nozzleRange &&
+    inRange(nozzleRange.min, NOZZLE_RANGE) &&
+    inRange(nozzleRange.max, NOZZLE_RANGE)
+  ) {
     nozzleTempMin ??= nozzleRange.min;
     nozzleTempMax ??= nozzleRange.max;
   }
@@ -303,8 +344,20 @@ export function normalizeReferenceRecord(
     bedTempMin = bedTempMax = null;
   }
 
-  const initialWeight = weight(pick(record, mapping, "initialWeight"), mapping, WEIGHT_RANGE, "Net weight", warnings);
-  const emptySpoolWeight = weight(pick(record, mapping, "emptySpoolWeight"), mapping, EMPTY_SPOOL_RANGE, "Spool weight", warnings);
+  const initialWeight = weight(
+    pick(record, mapping, "initialWeight"),
+    mapping,
+    WEIGHT_RANGE,
+    "Net weight",
+    warnings,
+  );
+  const emptySpoolWeight = weight(
+    pick(record, mapping, "emptySpoolWeight"),
+    mapping,
+    EMPTY_SPOOL_RANGE,
+    "Spool weight",
+    warnings,
+  );
 
   const priceRaw = pick(record, mapping, "price");
   let price: number | null = null;
@@ -314,6 +367,17 @@ export function normalizeReferenceRecord(
       price = Math.round(parsed * 100) / 100;
     else warnings.push(`Price ${JSON.stringify(priceRaw)} was not usable.`);
   }
+
+  const dryingTempRaw = numberCell(pick(record, mapping, "dryingTemp"));
+  const dryingTemp =
+    dryingTempRaw !== null && inRange(dryingTempRaw, DRYING_TEMP_RANGE)
+      ? Math.round(dryingTempRaw)
+      : null;
+  const dryingHoursRaw = numberCell(pick(record, mapping, "dryingHours"));
+  const dryingHours =
+    dryingHoursRaw !== null && inRange(dryingHoursRaw, DRYING_HOURS_RANGE)
+      ? Math.round(dryingHoursRaw * 10) / 10
+      : null;
 
   const idRaw = text(pick(record, mapping, "id"));
   const id =
@@ -342,6 +406,13 @@ export function normalizeReferenceRecord(
       price,
       barcode,
       url: httpsUrl(text(pick(record, mapping, "url"))),
+      sourceUrl: httpsUrl(text(pick(record, mapping, "sourceUrl"))),
+      imageUrl: httpsUrl(text(pick(record, mapping, "imageUrl"))),
+      dryingTemp,
+      dryingHours,
+      buyLinks: sanitizeBuyLinks(
+        (mapping.fields.buyLinks ?? []).map((path) => readPath(record, path)).find(Array.isArray),
+      ),
       attribution: context.attribution,
       license: context.license,
     },
@@ -372,14 +443,18 @@ export function normalizeReferenceRecords(
   let skipped = 0;
   records.forEach((record, index) => {
     const result = normalizeReferenceRecord(record, mapping, context);
-    warnings.push(...result.warnings.map((warning) => `Record ${firstPosition + index}: ${warning}`));
+    warnings.push(
+      ...result.warnings.map((warning) => `Record ${firstPosition + index}: ${warning}`),
+    );
     if (!result.filament) {
       skipped += 1;
       return;
     }
     const count = (seen.get(result.filament.id) ?? 0) + 1;
     seen.set(result.filament.id, count);
-    filaments.push(count === 1 ? result.filament : { ...result.filament, id: `${result.filament.id}#${count}` });
+    filaments.push(
+      count === 1 ? result.filament : { ...result.filament, id: `${result.filament.id}#${count}` },
+    );
   });
   return { filaments, warnings, skipped };
 }

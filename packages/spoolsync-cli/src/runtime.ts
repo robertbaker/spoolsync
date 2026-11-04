@@ -1,9 +1,15 @@
 import { readFile } from "node:fs/promises";
 
-import { createEmptyInventory, exportInventory, loadInventoryFile } from "@spoolsync/core/workflow";
+import {
+  createEmptyInventory,
+  exportInventory,
+  loadInventoryFile,
+  type RollbackDocument,
+} from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
 import { stageOutputFiles, validateOutputPaths } from "./output";
+import { writeRollbackFile } from "./rollback";
 import { remoteServices, type RemoteService } from "./services";
 
 export interface CliOutput {
@@ -22,6 +28,9 @@ export interface CliDependencies {
   validateOutputPaths: typeof validateOutputPaths;
   stageOutputFiles: typeof stageOutputFiles;
   remoteServices(options: Options): Iterable<RemoteService>;
+  /** Saves a rollback file before a write and returns where it went. */
+  saveRollback(document: RollbackDocument, options: Options): Promise<string>;
+  now(): Date;
 }
 
 /** Default composition; workflows can inject file, adapter, staging, and output implementations. */
@@ -34,4 +43,6 @@ export const defaultDependencies: CliDependencies = {
   validateOutputPaths,
   stageOutputFiles,
   remoteServices: (options) => remoteServices(options, process.env),
+  saveRollback: writeRollbackFile,
+  now: () => new Date(),
 };

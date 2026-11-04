@@ -3,7 +3,11 @@
   "$id": "https://spoolsync.com/schema/cli-report-v1.json",
   "title": "SpoolSync CLI report",
   "description": "Printed to stdout by `spoolsync --format json` (alias `--json`). schemaVersion changes only when a field is removed, renamed, or changes meaning; new optional fields can appear without a new version, so readers should ignore fields they do not know. Warnings and progress go to stderr. Failures print { \"error\": { \"message\": \"...\" } } instead.",
-  "oneOf": [{ "$ref": "#/$defs/compareReport" }, { "$ref": "#/$defs/inventoryReport" }],
+  "oneOf": [
+    { "$ref": "#/$defs/compareReport" },
+    { "$ref": "#/$defs/inventoryReport" },
+    { "$ref": "#/$defs/rollbackReport" }
+  ],
   "$defs": {
     "sourceId": { "type": "string" },
     "pendingMatch": {
@@ -27,7 +31,16 @@
     },
     "cleanupChange": {
       "type": "object",
-      "required": ["spool", "field", "before", "after", "rule", "confidence", "reason", "applicable"],
+      "required": [
+        "spool",
+        "field",
+        "before",
+        "after",
+        "rule",
+        "confidence",
+        "reason",
+        "applicable"
+      ],
       "properties": {
         "spool": { "type": "string", "description": "The record key, source:id." },
         "field": { "type": "string" },
@@ -91,15 +104,31 @@
     },
     "referenceChange": {
       "type": "object",
-      "required": ["spool", "field", "before", "after", "kind", "confidence", "reference", "reason", "applicable"],
+      "required": [
+        "spool",
+        "field",
+        "before",
+        "after",
+        "kind",
+        "confidence",
+        "reference",
+        "reason",
+        "applicable"
+      ],
       "properties": {
         "spool": { "type": "string", "description": "The record key, source:id." },
         "field": { "type": "string" },
         "before": {},
         "after": {},
-        "kind": { "enum": ["fill", "overwrite"], "description": "fill supplies a missing value; overwrite replaces an existing one and is never added to the plan." },
+        "kind": {
+          "enum": ["fill", "overwrite"],
+          "description": "fill supplies a missing value; overwrite replaces an existing one and is never added to the plan."
+        },
         "confidence": { "enum": ["safe", "review"] },
-        "reference": { "type": "string", "description": "The id of the reference record the value came from." },
+        "reference": {
+          "type": "string",
+          "description": "The id of the reference record the value came from."
+        },
         "reason": { "type": "string" },
         "applicable": {
           "type": "boolean",
@@ -110,11 +139,23 @@
     "reference": {
       "type": "object",
       "description": "Reference data (--reference, --reference-report). Only safe fills from confident, unambiguous matches that a service can take are added to the plan, and only with --reference. The CLI reads the file given and contacts no reference service.",
-      "required": ["provider", "file", "attribution", "license", "catalog", "counts", "applied", "warnings"],
+      "required": [
+        "provider",
+        "file",
+        "attribution",
+        "license",
+        "catalog",
+        "counts",
+        "applied",
+        "warnings"
+      ],
       "properties": {
         "provider": { "type": "string" },
         "file": { "type": "string" },
-        "attribution": { "type": "string", "description": "The credit line carried by the reference file." },
+        "attribution": {
+          "type": "string",
+          "description": "The credit line carried by the reference file."
+        },
         "license": { "type": ["string", "null"] },
         "catalog": {
           "type": "object",
@@ -127,7 +168,20 @@
         },
         "counts": {
           "type": "object",
-          "required": ["spools", "matched", "ambiguous", "suggested", "unmatched", "proposals", "safe", "review", "applicable", "colorMismatches", "colorClose"],
+          "required": [
+            "spools",
+            "matched",
+            "ambiguous",
+            "suggested",
+            "unmatched",
+            "proposals",
+            "safe",
+            "review",
+            "applicable",
+            "colorMismatches",
+            "colorClose",
+            "mismatches"
+          ],
           "properties": {
             "spools": { "type": "integer" },
             "matched": { "type": "integer" },
@@ -139,7 +193,11 @@
             "review": { "type": "integer" },
             "applicable": { "type": "integer" },
             "colorMismatches": { "type": "integer" },
-            "colorClose": { "type": "integer" }
+            "colorClose": { "type": "integer" },
+            "mismatches": {
+              "type": "integer",
+              "description": "Differing values plus color mismatches; the count --fail-on-mismatch tests."
+            }
           }
         },
         "applied": {
@@ -288,6 +346,11 @@
         "plannedChanges": { "type": "object", "additionalProperties": { "type": "array" } },
         "applied": { "type": "array" },
         "written": { "type": "array", "items": { "type": "string" } },
+        "rollbackFiles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "With --apply, the rollback files saved before writing to each service (none with --no-rollback)."
+        },
         "csvExport": { "type": "string" },
         "exportWarnings": {
           "type": "array",
@@ -300,6 +363,71 @@
         "cleanup": { "$ref": "#/$defs/cleanup" },
         "reference": { "$ref": "#/$defs/reference" },
         "changesSinceLastRun": { "$ref": "#/$defs/changesSinceLastRun" }
+      }
+    },
+    "rollbackReport": {
+      "type": "object",
+      "description": "Printed by --restore-rollback.",
+      "required": [
+        "schemaVersion",
+        "report",
+        "source",
+        "file",
+        "createdAt",
+        "fields",
+        "spools",
+        "changes",
+        "skipped",
+        "creations"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "report": { "const": "rollback" },
+        "source": { "$ref": "#/$defs/sourceId" },
+        "file": { "type": "string" },
+        "createdAt": {
+          "type": "string",
+          "description": "When the rollback file was made, or empty when it does not say."
+        },
+        "fields": { "type": "integer", "description": "How many fields can be put back." },
+        "spools": { "type": "integer" },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["spool", "label", "field", "current", "restoreTo"],
+            "properties": {
+              "spool": { "type": "string" },
+              "label": { "type": "string" },
+              "field": { "type": "string" },
+              "current": {},
+              "restoreTo": {}
+            }
+          }
+        },
+        "skipped": {
+          "type": "array",
+          "description": "Fields and spools left alone: changed again since, already restored, or gone.",
+          "items": {
+            "type": "object",
+            "required": ["label", "field", "reason"],
+            "properties": {
+              "label": { "type": "string" },
+              "field": { "type": ["string", "null"] },
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "creations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Spools the original sync created; SpoolSync never deletes spools, so these are deleted by hand."
+        },
+        "applied": { "type": "array", "description": "With --apply." },
+        "rollbackFile": {
+          "type": "string",
+          "description": "The rollback file written for this restore."
+        }
       }
     },
     "inventoryReport": {

@@ -4,7 +4,7 @@ import type { Catalogue } from "./en";
 export const es: Catalogue = {
   "lang.label": "Idioma",
   "lang.hint":
-    "Se aplica a la guía de configuración, la paleta de comandos, los detalles de la bobina, la salud de los datos, las herramientas de la tabla y los pasos de progreso. El resto del texto sigue en inglés hasta que se traduzca.",
+    "Se aplica a la guía de configuración, la paleta de comandos, los detalles de la bobina, la salud de los datos, las herramientas de la tabla, la revisión de los datos de referencia y los pasos de progreso. El resto del texto sigue en inglés hasta que se traduzca.",
   "display.title": "Visualización",
   "display.hint":
     "Cambia cómo se muestran los pesos y los precios en la página Cargar. Sus archivos y exportaciones nunca se modifican.",
@@ -55,7 +55,8 @@ export const es: Catalogue = {
   "palette.results": "Resultados",
   "palette.resultCount": "{count, plural, one {# resultado} other {# resultados}}",
   "palette.noResults": "Sin resultados",
-  "palette.nothingMatches": "Nada coincide. Pruebe con una página, un servicio o el nombre de una bobina.",
+  "palette.nothingMatches":
+    "Nada coincide. Pruebe con una página, un servicio o el nombre de una bobina.",
   "palette.hintChoose": "Intro elegir",
   "palette.hintClose": "Esc cerrar",
   "palette.hintMove": "↑↓ mover",
@@ -112,7 +113,8 @@ export const es: Catalogue = {
   "health.tracked":
     "Se registran {weight} de filamento en {count, plural, one {# bobina} other {# bobinas}} con peso conocido.",
   "health.todo.title": "Por hacer, la mayor mejora primero",
-  "health.todo.none": "Nada que corregir. Todas las bobinas tienen los datos que buscan estas comprobaciones.",
+  "health.todo.none":
+    "Nada que corregir. Todas las bobinas tienen los datos que buscan estas comprobaciones.",
   "health.todo.count": "{count, plural, one {# bobina} other {# bobinas}}",
   "health.todo.worth": "vale hasta {points, plural, one {# punto} other {# puntos}}",
   "health.todo.show": "Mostrar",
@@ -182,12 +184,13 @@ export const es: Catalogue = {
   "map.unit.lb": "libras (lb)",
   "map.remember": "Recordar esta asignación para archivos con las mismas columnas",
   "map.restored": "Se usa la asignación que guardó para esta disposición de columnas.",
-  "map.suggested": "Sugerido a partir de los nombres de columna. Revise cada una antes de descargar.",
+  "map.suggested":
+    "Sugerido a partir de los nombres de columna. Revise cada una antes de descargar.",
   "map.problems": "Corrija esto primero",
   "map.warnings": "Conviene saber",
   "map.err.identity": "Asigne al menos una columna de marca, material o nombre.",
-  "map.err.duplicate": "La columna \"{header}\" se usa para {first} y para {second}.",
-  "map.err.missing": "La columna \"{header}\" no está en este archivo.",
+  "map.err.duplicate": 'La columna "{header}" se usa para {first} y para {second}.',
+  "map.err.missing": 'La columna "{header}" no está en este archivo.',
   "map.warn.noWeight":
     "No hay ninguna columna de peso asignada, así que todas las bobinas se cargarán con peso restante desconocido.",
   "map.warn.bothWeights":
@@ -216,4 +219,86 @@ export const es: Catalogue = {
   "map.field.diameter": "Diámetro (mm)",
   "map.field.density": "Densidad (g/cm3)",
   "map.field.articleNumber": "Número de artículo o código de barras",
+  "reference.filter.label": "Filtrar bobinas",
+  "reference.filter.all": "Todo lo que revisar",
+  "reference.filter.missing": "Datos que faltan",
+  "reference.filter.differs": "Difiere",
+  "reference.filter.color": "Revisión de color",
+  "reference.filter.ambiguous": "Hay que elegir",
+  "reference.filter.unmatched": "Sin coincidencia",
+  "reference.action.fillAll": "Rellenar todo lo que falta",
+  "reference.action.overwrite": "Sobrescribir selección",
+  "reference.action.overwrite.title":
+    "Acepta cada sobrescritura sin decidir de la vista, en los campos que permiten sobrescribir",
+  "reference.action.clear": "Borrar elecciones",
+  "reference.action.undo": "Deshacer",
+  "reference.action.undone": "Deshecho",
+  "reference.action.exportCsv": "Exportar como CSV",
+  "reference.action.copyCorrections": "Copiar correcciones del catálogo",
+  "reference.action.copyCorrections.count":
+    "Copiar correcciones del catálogo ({count, plural, one {# registro} other {# registros}})",
+  "reference.action.copyCorrections.title":
+    "Copia las diferencias con el catálogo, sin nombres de bobinas, ids ni pesos, para enviarlas a quienes mantienen el catálogo",
+  "reference.action.accept": "Aceptar",
+  "reference.action.reject": "Rechazar",
+  "reference.action.accept.label": "Aceptar cambio: {label}, {field}",
+  "reference.action.reject.label": "Rechazar cambio: {label}, {field}",
+  "reference.action.more": "Mostrar {shown} más ({rest} sin mostrar)",
+  "reference.toast.acceptedMissing":
+    "{count, plural, one {# valor que faltaba aceptado} other {# valores que faltaban aceptados}}",
+  "reference.toast.acceptedOverwrites":
+    "{count, plural, one {# sobrescritura aceptada} other {# sobrescrituras aceptadas}}",
+  "reference.toast.acceptedChanges":
+    "{count, plural, one {# cambio aceptado} other {# cambios aceptados}}",
+  "reference.toast.rejectedChanges":
+    "{count, plural, one {# cambio rechazado} other {# cambios rechazados}}",
+  "reference.toast.tookBack":
+    "{count, plural, one {# elección retirada} other {# elecciones retiradas}}",
+  "reference.toast.cleared":
+    "{count, plural, one {# elección borrada} other {# elecciones borradas}}",
+  "reference.toast.copied":
+    "{points, plural, one {# diferencia copiada} other {# diferencias copiadas}} en {records, plural, one {# registro} other {# registros}}",
+  "reference.toast.copyFailed": "No se pudo copiar, así que se descargó el informe",
+  "reference.badge.fills": "Rellena un hueco",
+  "reference.badge.fillsReview": "Rellena un hueco, revisar",
+  "reference.badge.overwrites": "Sobrescribe",
+  "reference.value.yours": "Tu valor: ",
+  "reference.value.reference": "Referencia: ",
+  "reference.status.chosen": "Elegido por ti",
+  "reference.status.matched": "Coincide (confianza {confidence})",
+  "reference.confidence.high": "alta",
+  "reference.confidence.medium": "media",
+  "reference.confidence.low": "baja",
+  "reference.status.noMatchChosen": "Sin coincidencia (tu elección)",
+  "reference.status.needsChoice": "Hay que elegir",
+  "reference.status.partial": "Coincidencia parcial",
+  "reference.status.noMatch": "Sin coincidencia",
+  "reference.keyboard":
+    "Teclado: con el foco dentro de una tarjeta de bobina, pulsa A para aceptar o R para rechazar sus sugerencias.",
+  "reference.empty.clean": "Nada que revisar: todo lo que coincidió concuerda con la referencia.",
+  "reference.empty.filter": "Ninguna bobina coincide con este filtro.",
+  "reference.empty.load": "Carga un inventario para compararlo con la referencia.",
+  "reference.summary":
+    "{spools, plural, one {# bobina} other {# bobinas}}: {matched} con coincidencia, {needChoice} requieren elegir, {unmatched} sin coincidencia. {proposals, plural, one {# sugerencia} other {# sugerencias}} ({safe} seguras, {review} por revisar); {accepted} aceptadas, {rejected} rechazadas, {pending} sin decidir.",
+  "reference.summary.notApplicable": "{count} no pueden guardarse en su servicio.",
+  "reference.summary.colors":
+    "{count, plural, one {# color no coincide} other {# colores no coinciden}} con la referencia.",
+  "reference.colors.title": "Buscar colores parecidos",
+  "reference.colors.help":
+    "Busca en el catálogo los colores más cercanos al de una bobina o a uno que escribas. Sirve para una bobina sin coincidencia o como sustituto de un color agotado. No se buscan filamentos multicolor.",
+  "reference.colors.spool": "Color de una bobina",
+  "reference.colors.choose": "Elige una bobina",
+  "reference.colors.noneColored": "Ninguna bobina tiene un solo color",
+  "reference.colors.hex": "O un color",
+  "reference.colors.sameMaterial": "Solo el mismo material que la bobina",
+  "reference.colors.invalid":
+    "Escribe un color como seis dígitos hexadecimales, por ejemplo #1A2B3C.",
+  "reference.colors.found":
+    "{count, plural, one {# color más cercano} other {# colores más cercanos}} en el catálogo, el más próximo primero.",
+  "reference.colors.needMaterial": "Elige una bobina con material para limitar la búsqueda a él.",
+  "reference.colors.none": "No se encontró ningún color del catálogo.",
+  "reference.colors.same": "se ve igual",
+  "reference.colors.close": "cercano",
+  "reference.colors.different": "un color distinto",
+  "reference.colors.view": "Ver registro",
 };

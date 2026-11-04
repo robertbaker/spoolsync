@@ -265,7 +265,7 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
         h(
           "p",
           { class: "mt-1 text-sm text-muted-foreground" },
-          "A sheet of spool labels with a color swatch, brand, material, color, weight left, and a QR code holding the service and spool id (for example spoolman:12). Nothing else is encoded, and nothing is uploaded.",
+          "A sheet of spool labels with a color swatch, brand, material, color, weight left, and a QR code holding the service and spool id (for example spoolman:12). Nothing else is encoded, and nothing is uploaded. To find a spool from its label, scan it with a barcode scanner that types, or paste the code, into the filter box and press Enter.",
         ),
         radioGroup(),
         h(

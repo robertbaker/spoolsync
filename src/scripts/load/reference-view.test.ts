@@ -19,6 +19,7 @@ function memory() {
     settings: { ...DEFAULT_REFERENCE_SETTINGS } as ReferenceSettings,
     accepted: [] as AcceptedReference[],
     choices: new Map<string, string>(),
+    ruledOut: [] as string[],
     cache: {} as Record<string, ReferenceCacheMeta>,
     bodies: {} as Record<string, ReferenceFilament[]>,
     meta() {
@@ -37,6 +38,10 @@ function memory() {
     loadChoices: () => new Map(state.choices),
     saveChoices: (choices) => {
       state.choices = new Map(choices);
+    },
+    loadRuledOut: () => [...state.ruledOut],
+    saveRuledOut: (keys) => {
+      state.ruledOut = [...keys];
     },
     loadCache: () => state.meta(),
     loadCatalog: async (id) => state.bodies[id] ?? null,
@@ -208,6 +213,200 @@ describe("reference panel", () => {
     expect(state.accepted).toEqual([]);
   });
 
+  const richFile = JSON.stringify([
+    {
+      brand: "Acme",
+      material: "PLA",
+      color_name: "Red",
+      hex: "#FF0000",
+      diameter: 1.75,
+      net_weight: 1000,
+      barcode: "00191314034277",
+      source_url: "https://example.org/records/red",
+      image_url: "https://example.org/red.jpg",
+      drying_temp: 45,
+      drying_time: 6,
+      buy_links: [
+        { store: "Elsewhere", url: "https://elsewhere.example.org/red", shipsTo: ["US"] },
+        { store: "Near Shop", url: "https://near.example.org/red", shipsTo: ["GB"] },
+      ],
+    },
+    {
+      brand: "Acme",
+      material: "PETG",
+      color_name: "Blue",
+      hex: "#0000FF",
+      barcode: "99999999999999",
+    },
+  ]);
+
+  test("a catalog shows its date, the source link, the photo and drying advice on a match", () => {
+    Object.defineProperty(navigator, "language", { value: "en-GB", configurable: true });
+    const { root, panel } = open();
+    panel.controller.loadFile("rich.json", richFile);
+    panel.update();
+    const card = root.querySelector("[data-spool='spoolman:2']")!;
+    expect(card.textContent).toContain("View on Reference file");
+    expect(card.querySelector("a[href='https://example.org/records/red']")).not.toBeNull();
+    expect(card.textContent).toContain("Drying: 45 \u00b0C for 6 h");
+    // The shop that lists the visitor's country comes first; the other is marked.
+    expect(card.textContent).toContain("Where to buy: Near Shop, Elsewhere (does not list GB)");
+    expect(card.querySelector("a[href='https://near.example.org/red']")).not.toBeNull();
+    const image = card.querySelector("img")!;
+    expect(image.getAttribute("src")).toBe("https://example.org/red.jpg");
+    expect(image.getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(image.getAttribute("alt")).toContain("Acme");
+    // A file is not "checked for updates"; only a service can be.
+    expect(button(root, "check-updates")!.hidden).toBe(true);
+  });
+
+  test("a barcode finds its record in either UPC or EAN form, and says when there is none", () => {
+    const { root, panel } = open();
+    panel.controller.loadFile("rich.json", richFile);
+    panel.update();
+    const input = root.querySelector<HTMLInputElement>("#reference-barcode")!;
+    const result = () => root.querySelector("#reference-barcode-result")!.textContent ?? "";
+    input.value = "191314034277";
+    button(root, "lookup-barcode")!.click();
+    expect(result()).toContain("Acme PLA Red");
+    expect(result()).toContain("1.75 mm");
+    expect(result()).toContain("Drying: 45");
+    input.value = "0191314034277";
+    button(root, "lookup-barcode")!.click();
+    expect(result()).toContain("Acme PLA Red");
+    input.value = "5555555555";
+    button(root, "lookup-barcode")!.click();
+    expect(result()).toContain("No record in this catalog has the barcode 5555555555");
+    input.value = "123";
+    button(root, "lookup-barcode")!.click();
+    expect(result()).toContain("at least 6 digits");
+  });
+
+  test("A accepts and R rejects the suggestions of the focused card, but never while typing", () => {
+    const { root, panel, state } = open();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+    const press = (target: Element, key: string) =>
+      target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+
+    const card = root.querySelector("[data-spool='spoolman:1']")!;
+    const input = root.querySelector<HTMLInputElement>("input")!;
+    press(input, "a");
+    expect(state.accepted).toEqual([]);
+
+    press(card.querySelector("button")!, "a");
+    expect(state.accepted.map((entry) => entry.spoolKey)).toEqual(["spoolman:1"]);
+
+    // Already decided, so a second press changes nothing; modifier chords are left to the page.
+    press(root.querySelector("[data-spool='spoolman:1'] button")!, "a");
+    expect(state.accepted).toHaveLength(1);
+    root
+      .querySelector("[data-spool='spoolman:2'] button")!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "r", ctrlKey: true, bubbles: true }));
+    expect(state.accepted).toHaveLength(1);
+  });
+
+  test("the review list can be exported as CSV", () => {
+    const { root, panel } = open();
+    expect(button(root, "export-csv")).toBeUndefined();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+    expect(button(root, "export-csv")!.disabled).toBe(false);
+  });
+
+  test("the color finder lists the nearest catalog colors for a spool or a typed color", () => {
+    const { root, panel } = open();
+    expect(root.querySelector("#color-finder")).toBeNull();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+    const finder = root.querySelector<HTMLDetailsElement>("#color-finder")!;
+    expect(finder).not.toBeNull();
+    const hex = root.querySelector<HTMLInputElement>("#color-finder-hex")!;
+    hex.value = "#FF0000";
+    hex.dispatchEvent(new Event("input"));
+    const found = [...root.querySelectorAll("[data-key='color-results'] li")];
+    expect(found.length).toBe(3);
+    expect(found[0]!.textContent).toContain("Acme PLA Red");
+    expect(found[0]!.textContent).toContain("looks the same");
+    expect(root.querySelector("#color-finder-status")!.textContent).toContain("3 closest colors");
+    // The same material, taken from a chosen spool, narrows the search; the typed color is checked.
+    hex.value = "nope";
+    hex.dispatchEvent(new Event("input"));
+    expect(root.querySelector("#color-finder-status")!.textContent).toContain("six hex digits");
+    expect(hex.getAttribute("aria-invalid")).not.toBeNull();
+    expect(root.querySelectorAll("[data-key='color-results'] li").length).toBe(0);
+
+    const select = root.querySelector<HTMLSelectElement>("#color-finder-spool")!;
+    select.value = "spoolman:1";
+    select.dispatchEvent(new Event("change"));
+    expect(hex.value).toBe("#FF0000");
+    expect(root.querySelectorAll("[data-key='color-results'] li").length).toBeGreaterThan(0);
+  });
+
+  test("the color finder survives other actions in the panel", () => {
+    const { root, panel } = open();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+    const finder = root.querySelector<HTMLDetailsElement>("#color-finder")!;
+    finder.open = true;
+    const hex = root.querySelector<HTMLInputElement>("#color-finder-hex")!;
+    hex.value = "#00FF00";
+    hex.dispatchEvent(new Event("input"));
+    panel.update();
+    expect(root.querySelector("#color-finder")).toBe(finder);
+    expect(root.querySelector<HTMLInputElement>("#color-finder-hex")!.value).toBe("#00FF00");
+  });
+
+  test("catalog corrections are offered only when a certain match differs, and copy no spool data", async () => {
+    const one = (diameter: number) =>
+      new Map<SourceId, LoadResult>([
+        [
+          "spoolman",
+          {
+            source: "spoolman",
+            spools: [
+              makeSpool("spoolman", "secret-id", {
+                vendor: "Prusament",
+                material: "PLA",
+                name: "Black",
+                colors: ["1A1A1A"],
+                diameter,
+                density: 1.24,
+                initialWeight: 1000,
+                remainingWeight: 321,
+              }),
+            ],
+            warnings: [],
+            loadedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      ]);
+    const agree = open(one(1.75));
+    agree.panel.controller.loadFile("ref.json", referenceFile);
+    agree.panel.update();
+    expect(button(agree.root, "copy-corrections")!.disabled).toBe(true);
+
+    const copied: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text: string) => void copied.push(text) },
+    });
+    const differ = open(one(2.85));
+    differ.panel.controller.loadFile("ref.json", referenceFile);
+    differ.panel.update();
+    const copy = button(differ.root, "copy-corrections")!;
+    expect(copy.disabled).toBe(false);
+    expect(copy.textContent).toContain("1 record");
+    copy.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(copied).toHaveLength(1);
+    expect(copied[0]).toContain("# Possible catalog corrections");
+    expect(copied[0]).toMatch(/Diameter[^*]*\*\*: catalog says 1\.75; my spool says 2\.85/);
+    expect(copied[0]).not.toContain("secret-id");
+    expect(copied[0]).not.toContain("321");
+    expect(copied[0]).not.toContain("spoolman");
+  });
+
   test("an ambiguous spool asks for a choice, never picks one", () => {
     const { root, panel, state } = open();
     panel.controller.loadFile("ref.json", referenceFile);
@@ -245,5 +444,32 @@ describe("reference panel", () => {
     button(root, "unload-reference")!.click();
     expect(root.textContent).toContain("1 accepted change from an earlier visit is kept");
     expect(state.accepted).toHaveLength(1);
+  });
+});
+
+describe("reference panel language", () => {
+  test("the review controls follow the chosen language, and English stays the default", async () => {
+    const { setLocale, reloadLocale } = await import("~/lib/i18n");
+    try {
+      setLocale("de");
+      const { root, panel } = open();
+      panel.controller.loadFile("ref.json", referenceFile);
+      panel.update();
+      expect(button(root, "fill-missing")!.textContent).toBe("Alle fehlenden füllen");
+      expect(button(root, "export-csv")!.textContent).toBe("Als CSV exportieren");
+      expect(button(root, "filter-all")!.textContent).toContain("Alles zu prüfen");
+      expect(root.textContent).toContain("Spulen");
+      expect(root.querySelector("#color-finder summary")!.textContent).toBe(
+        "Ähnliche Farben finden",
+      );
+      expect(root.textContent).not.toContain("Fill all missing");
+    } finally {
+      localStorage.clear();
+      reloadLocale();
+    }
+    const { root, panel } = open();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+    expect(button(root, "fill-missing")!.textContent).toBe("Fill all missing");
   });
 });

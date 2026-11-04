@@ -126,6 +126,14 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
     storage: "local",
   },
   {
+    id: "reference-ruled-out",
+    label: "Reference matches ruled out",
+    description:
+      "Spools you said no reference record fits, by service and id only, so the question is not asked again. Kept on this device only and never exported.",
+    keys: ["spoolsync:reference-ruled-out"],
+    storage: "local",
+  },
+  {
     id: "answers",
     label: "Match answers",
     description: "Which possible matches you confirmed or rejected.",

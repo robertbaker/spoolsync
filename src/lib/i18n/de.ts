@@ -4,7 +4,7 @@ import type { Catalogue } from "./en";
 export const de: Catalogue = {
   "lang.label": "Sprache",
   "lang.hint":
-    "Gilt für die Einrichtungshilfe, die Befehlspalette, die Spulendetails, die Datenqualität, die Tabellenwerkzeuge und die Fortschrittsschritte. Übriger Text bleibt Englisch, bis er übersetzt ist.",
+    "Gilt für die Einrichtungshilfe, die Befehlspalette, die Spulendetails, die Datenqualität, die Tabellenwerkzeuge, die Prüfung der Referenzdaten und die Fortschrittsschritte. Übriger Text bleibt Englisch, bis er übersetzt ist.",
   "display.title": "Anzeige",
   "display.hint":
     "Ändert, wie Gewichte und Preise auf der Seite Laden angezeigt werden. Ihre Dateien und Exporte werden nie verändert.",
@@ -54,7 +54,8 @@ export const de: Catalogue = {
   "palette.results": "Ergebnisse",
   "palette.resultCount": "{count, plural, one {# Ergebnis} other {# Ergebnisse}}",
   "palette.noResults": "Keine Ergebnisse",
-  "palette.nothingMatches": "Nichts passt. Versuchen Sie eine Seite, einen Dienst oder einen Spulennamen.",
+  "palette.nothingMatches":
+    "Nichts passt. Versuchen Sie eine Seite, einen Dienst oder einen Spulennamen.",
   "palette.hintChoose": "Eingabe auswählen",
   "palette.hintClose": "Esc schließen",
   "palette.hintMove": "↑↓ bewegen",
@@ -111,7 +112,8 @@ export const de: Catalogue = {
   "health.tracked":
     "{weight} Filament werden über {count, plural, one {# Spule} other {# Spulen}} mit bekanntem Gewicht erfasst.",
   "health.todo.title": "Aufgaben, größte Verbesserung zuerst",
-  "health.todo.none": "Nichts zu beheben. Jede Spule hat die Daten, nach denen diese Prüfungen suchen.",
+  "health.todo.none":
+    "Nichts zu beheben. Jede Spule hat die Daten, nach denen diese Prüfungen suchen.",
   "health.todo.count": "{count, plural, one {# Spule} other {# Spulen}}",
   "health.todo.worth": "bis zu {points, plural, one {# Punkt} other {# Punkte}} wert",
   "health.todo.show": "Anzeigen",
@@ -180,13 +182,14 @@ export const de: Catalogue = {
   "map.unit.oz": "Unzen (oz)",
   "map.unit.lb": "Pfund (lb)",
   "map.remember": "Zuordnung für Dateien mit denselben Spalten merken",
-  "map.restored": "Es wird die Zuordnung verwendet, die Sie für dieses Spaltenlayout gespeichert haben.",
+  "map.restored":
+    "Es wird die Zuordnung verwendet, die Sie für dieses Spaltenlayout gespeichert haben.",
   "map.suggested": "Aus den Spaltennamen vorgeschlagen. Prüfen Sie jede, bevor Sie herunterladen.",
   "map.problems": "Zuerst beheben",
   "map.warnings": "Gut zu wissen",
   "map.err.identity": "Ordnen Sie mindestens eine Spalte für Marke, Material oder Name zu.",
-  "map.err.duplicate": "Die Spalte \"{header}\" wird für {first} und {second} verwendet.",
-  "map.err.missing": "Die Spalte \"{header}\" ist nicht in dieser Datei.",
+  "map.err.duplicate": 'Die Spalte "{header}" wird für {first} und {second} verwendet.',
+  "map.err.missing": 'Die Spalte "{header}" ist nicht in dieser Datei.',
   "map.warn.noWeight":
     "Keine Gewichtsspalte zugeordnet, daher werden alle Spulen mit unbekanntem Restgewicht geladen.",
   "map.warn.bothWeights":
@@ -216,4 +219,88 @@ export const de: Catalogue = {
   "map.field.diameter": "Durchmesser (mm)",
   "map.field.density": "Dichte (g/cm3)",
   "map.field.articleNumber": "Artikelnummer oder Barcode",
+  "reference.filter.label": "Spulen filtern",
+  "reference.filter.all": "Alles zu prüfen",
+  "reference.filter.missing": "Fehlende Daten",
+  "reference.filter.differs": "Abweichend",
+  "reference.filter.color": "Farbprüfung",
+  "reference.filter.ambiguous": "Auswahl nötig",
+  "reference.filter.unmatched": "Kein Treffer",
+  "reference.action.fillAll": "Alle fehlenden füllen",
+  "reference.action.overwrite": "Auswahl überschreiben",
+  "reference.action.overwrite.title":
+    "Übernimmt jede unentschiedene Überschreibung in der Ansicht, für die Felder, die Überschreiben erlauben",
+  "reference.action.clear": "Auswahl zurücksetzen",
+  "reference.action.undo": "Rückgängig",
+  "reference.action.undone": "Rückgängig gemacht",
+  "reference.action.exportCsv": "Als CSV exportieren",
+  "reference.action.copyCorrections": "Katalogkorrekturen kopieren",
+  "reference.action.copyCorrections.count":
+    "Katalogkorrekturen kopieren ({count, plural, one {# Eintrag} other {# Einträge}})",
+  "reference.action.copyCorrections.title":
+    "Kopiert die Abweichungen vom Katalog, ohne Spulennamen, IDs oder Gewichte, zum Senden an die Katalogbetreuer",
+  "reference.action.accept": "Übernehmen",
+  "reference.action.reject": "Ablehnen",
+  "reference.action.accept.label": "Änderung übernehmen: {label}, {field}",
+  "reference.action.reject.label": "Änderung ablehnen: {label}, {field}",
+  "reference.action.more": "{shown} weitere anzeigen ({rest} nicht angezeigt)",
+  "reference.toast.acceptedMissing":
+    "{count, plural, one {# fehlender Wert} other {# fehlende Werte}} übernommen",
+  "reference.toast.acceptedOverwrites":
+    "{count, plural, one {# Überschreibung} other {# Überschreibungen}} übernommen",
+  "reference.toast.acceptedChanges":
+    "{count, plural, one {# Änderung} other {# Änderungen}} übernommen",
+  "reference.toast.rejectedChanges":
+    "{count, plural, one {# Änderung} other {# Änderungen}} abgelehnt",
+  "reference.toast.tookBack":
+    "{count, plural, one {# Entscheidung} other {# Entscheidungen}} zurückgenommen",
+  "reference.toast.cleared":
+    "{count, plural, one {# Entscheidung} other {# Entscheidungen}} zurückgesetzt",
+  "reference.toast.copied":
+    "{points, plural, one {# Abweichung} other {# Abweichungen}} in {records, plural, one {# Eintrag} other {# Einträgen}} kopiert",
+  "reference.toast.copyFailed": "Kopieren nicht möglich, der Bericht wurde heruntergeladen",
+  "reference.badge.fills": "Füllt eine Lücke",
+  "reference.badge.fillsReview": "Füllt eine Lücke, prüfen",
+  "reference.badge.overwrites": "Überschreibt",
+  "reference.value.yours": "Ihr Wert: ",
+  "reference.value.reference": "Referenz: ",
+  "reference.status.chosen": "Von Ihnen gewählt",
+  "reference.status.matched": "Treffer ({confidence} Sicherheit)",
+  "reference.confidence.high": "hoher",
+  "reference.confidence.medium": "mittlerer",
+  "reference.confidence.low": "niedriger",
+  "reference.status.noMatchChosen": "Kein Treffer (Ihre Wahl)",
+  "reference.status.needsChoice": "Auswahl nötig",
+  "reference.status.partial": "Teiltreffer",
+  "reference.status.noMatch": "Kein Treffer",
+  "reference.keyboard":
+    "Tastatur: Mit dem Fokus in einer Spulenkarte A drücken, um ihre Vorschläge zu übernehmen, oder R, um sie abzulehnen.",
+  "reference.empty.clean":
+    "Nichts zu prüfen: Alles, was zugeordnet wurde, stimmt mit der Referenz überein.",
+  "reference.empty.filter": "Keine Spulen passen zu diesem Filter.",
+  "reference.empty.load": "Laden Sie ein Inventar, um es mit der Referenz zu vergleichen.",
+  "reference.summary":
+    "{spools, plural, one {# Spule} other {# Spulen}}: {matched} zugeordnet, bei {needChoice} ist eine Auswahl nötig, {unmatched} ohne Treffer. {proposals, plural, one {# Vorschlag} other {# Vorschläge}} ({safe} sicher, {review} zu prüfen); {accepted} übernommen, {rejected} abgelehnt, {pending} offen.",
+  "reference.summary.notApplicable": "{count} können von ihrem Dienst nicht gespeichert werden.",
+  "reference.summary.colors":
+    "{count, plural, one {# Farbe stimmt} other {# Farben stimmen}} nicht mit der Referenz überein.",
+  "reference.colors.title": "Ähnliche Farben finden",
+  "reference.colors.help":
+    "Durchsucht den Katalog nach den Farben, die der Farbe einer Spule oder einer eingegebenen Farbe am nächsten kommen. Nützlich für eine Spule ohne Treffer oder als Ersatz für eine nicht lieferbare Farbe. Mehrfarbige Filamente werden nicht durchsucht.",
+  "reference.colors.spool": "Farbe einer Spule",
+  "reference.colors.choose": "Spule wählen",
+  "reference.colors.noneColored": "Keine Spule hat genau eine Farbe",
+  "reference.colors.hex": "Oder eine Farbe",
+  "reference.colors.sameMaterial": "Nur dasselbe Material wie die Spule",
+  "reference.colors.invalid":
+    "Geben Sie eine Farbe als sechs Hex-Ziffern ein, zum Beispiel #1A2B3C.",
+  "reference.colors.found":
+    "{count, plural, one {# nächste Farbe} other {# nächste Farben}} im Katalog, die ähnlichste zuerst.",
+  "reference.colors.needMaterial":
+    "Wählen Sie eine Spule mit Material, um die Suche darauf zu beschränken.",
+  "reference.colors.none": "Keine Katalogfarbe gefunden.",
+  "reference.colors.same": "sieht gleich aus",
+  "reference.colors.close": "ähnlich",
+  "reference.colors.different": "eine andere Farbe",
+  "reference.colors.view": "Eintrag ansehen",
 };

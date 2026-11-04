@@ -1,10 +1,16 @@
 import { expect, mock, test } from "bun:test";
 
 import { ApplyReloadError } from "@spoolsync/core/apply";
+import type { PlannedUpdate } from "@spoolsync/core/core/compare";
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
-import { createEmptyInventory } from "@spoolsync/core/workflow";
+import { makeSpool } from "@spoolsync/core/core/testing";
+import {
+  buildRollback,
+  createEmptyInventory,
+  type RollbackDocument,
+} from "@spoolsync/core/workflow";
 
-import { ApplyController, type ApplyTarget } from "./apply-controller";
+import { ApplyController, type ApplyTarget, type RollbackHook } from "./apply-controller";
 
 async function fixture() {
   const inventory = {
@@ -100,4 +106,73 @@ test("refresh failures retain completed write logs and the reload warning withou
   expect(f.loaded.get("spoolman")).toBe(f.inventory);
   expect(f.save).not.toHaveBeenCalled();
   expect(f.onApplied).toHaveBeenCalledTimes(1);
+});
+
+const planned = (): PlannedUpdate => ({
+  kind: "update",
+  source: "spoolman",
+  groupId: "g1",
+  spool: makeSpool("spoolman", "1", { vendor: "Prusament", material: "PLA", name: "Galaxy" }),
+  changes: [{ field: "density", from: null, to: 1.24 }],
+  links: {},
+});
+
+async function withRollback(options: { enabled?: boolean; failSave?: boolean } = {}) {
+  const f = await fixture();
+  const saved: RollbackDocument[] = [];
+  const hook: RollbackHook = {
+    enabled: () => options.enabled ?? true,
+    build: (source, changes, target) =>
+      buildRollback(source, changes, { target, now: new Date("2026-11-04T10:00:00.000Z") }),
+    save: (document) => {
+      if (options.failSave) throw new Error("blocked");
+      saved.push(document);
+    },
+  };
+  const controller = new ApplyController(
+    { spoolman: { changedMessage: "changed", connect: f.connect } },
+    { loaded: f.loaded, onApplied: f.onApplied },
+    f.save,
+    f.confirm,
+    undefined,
+    hook,
+  );
+  return { ...f, controller, saved };
+}
+
+test("a rollback file is saved after the write is confirmed and before it is sent", async () => {
+  const f = await withRollback();
+  const order: string[] = [];
+  f.apply.mockImplementation(async (_changes, progress) => {
+    order.push(`apply (rollback saved: ${f.saved.length})`);
+    progress(1, 1);
+    return { log: f.log, inventory: { ...f.inventory } };
+  });
+  await f.controller.run("spoolman", [planned()], f.status);
+  expect(order).toEqual(["apply (rollback saved: 1)"]);
+  expect(f.saved[0]).toMatchObject({ source: "spoolman", target: "Spoolman" });
+  expect(f.saved[0]!.updates[0]).toMatchObject({
+    sourceId: "1",
+    changes: [{ field: "density", before: null, after: 1.24 }],
+  });
+});
+
+test("nothing is saved when the person declines, or turned the file off", async () => {
+  const declined = await withRollback();
+  declined.confirm.mockReturnValue(false);
+  await declined.controller.run("spoolman", [planned()], declined.status);
+  expect(declined.saved).toEqual([]);
+
+  const off = await withRollback({ enabled: false });
+  await off.controller.run("spoolman", [planned()], off.status);
+  expect(off.saved).toEqual([]);
+  expect(off.apply).toHaveBeenCalledTimes(1);
+});
+
+test("if the rollback file cannot be saved, nothing is written", async () => {
+  const f = await withRollback({ failSave: true });
+  await f.controller.run("spoolman", [planned()], f.status);
+  expect(f.status.textContent).toContain("Nothing was written");
+  expect(f.apply).not.toHaveBeenCalled();
+  expect(f.onApplied).not.toHaveBeenCalled();
 });

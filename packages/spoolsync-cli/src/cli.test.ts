@@ -23,11 +23,17 @@ const spawnIsolated = ((command: string[], options: { env?: Record<string, strin
   } as never)) as typeof Bun.spawn;
 
 /**
- * These tests stop the CLI with SIGINT and expect it to shut down cleanly. Windows cannot deliver a
- * catchable SIGINT to another process (`kill("SIGINT")` terminates it; Ctrl+C in a console is the
- * only route), so they run on POSIX systems, which is where CI runs.
+ * Stops a running `--watch`. Windows cannot deliver a catchable SIGINT to another process
+ * (`kill("SIGINT")` terminates it; Ctrl+C in a console is the only route), so there the CLI is told
+ * to stop by a line on its input, which is the route `stopOnQuit` provides for exactly this.
  */
-const posixTest = process.platform === "win32" ? test.skip : test;
+function stopWatching(child: { kill(signal?: NodeJS.Signals): void; stdin?: unknown }) {
+  if (process.platform === "win32") {
+    const stdin = child.stdin as { write(text: string): unknown; flush?(): unknown };
+    stdin.write("q\n");
+    void stdin.flush?.();
+  } else stopWatching(child);
+}
 
 let directory: string;
 const compiled = process.env["SPOOLSYNC_CLI_PATH"];
@@ -335,10 +341,11 @@ test("--completion prints a script for each supported shell and rejects others",
   expect(unknown.stderr).toContain('Unknown shell "powershell"');
 });
 
-posixTest("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
+test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", async () => {
   const keep = path.join(directory, "keep.json");
   await writeFile(keep, JSON.stringify([{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }]));
   const child = spawnIsolated([runtime, cli, "--spoolkeep", keep, "--summary", "--watch"], {
+    stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -387,18 +394,19 @@ posixTest("--watch re-runs when an input file is saved and stops cleanly on SIGI
       "recovery",
     );
   } finally {
-    child.kill("SIGINT");
+    stopWatching(child);
   }
   expect(await child.exited).toBe(0);
 });
 
-posixTest("--watch --quiet stays silent when a save does not change the result", async () => {
+test("--watch --quiet stays silent when a save does not change the result", async () => {
   const keep = path.join(directory, "keep.json");
   const spools = [{ id: "k1", brand: "A", family: "PLA", newQuantity: 1 }];
   await writeFile(keep, JSON.stringify(spools));
   const child = spawnIsolated(
     [runtime, cli, "--spoolkeep", keep, "--summary", "--watch", "--quiet"],
     {
+      stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
     },
@@ -431,7 +439,7 @@ posixTest("--watch --quiet stays silent when a save does not change the result",
     await until(() => stdout.includes("spoolkeep: 2 spools"), "the changed result");
     expect(stderr).toContain("keep.json changed; running again");
   } finally {
-    child.kill("SIGINT");
+    stopWatching(child);
   }
   expect(await child.exited).toBe(0);
 });
@@ -1164,6 +1172,7 @@ test("completion scripts offer --format and list exactly the known options", asy
 
 async function watchSession(args: string[]) {
   const child = spawnIsolated([runtime, cli, ...args, "--watch"], {
+    stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -1183,7 +1192,7 @@ async function watchSession(args: string[]) {
     }
   };
   const stop = async () => {
-    child.kill("SIGINT");
+    stopWatching(child);
     return child.exited;
   };
   return { state, until, stop };
@@ -1192,7 +1201,7 @@ async function watchSession(args: string[]) {
 const spoolioFile = (...filaments: Array<Record<string, unknown>>) =>
   JSON.stringify({ version: 1, filaments });
 
-posixTest("--watch prints what changed since the previous run in text", async () => {
+test("--watch prints what changed since the previous run in text", async () => {
   const io = path.join(directory, "spoolio.json");
   await writeFile(
     io,
@@ -1222,53 +1231,254 @@ posixTest("--watch prints what changed since the previous run in text", async ()
   }
 });
 
-posixTest(
-  "--watch --format json adds changesSinceLastRun, and --quiet hides identical runs",
-  async () => {
-    await similarPair();
-    const io = path.join(directory, "spoolio.json");
-    const original = await readFile(io, "utf8");
-    await writeFile(io, spoolioFile());
-    const watch = await watchSession([
-      "--spoolman",
-      path.join(directory, "spoolman-spools.json"),
-      "--spoolio",
-      io,
-      "--format",
-      "json",
-      "--quiet",
+test("--watch --format json adds changesSinceLastRun, and --quiet hides identical runs", async () => {
+  await similarPair();
+  const io = path.join(directory, "spoolio.json");
+  const original = await readFile(io, "utf8");
+  await writeFile(io, spoolioFile());
+  const watch = await watchSession([
+    "--spoolman",
+    path.join(directory, "spoolman-spools.json"),
+    "--spoolio",
+    io,
+    "--format",
+    "json",
+    "--quiet",
+  ]);
+  const documents = () =>
+    watch.state.stdout
+      .split(/\n(?=\{)/)
+      .filter(Boolean)
+      .map((text) => JSON.parse(text));
+  try {
+    await watch.until(() => documents().length === 1, "the first run");
+    expect(documents()[0]).not.toHaveProperty("changesSinceLastRun");
+    // Rewriting the same content prints nothing.
+    await writeFile(io, spoolioFile(), "utf8");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(documents()).toHaveLength(1);
+    // A matching spool appears: it is added and a new possible match is pending.
+    await writeFile(io, original);
+    await watch.until(() => documents().length === 2, "the second run");
+    const changes = documents()[1].changesSinceLastRun;
+    expect(changes.added.map((item: { key: string }) => item.key)).toEqual(["spoolio:donor"]);
+    expect(changes.removed).toEqual([]);
+    expect(changes.newPendingMatches).toEqual(
+      documents()[1].pendingMatches.map((item: { answerWith: string }) => item.answerWith),
+    );
+    expect(changes.newPendingMatches).toHaveLength(1);
+    // The remaining weight changes.
+    await writeFile(io, original.replace('"weightRemaining":150', '"weightRemaining":120'));
+    await watch.until(() => documents().length === 3, "the third run");
+    expect(documents()[2].changesSinceLastRun.remainingWeight).toEqual([
+      { key: "spoolio:donor", label: "Example PLA Blue", fromGrams: 150, toGrams: 120 },
     ]);
-    const documents = () =>
-      watch.state.stdout
-        .split(/\n(?=\{)/)
-        .filter(Boolean)
-        .map((text) => JSON.parse(text));
-    try {
-      await watch.until(() => documents().length === 1, "the first run");
-      expect(documents()[0]).not.toHaveProperty("changesSinceLastRun");
-      // Rewriting the same content prints nothing.
-      await writeFile(io, spoolioFile(), "utf8");
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      expect(documents()).toHaveLength(1);
-      // A matching spool appears: it is added and a new possible match is pending.
-      await writeFile(io, original);
-      await watch.until(() => documents().length === 2, "the second run");
-      const changes = documents()[1].changesSinceLastRun;
-      expect(changes.added.map((item: { key: string }) => item.key)).toEqual(["spoolio:donor"]);
-      expect(changes.removed).toEqual([]);
-      expect(changes.newPendingMatches).toEqual(
-        documents()[1].pendingMatches.map((item: { answerWith: string }) => item.answerWith),
-      );
-      expect(changes.newPendingMatches).toHaveLength(1);
-      // The remaining weight changes.
-      await writeFile(io, original.replace('"weightRemaining":150', '"weightRemaining":120'));
-      await watch.until(() => documents().length === 3, "the third run");
-      expect(documents()[2].changesSinceLastRun.remainingWeight).toEqual([
-        { key: "spoolio:donor", label: "Example PLA Blue", fromGrams: 150, toGrams: 120 },
-      ]);
-      expect(documents()[2].changesSinceLastRun.newPendingMatches).toEqual([]);
-    } finally {
-      expect(await watch.stop()).toBe(0);
-    }
-  },
-);
+    expect(documents()[2].changesSinceLastRun.newPendingMatches).toEqual([]);
+  } finally {
+    expect(await watch.stop()).toBe(0);
+  }
+});
+
+test("--fail-on-mismatch exits 1 only when the reference disagrees with a spool", async () => {
+  const reference = path.join(directory, "reference.json");
+  await writeFile(
+    reference,
+    JSON.stringify([
+      {
+        brand: "Prusament",
+        material: "PLA",
+        color_name: "Galaxy Black",
+        hex: "#1A1A1A",
+        diameter: 1.75,
+      },
+    ]),
+  );
+  const inventory = (diameter: number) =>
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          brand: "Prusament",
+          type: "PLA",
+          colorName: "Galaxy Black",
+          colorHex: "#1A1A1A",
+          diameter,
+          weightTotal: 1000,
+          weightRemaining: 500,
+        },
+      ],
+    });
+  const spoolio = path.join(directory, "spoolio.json");
+  const run = async () => {
+    const child = spawnIsolated(
+      [runtime, cli, "--spoolio", spoolio, "--reference-report", reference, "--fail-on-mismatch"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const [stdout, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+    return { stdout, code };
+  };
+
+  await writeFile(spoolio, inventory(1.75));
+  const same = await run();
+  expect(same.code).toBe(0);
+  expect(same.stdout).toContain("Reference check passed");
+
+  await writeFile(spoolio, inventory(2.85));
+  const different = await run();
+  expect(different.code).toBe(1);
+  expect(different.stdout).toContain("Reference check failed");
+});
+
+test("--apply saves a rollback file first, and --restore-rollback puts the values back", async () => {
+  const filament = { id: 10, material: "PLA", name: "Blue", density: 1.24, diameter: 1.75 };
+  const fake = createFakeSpoolman({ filaments: [filament], spools: [{ id: 51, filament }] });
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    async fetch(request) {
+      const body = request.method === "GET" ? undefined : await request.text();
+      return fake.fetchImpl(request.url, { method: request.method, ...(body ? { body } : {}) });
+    },
+  });
+  const run = async (...args: string[]) => {
+    const child = spawnIsolated([runtime, cli, ...args], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  try {
+    await writeFile(
+      path.join(directory, "spoolio.json"),
+      JSON.stringify({
+        version: 1,
+        filaments: [{ id: "donor", spoolmanId: 51, type: "PETG", colorName: "Blue" }],
+      }),
+    );
+    const address = server.url.toString();
+    const rollbacks = path.join(directory, "rollbacks");
+    const applied = await run(
+      "--spoolman-url",
+      address,
+      "--spoolio",
+      path.join(directory, "spoolio.json"),
+      "--resolve",
+      "material=spoolio",
+      "--rollback-dir",
+      rollbacks,
+      "--apply",
+      "--json",
+    );
+    expect({ code: applied.code, stderr: applied.stderr }).toEqual({ code: 0, stderr: "" });
+    expect(fake.spools.get(51)!.filament.material).toBe("PETG");
+    const report = JSON.parse(applied.stdout);
+    expect(report.rollbackFiles).toHaveLength(1);
+    const [file] = report.rollbackFiles as string[];
+    expect(path.dirname(file!)).toBe(rollbacks);
+    const saved = JSON.parse(await readFile(file!, "utf8"));
+    expect(saved).toMatchObject({ format: "spoolsync-rollback", source: "spoolman" });
+    expect(saved.updates[0].changes).toContainEqual(
+      expect.objectContaining({ field: "material", before: "PLA", after: "PETG" }),
+    );
+
+    // Without --apply the restore is a dry run.
+    const dry = await run("--restore-rollback", file!, "--spoolman-url", address);
+    expect(dry.code).toBe(0);
+    expect(dry.stdout).toContain("can be put back");
+    expect(dry.stdout).toContain("Dry run only");
+    expect(fake.spools.get(51)!.filament.material).toBe("PETG");
+
+    const restored = await run(
+      "--restore-rollback",
+      file!,
+      "--spoolman-url",
+      address,
+      "--rollback-dir",
+      rollbacks,
+      "--apply",
+      "--json",
+    );
+    expect({ code: restored.code, stderr: restored.stderr }).toEqual({ code: 0, stderr: "" });
+    expect(fake.spools.get(51)!.filament.material).toBe("PLA");
+    const restoredReport = JSON.parse(restored.stdout);
+    expect(restoredReport).toMatchObject({ report: "rollback", source: "spoolman", spools: 1 });
+    expect(restoredReport.rollbackFile).toBeString();
+
+    // A second restore finds nothing left to put back.
+    const again = await run("--restore-rollback", file!, "--spoolman-url", address, "--json");
+    expect(JSON.parse(again.stdout)).toMatchObject({ fields: 0, spools: 0 });
+
+    // --no-rollback writes without a file.
+    fake.spools.get(51)!.filament.material = "PLA";
+    const before = (await readdir(rollbacks)).length;
+    const bare = await run(
+      "--spoolman-url",
+      address,
+      "--spoolio",
+      path.join(directory, "spoolio.json"),
+      "--resolve",
+      "material=spoolio",
+      "--rollback-dir",
+      rollbacks,
+      "--no-rollback",
+      "--apply",
+      "--json",
+    );
+    expect(bare.code).toBe(0);
+    expect(JSON.parse(bare.stdout).rollbackFiles).toBeUndefined();
+    expect((await readdir(rollbacks)).length).toBe(before);
+  } finally {
+    await server.stop(true);
+  }
+});
+
+test("a rollback file that cannot be saved stops the write", async () => {
+  const filament = { id: 10, material: "PLA", name: "Blue", density: 1.24, diameter: 1.75 };
+  const fake = createFakeSpoolman({ filaments: [filament], spools: [{ id: 51, filament }] });
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    async fetch(request) {
+      const body = request.method === "GET" ? undefined : await request.text();
+      return fake.fetchImpl(request.url, { method: request.method, ...(body ? { body } : {}) });
+    },
+  });
+  try {
+    await writeFile(
+      path.join(directory, "spoolio.json"),
+      JSON.stringify({
+        version: 1,
+        filaments: [{ id: "donor", spoolmanId: 51, type: "PETG", colorName: "Blue" }],
+      }),
+    );
+    // A file where the rollback folder should be makes saving impossible.
+    const blocked = path.join(directory, "blocked");
+    await writeFile(blocked, "not a folder");
+    const child = spawnIsolated(
+      [
+        runtime,
+        cli,
+        "--spoolman-url",
+        server.url.toString(),
+        "--spoolio",
+        path.join(directory, "spoolio.json"),
+        "--resolve",
+        "material=spoolio",
+        "--rollback-dir",
+        blocked,
+        "--apply",
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const [stderr, code] = await Promise.all([new Response(child.stderr).text(), child.exited]);
+    expect(code).toBe(1);
+    expect(stderr).toContain("nothing was written to Spoolman");
+    expect(stderr).toContain("--no-rollback");
+    expect(fake.spools.get(51)!.filament.material).toBe("PLA");
+  } finally {
+    await server.stop(true);
+  }
+});

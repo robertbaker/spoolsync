@@ -9,6 +9,7 @@
   "scripts": {
     "build": "bun run snapshot:reference && astro build",
     "snapshot:reference": "bun run tools/reference-snapshot.ts",
+    "bundle:check": "bun run tools/check-bundle-size.ts",
     "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "dev:fast": "ASTRO_TELEMETRY_DISABLED=1 DISABLE_ASTRO_TOOLBAR=true astro dev --host",
     "lint": "oxlint --ignore-path .oxlintignore",

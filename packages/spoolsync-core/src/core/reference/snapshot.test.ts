@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { ReferenceResponse } from "./fetch";
+import { parseReferenceFile } from "./file";
 import { probeFreshness } from "./freshness";
 import { providerById } from "./providers";
 import { buildFetchConfig } from "./settings";
@@ -34,6 +35,11 @@ const filament = (id: string, extra: Partial<ReferenceFilament> = {}): Reference
   price: null,
   barcode: "191314034277",
   url: null,
+  sourceUrl: null,
+  imageUrl: null,
+  dryingTemp: null,
+  dryingHours: null,
+  buyLinks: [],
   attribution: "Open Filament Database (openfilamentdatabase.org)",
   license: "MIT",
   ...extra,
@@ -63,6 +69,31 @@ describe("snapshot", () => {
     ]);
     const decoded = decodeSnapshot(JSON.parse(encodeSnapshot(original)));
     expect(decoded).toEqual(original);
+  });
+
+  test("keeps the source page, image and drying advice, and drops unsafe links", () => {
+    const original = snapshot([
+      filament("a", {
+        sourceUrl: "https://openfilamentdatabase.org/brands/hatchbox/PLA/matte",
+        imageUrl: "https://filamentcolors.xyz/media/x.jpg",
+        dryingTemp: 45,
+        dryingHours: 6,
+        buyLinks: [{ store: "Shop", url: "https://shop.example.org/p/1", shipsTo: ["GB", "DE"] }],
+      }),
+    ]);
+    const text = JSON.parse(encodeSnapshot(original));
+    expect(decodeSnapshot(text)).toEqual(original);
+    text.rows[0][text.columns.indexOf("sourceUrl")] = "javascript:alert(1)";
+    text.rows[0][text.columns.indexOf("imageUrl")] = "http://insecure.example.org/x.jpg";
+    expect(decodeSnapshot(text)!.filaments[0]).toMatchObject({ sourceUrl: null, imageUrl: null });
+    text.rows[0][text.columns.indexOf("buyLinks")] = [
+      { store: "Bad", url: "http://insecure.example.org", shipsTo: ["GB"] },
+      { store: "", url: "https://ok.example.org", shipsTo: [] },
+      { store: "Fine", url: "https://fine.example.org", shipsTo: ["gb", "GBR", 5] },
+    ];
+    expect(decodeSnapshot(text)!.filaments[0]!.buyLinks).toEqual([
+      { store: "Fine", url: "https://fine.example.org/", shipsTo: ["GB"] },
+    ]);
   });
 
   test("is much smaller than the records as objects", () => {
@@ -151,5 +182,23 @@ describe("built-in settings", () => {
       attribution: "",
     });
     expect(custom.ok && custom.builtIn).toBe(false);
+  });
+});
+
+describe("snapshot files as reference files", () => {
+  test("a snapshot downloaded from the site loads like any reference file, keeping its credit line", () => {
+    const text = encodeSnapshot(snapshot([filament("a"), filament("b", { barcode: null })]));
+    const parsed = parseReferenceFile("openfilamentdatabase.json", text);
+    expect(parsed.filaments.map((f) => f.id)).toEqual(["a", "b"]);
+    expect(parsed.filaments[0]!.providerId).toBe("openfilamentdatabase");
+    expect(parsed.attribution).toBe("Open Filament Database (openfilamentdatabase.org)");
+    expect(parsed.license).toBe("MIT");
+    expect(parsed.skipped).toBe(2);
+    expect(parsed.warnings[0]).toContain("snapshot of 2 records");
+  });
+
+  test("a damaged snapshot is not mistaken for a record list", () => {
+    const good = JSON.parse(encodeSnapshot(snapshot([filament("a")])));
+    expect(() => parseReferenceFile("x.json", JSON.stringify({ ...good, rows: [] }))).toThrow();
   });
 });

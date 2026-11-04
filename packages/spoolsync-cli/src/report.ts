@@ -34,6 +34,8 @@ export interface WorkflowReport {
   applied: ApplyLogEntry[] | undefined;
   written: string[];
   exportWarnings: Array<{ source: SourceId; message: string }>;
+  /** Rollback files saved before writing to a service. */
+  rollbackFiles?: string[];
   /** With `--watch`, what differs from the previous run. */
   changes?: InventoryChanges;
 }
@@ -56,7 +58,15 @@ const changeLines = (changes: InventoryChanges | undefined, output: CliOutput) =
 
 export function reportWorkflow(
   options: Options,
-  { loaded, planning, applied, written, exportWarnings, changes }: WorkflowReport,
+  {
+    loaded,
+    planning,
+    applied,
+    written,
+    exportWarnings,
+    rollbackFiles = [],
+    changes,
+  }: WorkflowReport,
   output: CliOutput,
 ): void {
   const { spools, matches, summary } = planning;
@@ -74,6 +84,7 @@ export function reportWorkflow(
       written: inventoryFiles,
       ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
       exportWarnings,
+      ...(rollbackFiles.length ? { rollbackFiles } : {}),
       ...(changes && hasChanges(changes) ? { changesSinceLastRun: changes } : {}),
     } as CompareReport;
     output.log(JSON.stringify(report, null, 2));
@@ -128,6 +139,10 @@ export function reportWorkflow(
         "Dry run only. Add --output-dir <dir> to write inventory files, or --apply with a direct API connection to write to the service.",
       );
     else if (options.apply) output.log("Apply results:", applied);
+    if (rollbackFiles.length)
+      output.log(
+        `Rollback ${rollbackFiles.length === 1 ? "file" : "files"} (keep ${rollbackFiles.length === 1 ? "it" : "them"} to take this back with --restore-rollback):\n${rollbackFiles.map((file) => `  ${file}`).join("\n")}`,
+      );
     changeLines(changes, output);
   }
 }

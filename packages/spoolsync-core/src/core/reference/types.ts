@@ -25,7 +25,7 @@ export interface ReferenceFilament {
   colorHexes: string[];
   /** Millimetres. */
   diameter: number | null;
-  /** g/cm3. */
+  /** G/cm3. */
   density: number | null;
   nozzleTempMin: number | null;
   nozzleTempMax: number | null;
@@ -41,9 +41,31 @@ export interface ReferenceFilament {
   barcode: string | null;
   /** Page for the product, `https:` only. */
   url: string | null;
+  /**
+   * The record's own page on the reference service, `https:` only, so a change can be checked
+   * there.
+   */
+  sourceUrl?: string | null;
+  /** A photo or swatch image of the filament, `https:` only. */
+  imageUrl?: string | null;
+  /** Recommended drying temperature in Celsius. Reference only: SpoolSync stores no drying fields. */
+  dryingTemp?: number | null;
+  /** Recommended drying time in hours. Reference only. */
+  dryingHours?: number | null;
+  /** Shops that sell this exact size, at most a few. */
+  buyLinks?: ReferenceBuyLink[];
   /** The credit line that must stay with the record. */
   attribution: string;
   license: string | null;
+}
+
+/** A shop that sells this filament. Reference only: SpoolSync stores no shop links. */
+export interface ReferenceBuyLink {
+  store: string;
+  /** `https:` only. */
+  url: string;
+  /** Two-letter country codes the shop ships to; empty when the source does not say. */
+  shipsTo: string[];
 }
 
 /** Spool fields a reference record can fill or correct. */

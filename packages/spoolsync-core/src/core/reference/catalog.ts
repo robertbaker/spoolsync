@@ -1,8 +1,8 @@
-import { normalizeBarcode } from "../cleanup/numbers";
 import { formatMaterial, parseMaterial, type ParsedMaterial } from "../cleanup/materials";
+import { normalizeBarcode } from "../cleanup/numbers";
 import { cleanInline, plainKey } from "../cleanup/text";
-import { buildVendorIndex, canonicalVendor, vendorKey } from "../cleanup/vendors";
 import type { VendorAlias } from "../cleanup/types";
+import { buildVendorIndex, canonicalVendor, vendorKey } from "../cleanup/vendors";
 import { compareColorLists } from "./color-check";
 import type {
   MatchableSpool,
@@ -41,7 +41,11 @@ interface Indexed {
   nameSets: Array<ReadonlySet<string>>;
 }
 
-const SYNONYMS: Readonly<Record<string, string>> = { grey: "gray", colour: "color", colours: "colors" };
+const SYNONYMS: Readonly<Record<string, string>> = {
+  grey: "gray",
+  colour: "color",
+  colours: "colors",
+};
 const FILLER = new Set([
   "filament",
   "color",
@@ -141,6 +145,18 @@ export class ReferenceCatalog {
     return this.entries.length;
   }
 
+  /**
+   * Records with this barcode, for looking one up by hand. Only the digits count, and leading zeros
+   * do not, so a 12 digit UPC finds the same product as its 13 or 14 digit EAN/GTIN form.
+   */
+  lookupBarcode(input: string): ReferenceFilament[] {
+    const wanted = (normalizeBarcode(input) ?? "").replace(/^0+/, "");
+    if (wanted.length < 6) return [];
+    return this.entries.filter(
+      (entry) => entry.barcode !== null && entry.barcode.replace(/^0+/, "") === wanted,
+    );
+  }
+
   get(id: string): ReferenceFilament | undefined {
     return this.byId.get(id);
   }
@@ -150,7 +166,10 @@ export class ReferenceCatalog {
     return this.byVendor.size;
   }
 
-  /** A brand's identity: its canonical spelling, then case, accents, punctuation and legal suffix removed. */
+  /**
+   * A brand's identity: its canonical spelling, then case, accents, punctuation and legal suffix
+   * removed.
+   */
   vendorIdentity(vendor: string | null): string {
     if (!vendor) return "";
     const clean = cleanInline(vendor);
@@ -195,7 +214,8 @@ export class ReferenceCatalog {
         const [short, long] = id.length < vendorId.length ? [id, vendorId] : [vendorId, id];
         if (short.length >= 5 && long.startsWith(short))
           for (const item of items)
-            if (!pool.has(item.reference.id)) pool.set(item.reference.id, { item, vendorExact: false });
+            if (!pool.has(item.reference.id))
+              pool.set(item.reference.id, { item, vendorExact: false });
       }
     }
     if (barcode)
@@ -206,9 +226,10 @@ export class ReferenceCatalog {
       return {
         status: "none",
         candidates: [],
-        note: !vendorId && !barcode
-          ? "The spool has no brand or barcode to look up."
-          : "No reference filament from this brand.",
+        note:
+          !vendorId && !barcode
+            ? "The spool has no brand or barcode to look up."
+            : "No reference filament from this brand.",
       };
     }
 
@@ -233,7 +254,11 @@ export class ReferenceCatalog {
       if (vendorExact) {
         score += 30;
         reasons.push("same brand");
-      } else if (item.vendorId && vendorId && (item.vendorId.startsWith(vendorId) || vendorId.startsWith(item.vendorId))) {
+      } else if (
+        item.vendorId &&
+        vendorId &&
+        (item.vendorId.startsWith(vendorId) || vendorId.startsWith(item.vendorId))
+      ) {
         score += 18;
         reasons.push("similar brand name");
       }

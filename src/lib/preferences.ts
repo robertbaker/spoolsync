@@ -25,6 +25,8 @@ export interface Preferences {
   sourceFilter?: (typeof SOURCE_FILTERS)[number];
   /** Which groups the Sync page list shows. */
   syncFilter?: (typeof SYNC_FILTERS)[number];
+  /** Save a rollback file before writing to a service. On unless this is `false`. */
+  rollbackBeforeApply?: boolean;
 }
 
 /** Keeps only values of the right shape, so a damaged or hand-edited entry cannot break a page. */
@@ -42,6 +44,8 @@ export function sanitizePreferences(raw: unknown): Preferences {
     result.tableSort = { key: sort.key as SortKey, direction: sort.direction };
   if (typeof input["lowOnly"] === "boolean") result.lowOnly = input["lowOnly"];
   if (typeof input["autoFetch"] === "boolean") result.autoFetch = input["autoFetch"];
+  if (typeof input["rollbackBeforeApply"] === "boolean")
+    result.rollbackBeforeApply = input["rollbackBeforeApply"];
   if (SOURCE_FILTERS.includes(input["sourceFilter"] as never))
     result.sourceFilter = input["sourceFilter"] as Preferences["sourceFilter"] & string;
   if (SYNC_FILTERS.includes(input["syncFilter"] as never))

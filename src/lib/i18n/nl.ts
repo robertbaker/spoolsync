@@ -4,7 +4,7 @@ import type { Catalogue } from "./en";
 export const nl: Catalogue = {
   "lang.label": "Taal",
   "lang.hint":
-    "Geldt voor de installatiegids, het opdrachtenpalet, spooldetails, gegevenskwaliteit, tabelhulpmiddelen en de voortgangsstappen. Overige tekst blijft Engels totdat die is vertaald.",
+    "Geldt voor de installatiegids, het opdrachtenpalet, spooldetails, gegevenskwaliteit, tabelhulpmiddelen, de controle van referentiegegevens en de voortgangsstappen. Overige tekst blijft Engels totdat die is vertaald.",
   "display.title": "Weergave",
   "display.hint":
     "Wijzigt hoe gewichten en prijzen op de pagina Laden worden getoond. Uw bestanden en exports worden nooit gewijzigd.",
@@ -20,7 +20,8 @@ export const nl: Catalogue = {
   "stepper.review": "Controleren",
   "stepper.apply": "Toepassen",
   "stepper.load.empty": "Voeg exports toe of verbind",
-  "stepper.load.count": "{count, plural, one {# inventaris geladen} other {# inventarissen geladen}}",
+  "stepper.load.count":
+    "{count, plural, one {# inventaris geladen} other {# inventarissen geladen}}",
   "stepper.review.ready": "Koppelen en oplossen",
   "stepper.review.one": "Laad er nog een om te vergelijken",
   "stepper.review.none": "Heeft twee inventarissen nodig",
@@ -111,7 +112,8 @@ export const nl: Catalogue = {
   "health.tracked":
     "{weight} filament wordt bijgehouden over {count, plural, one {# spoel} other {# spoelen}} met een bekend gewicht.",
   "health.todo.title": "Te doen, grootste verbetering eerst",
-  "health.todo.none": "Niets te herstellen. Elke spoel heeft de gegevens waar deze controles naar zoeken.",
+  "health.todo.none":
+    "Niets te herstellen. Elke spoel heeft de gegevens waar deze controles naar zoeken.",
   "health.todo.count": "{count, plural, one {# spoel} other {# spoelen}}",
   "health.todo.worth": "goed voor maximaal {points, plural, one {# punt} other {# punten}}",
   "health.todo.show": "Tonen",
@@ -148,8 +150,7 @@ export const nl: Catalogue = {
   "table.export.json": "Weergave exporteren (JSON)",
   "table.export.done": "{count, plural, one {# spoel geëxporteerd} other {# spoelen geëxporteerd}}",
   "table.export.none": "Deze weergave bevat geen spoelen om te exporteren",
-  "table.export.hint":
-    "Exporteert de nu getoonde spoelen in tabelvolgorde, met gewichten in gram.",
+  "table.export.hint": "Exporteert de nu getoonde spoelen in tabelvolgorde, met gewichten in gram.",
   "table.window.status": "{shown} van {total} spoelen getoond",
   "table.window.more": "{count} meer tonen",
   "table.window.all": "Alles tonen",
@@ -181,12 +182,13 @@ export const nl: Catalogue = {
   "map.unit.lb": "pond (lb)",
   "map.remember": "Deze koppeling onthouden voor bestanden met dezelfde kolommen",
   "map.restored": "De koppeling die u voor deze kolomindeling hebt opgeslagen wordt gebruikt.",
-  "map.suggested": "Voorgesteld op basis van de kolomnamen. Controleer elke kolom voor het downloaden.",
+  "map.suggested":
+    "Voorgesteld op basis van de kolomnamen. Controleer elke kolom voor het downloaden.",
   "map.problems": "Los dit eerst op",
   "map.warnings": "Goed om te weten",
   "map.err.identity": "Koppel minstens een kolom voor merk, materiaal of naam.",
-  "map.err.duplicate": "De kolom \"{header}\" wordt gebruikt voor {first} en voor {second}.",
-  "map.err.missing": "De kolom \"{header}\" staat niet in dit bestand.",
+  "map.err.duplicate": 'De kolom "{header}" wordt gebruikt voor {first} en voor {second}.',
+  "map.err.missing": 'De kolom "{header}" staat niet in dit bestand.',
   "map.warn.noWeight":
     "Er is geen gewichtskolom gekoppeld, dus alle spoelen worden geladen met een onbekend resterend gewicht.",
   "map.warn.bothWeights":
@@ -215,4 +217,85 @@ export const nl: Catalogue = {
   "map.field.diameter": "Diameter (mm)",
   "map.field.density": "Dichtheid (g/cm3)",
   "map.field.articleNumber": "Artikelnummer of barcode",
+  "reference.filter.label": "Spoelen filteren",
+  "reference.filter.all": "Alles om na te kijken",
+  "reference.filter.missing": "Ontbrekende gegevens",
+  "reference.filter.differs": "Afwijkend",
+  "reference.filter.color": "Kleurcontrole",
+  "reference.filter.ambiguous": "Keuze nodig",
+  "reference.filter.unmatched": "Geen overeenkomst",
+  "reference.action.fillAll": "Alles wat ontbreekt invullen",
+  "reference.action.overwrite": "Selectie overschrijven",
+  "reference.action.overwrite.title":
+    "Accepteert elke onbesliste overschrijving in beeld, voor de velden die overschrijven toestaan",
+  "reference.action.clear": "Keuzes wissen",
+  "reference.action.undo": "Ongedaan maken",
+  "reference.action.undone": "Ongedaan gemaakt",
+  "reference.action.exportCsv": "Exporteren als CSV",
+  "reference.action.copyCorrections": "Cataloguscorrecties kopiëren",
+  "reference.action.copyCorrections.count":
+    "Cataloguscorrecties kopiëren ({count, plural, one {# record} other {# records}})",
+  "reference.action.copyCorrections.title":
+    "Kopieert de verschillen met de catalogus, zonder spoelnamen, id's of gewichten, om naar de beheerders van de catalogus te sturen",
+  "reference.action.accept": "Accepteren",
+  "reference.action.reject": "Afwijzen",
+  "reference.action.accept.label": "Wijziging accepteren: {label}, {field}",
+  "reference.action.reject.label": "Wijziging afwijzen: {label}, {field}",
+  "reference.action.more": "{shown} meer tonen ({rest} niet getoond)",
+  "reference.toast.acceptedMissing":
+    "{count, plural, one {# ontbrekende waarde} other {# ontbrekende waarden}} geaccepteerd",
+  "reference.toast.acceptedOverwrites":
+    "{count, plural, one {# overschrijving} other {# overschrijvingen}} geaccepteerd",
+  "reference.toast.acceptedChanges":
+    "{count, plural, one {# wijziging} other {# wijzigingen}} geaccepteerd",
+  "reference.toast.rejectedChanges":
+    "{count, plural, one {# wijziging} other {# wijzigingen}} afgewezen",
+  "reference.toast.tookBack": "{count, plural, one {# keuze} other {# keuzes}} teruggenomen",
+  "reference.toast.cleared": "{count, plural, one {# keuze} other {# keuzes}} gewist",
+  "reference.toast.copied":
+    "{points, plural, one {# verschil} other {# verschillen}} gekopieerd in {records, plural, one {# record} other {# records}}",
+  "reference.toast.copyFailed": "Kopiëren mislukt, daarom is het rapport gedownload",
+  "reference.badge.fills": "Vult een leemte",
+  "reference.badge.fillsReview": "Vult een leemte, nakijken",
+  "reference.badge.overwrites": "Overschrijft",
+  "reference.value.yours": "Uw waarde: ",
+  "reference.value.reference": "Referentie: ",
+  "reference.status.chosen": "Door u gekozen",
+  "reference.status.matched": "Overeenkomst ({confidence} zekerheid)",
+  "reference.confidence.high": "hoge",
+  "reference.confidence.medium": "gemiddelde",
+  "reference.confidence.low": "lage",
+  "reference.status.noMatchChosen": "Geen overeenkomst (uw keuze)",
+  "reference.status.needsChoice": "Keuze nodig",
+  "reference.status.partial": "Gedeeltelijke overeenkomst",
+  "reference.status.noMatch": "Geen overeenkomst",
+  "reference.keyboard":
+    "Toetsenbord: druk met de focus in een spoelkaart op A om de suggesties te accepteren of op R om ze af te wijzen.",
+  "reference.empty.clean": "Niets na te kijken: alles wat overeenkwam, klopt met de referentie.",
+  "reference.empty.filter": "Geen spoelen passen bij dit filter.",
+  "reference.empty.load": "Laad een inventaris om die met de referentie te vergelijken.",
+  "reference.summary":
+    "{spools, plural, one {# spoel} other {# spoelen}}: {matched} met overeenkomst, bij {needChoice} is een keuze nodig, {unmatched} zonder overeenkomst. {proposals, plural, one {# suggestie} other {# suggesties}} ({safe} veilig, {review} na te kijken); {accepted} geaccepteerd, {rejected} afgewezen, {pending} onbeslist.",
+  "reference.summary.notApplicable": "{count} kunnen niet door hun dienst worden opgeslagen.",
+  "reference.summary.colors":
+    "{count, plural, one {# kleur komt} other {# kleuren komen}} niet overeen met de referentie.",
+  "reference.colors.title": "Vergelijkbare kleuren zoeken",
+  "reference.colors.help":
+    "Zoekt in de catalogus naar de kleuren die het dichtst bij de kleur van een spoel of een ingetypte kleur liggen. Handig voor een spoel zonder overeenkomst of als vervanger van een uitverkochte kleur. Meerkleurige filamenten worden niet doorzocht.",
+  "reference.colors.spool": "Kleur van een spoel",
+  "reference.colors.choose": "Kies een spoel",
+  "reference.colors.noneColored": "Geen spoel heeft één kleur",
+  "reference.colors.hex": "Of een kleur",
+  "reference.colors.sameMaterial": "Alleen hetzelfde materiaal als de spoel",
+  "reference.colors.invalid":
+    "Voer een kleur in als zes hexadecimale cijfers, bijvoorbeeld #1A2B3C.",
+  "reference.colors.found":
+    "{count, plural, one {# dichtstbijzijnde kleur} other {# dichtstbijzijnde kleuren}} in de catalogus, de beste eerst.",
+  "reference.colors.needMaterial":
+    "Kies een spoel met een materiaal om de zoekopdracht daartoe te beperken.",
+  "reference.colors.none": "Geen cataloguskleur gevonden.",
+  "reference.colors.same": "ziet er hetzelfde uit",
+  "reference.colors.close": "dichtbij",
+  "reference.colors.different": "een andere kleur",
+  "reference.colors.view": "Record bekijken",
 };

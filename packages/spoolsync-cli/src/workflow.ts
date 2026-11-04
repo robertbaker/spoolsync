@@ -7,8 +7,9 @@ import { ExecutionError, executeWrites } from "./execution";
 import { prepareExports } from "./exports";
 import { loadInputs } from "./inputs";
 import { createCliPlan } from "./planning";
-import { loadReferenceFile, runReference } from "./reference";
+import { loadReferenceFile, referenceMismatches, runReference } from "./reference";
 import { reportInventoryOnly, reportWorkflow } from "./report";
+import { runRestore, saveRollbackBeforeWrite } from "./rollback";
 import type { CliDependencies, CliOutput } from "./runtime";
 
 export async function runWorkflow(
@@ -18,6 +19,8 @@ export async function runWorkflow(
   /** With `--watch`, the previous run's snapshot, so this run can report what changed. */
   previous?: InventorySnapshot,
 ): Promise<InventorySnapshot> {
+  if (options.restoreRollback)
+    return snapshotInventory(await runRestore(options, dependencies, output));
   const { loaded, services } = await loadInputs(options, dependencies);
   const loadedSpools = [...loaded.values()].flatMap((result) => result.spools);
   // `--cleanup-report` on its own lists proposals for what is loaded and plans nothing.
@@ -26,6 +29,9 @@ export async function runWorkflow(
   const referenceFile = await loadReferenceFile(options, dependencies);
   const reference = referenceFile ? runReference(referenceFile, loaded, options) : undefined;
   const referenceOnly = Boolean(options.referenceReport) && !options.reference;
+  const mismatched = Boolean(
+    options.failOnMismatch && reference && referenceMismatches(reference).total,
+  );
   if (
     options.summary ||
     options.reorder ||
@@ -37,6 +43,7 @@ export async function runWorkflow(
     const { staged } = await prepareExports(options, loaded, new Map(), dependencies);
     const { written } = await executeWrites(staged);
     const snapshot = snapshotInventory(loadedSpools);
+    if (mismatched) output.setExitCode(1);
     reportInventoryOnly(
       options,
       loaded,
@@ -54,14 +61,27 @@ export async function runWorkflow(
     planning.plan,
     dependencies,
   );
+  const rollbackFiles: string[] = [];
   const apply =
     options.apply && services.length
       ? async () => {
           const log: ApplyLogEntry[] = [];
           for (const service of services) {
             try {
+              const changes = planning.plan.get(service.source) ?? [];
+              const rollbackFile = await saveRollbackBeforeWrite(
+                service.source,
+                service.label,
+                changes,
+                options,
+                dependencies,
+              );
+              if (rollbackFile) {
+                rollbackFiles.push(rollbackFile);
+                if (!options.json) output.error(`Saved rollback file ${rollbackFile}`);
+              }
               log.push(
-                ...(await service.apply(planning.plan.get(service.source) ?? [], (done, total) => {
+                ...(await service.apply(changes, (done, total) => {
                   if (!options.json)
                     output.error(`Applying ${service.label} changes: ${done}/${total}`);
                 })),
@@ -75,7 +95,7 @@ export async function runWorkflow(
         }
       : undefined;
   const { applied, written } = await executeWrites(staged, apply);
-  if (applied?.some((entry) => !entry.ok)) output.setExitCode(1);
+  if (applied?.some((entry) => !entry.ok) || mismatched) output.setExitCode(1);
   const snapshot = snapshotInventory(
     planning.spools,
     planning.matches.suggestions.map((suggestion) => suggestion.pair.join(",")),
@@ -83,7 +103,15 @@ export async function runWorkflow(
   const changes = previous && diffSnapshots(previous, snapshot);
   reportWorkflow(
     options,
-    { loaded, planning, applied, written, exportWarnings, ...(changes ? { changes } : {}) },
+    {
+      loaded,
+      planning,
+      applied,
+      written,
+      exportWarnings,
+      rollbackFiles,
+      ...(changes ? { changes } : {}),
+    },
     output,
   );
   return snapshot;

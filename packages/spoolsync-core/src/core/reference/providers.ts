@@ -125,6 +125,16 @@ export const PROVIDERS: readonly ReferenceProvider[] = [
       remaining: [],
     },
     presets: REFERENCE_PRESETS.filter((preset) => preset.providerId === "filamentcolors"),
+    // A swatch's own page is /swatch/<id>/; the API lists no address for it.
+    prepareRecord: (record) => {
+      const swatch = record as { id?: unknown } | null;
+      return typeof swatch?.id === "number" || typeof swatch?.id === "string"
+        ? {
+            ...(record as object),
+            source_url: `https://filamentcolors.xyz/swatch/${encodeURIComponent(String(swatch.id))}/`,
+          }
+        : record;
+    },
     defaults: {
       urlTemplate: "https://filamentcolors.xyz/api/swatch/?page_size=100",
       pagination: { kind: "next-link", path: "next" },

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { expect, test } from "@playwright/test";
@@ -110,12 +111,61 @@ test("connect, load, resolve, apply to Spoolman and show Spoolstock as read-only
   await black.getByRole("radio", { name: "875" }).check();
   await expect(black.getByText("Ready")).toBeVisible();
 
+  // A rollback file is saved just before the write, holding the weight as it was.
+  const saved = page.waitForEvent("download");
   page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: /^Apply \d+ changes? to Spoolman$/ }).click();
+  const rollbackFile = await saved;
+  expect(rollbackFile.suggestedFilename()).toMatch(/^spoolsync-rollback-spoolman-.*\.json$/);
+  const rollbackPath = await rollbackFile.path();
+  const rollback = JSON.parse(readFileSync(rollbackPath, "utf8"));
+  expect(rollback).toMatchObject({ format: "spoolsync-rollback", source: "spoolman" });
+  expect(rollback.updates).toContainEqual(
+    expect.objectContaining({
+      sourceId: "51",
+      changes: expect.arrayContaining([
+        expect.objectContaining({ field: "remainingWeight", before: 860, after: 875 }),
+      ]),
+    }),
+  );
+
   await expect(page.getByText(/^\d+ applied$/)).toBeVisible();
   expect(fake.spools.get(51)).toMatchObject({ remaining_weight: 875 });
   await expect(page.getByText("Spoolstock is read-only")).toBeVisible();
   await expect(page.getByRole("button", { name: "Download Spoolstock CSV" })).toHaveCount(0);
+
+  // The file takes the sync back, through the same confirmed write.
+  await page.locator("#rollback-file").setInputFiles(rollbackPath);
+  await expect(page.locator("#rollback")).toContainText("can be put back");
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.locator("[data-action='restore-rollback']").click();
+  await expect.poll(() => fake.spools.get(51)?.remaining_weight).toBe(860);
+});
+
+test("the rollback file can be turned off, and then none is saved", async ({ page }) => {
+  await routeSpoolman(page);
+  await page.goto("/load");
+  await page.getByLabel("Spoolman address").fill(SPOOLMAN);
+  await page.getByRole("button", { name: "Save and test" }).click();
+  await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();
+  await page.goto("/load");
+  await page.locator("#spoolman-load").click();
+  await expect(page.getByText(`Loaded 2 spools from ${SPOOLMAN}`)).toBeVisible();
+  await page.locator("#spoolstock-file").setInputFiles(spoolstockCsv);
+  await expect(page.getByText("Loaded 2 spools from export.csv")).toBeVisible();
+  await page.goto("/sync");
+  const black = page
+    .locator("article", { has: page.getByRole("heading", { name: /Anycubic PLA Black/ }) })
+    .filter({ has: page.getByText("Spoolstock 410e5312") });
+  await black.getByRole("radio", { name: "875" }).check();
+
+  await page.locator("#rollback-before-apply").uncheck();
+  const downloads: string[] = [];
+  page.on("download", (download) => downloads.push(download.suggestedFilename()));
+  page.once("dialog", (dialog) => void dialog.accept());
+  await page.getByRole("button", { name: /^Apply \d+ changes? to Spoolman$/ }).click();
+  await expect(page.getByText(/^\d+ applied$/)).toBeVisible();
+  expect(downloads).toEqual([]);
 });
 
 test("sync asks for two sources", async ({ page }) => {

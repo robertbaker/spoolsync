@@ -1,3 +1,4 @@
+import { pairKey } from "@spoolsync/core/core/match";
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { SOURCE_IDS } from "@spoolsync/core/core/model";
 import {
@@ -23,6 +24,8 @@ export interface InsightsStorage {
   saveSnapshot(source: SourceId, snapshot: InventorySnapshot): boolean;
   readWatchlist(): string[];
   toggleWatched(key: string): string[];
+  /** Pairs (`pairKey` form) the person said are different spools; duplicates never include them. */
+  readDifferentPairs?(): ReadonlySet<string>;
 }
 
 /** What a reloaded file looked like compared with the last one for the same service. */
@@ -77,7 +80,13 @@ export class LoadInsights {
   /** Recomputes reports from what is loaded now and forgets changes that no longer apply. */
   refresh(): void {
     const loaded = SOURCE_IDS.flatMap((source) => this.results.get(source) ?? []);
-    this.duplicates = findDuplicateSpools(loaded);
+    const different = this.storage.readDifferentPairs?.();
+    this.duplicates = findDuplicateSpools(
+      loaded,
+      different?.size
+        ? { isDifferent: (a, b) => different.has(pairKey(spoolKey(a), spoolKey(b))) }
+        : {},
+    );
     this.duplicateSpoolKeys = duplicateKeys(this.duplicates);
     this.health = checkInventoryHealth(loaded);
     const spools = loaded.flatMap((result) => result.spools);

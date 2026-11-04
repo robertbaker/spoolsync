@@ -1,7 +1,14 @@
 import { ApplyReloadError, type ApplyAndReloadResult } from "@spoolsync/core/apply";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
-import type { ApplyLogEntry, LoadResult, SourceId } from "@spoolsync/core/core/model";
+import {
+  isWritableSource,
+  type ApplyLogEntry,
+  type LoadResult,
+  type SourceId,
+  type WritableSourceId,
+} from "@spoolsync/core/core/model";
 import { snapshotMatchesTarget } from "@spoolsync/core/core/target";
+import type { RollbackDocument } from "@spoolsync/core/workflow";
 
 import { cleanErrorText, type SyncHistoryRecord } from "~/lib/browser/storage/sync-history";
 
@@ -22,6 +29,14 @@ export interface ApplyService {
   connect(): ApplyTarget | null;
 }
 
+/** Saves a record of what is about to change, so a write can be taken back. */
+export interface RollbackHook {
+  enabled(): boolean;
+  build(source: WritableSourceId, changes: PlannedChange[], target: string): RollbackDocument;
+  /** Throws when the file could not be saved. */
+  save(document: RollbackDocument): void;
+}
+
 export interface ApplyContext {
   loaded: Map<SourceId, LoadResult>;
   onApplied(): void;
@@ -37,6 +52,8 @@ export class ApplyController {
     private readonly confirmWrite: (message: string) => boolean = (message) => confirm(message),
     /** Called once per attempted write run, after it finishes (including failed runs). */
     private readonly record?: (entry: SyncHistoryRecord) => void,
+    /** Called after the write is confirmed and before anything is sent. */
+    private readonly rollback?: RollbackHook,
   ) {}
 
   private remember(
@@ -78,6 +95,24 @@ export class ApplyController {
       )
     )
       return;
+    if (this.rollback?.enabled() && isWritableSource(source)) {
+      const document = this.rollback.build(source, changes, target.description);
+      if (document.updates.length || document.creations.length) {
+        try {
+          this.rollback.save(document);
+        } catch {
+          // Writing without the safety net would defeat the point, so nothing is written.
+          status.replaceChildren(
+            notice(
+              "error",
+              "Nothing was written",
+              'The rollback file could not be saved. Turn off "Save a rollback file" to write without one.',
+            ),
+          );
+          return;
+        }
+      }
+    }
     status.replaceChildren(notice("info", "Applying…"));
     try {
       const result = await target.apply(changes, (done, total) => {

@@ -1,8 +1,9 @@
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
-import { summarizeInventory } from "@spoolsync/core/workflow";
+import { spoolKey, summarizeInventory } from "@spoolsync/core/workflow";
 
 import {
   clearLoadResult,
+  loadMatchDecisions,
   readLoadResult,
   readSnapshot,
   readWatchlist,
@@ -12,6 +13,7 @@ import {
 } from "~/lib/browser/storage";
 import { recordStockPoint } from "~/lib/browser/storage/stock-history";
 import { LOCALE_CHANGED } from "~/lib/i18n";
+import { readScan } from "~/lib/labels/scan";
 import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
@@ -24,6 +26,7 @@ import { wireApiSources } from "./load/api-sources";
 import { wireCleanupPanel } from "./load/cleanup-view";
 import { wireConnectionPanels } from "./load/connection-panels";
 import { renderCostChart } from "./load/cost-chart";
+import { wireDryingPanel } from "./load/drying-panel";
 import { renderFileHistory } from "./load/file-history-view";
 import { wireFileSource } from "./load/file-source";
 import { wireHealthDashboard } from "./load/health-dashboard";
@@ -53,6 +56,7 @@ const insights = new LoadInsights(state.results, {
   saveSnapshot,
   readWatchlist,
   toggleWatched,
+  readDifferentPairs: () => new Set(loadMatchDecisions().rejected),
 });
 // Watching a spool changes the panels and highlights too, so it takes the full render.
 const renderTable = createInventoryTable(state.results, insights, () => render());
@@ -92,8 +96,36 @@ const tableTools = toolsRoot
   : null;
 const referenceRoot = document.getElementById("reference-panel");
 const reference = referenceRoot ? wireReferencePanel(referenceRoot, state.results) : null;
+const dryingRoot = document.getElementById("drying-panel");
+const drying = dryingRoot
+  ? wireDryingPanel(
+      dryingRoot,
+      state.results,
+      (spool) => reference?.controller.selectedFor(spoolKey(spool))?.reference ?? null,
+    )
+  : null;
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
+// A label scanner types the code and presses Enter, so Enter in the filter box opens that spool.
+const filterBox = document.getElementById("spool-search-input") as HTMLInputElement | null;
+filterBox?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.isComposing) return;
+  const scan = readScan(
+    filterBox.value,
+    [...state.results.values()].flatMap((result) => result.spools),
+  );
+  if (scan.kind === "text") return;
+  event.preventDefault();
+  if (scan.kind === "spool") {
+    filterBox.value = "";
+    filterBox.dispatchEvent(new Event("input"));
+    drawer.open(spoolKey(scan.spool));
+  } else if (scan.kind === "ambiguous") {
+    showToast(`${scan.spools.length} loaded spools share the barcode ${scan.code}`, "info");
+  } else {
+    showToast(`No loaded spool has the code ${scan.code}. Load that service first.`, "info");
+  }
+});
 const render = () => {
   // The locale listener below outlives a page that was torn down (and test DOMs without this page).
   if (!document.getElementById("loaded-table")) return;
@@ -107,6 +139,7 @@ const render = () => {
   health?.update();
   tableTools?.update();
   reference?.update();
+  drying?.update();
   inventoryReport.update();
   sinceVisit.update();
   if (insightsRoot) renderInsights(insightsRoot, insights, state.results);

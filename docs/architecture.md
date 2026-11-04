@@ -647,6 +647,23 @@ never hold spool details. `ApplyController` (fifth constructor argument) and `Do
 a failing recorder never hides the result. `history-view.ts` lists it newest first under Apply with
 "Copy summary" (`clipboard.ts`: async clipboard, then a legacy fallback) and "Clear history".
 
+**Rollback files.** Before an API write, `ApplyController` (sixth constructor argument, a
+`RollbackHook`) builds a `spoolsync-rollback` JSON document (`workflow/rollback.ts`, `buildRollback`)
+and saves it through the browser's download. It lists, per spool, each changed field's earlier value
+(`before`) and the value written (`after`), plus a one-line description of every spool that was
+created; never the whole inventory. It is saved after the write is confirmed and before anything is
+sent; if it cannot be saved nothing is written and the person is told how to turn the file off. The
+checkbox on the Apply step ("Save a rollback file before writing to a service", on by default) is the
+`rollbackBeforeApply` preference; file downloads need none, since the original file is the person's
+own. "Roll back a sync" (`sync/rollback-view.ts`) reads such a file (`parseRollback` refuses anything
+that is not version 1 JSON for a writable service and drops malformed entries) and `planRollback`
+compares it with the service's current inventory: a field is put back only while it still holds the
+value that was written, so later edits are never overwritten; fields that changed again, spools that
+are gone and fields already at their earlier value are listed and left alone. What remains is an
+ordinary `PlannedUpdate` list that goes through the same confirmed `ApplyController.run` (identity
+check, confirmation, history, and a rollback file of its own). SpoolSync never deletes spools, so
+created spools are listed to delete by hand, and cross-service ids that were stamped are not removed.
+
 **Touch.** `swipe.ts` holds a pure `SwipeTracker` and `attachSwipe`. In the one-at-a-time match
 review, a touch or pen swipe right answers "same spool" and left skips (it stays pending); the card
 keeps `touch-action: pan-y`, so a mostly vertical movement is left to scrolling, and mouse input and
@@ -874,6 +891,45 @@ visitor, so the catalog is kept in three layers, newest data first:
    to the provider's built-in address, paging and mapping (`buildFetchConfig(...).builtIn`); a custom
    address is fetched and cached as before.
 
+**What a record carries beyond the spool fields.** Besides the fields a spool can be filled or
+corrected with, `ReferenceFilament` carries information that is only shown, never written to a
+service (SpoolSync stores no field for it): `sourceUrl` (the record's own page on the service:
+`openfilamentdatabase.org/brands/<brand>/<material>/<filament>` or `filamentcolors.xyz/swatch/<id>/`,
+so every proposed change can be checked at its source), `imageUrl` (FilamentColors' swatch photo,
+loaded from its own host with no referrer), `dryingTemp` and `dryingHours` (Open Filament Database),
+and up to five `buyLinks` per size (shop name, `https:` link and the countries the shop ships to; shops
+that list the visitor's country, taken from the browser language, come first and others are marked).
+All of it is re-validated on every read (`sanitizeFilament`, `sanitizeBuyLinks`), and a link that is
+not `https:` is dropped. The Open Filament Database snapshot is about 6.4 MB raw (950 kB compressed)
+with these.
+
+**Load-page tools around a catalog.** The catalog section shows when its data is from and what the
+last check found (`CatalogInfo.note`), and "Check for updates" (`fetchProvider(..., { check: true })`)
+asks the service whether anything changed even while the copy is fresh. "Look up a barcode"
+(`ReferenceCatalog.lookupBarcode`) finds records by digits only, ignoring leading zeros, so a 12 digit
+UPC finds the same product as its 13 or 14 digit EAN/GTIN form. "Export as CSV" (`referenceCsv`) writes
+one line per field that would be filled or compared, plus one per spool that matched nothing, with
+spreadsheet formulas defused. With focus inside a spool card, `A` accepts and `R` rejects that
+card's undecided suggestions (a single listener on the panel, ignored while typing or with a
+modifier). "None of these" answers are remembered across visits (`spoolsync:reference-ruled-out`,
+spool keys only, its own group in Saved settings, never exported); picking a record stays per tab
+like the cleanup choices.
+
+**Files.** `--reference` (CLI) and the file loader also accept a snapshot downloaded from the site
+(`/reference/<provider>.json`); `parseReferenceFile` recognises it by its shape and reads it through
+the same validation, keeping its credit line.
+
+**Duplicates.** `findDuplicateSpools(results, { isDifferent })` skips pairs a person marked "different"
+in the spool drawer, so such a pair stops being reported (and cannot bridge two groups through a third
+spool). `LoadInsights` reads those answers through `InsightsStorage.readDifferentPairs`.
+
+**Guards.** `tools/icon-check.test.ts` fails when a named icon is missing from the installed icon
+sets (a dependency update renaming one broke the Load page once); `bun run bundle:check`
+(`tools/check-bundle-size.ts`, budgets in `tools/bundle-budget/check.ts`, run in CI after the build)
+fails when gzipped scripts or styles outgrow their budgets; `e2e/layout.spec.ts` checks that the main
+pages and the Load page with every service panel open do not scroll sideways on a phone, large phone
+and tablet.
+
 **Fetching.** `fetch.ts` is generic and uses injected `ReferenceIO` (`fetch`, `sleep`, `now`). The
 endpoint is `https:` only, with no embedded credentials and a real host; `{offset}`, `{page}` and
 `{limit}` are filled in. Paging is none, a next-link path in the response (followed only within the
@@ -912,6 +968,37 @@ reference service. Both are path keys in `--config` files, appear in the complet
 the report schema (a `reference` object in both report kinds) and `src/components/cli/data.ts`.
 
 ## Load-page tools, backup, and shared styles
+
+**Color finder and catalog corrections.** `reference/color-search.ts` has `ColorIndex`, built once per
+catalog (a `WeakMap` in `load/reference-colors.ts`): it keeps the single-color records with a valid hex,
+precomputes their Lab values, and returns the nearest by CIEDE2000, optionally limited to one
+material (spelling-insensitive) or brand, with ties broken by id so the order never changes. The
+"Find similar colors" section of the reference panel uses it for a chosen spool's color or a typed
+hex; it is created once per catalog and spool count, so redrawing the panel keeps its open state.
+`reference/correction-report.ts` turns the analysis into Markdown for a catalog's maintainers: only
+matches that are certain (a clear match or a person's choice), only values that differ (a gap in the
+spool is not a correction; vendor and price are skipped), color mismatches with equal color counts,
+grouped by provider and record with the record's own link, and identical disagreements from several
+spools counted once. The report carries values only: no spool names, ids, services, weights or
+prices, and a test asserts it. "Copy catalog corrections" copies it, or downloads a `.md` file when
+the clipboard is unavailable.
+
+**Drying guide.** `core/drying.ts` holds the typical drying temperature, time and moisture rating for
+common materials (matched on the material name with punctuation removed, so `PET-G`, `PETG-CF`,
+`PA12-CF` and `Nylon` land on the right row) and `dryingFor`, which lets a catalog record's
+`dryingTemp` and `dryingHours` take precedence, filling the other from the typical row. `spoolsToDry`
+lists spools of moisture-prone materials (archived and empty ones, and materials that rarely need
+drying, only on request) and `groupDrying` groups them for a dryer run. `load/drying-panel.ts` is the
+collapsed "Drying guide" panel; its catalog lookup is the reference controller's `selectedFor`, so a
+spool tied to a record uses that record's figures. The figures are marked "typical" or "from the
+catalog" and are advice, not a manufacturer's word.
+
+**Scan lookup.** `lib/labels/scan.ts` (`readScan`) reads what a barcode scanner that types, or a
+paste, puts in the Load page's filter box. `spoolman:12` (our label payload, for any known service,
+case-insensitive, no whitespace) opens that spool's drawer; a product barcode matches `upc` after
+normalising UPC-A and EAN-13 to the same 13 digits, and several spools sharing one is reported
+instead of guessed; anything else stays ordinary filter text. Enter in the filter box (`load.ts`)
+acts on it.
 
 **Weigh-in calculator.** The spool drawer has a "Weigh in" section (`load/weigh-in-panel.ts`, pure rules
 in `lib/weigh-in.ts`). The visitor types the scale reading and the empty-spool weight (both in the
@@ -1070,7 +1157,10 @@ tabs, so no layout file changed.
 
 Migrated so far: the progress steps, the setup guide, the command palette (chrome and action
 titles), the spool drawer's section headings, the data health dashboard, the table tools, the column
-mapper, and the display settings. Everything else, including the static Astro page text, source
+mapper, the display settings, and the review part of the reference panel (filters, accept and reject,
+fill and overwrite actions, match status, summary, the color finder and the corrections button). The
+reference panel's provider setup (addresses, paging, field mapping), the drying guide and the
+rollback tool stay English, as do core field names such as "Diameter (mm)". Everything else, including the static Astro page text, source
 guides and importer warnings, stays English. `<html lang>` follows the chosen language, so on a
 non-English setting the not-yet-translated static text is announced by screen readers with the wrong
 language until the pages are migrated; this is the main known gap. Add strings in `en.ts` first, then

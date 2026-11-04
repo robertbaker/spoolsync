@@ -135,6 +135,7 @@ export {
   type ReferenceCacheMeta,
 } from "./reference/cache";
 export { probeFreshness } from "./reference/freshness";
+export { REFERENCE_CSV_COLUMNS, referenceCsv } from "./reference/report-csv";
 export {
   SNAPSHOT_VERSION,
   decodeSnapshot,
@@ -157,3 +158,11 @@ export {
   type ProviderSettings,
   type ReferenceSettings,
 } from "./reference/settings";
+export { ColorIndex, type NearestColor, type NearestColorOptions } from "./reference/color-search";
+export {
+  correctionRecords,
+  correctionReport,
+  type CorrectionPoint,
+  type CorrectionRecord,
+  type CorrectionReport,
+} from "./reference/correction-report";

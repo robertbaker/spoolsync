@@ -14,9 +14,12 @@ import {
   REFERENCE_FIELDS,
   buildFetchConfig,
   providerById,
+  correctionReport,
+  referenceCsv,
   type Pagination,
   type ProviderSettings,
   type ReferenceField,
+  type ReferenceFilament,
   type ReferenceIO,
   type ReferenceItem,
   type ReferenceProposal,
@@ -31,17 +34,22 @@ import {
   loadReferenceCache,
   loadReferenceCatalog,
   loadReferenceChoices,
+  loadReferenceRuledOut,
   loadReferenceSettings,
   saveAcceptedReferences,
   saveReferenceCacheEntry,
   saveReferenceChoices,
+  saveReferenceRuledOut,
   saveReferenceSettings,
   touchReferenceCache,
 } from "~/lib/browser/storage/reference";
+import { t, type MessageKey } from "~/lib/i18n";
 
 import { h, setChildren, showToast } from "../dom";
+import { download } from "../sync/presentation";
 import { displayValue } from "./cleanup-view";
 import { plural } from "./presentation";
+import { colorFinder } from "./reference-colors";
 import {
   FILTERS,
   ReferenceController,
@@ -75,6 +83,8 @@ const browserStore: ReferenceStore = {
   saveAccepted: saveAcceptedReferences,
   loadChoices: loadReferenceChoices,
   saveChoices: saveReferenceChoices,
+  loadRuledOut: loadReferenceRuledOut,
+  saveRuledOut: saveReferenceRuledOut,
   loadCache: loadReferenceCache,
   loadCatalog: loadReferenceCatalog,
   saveCache: saveReferenceCacheEntry,
@@ -96,6 +106,97 @@ function swatch(hex: string | null | undefined): HTMLElement {
   });
   if (hex) chip.style.backgroundColor = `#${hex}`;
   return chip;
+}
+
+const number = (value: number) => value.toLocaleString("en", { maximumFractionDigits: 2 });
+
+/** One-line facts about a reference record, for the barcode lookup and the match card. */
+function recordFacts(reference: ReferenceFilament): string {
+  const range = (low: number | null, high: number | null, unit: string) =>
+    low !== null && high !== null
+      ? `${number(low)}\u2013${number(high)} ${unit}`
+      : low !== null || high !== null
+        ? `${number((low ?? high) as number)} ${unit}`
+        : null;
+  return [
+    reference.diameter !== null ? `${number(reference.diameter)} mm` : null,
+    reference.initialWeight !== null ? `${number(reference.initialWeight)} g` : null,
+    range(reference.nozzleTempMin, reference.nozzleTempMax, "\u00b0C nozzle"),
+    range(reference.bedTempMin, reference.bedTempMax, "\u00b0C bed"),
+    reference.density !== null ? `${number(reference.density)} g/cm\u00b3` : null,
+  ]
+    .filter(Boolean)
+    .join(" \u00b7 ");
+}
+
+/**
+ * Drying advice, when the source gives it. SpoolSync keeps no drying field, so this is information
+ * only.
+ */
+function dryingText(reference: ReferenceFilament): string | null {
+  if (reference.dryingTemp == null && reference.dryingHours == null) return null;
+  return `Drying: ${[
+    reference.dryingTemp != null ? `${number(reference.dryingTemp)} \u00b0C` : null,
+    reference.dryingHours != null ? `${number(reference.dryingHours)} h` : null,
+  ]
+    .filter(Boolean)
+    .join(" for ")}`;
+}
+
+/** The visitor's country from the browser language ("en-GB" is GB), or `null` when it says none. */
+function visitorRegion(): string | null {
+  const region = /^[a-z]{2,3}-([A-Za-z]{2})\b/.exec(navigator.language ?? "")?.[1];
+  return region ? region.toUpperCase() : null;
+}
+
+/**
+ * Where a record can be bought: shops that list the visitor's country come first, and a shop that
+ * lists other countries only is marked, since it may not deliver. Information only; the links go to
+ * the shops' own pages.
+ */
+function buyLinks(reference: ReferenceFilament): HTMLElement | null {
+  const links = reference.buyLinks ?? [];
+  if (!links.length) return null;
+  const region = visitorRegion();
+  const ships = (link: (typeof links)[number]) =>
+    region && link.shipsTo.length ? link.shipsTo.includes(region) : null;
+  const ordered = [...links].sort((x, y) => Number(ships(y) === true) - Number(ships(x) === true));
+  const nodes: Array<Node | string> = ["Where to buy: "];
+  ordered.slice(0, 3).forEach((link, index) => {
+    if (index) nodes.push(", ");
+    nodes.push(
+      h(
+        "a",
+        {
+          href: link.url,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          class: "text-primary-text underline underline-offset-2 hover:no-underline",
+        },
+        link.store,
+      ),
+    );
+    if (ships(link) === false) nodes.push(` (does not list ${region})`);
+  });
+  return h("p", { class: "text-xs text-muted-foreground" }, ...nodes);
+}
+
+/**
+ * The photo or swatch image a source supplies. It is loaded from the source's own host, without a
+ * referrer.
+ */
+function referenceImage(reference: ReferenceFilament, label: string): HTMLElement | null {
+  if (!reference.imageUrl) return null;
+  return h("img", {
+    src: reference.imageUrl,
+    alt: `Photo of ${label}`,
+    width: "40",
+    height: "40",
+    loading: "lazy",
+    decoding: "async",
+    referrerpolicy: "no-referrer",
+    class: "size-10 shrink-0 rounded border object-cover",
+  });
 }
 
 function colorChips(colors: readonly string[]): HTMLElement {
@@ -156,6 +257,11 @@ export function wireReferencePanel(
   snapshots: ReferenceSnapshots | null = browserSnapshots,
 ): { update(): void; open(): void; controller: ReferenceController } {
   const controller = new ReferenceController(results, store, io, snapshots);
+  let finder: {
+    catalog: ReferenceController["catalog"];
+    key: string;
+    element: HTMLElement | null;
+  } | null = null;
   const details = h("details", {
     id: "reference-details",
     "data-panel": "reference",
@@ -171,6 +277,27 @@ export function wireReferencePanel(
   );
   const content = h("div", { class: "px-4 pb-4" });
   details.append(summary, content);
+  // One listener for every card, so a re-draw never leaves a stale handler behind.
+  content.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    const key = event.key.toLowerCase();
+    if (key !== "a" && key !== "r") return;
+    const target = event.target as HTMLElement;
+    if (target.closest("input, textarea, select, [contenteditable]")) return;
+    const spoolKey = target.closest<HTMLElement>("li[data-spool]")?.dataset["spool"];
+    const item = spoolKey
+      ? controller.visible().find((entry) => entry.spoolKey === spoolKey)
+      : undefined;
+    const ids = (item?.proposals ?? [])
+      .filter((proposal) => proposal.applicable && controller.status(proposal) === "pending")
+      .map((proposal) => proposal.id);
+    if (!ids.length) return;
+    event.preventDefault();
+    act(
+      () => (key === "a" ? controller.accept(ids) : controller.reject(ids)),
+      (count) => `${key === "a" ? "Accepted" : "Rejected"} ${plural(count, "change")}`,
+    );
+  });
   root.replaceChildren(details);
 
   let limit = PAGE;
@@ -179,6 +306,7 @@ export function wireReferencePanel(
   /** Unsaved endpoint settings being edited, per provider. */
   const drafts = new Map<ReferenceProviderId, ProviderSettings>();
   let settingsErrors: string[] = [];
+  let barcodeQuery = "";
 
   function summaryText(): string {
     const counts = controller.counts();
@@ -698,6 +826,122 @@ export function wireReferencePanel(
     );
   }
 
+  /** Finds the records that carry a barcode, so a spool can be identified from its label. */
+  function barcodeLookup(): HTMLElement | null {
+    const catalog = controller.catalog;
+    if (!catalog) return null;
+    const input = h("input", {
+      id: "reference-barcode",
+      type: "text",
+      inputmode: "numeric",
+      autocomplete: "off",
+      class: INPUT,
+      placeholder: "Barcode digits (UPC / EAN)",
+      "aria-label": "Barcode to look up",
+    });
+    input.value = barcodeQuery;
+    const result = h("div", {
+      id: "reference-barcode-result",
+      class: "mt-2 grid gap-2",
+      role: "status",
+      "aria-live": "polite",
+    });
+    const search = h(
+      "button",
+      { type: "button", class: BUTTON, "data-key": "lookup-barcode" },
+      "Look up",
+    );
+    const show = () => {
+      barcodeQuery = input.value;
+      const digits = barcodeQuery.replace(/\D/g, "");
+      if (!digits) {
+        result.replaceChildren();
+        return;
+      }
+      const found = catalog.lookupBarcode(digits);
+      if (!found.length) {
+        result.replaceChildren(
+          h(
+            "p",
+            { class: "text-xs text-muted-foreground" },
+            digits.length < 6
+              ? "Enter at least 6 digits."
+              : `No record in this catalog has the barcode ${digits}.`,
+          ),
+        );
+        return;
+      }
+      setChildren(
+        result,
+        ...found.slice(0, 10).map((reference) =>
+          h(
+            "div",
+            {
+              class: "flex items-start gap-2 rounded-md border p-2 text-xs",
+              "data-record": reference.id,
+            },
+            referenceImage(reference, reference.colorName ?? reference.id),
+            swatch(reference.colorHex),
+            h(
+              "div",
+              { class: "min-w-0" },
+              h(
+                "p",
+                { class: "font-medium text-foreground" },
+                [reference.vendor, reference.material, reference.name, reference.colorName]
+                  .filter(Boolean)
+                  .join(" ") || reference.id,
+              ),
+              h(
+                "p",
+                { class: "text-muted-foreground" },
+                recordFacts(reference) || "No further details.",
+              ),
+              dryingText(reference)
+                ? h("p", { class: "text-muted-foreground" }, dryingText(reference))
+                : null,
+              buyLinks(reference),
+              reference.sourceUrl
+                ? h(
+                    "a",
+                    {
+                      href: reference.sourceUrl,
+                      target: "_blank",
+                      rel: "noopener noreferrer",
+                      class: "text-primary-text underline underline-offset-2 hover:no-underline",
+                    },
+                    `View on ${reference.providerLabel}`,
+                  )
+                : null,
+            ),
+          ),
+        ),
+        found.length > 10
+          ? h(
+              "p",
+              { class: "text-xs text-muted-foreground" },
+              `${found.length - 10} more records have this barcode.`,
+            )
+          : null,
+      );
+    };
+    search.addEventListener("click", show);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        show();
+      }
+    });
+    show();
+    return h(
+      "div",
+      { class: "mt-3" },
+      h("label", { for: "reference-barcode", class: "text-xs font-medium" }, "Look up a barcode"),
+      h("div", { class: "mt-1 flex gap-2" }, input, search),
+      result,
+    );
+  }
+
   function catalogSection(): HTMLElement | null {
     const info = controller.info;
     if (!info) return null;
@@ -710,6 +954,26 @@ export function wireReferencePanel(
       controller.unload();
       sourceMessage = null;
       summary.textContent = summaryText();
+      draw();
+    });
+    const recheck = h(
+      "button",
+      { type: "button", class: BUTTON, "data-key": "check-updates" },
+      "Check for updates",
+    );
+    recheck.hidden = info.origin === "file";
+    recheck.disabled = controller.busy;
+    recheck.addEventListener("click", async () => {
+      sourceMessage = { tone: "info", text: "Checking for updates\u2026" };
+      draw();
+      const outcome = await controller.fetchProvider(info.providerId, { check: true });
+      if (outcome.kind === "stale") return;
+      sourceMessage =
+        outcome.kind === "ok"
+          ? { tone: "info", text: outcome.info.note ?? fetchedText(outcome.info) }
+          : outcome.kind === "invalid"
+            ? { tone: "error", text: outcome.errors.join(" ") }
+            : { tone: "error", text: outcome.message };
       draw();
     });
     return h(
@@ -733,6 +997,14 @@ export function wireReferencePanel(
           ? ` License: ${info.license}.`
           : " License: not stated by the source; check its terms before sharing this data.",
       ),
+      info.origin !== "file"
+        ? h(
+            "p",
+            { class: "mt-1 text-xs text-muted-foreground" },
+            `Data as of ${new Date(info.loadedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}.`,
+            info.note ? ` ${info.note}` : "",
+          )
+        : null,
       info.skipped
         ? h(
             "p",
@@ -756,7 +1028,8 @@ export function wireReferencePanel(
             ),
           )
         : null,
-      h("div", { class: "mt-2" }, unload),
+      barcodeLookup(),
+      h("div", { class: "mt-2 flex flex-wrap gap-2" }, recheck, unload),
     );
   }
 
@@ -849,10 +1122,13 @@ export function wireReferencePanel(
         type: "button",
         class: `${BUTTON} ${status === "accepted" ? PRESSED : ""}`,
         "aria-pressed": String(status === "accepted"),
-        "aria-label": `Accept change: ${label}, ${FIELD_LABELS[proposal.field]}`,
+        "aria-label": t("reference.action.accept.label", {
+          label,
+          field: FIELD_LABELS[proposal.field],
+        }),
         "data-key": `accept-${proposal.id}`,
       },
-      "Accept",
+      t("reference.action.accept"),
     );
     accept.disabled = !proposal.applicable;
     accept.addEventListener("click", () =>
@@ -863,8 +1139,8 @@ export function wireReferencePanel(
             : controller.accept([proposal.id]),
         (count) =>
           status === "accepted"
-            ? `Took back ${plural(count, "choice")}`
-            : `Accepted ${plural(count, "change")}`,
+            ? t("reference.toast.tookBack", { count })
+            : t("reference.toast.acceptedChanges", { count }),
       ),
     );
     const reject = h(
@@ -873,10 +1149,13 @@ export function wireReferencePanel(
         type: "button",
         class: `${BUTTON} ${status === "rejected" ? PRESSED : ""}`,
         "aria-pressed": String(status === "rejected"),
-        "aria-label": `Reject change: ${label}, ${FIELD_LABELS[proposal.field]}`,
+        "aria-label": t("reference.action.reject.label", {
+          label,
+          field: FIELD_LABELS[proposal.field],
+        }),
         "data-key": `reject-${proposal.id}`,
       },
-      "Reject",
+      t("reference.action.reject"),
     );
     reject.addEventListener("click", () =>
       act(
@@ -886,8 +1165,8 @@ export function wireReferencePanel(
             : controller.reject([proposal.id]),
         (count) =>
           status === "rejected"
-            ? `Took back ${plural(count, "choice")}`
-            : `Rejected ${plural(count, "change")}`,
+            ? t("reference.toast.tookBack", { count })
+            : t("reference.toast.rejectedChanges", { count }),
       ),
     );
     return h(
@@ -910,9 +1189,9 @@ export function wireReferencePanel(
               },
               proposal.kind === "fill"
                 ? proposal.confidence === "safe"
-                  ? "Fills a gap"
-                  : "Fills a gap, review"
-                : "Overwrites",
+                  ? t("reference.badge.fills")
+                  : t("reference.badge.fillsReview")
+                : t("reference.badge.overwrites"),
             ),
           ),
           h(
@@ -921,13 +1200,13 @@ export function wireReferencePanel(
             h(
               "p",
               {},
-              h("span", { class: "text-xs text-muted-foreground" }, "Yours: "),
+              h("span", { class: "text-xs text-muted-foreground" }, t("reference.value.yours")),
               valueView(proposal.field, proposal.before),
             ),
             h(
               "p",
               {},
-              h("span", { class: "text-xs text-muted-foreground" }, "Reference: "),
+              h("span", { class: "text-xs text-muted-foreground" }, t("reference.value.reference")),
               valueView(proposal.field, proposal.after),
             ),
           ),
@@ -1105,15 +1384,17 @@ export function wireReferencePanel(
     const selected = item.selected;
     const text = selected
       ? item.chosen
-        ? "Chosen by you"
-        : `Matched (${selected.confidence} confidence)`
+        ? t("reference.status.chosen")
+        : t("reference.status.matched", {
+            confidence: t(`reference.confidence.${selected.confidence}` as MessageKey),
+          })
       : item.chosen
-        ? "No match (your choice)"
+        ? t("reference.status.noMatchChosen")
         : item.match.status === "ambiguous"
-          ? "Needs a choice"
+          ? t("reference.status.needsChoice")
           : item.match.status === "suggested"
-            ? "Partial match"
-            : "No match";
+            ? t("reference.status.partial")
+            : t("reference.status.noMatch");
     const tone = selected
       ? BADGE.safe
       : item.match.status === "none" || item.chosen
@@ -1157,8 +1438,13 @@ export function wireReferencePanel(
         ? h(
             "p",
             { class: "mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground" },
+            referenceImage(
+              reference,
+              [reference.vendor, reference.colorName ?? reference.name].filter(Boolean).join(" ") ||
+                reference.id,
+            ),
             swatch(reference.colorHex),
-            h("span", {}, "Reference: "),
+            h("span", {}, t("reference.value.reference")),
             h(
               "span",
               { class: "font-medium text-foreground" },
@@ -1175,11 +1461,27 @@ export function wireReferencePanel(
                     rel: "noopener noreferrer",
                     class: "text-primary-text underline underline-offset-2 hover:no-underline",
                   },
-                  "Source page",
+                  "Product page",
+                )
+              : null,
+            reference.sourceUrl
+              ? h(
+                  "a",
+                  {
+                    href: reference.sourceUrl,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    class: "text-primary-text underline underline-offset-2 hover:no-underline",
+                  },
+                  `View on ${reference.providerLabel}`,
                 )
               : null,
           )
         : null,
+      reference && dryingText(reference)
+        ? h("p", { class: "mt-1 text-xs text-muted-foreground" }, dryingText(reference))
+        : null,
+      reference ? buyLinks(reference) : null,
       colorBlock(item),
       item.proposals.length
         ? h(
@@ -1209,7 +1511,7 @@ export function wireReferencePanel(
   function resultsSection(): HTMLElement {
     const counts = controller.counts();
     const filterCounts = controller.filterCounts();
-    const chips = FILTERS.map(([filter, text]) => {
+    const chips = FILTERS.map(([filter]) => {
       const chip = h(
         "button",
         {
@@ -1218,7 +1520,7 @@ export function wireReferencePanel(
           "aria-pressed": String(controller.filter === filter),
           "data-key": `filter-${filter}`,
         },
-        `${text} (${filterCounts[filter]})`,
+        `${t(`reference.filter.${filter}` as MessageKey)} (${filterCounts[filter]})`,
       );
       chip.addEventListener("click", () => {
         controller.setFilter(filter as ReferenceFilter);
@@ -1231,7 +1533,7 @@ export function wireReferencePanel(
     const fill = h(
       "button",
       { type: "button", class: BUTTON, "data-key": "fill-missing" },
-      "Fill all missing",
+      t("reference.action.fillAll"),
     );
     const fillable = controller
       .visible()
@@ -1241,7 +1543,7 @@ export function wireReferencePanel(
     fill.addEventListener("click", () =>
       act(
         () => controller.fillAllMissing(),
-        (count) => `Accepted ${plural(count, "missing value")}`,
+        (count) => t("reference.toast.acceptedMissing", { count }),
       ),
     );
     const overwritable = controller
@@ -1251,47 +1553,106 @@ export function wireReferencePanel(
     const overwrite = h(
       "button",
       { type: "button", class: BUTTON, "data-key": "overwrite-selected" },
-      "Overwrite selected",
+      t("reference.action.overwrite"),
     );
     overwrite.disabled = overwritable.length === 0;
-    overwrite.title =
-      "Accepts every undecided overwrite in view, for the fields that allow overwriting";
+    overwrite.title = t("reference.action.overwrite.title");
     overwrite.addEventListener("click", () =>
       act(
         () => controller.overwriteSelected(),
-        (count) => `Accepted ${plural(count, "overwrite")}`,
+        (count) => t("reference.toast.acceptedOverwrites", { count }),
       ),
     );
     const clear = h(
       "button",
       { type: "button", class: BUTTON, "data-key": "clear-choices" },
-      "Clear choices",
+      t("reference.action.clear"),
     );
     clear.disabled = counts.accepted + counts.rejected === 0;
     clear.addEventListener("click", () =>
       act(
         () => controller.clearChoices(),
-        (count) => `Cleared ${plural(count, "choice")}`,
+        (count) => t("reference.toast.cleared", { count }),
       ),
     );
-    const undo = h("button", { type: "button", class: BUTTON, "data-key": "undo" }, "Undo");
+    const undo = h(
+      "button",
+      { type: "button", class: BUTTON, "data-key": "undo" },
+      t("reference.action.undo"),
+    );
     const undoLabel = controller.undoLabel();
     undo.disabled = !undoLabel;
-    if (undoLabel) undo.setAttribute("aria-label", `Undo ${undoLabel}`);
+    if (undoLabel) undo.setAttribute("aria-label", `${t("reference.action.undo")} ${undoLabel}`);
     undo.addEventListener("click", () =>
       act(
         () => (controller.undo() ? 1 : 0),
-        () => "Undone",
+        () => t("reference.action.undone"),
       ),
     );
 
     const items = controller.visible();
     const spools = spoolIndex();
+    const exportCsv = h(
+      "button",
+      { type: "button", class: BUTTON, "data-key": "export-csv" },
+      t("reference.action.exportCsv"),
+    );
+    exportCsv.disabled = items.length === 0;
+    exportCsv.addEventListener("click", () => {
+      const labels = spoolIndex();
+      download(
+        `spoolsync-reference-${new Date().toISOString().slice(0, 10)}.csv`,
+        // A byte-order mark makes Excel read the file as UTF-8, so accented names survive.
+        `\uFEFF${referenceCsv(items, (key) => spoolLabel(labels.get(key), key))}`,
+        "text/csv",
+      );
+    });
+    const corrections = correctionReport(controller.analysis.items);
+    const copyCorrections = h(
+      "button",
+      {
+        type: "button",
+        class: BUTTON,
+        "data-key": "copy-corrections",
+        title: t("reference.action.copyCorrections.title"),
+      },
+      corrections.records
+        ? t("reference.action.copyCorrections.count", { count: corrections.records })
+        : t("reference.action.copyCorrections"),
+    );
+    copyCorrections.disabled = corrections.records === 0;
+    copyCorrections.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(corrections.markdown);
+        showToast(
+          t("reference.toast.copied", { points: corrections.points, records: corrections.records }),
+          "success",
+        );
+      } catch {
+        // No clipboard access (an insecure page, or permission refused): offer the text as a file.
+        download(
+          `spoolsync-catalog-corrections-${new Date().toISOString().slice(0, 10)}.md`,
+          corrections.markdown,
+          "text/markdown",
+        );
+        showToast(t("reference.toast.copyFailed"), "info");
+      }
+    });
+    const finderKey = `${spools.size}`;
+    if (!finder || finder.catalog !== controller.catalog || finder.key !== finderKey)
+      finder = {
+        catalog: controller.catalog,
+        key: finderKey,
+        element: colorFinder(controller, spools),
+      };
     const shown = items.slice(0, limit);
     const more = h(
       "button",
       { type: "button", class: `${BUTTON} mt-3`, "data-key": "show-more" },
-      `Show ${Math.min(PAGE, items.length - limit)} more (${items.length - limit} not shown)`,
+      t("reference.action.more", {
+        shown: Math.min(PAGE, items.length - limit),
+        rest: items.length - limit,
+      }),
     );
     more.addEventListener("click", () => {
       limit += PAGE;
@@ -1304,14 +1665,28 @@ export function wireReferencePanel(
       h(
         "p",
         { class: "text-sm", "aria-live": "polite" },
-        `${plural(counts.spools, "spool")}: ${counts.matched} matched, ${counts.ambiguous + counts.suggested} need a choice, ${counts.unmatched} without a match. ` +
-          `${plural(counts.proposals, "suggestion")} (${counts.safe} safe, ${counts.review} to review); ${counts.accepted} accepted, ${counts.rejected} rejected, ${counts.pending} undecided.` +
-          (counts.notApplicable
-            ? ` ${counts.notApplicable} cannot be stored by their service.`
-            : "") +
-          (counts.colorMismatches
-            ? ` ${plural(counts.colorMismatches, "color")} ${counts.colorMismatches === 1 ? "does" : "do"} not match the reference.`
-            : ""),
+        [
+          t("reference.summary", {
+            spools: counts.spools,
+            matched: counts.matched,
+            needChoice: counts.ambiguous + counts.suggested,
+            unmatched: counts.unmatched,
+            proposals: counts.proposals,
+            safe: counts.safe,
+            review: counts.review,
+            accepted: counts.accepted,
+            rejected: counts.rejected,
+            pending: counts.pending,
+          }),
+          counts.notApplicable
+            ? t("reference.summary.notApplicable", { count: counts.notApplicable })
+            : "",
+          counts.colorMismatches
+            ? t("reference.summary.colors", { count: counts.colorMismatches })
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       ),
       controller.dropped
         ? h(
@@ -1325,11 +1700,24 @@ export function wireReferencePanel(
         {
           class: "mt-3 flex flex-wrap items-center gap-2",
           role: "group",
-          "aria-label": "Filter spools",
+          "aria-label": t("reference.filter.label"),
         },
         ...chips,
       ),
-      h("div", { class: "mt-3 flex flex-wrap items-center gap-2" }, fill, overwrite, clear, undo),
+      h(
+        "div",
+        { class: "mt-3 flex flex-wrap items-center gap-2" },
+        fill,
+        overwrite,
+        clear,
+        undo,
+        exportCsv,
+        copyCorrections,
+      ),
+      finder.element,
+      items.length
+        ? h("p", { class: "mt-2 text-xs text-muted-foreground" }, t("reference.keyboard"))
+        : null,
       items.length
         ? h("ul", { class: "mt-3 grid gap-3" }, ...shown.map((item) => card(item, spools)))
         : h(
@@ -1337,9 +1725,9 @@ export function wireReferencePanel(
             { class: "mt-3 text-sm text-muted-foreground" },
             counts.spools
               ? controller.filter === "all"
-                ? "Nothing to review: everything that matched agrees with the reference."
-                : "No spools match this filter."
-              : "Load an inventory to compare it with the reference.",
+                ? t("reference.empty.clean")
+                : t("reference.empty.filter")
+              : t("reference.empty.load"),
           ),
       items.length > limit ? h("div", {}, more) : null,
       counts.accepted

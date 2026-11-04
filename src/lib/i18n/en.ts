@@ -10,7 +10,7 @@ export const en = {
   // Language and display settings
   "lang.label": "Language",
   "lang.hint":
-    "Applies to the setup guide, command palette, spool details, data health, table tools, and the progress steps. Other text stays in English until it is translated.",
+    "Applies to the setup guide, command palette, spool details, data health, table tools, the review of reference data, and the progress steps. Other text stays in English until it is translated.",
   "display.title": "Display",
   "display.hint":
     "Changes how weights and prices are shown on the Load page. Your files and exports are never changed.",
@@ -151,7 +151,8 @@ export const en = {
 
   // Inventory table tools
   "table.columns": "Columns",
-  "table.columns.hint": "Choose the columns to show. Name always stays so every spool can be opened.",
+  "table.columns.hint":
+    "Choose the columns to show. Name always stays so every spool can be opened.",
   "table.columns.reset": "Show all columns",
   "table.columns.aria": "Table columns",
   "table.export.csv": "Export view (CSV)",
@@ -195,8 +196,8 @@ export const en = {
   "map.problems": "Fix these first",
   "map.warnings": "Worth knowing",
   "map.err.identity": "Map at least a brand, material, or name column.",
-  "map.err.duplicate": "The column \"{header}\" is used for both {first} and {second}.",
-  "map.err.missing": "The column \"{header}\" is not in this file.",
+  "map.err.duplicate": 'The column "{header}" is used for both {first} and {second}.',
+  "map.err.missing": 'The column "{header}" is not in this file.',
   "map.warn.noWeight":
     "No weight column is mapped, so every spool will load with an unknown remaining weight.",
   "map.warn.bothWeights":
@@ -225,6 +226,85 @@ export const en = {
   "map.field.diameter": "Diameter (mm)",
   "map.field.density": "Density (g/cm3)",
   "map.field.articleNumber": "Article number or barcode",
+
+  // Reference data panel
+  "reference.filter.label": "Filter spools",
+  "reference.filter.all": "Everything to review",
+  "reference.filter.missing": "Missing data",
+  "reference.filter.differs": "Differs",
+  "reference.filter.color": "Color check",
+  "reference.filter.ambiguous": "Needs a choice",
+  "reference.filter.unmatched": "No match",
+  "reference.action.fillAll": "Fill all missing",
+  "reference.action.overwrite": "Overwrite selected",
+  "reference.action.overwrite.title":
+    "Accepts every undecided overwrite in view, for the fields that allow overwriting",
+  "reference.action.clear": "Clear choices",
+  "reference.action.undo": "Undo",
+  "reference.action.undone": "Undone",
+  "reference.action.exportCsv": "Export as CSV",
+  "reference.action.copyCorrections": "Copy catalog corrections",
+  "reference.action.copyCorrections.count":
+    "Copy catalog corrections ({count, plural, one {# record} other {# records}})",
+  "reference.action.copyCorrections.title":
+    "Copies the differences from the catalog, with no spool names, ids or weights, to send to the catalog's maintainers",
+  "reference.action.accept": "Accept",
+  "reference.action.reject": "Reject",
+  "reference.action.accept.label": "Accept change: {label}, {field}",
+  "reference.action.reject.label": "Reject change: {label}, {field}",
+  "reference.action.more": "Show {shown} more ({rest} not shown)",
+  "reference.toast.acceptedMissing":
+    "Accepted {count, plural, one {# missing value} other {# missing values}}",
+  "reference.toast.acceptedOverwrites":
+    "Accepted {count, plural, one {# overwrite} other {# overwrites}}",
+  "reference.toast.acceptedChanges": "Accepted {count, plural, one {# change} other {# changes}}",
+  "reference.toast.rejectedChanges": "Rejected {count, plural, one {# change} other {# changes}}",
+  "reference.toast.tookBack": "Took back {count, plural, one {# choice} other {# choices}}",
+  "reference.toast.cleared": "Cleared {count, plural, one {# choice} other {# choices}}",
+  "reference.toast.copied":
+    "Copied {points, plural, one {# difference} other {# differences}} in {records, plural, one {# record} other {# records}}",
+  "reference.toast.copyFailed": "Could not copy, so the report was downloaded",
+  "reference.badge.fills": "Fills a gap",
+  "reference.badge.fillsReview": "Fills a gap, review",
+  "reference.badge.overwrites": "Overwrites",
+  "reference.value.yours": "Yours: ",
+  "reference.value.reference": "Reference: ",
+  "reference.status.chosen": "Chosen by you",
+  "reference.status.matched": "Matched ({confidence} confidence)",
+  "reference.confidence.high": "high",
+  "reference.confidence.medium": "medium",
+  "reference.confidence.low": "low",
+  "reference.status.noMatchChosen": "No match (your choice)",
+  "reference.status.needsChoice": "Needs a choice",
+  "reference.status.partial": "Partial match",
+  "reference.status.noMatch": "No match",
+  "reference.keyboard":
+    "Keyboard: with focus inside a spool card, press A to accept or R to reject its suggestions.",
+  "reference.empty.clean": "Nothing to review: everything that matched agrees with the reference.",
+  "reference.empty.filter": "No spools match this filter.",
+  "reference.empty.load": "Load an inventory to compare it with the reference.",
+  "reference.summary":
+    "{spools, plural, one {# spool} other {# spools}}: {matched} matched, {needChoice} need a choice, {unmatched} without a match. {proposals, plural, one {# suggestion} other {# suggestions}} ({safe} safe, {review} to review); {accepted} accepted, {rejected} rejected, {pending} undecided.",
+  "reference.summary.notApplicable": "{count} cannot be stored by their service.",
+  "reference.summary.colors":
+    "{count, plural, one {# color does} other {# colors do}} not match the reference.",
+  "reference.colors.title": "Find similar colors",
+  "reference.colors.help":
+    "Search the catalog for the colors nearest to a spool's color, or to one you type. Useful for a spool with no match, or a stand-in for a color that is out of stock. Multi-color filaments are not searched.",
+  "reference.colors.spool": "A spool's color",
+  "reference.colors.choose": "Choose a spool",
+  "reference.colors.noneColored": "No spool has a single color",
+  "reference.colors.hex": "Or a color",
+  "reference.colors.sameMaterial": "Same material as the spool only",
+  "reference.colors.invalid": "Enter a color as six hex digits, such as #1A2B3C.",
+  "reference.colors.found":
+    "{count, plural, one {# closest color} other {# closest colors}} in the catalog, nearest first.",
+  "reference.colors.needMaterial": "Choose a spool with a material to limit the search to it.",
+  "reference.colors.none": "No catalog color found.",
+  "reference.colors.same": "looks the same",
+  "reference.colors.close": "close",
+  "reference.colors.different": "a different color",
+  "reference.colors.view": "View record",
 } as const;
 
 export type MessageKey = keyof typeof en;

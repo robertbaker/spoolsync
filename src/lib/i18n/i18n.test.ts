@@ -47,11 +47,24 @@ test("every message parses and uses the same placeholders as English", () => {
 });
 
 test("every message formats without leaving a placeholder behind", () => {
-  const params = { count: 3, current: 1, total: 4, rows: 2, columns: 5, points: 4, loaded: 2 };
+  const params = {
+    count: 3,
+    current: 1,
+    total: 4,
+    rows: 2,
+    columns: 5,
+    points: 4,
+    loaded: 2,
+    records: 2,
+    spools: 3,
+    proposals: 5,
+  };
   for (const locale of LOCALES)
     for (const key of Object.keys(en) as Array<keyof typeof en>) {
       const names = placeholderNames(CATALOGUES[locale][key]!);
-      const given = Object.fromEntries(names.map((name) => [name, (params as Record<string, number>)[name] ?? "x"]));
+      const given = Object.fromEntries(
+        names.map((name) => [name, (params as Record<string, number>)[name] ?? "x"]),
+      );
       expect(t(key, given, locale)).not.toMatch(/[{}]/);
     }
 });

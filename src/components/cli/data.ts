@@ -1,4 +1,5 @@
 import { formatPhrase } from "@spoolsync/core/core/services";
+
 import { READ_ONLY_VIEWS, SERVICE_VIEWS, allServiceNames, joinNames } from "~/lib/services";
 
 export const NPM_URL = "https://www.npmjs.com/package/spoolsync";
@@ -157,12 +158,32 @@ export const output = [
   {
     flag: "--reference <file>",
     copy: "--reference",
-    desc: "Match spools to a reference file (JSON or CSV of filaments with a brand, color and optional temperatures, weights and barcode) and add the values your services are missing, from confident single matches only, to the plan. Overwrites, partial matches and ambiguous matches are listed, never applied. Needs two inventories. The CLI reads only the file you give it. Also a config key (a path).",
+    desc: "Match spools to a reference file (JSON or CSV of filaments with a brand, color and optional temperatures, weights and barcode, or the Open Filament Database or FilamentColors snapshot downloaded from this site's /reference/ folder) and add the values your services are missing, from confident single matches only, to the plan. Overwrites, partial matches and ambiguous matches are listed, never applied. Needs two inventories. The CLI reads only the file you give it. Also a config key (a path).",
   },
   {
     flag: "--reference-report <file>",
     copy: "--reference-report",
     desc: "List every reference match, difference, ambiguous choice and color check (CIEDE2000) for the file. On its own it changes and plans nothing and works with a single inventory; with --reference it adds the full list to the comparison.",
+  },
+  {
+    flag: "--fail-on-mismatch",
+    copy: "--fail-on-mismatch",
+    desc: "With --reference or --reference-report, exit with code 1 when a spool's value or color differs from the reference, so a scheduled run can flag drift. Fills for empty fields do not count.",
+  },
+  {
+    flag: "--rollback-dir <dir>",
+    copy: "--rollback-dir",
+    desc: "Where --apply saves the rollback file it makes before writing to a service. Defaults to a rollbacks folder beside the settings file. Also a config key (a path).",
+  },
+  {
+    flag: "--no-rollback",
+    copy: "--no-rollback",
+    desc: "With --apply, write to a service without saving a rollback file first. By default nothing is written if the file cannot be saved.",
+  },
+  {
+    flag: "--restore-rollback <file>",
+    copy: "--restore-rollback",
+    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
   },
   {
     flag: "--export-csv <file>",

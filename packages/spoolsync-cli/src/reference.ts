@@ -31,6 +31,23 @@ export interface ReferenceOutcome {
   edits: RecordEdits;
 }
 
+/** How far the loaded spools disagree with the reference: what `--fail-on-mismatch` tests. */
+export interface ReferenceMismatches {
+  /** Values that differ from a confident match (fills for empty fields are not mismatches). */
+  values: number;
+  /** Colors that do not match, or have a different number of colors. */
+  colors: number;
+  total: number;
+}
+
+export function referenceMismatches(outcome: ReferenceOutcome): ReferenceMismatches {
+  const values = outcome.analysis.proposals.filter(
+    (proposal) => proposal.kind === "overwrite",
+  ).length;
+  const colors = outcome.analysis.summary.colorMismatches;
+  return { values, colors, total: values + colors };
+}
+
 export interface ReferenceChange {
   spool: string;
   field: string;
@@ -64,6 +81,8 @@ export interface ReferenceSection {
     applicable: number;
     colorMismatches: number;
     colorClose: number;
+    /** Differing values plus color mismatches, the count `--fail-on-mismatch` tests. */
+    mismatches: number;
   };
   /** Changes added to the plan (`--reference`); empty otherwise. */
   applied: ReferenceChange[];
@@ -137,7 +156,10 @@ export function runReference(
     policy: { fields: CLI_FIELDS, overwrite: CLI_FIELDS },
   });
   const applied = options.reference ? safeReferenceProposals(analysis.proposals) : [];
-  const accepted = acceptedReferences(analysis.proposals, new Set(applied.map((proposal) => proposal.id)));
+  const accepted = acceptedReferences(
+    analysis.proposals,
+    new Set(applied.map((proposal) => proposal.id)),
+  );
   return {
     file: loadedFile.file,
     parsed: loadedFile.parsed,
@@ -190,6 +212,7 @@ export function referenceSection(outcome: ReferenceOutcome, options: Options): R
       applicable: summary.applicable,
       colorMismatches: summary.colorMismatches,
       colorClose: summary.colorClose,
+      mismatches: referenceMismatches(outcome).total,
     },
     applied: outcome.applied.map(toChange),
     ...(report
@@ -253,6 +276,14 @@ export function referenceLines(
       ? `${where}: ${matches}; ${plural(applied.size, "safe fill")} added to the plan, ${proposals.length - applied.size} to review or not applicable.`
       : `${where}: ${matches}; ${plural(proposals.length, "proposal")} (${summary.safe} safe, ${summary.review} to review). Nothing is changed.`,
   );
+  if (options.failOnMismatch) {
+    const mismatches = referenceMismatches(outcome);
+    lines.push(
+      mismatches.total
+        ? `Reference check failed: ${mismatches.values} differing ${mismatches.values === 1 ? "value" : "values"} and ${mismatches.colors} color ${mismatches.colors === 1 ? "mismatch" : "mismatches"}.`
+        : "Reference check passed: nothing differs from the reference.",
+    );
+  }
   const listed = options.referenceReport ? proposals : proposals.filter((p) => applied.has(p.id));
   for (const proposal of listed) lines.push(line(proposal));
   if (options.referenceReport) {

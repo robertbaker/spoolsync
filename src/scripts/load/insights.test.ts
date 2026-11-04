@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 
+import { pairKey } from "@spoolsync/core/core/match";
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { makeSpool } from "@spoolsync/core/core/testing";
 
@@ -148,4 +149,28 @@ test("spools without a usable price get their own filter, and a price of zero co
   for (const spool of spools) spool.price = 5;
   insights.refresh();
   expect(insights.activeFilter).toBeNull();
+});
+
+test("spools marked as different stop counting as duplicates", () => {
+  const dupe = { remainingWeight: 600, purchasedOn: "2026-01-02", name: "Same" };
+  const file: LoadResult = {
+    source: "spoolio",
+    spools: [makeSpool("spoolio", "1", dupe), makeSpool("spoolio", "2", dupe)],
+    warnings: [],
+    loadedAt: "2026-11-01T10:00:00.000Z",
+    origin: "file",
+  };
+  const results = new Map<SourceId, LoadResult>([["spoolio", file]]);
+  const different = new Set<string>();
+  const insights = new LoadInsights(results, {
+    ...fakeStorage().storage,
+    readDifferentPairs: () => different,
+  });
+  insights.refresh();
+  expect(insights.countFor("duplicates")).toBe(2);
+
+  different.add(pairKey("spoolio:1", "spoolio:2"));
+  insights.refresh();
+  expect(insights.countFor("duplicates")).toBe(0);
+  expect(insights.matches(file.spools[0]!)).toBe(true);
 });

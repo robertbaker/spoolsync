@@ -1,14 +1,17 @@
 import { expect, test } from "bun:test";
 
 import type { LoadResult } from "@spoolsync/core/core/model";
-import { buildImportReport } from "@spoolsync/core/workflow";
 import { makeSpool } from "@spoolsync/core/core/testing";
+import { buildImportReport } from "@spoolsync/core/workflow";
 
 import { importReportView, reportSummary } from "./import-report-view";
 
 const result = (warnings: string[]): LoadResult => ({
   source: "spoolhoarder",
-  spools: [makeSpool("spoolhoarder", "1"), makeSpool("spoolhoarder", "2", { remainingWeight: null })],
+  spools: [
+    makeSpool("spoolhoarder", "1"),
+    makeSpool("spoolhoarder", "2", { remainingWeight: null }),
+  ],
   warnings,
   loadedAt: "now",
 });

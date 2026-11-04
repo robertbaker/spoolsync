@@ -4,7 +4,7 @@ import type { Catalogue } from "./en";
 export const fr: Catalogue = {
   "lang.label": "Langue",
   "lang.hint":
-    "S'applique au guide de configuration, à la palette de commandes, aux détails de la bobine, à la santé des données, aux outils du tableau et aux étapes de progression. Le reste du texte reste en anglais tant qu'il n'est pas traduit.",
+    "S'applique au guide de configuration, à la palette de commandes, aux détails de la bobine, à la santé des données, aux outils du tableau, à la vérification des données de référence et aux étapes de progression. Le reste du texte reste en anglais tant qu'il n'est pas traduit.",
   "display.title": "Affichage",
   "display.hint":
     "Modifie l'affichage des poids et des prix sur la page Charger. Vos fichiers et exports ne sont jamais modifiés.",
@@ -135,8 +135,10 @@ export const fr: Catalogue = {
   "health.trend.title": "Score au fil du temps",
   "health.trend.aria":
     "Évolution du score, de {first} à {last} sur {count, plural, one {# chargement} other {# chargements}}",
-  "health.trend.up": "En hausse de {points, plural, one {# point} other {# points}} depuis le {date}",
-  "health.trend.down": "En baisse de {points, plural, one {# point} other {# points}} depuis le {date}",
+  "health.trend.up":
+    "En hausse de {points, plural, one {# point} other {# points}} depuis le {date}",
+  "health.trend.down":
+    "En baisse de {points, plural, one {# point} other {# points}} depuis le {date}",
   "health.trend.same": "Aucun changement depuis le {date}",
   "health.trend.first":
     "Premier score enregistré le {date}. Rechargez plus tard pour voir une évolution.",
@@ -183,13 +185,12 @@ export const fr: Catalogue = {
   "map.unit.lb": "livres (lb)",
   "map.remember": "Mémoriser cette association pour les fichiers ayant les mêmes colonnes",
   "map.restored": "L'association enregistrée pour cette disposition de colonnes est utilisée.",
-  "map.suggested":
-    "Suggéré d'après les noms de colonnes. Vérifiez chacune avant de télécharger.",
+  "map.suggested": "Suggéré d'après les noms de colonnes. Vérifiez chacune avant de télécharger.",
   "map.problems": "À corriger d'abord",
   "map.warnings": "Bon à savoir",
   "map.err.identity": "Associez au moins une colonne de marque, de matière ou de nom.",
-  "map.err.duplicate": "La colonne \"{header}\" est utilisée pour {first} et pour {second}.",
-  "map.err.missing": "La colonne \"{header}\" n'est pas dans ce fichier.",
+  "map.err.duplicate": 'La colonne "{header}" est utilisée pour {first} et pour {second}.',
+  "map.err.missing": 'La colonne "{header}" n\'est pas dans ce fichier.',
   "map.warn.noWeight":
     "Aucune colonne de poids n'est associée : toutes les bobines seront chargées avec un poids restant inconnu.",
   "map.warn.bothWeights":
@@ -218,4 +219,85 @@ export const fr: Catalogue = {
   "map.field.diameter": "Diamètre (mm)",
   "map.field.density": "Densité (g/cm3)",
   "map.field.articleNumber": "Référence ou code-barres",
+  "reference.filter.label": "Filtrer les bobines",
+  "reference.filter.all": "Tout à vérifier",
+  "reference.filter.missing": "Données manquantes",
+  "reference.filter.differs": "Différences",
+  "reference.filter.color": "Vérification des couleurs",
+  "reference.filter.ambiguous": "Choix à faire",
+  "reference.filter.unmatched": "Aucune correspondance",
+  "reference.action.fillAll": "Remplir tout ce qui manque",
+  "reference.action.overwrite": "Écraser la sélection",
+  "reference.action.overwrite.title":
+    "Accepte chaque écrasement non décidé de la vue, pour les champs qui autorisent l'écrasement",
+  "reference.action.clear": "Effacer les choix",
+  "reference.action.undo": "Annuler",
+  "reference.action.undone": "Annulé",
+  "reference.action.exportCsv": "Exporter en CSV",
+  "reference.action.copyCorrections": "Copier les corrections du catalogue",
+  "reference.action.copyCorrections.count":
+    "Copier les corrections du catalogue ({count, plural, one {# fiche} other {# fiches}})",
+  "reference.action.copyCorrections.title":
+    "Copie les différences avec le catalogue, sans noms de bobines, identifiants ni poids, pour les envoyer aux mainteneurs du catalogue",
+  "reference.action.accept": "Accepter",
+  "reference.action.reject": "Refuser",
+  "reference.action.accept.label": "Accepter la modification : {label}, {field}",
+  "reference.action.reject.label": "Refuser la modification : {label}, {field}",
+  "reference.action.more": "Afficher {shown} de plus ({rest} non affichées)",
+  "reference.toast.acceptedMissing":
+    "{count, plural, one {# valeur manquante acceptée} other {# valeurs manquantes acceptées}}",
+  "reference.toast.acceptedOverwrites":
+    "{count, plural, one {# écrasement accepté} other {# écrasements acceptés}}",
+  "reference.toast.acceptedChanges":
+    "{count, plural, one {# modification acceptée} other {# modifications acceptées}}",
+  "reference.toast.rejectedChanges":
+    "{count, plural, one {# modification refusée} other {# modifications refusées}}",
+  "reference.toast.tookBack": "{count, plural, one {# choix annulé} other {# choix annulés}}",
+  "reference.toast.cleared": "{count, plural, one {# choix effacé} other {# choix effacés}}",
+  "reference.toast.copied":
+    "{points, plural, one {# différence copiée} other {# différences copiées}} dans {records, plural, one {# fiche} other {# fiches}}",
+  "reference.toast.copyFailed": "Copie impossible, le rapport a donc été téléchargé",
+  "reference.badge.fills": "Comble un vide",
+  "reference.badge.fillsReview": "Comble un vide, à vérifier",
+  "reference.badge.overwrites": "Écrase",
+  "reference.value.yours": "Votre valeur : ",
+  "reference.value.reference": "Référence : ",
+  "reference.status.chosen": "Choisi par vous",
+  "reference.status.matched": "Correspondance (confiance {confidence})",
+  "reference.confidence.high": "élevée",
+  "reference.confidence.medium": "moyenne",
+  "reference.confidence.low": "faible",
+  "reference.status.noMatchChosen": "Aucune correspondance (votre choix)",
+  "reference.status.needsChoice": "Choix à faire",
+  "reference.status.partial": "Correspondance partielle",
+  "reference.status.noMatch": "Aucune correspondance",
+  "reference.keyboard":
+    "Clavier : avec le focus dans une carte de bobine, appuyez sur A pour accepter ou sur R pour refuser ses suggestions.",
+  "reference.empty.clean": "Rien à vérifier : tout ce qui correspond est conforme à la référence.",
+  "reference.empty.filter": "Aucune bobine ne correspond à ce filtre.",
+  "reference.empty.load": "Chargez un inventaire pour le comparer à la référence.",
+  "reference.summary":
+    "{spools, plural, one {# bobine} other {# bobines}} : {matched} avec correspondance, {needChoice} à choisir, {unmatched} sans correspondance. {proposals, plural, one {# suggestion} other {# suggestions}} ({safe} sûres, {review} à vérifier) ; {accepted} acceptées, {rejected} refusées, {pending} en attente.",
+  "reference.summary.notApplicable": "{count} ne peuvent pas être enregistrées par leur service.",
+  "reference.summary.colors":
+    "{count, plural, one {# couleur ne correspond pas} other {# couleurs ne correspondent pas}} à la référence.",
+  "reference.colors.title": "Trouver des couleurs proches",
+  "reference.colors.help":
+    "Cherche dans le catalogue les couleurs les plus proches de celle d'une bobine ou d'une couleur saisie. Utile pour une bobine sans correspondance ou pour remplacer une couleur épuisée. Les filaments multicolores ne sont pas recherchés.",
+  "reference.colors.spool": "Couleur d'une bobine",
+  "reference.colors.choose": "Choisir une bobine",
+  "reference.colors.noneColored": "Aucune bobine n'a une seule couleur",
+  "reference.colors.hex": "Ou une couleur",
+  "reference.colors.sameMaterial": "Même matière que la bobine seulement",
+  "reference.colors.invalid":
+    "Saisissez une couleur en six chiffres hexadécimaux, par exemple #1A2B3C.",
+  "reference.colors.found":
+    "{count, plural, one {# couleur la plus proche} other {# couleurs les plus proches}} dans le catalogue, la plus proche d'abord.",
+  "reference.colors.needMaterial":
+    "Choisissez une bobine avec une matière pour limiter la recherche à celle-ci.",
+  "reference.colors.none": "Aucune couleur du catalogue trouvée.",
+  "reference.colors.same": "semble identique",
+  "reference.colors.close": "proche",
+  "reference.colors.different": "une autre couleur",
+  "reference.colors.view": "Voir la fiche",
 };

@@ -141,6 +141,7 @@ jobs:
       # Runs even on a cache hit: the cache holds browsers only, not the apt system deps.
       - run: bunx playwright install --with-deps chromium
       - run: bun run build
+      - run: bun run bundle:check
       # Full suite when app code changed; otherwise only the spec files that changed.
       - name: Run E2E tests
         env:
