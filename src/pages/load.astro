@@ -69,16 +69,13 @@ const spoolman = serviceView("spoolman");
         <h2 class="text-xl font-bold">Services</h2>
         <p id="source-count" class="text-sm text-muted-foreground" aria-live="polite"></p>
       </div>
-      <label class="flex items-center gap-2 text-xs text-muted-foreground" for="auto-fetch">
-        <input id="auto-fetch" type="checkbox" class="size-4" />
-        Fetch connected services when this page opens
-      </label>
       <search class="flex w-full flex-wrap items-center gap-3 sm:w-auto">
         <input
           id="source-search"
           type="search"
           placeholder="Find a service... (/)"
           aria-label="Find a service"
+          aria-keyshortcuts="/"
           class="field-input mt-0 w-full py-1.5 text-sm sm:w-56"
         />
         <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter services">
@@ -86,14 +83,14 @@ const spoolman = serviceView("spoolman");
             [
               ["all", "All"],
               ["loaded", "Loaded"],
-              ["api", "Connect"],
+              ["api", "Live (API)"],
               ["readonly", "Read-only"],
             ].map(([value, label]) => (
               <button
                 type="button"
                 data-source-filter={value}
                 aria-pressed={value === "all"}
-                class="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary-text"
+                class="min-h-9 rounded-full border px-3.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary-text"
               >
                 {label}
               </button>
@@ -101,6 +98,16 @@ const spoolman = serviceView("spoolman");
           }
         </div>
       </search>
+    </div>
+
+    <div class="mt-3 rounded-lg border bg-muted/20 p-3">
+      <label class="flex items-start gap-2 text-sm" for="auto-fetch">
+        <input id="auto-fetch" type="checkbox" class="mt-0.5 size-4" aria-describedby="auto-fetch-hint" />
+        <span class="font-medium">Fetch connected services when this page opens</span>
+      </label>
+      <p id="auto-fetch-hint" class="field-hint ml-6">
+        Contacts the servers you have connected (including ones on your local network) each time you open Load, using the saved address and key.
+      </p>
     </div>
 
     <section data-tile-section class="mt-4" aria-labelledby="connect-heading">
@@ -119,8 +126,8 @@ const spoolman = serviceView("spoolman");
     <section data-tile-section class="mt-5" aria-labelledby="files-heading">
       <h3 id="files-heading" class="mb-2 text-sm font-semibold text-muted-foreground">
         From an export file
-        <span class="ml-1 font-normal">(drop any of these above, or pick one for its export steps)</span>
       </h3>
+      <p class="-mt-1 mb-2 text-xs text-muted-foreground">Drop any of these above, or pick one to see its export steps.</p>
       <div class="flex flex-wrap gap-2" role="group" aria-labelledby="files-heading">
         {
           fileSources
@@ -285,38 +292,10 @@ const spoolman = serviceView("spoolman");
           >
             Running low
           </button>
-          <button
-            type="button"
-            id="copy-reorder"
-            hidden
-            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Copy reorder list
-          </button>
-          <button
-            type="button"
-            id="print-labels"
-            hidden
-            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Print labels
-          </button>
-          <button
-            type="button"
-            id="download-combined"
-            hidden
-            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Download all as CSV
-          </button>
-          <button
-            type="button"
-            id="unload-all"
-            hidden
-            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Unload all
-          </button>
+          <Button type="button" variant="outline" color="neutral" size="sm" id="copy-reorder" hidden>Copy reorder list</Button>
+          <Button type="button" variant="outline" color="neutral" size="sm" id="print-labels" hidden>Print labels</Button>
+          <Button type="button" variant="outline" color="neutral" size="sm" id="download-combined" hidden>Download all as CSV</Button>
+          <Button type="button" variant="outline" color="neutral" size="sm" id="unload-all" hidden>Unload all</Button>
         <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
           <input
             id="spool-search-input"
@@ -352,7 +331,7 @@ const spoolman = serviceView("spoolman");
     <div
       id="load-bar"
       hidden
-      class="sticky bottom-40 z-10 md:bottom-4 md:pr-36 mt-6 flex flex-nowrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      class="sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border bg-card/95 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
     >
       <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
         Nothing loaded yet. Drop export files above or open a service below.

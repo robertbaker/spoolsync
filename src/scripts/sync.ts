@@ -156,6 +156,7 @@ function renderAll(): void {
   renderApply(state.match, state.resolutions);
 }
 
+byId("sync-loading").hidden = true;
 if (loaded.size < 2) {
   byId("sync-empty").hidden = false;
   if (loaded.size === 0) {

@@ -21,7 +21,7 @@ import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns";
 import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
-import { byId, h, setChildren } from "../dom";
+import { buttonClass, byId, h, setChildren } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
 
 const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -342,11 +342,26 @@ export function createInventoryTable(
 
     if (!all.length) {
       byId("loaded-summary").textContent = "";
+      // Hand the visitor the two ways forward instead of a dead end.
+      const choose = h(
+        "button",
+        { type: "button", class: buttonClass({ variant: "solid", color: "primary" }) },
+        "Choose files",
+      );
+      choose.addEventListener("click", () => document.getElementById("smart-file")?.click());
+      const sample = h("button", { type: "button", class: buttonClass() }, "Try sample data");
+      sample.addEventListener("click", () => document.getElementById("try-sample")?.click());
       container.replaceChildren(
         h(
-          "p",
-          { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-          "Nothing loaded yet.",
+          "div",
+          { class: "empty-state" },
+          h("p", { class: "font-medium text-foreground" }, "Nothing loaded yet."),
+          h(
+            "p",
+            { class: "text-sm text-muted-foreground" },
+            "Pick export files or connect a service above to see your spools here.",
+          ),
+          h("div", { class: "mt-3 flex flex-wrap justify-center gap-2" }, choose, sample),
         ),
       );
       return;
