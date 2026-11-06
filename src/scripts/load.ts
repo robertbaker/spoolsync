@@ -19,6 +19,7 @@ import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
+import { confirmDialog } from "./confirm-dialog";
 import { CONNECTION_CHANGED } from "./connections/events";
 import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
@@ -229,7 +230,17 @@ document.addEventListener(CONNECTION_CHANGED, () => {
   render();
 });
 
-unloadAll?.addEventListener("click", () => {
+unloadAll?.addEventListener("click", async () => {
+  const count = state.results.size;
+  if (!count) return;
+  const confirmed = await confirmDialog({
+    title: `Unload ${count} ${count === 1 ? "service" : "services"}?`,
+    body: "Loaded spools and their messages are cleared from this page. Files must be chosen again and servers fetched again.",
+    confirmLabel: "Unload all",
+    tone: "danger",
+  });
+  if (!confirmed) return;
+  // Read again: a fetch may have finished while the question was open.
   const sources = [...state.results.keys()];
   for (const source of sources) {
     state.unload(source);

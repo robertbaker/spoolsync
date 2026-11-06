@@ -12,7 +12,37 @@ import type { RollbackDocument } from "@spoolsync/core/workflow";
 
 import { cleanErrorText, type SyncHistoryRecord } from "~/lib/browser/storage/sync-history";
 
+import { confirmDialog } from "../confirm-dialog";
 import { notice } from "../dom";
+
+/** What a confirmation should tell the person before anything is written. */
+export interface WriteDetails {
+  target: string;
+  updates: number;
+  creations: number;
+  /** Whether a rollback file will be saved first. */
+  rollback: boolean;
+}
+
+const count = (value: number, noun: string) => `${value} ${noun}${value === 1 ? "" : "s"}`;
+
+function confirmWriteDialog(message: string, details: WriteDetails): Promise<boolean> {
+  const parts = [
+    ...(details.updates ? [count(details.updates, "update")] : []),
+    ...(details.creations ? [count(details.creations, "new record")] : []),
+  ];
+  return confirmDialog({
+    title: message,
+    body: [
+      `${parts.join(" and ")} will be sent to ${details.target}.`,
+      details.rollback
+        ? "A rollback file is saved first so you can put the old values back."
+        : "No rollback file will be saved, so this cannot be undone from SpoolSync.",
+    ],
+    confirmLabel: "Write changes",
+    tone: "danger",
+  });
+}
 
 export interface ApplyTarget {
   identity: string;
@@ -49,7 +79,10 @@ export class ApplyController {
     private readonly services: Partial<Record<SourceId, ApplyService>>,
     private readonly context: ApplyContext,
     private readonly saveInventory: (inventory: LoadResult) => void,
-    private readonly confirmWrite: (message: string) => boolean = (message) => confirm(message),
+    private readonly confirmWrite: (
+      message: string,
+      details: WriteDetails,
+    ) => boolean | Promise<boolean> = confirmWriteDialog,
     /** Called once per attempted write run, after it finishes (including failed runs). */
     private readonly record?: (entry: SyncHistoryRecord) => void,
     /** Called after the write is confirmed and before anything is sent. */
@@ -89,12 +122,17 @@ export class ApplyController {
       status.replaceChildren(notice("error", service.changedMessage));
       return;
     }
-    if (
-      !this.confirmWrite(
-        `Write ${changes.length} change${changes.length === 1 ? "" : "s"} to ${target.description}?`,
-      )
-    )
-      return;
+    const updates = changes.filter((change) => change.kind === "update").length;
+    const confirmed = await this.confirmWrite(
+      `Write ${changes.length} change${changes.length === 1 ? "" : "s"} to ${target.description}?`,
+      {
+        target: target.description,
+        updates,
+        creations: changes.length - updates,
+        rollback: Boolean(this.rollback?.enabled() && isWritableSource(source)),
+      },
+    );
+    if (!confirmed) return;
     if (this.rollback?.enabled() && isWritableSource(source)) {
       const document = this.rollback.build(source, changes, target.description);
       if (document.updates.length || document.creations.length) {

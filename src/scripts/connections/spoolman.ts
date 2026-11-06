@@ -10,6 +10,7 @@ import type {
   saveSpoolmanConnection,
 } from "~/lib/browser/storage";
 
+import { confirmDialog } from "../confirm-dialog";
 import { byId, h, notice, showToast } from "../dom";
 import { connectionDiagnosisNotice } from "../spoolman-help";
 import { badge, nextStepHint } from "./presentation";
@@ -64,7 +65,15 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
     }
     urlInput.value = baseUrl;
     const connection = { baseUrl, token: tokenInput.value, rememberToken: rememberInput.checked };
-    dependencies.saveSpoolmanConnection(connection);
+    // Saving announces a connection change, which drops data fetched from the previous server, so
+    // only a connection that passed the test replaces the saved one.
+    const hadConnection = dependencies.loadSpoolmanConnection() !== null;
+    const notSaved = () =>
+      nextStepHint(
+        hadConnection
+          ? "Not saved: the previous connection is still in use."
+          : "Not saved: fix the problem above and test again.",
+      );
 
     testButton.disabled = true;
     testButton.setAttribute("aria-busy", "true");
@@ -76,24 +85,38 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       );
       result.replaceChildren(connectionDiagnosisNotice(diagnosis));
       if (diagnosis.code === "ok") {
+        dependencies.saveSpoolmanConnection(connection);
         updateSpoolmanBadge(true);
         showToast("Spoolman connection verified", "success");
         result.append(nextStepHint("Ready. Use Fetch spools above to load this server."));
       } else {
         spoolmanBadge.replaceChildren(badge("Check setup", "warning"));
+        result.append(notSaved());
       }
     } catch (error) {
       result.replaceChildren(notice("error", "Test failed", h("p", {}, (error as Error).message)));
       spoolmanBadge.replaceChildren(badge("Error", "warning"));
+      result.append(notSaved());
     } finally {
       testButton.disabled = false;
       testButton.removeAttribute("aria-busy");
     }
   });
 
-  byId("spoolman-forget").addEventListener("click", () => {
+  byId("spoolman-forget").addEventListener("click", async () => {
+    // Nothing saved means nothing to lose: just clear what was typed.
+    if (dependencies.loadSpoolmanConnection()) {
+      const confirmed = await confirmDialog({
+        title: "Forget this Spoolman connection?",
+        body: "The address and token are removed from this browser, and spools fetched from this server are unloaded.",
+        confirmLabel: "Forget",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
     dependencies.clearSpoolmanConnection();
     form.reset();
+    urlInput.focus();
     updateSpoolmanBadge(false);
     showToast("Spoolman connection cleared", "info");
     result.replaceChildren(

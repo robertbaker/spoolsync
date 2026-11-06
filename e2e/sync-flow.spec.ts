@@ -113,8 +113,8 @@ test("connect, load, resolve, apply to Spoolman and show Spoolstock as read-only
 
   // A rollback file is saved just before the write, holding the weight as it was.
   const saved = page.waitForEvent("download");
-  page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: /^Apply \d+ changes? to Spoolman$/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Write changes" }).click();
   const rollbackFile = await saved;
   expect(rollbackFile.suggestedFilename()).toMatch(/^spoolsync-rollback-spoolman-.*\.json$/);
   const rollbackPath = await rollbackFile.path();
@@ -137,8 +137,8 @@ test("connect, load, resolve, apply to Spoolman and show Spoolstock as read-only
   // The file takes the sync back, through the same confirmed write.
   await page.locator("#rollback-file").setInputFiles(rollbackPath);
   await expect(page.locator("#rollback")).toContainText("can be put back");
-  page.once("dialog", (dialog) => void dialog.accept());
   await page.locator("[data-action='restore-rollback']").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Write changes" }).click();
   await expect.poll(() => fake.spools.get(51)?.remaining_weight).toBe(860);
 });
 
@@ -162,8 +162,8 @@ test("the rollback file can be turned off, and then none is saved", async ({ pag
   await page.locator("#rollback-before-apply").uncheck();
   const downloads: string[] = [];
   page.on("download", (download) => downloads.push(download.suggestedFilename()));
-  page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: /^Apply \d+ changes? to Spoolman$/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Write changes" }).click();
   await expect(page.getByText(/^\d+ applied$/)).toBeVisible();
   expect(downloads).toEqual([]);
 });

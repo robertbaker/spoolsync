@@ -32,7 +32,7 @@ async function applyFixture(record: (entry: SyncHistoryRecord) => void) {
     inventory: { ...inventory },
   }));
   const target = { identity: inventory.connectionId, description: "Spoolman", apply };
-  const confirm = mock((_message: string) => true);
+  const confirm = mock((_message: string, _details?: unknown) => true);
   const controller = new ApplyController(
     { spoolman: { changedMessage: "changed", connect: () => target } },
     { loaded, onApplied: () => {} },

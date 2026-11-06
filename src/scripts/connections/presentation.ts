@@ -15,11 +15,14 @@ export const wirePasswordToggle = (btnId: string, inputId: string) => {
   const btn = document.getElementById(btnId);
   const input = document.getElementById(inputId) as HTMLInputElement | null;
   if (!btn || !input) return;
+  btn.setAttribute("aria-pressed", "false");
+  btn.setAttribute("aria-label", "Show value");
   btn.addEventListener("click", () => {
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
     btn.textContent = isPassword ? "Hide" : "Show";
     btn.setAttribute("aria-label", isPassword ? "Hide value" : "Show value");
+    btn.setAttribute("aria-pressed", String(isPassword));
   });
 };
 

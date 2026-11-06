@@ -28,7 +28,7 @@ async function fixture() {
   const connect = mock((): ApplyTarget | null => target);
   const onApplied = mock(() => {});
   const save = mock((_inventory: LoadResult) => {});
-  const confirm = mock((_message: string) => true);
+  const confirm = mock((_message: string, _details?: unknown) => true);
   const controller = new ApplyController(
     { spoolman: { changedMessage: "Reload changed server", connect } },
     { loaded, onApplied },
@@ -155,6 +155,21 @@ test("a rollback file is saved after the write is confirmed and before it is sen
     sourceId: "1",
     changes: [{ field: "density", before: null, after: 1.24 }],
   });
+});
+
+test("the confirmation is told the target, the change counts and whether a rollback is saved", async () => {
+  const on = await withRollback();
+  await on.controller.run("spoolman", [planned()], on.status);
+  expect(on.confirm).toHaveBeenCalledWith("Write 1 change to Spoolman?", {
+    target: "Spoolman",
+    updates: 1,
+    creations: 0,
+    rollback: true,
+  });
+
+  const off = await withRollback({ enabled: false });
+  await off.controller.run("spoolman", [planned()], off.status);
+  expect(off.confirm.mock.calls[0]![1]).toMatchObject({ rollback: false });
 });
 
 test("nothing is saved when the person declines, or turned the file off", async () => {

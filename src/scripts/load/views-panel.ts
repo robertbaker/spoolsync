@@ -23,6 +23,7 @@ import {
   type ViewSettings,
 } from "~/lib/saved-views";
 
+import { confirmDialog } from "../confirm-dialog";
 import { h, showToast } from "../dom";
 import { isTypingTarget } from "../shortcuts";
 
@@ -225,10 +226,16 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
         `Renamed to "${nameInput.value.trim()}".`,
       );
   });
-  remove.addEventListener("click", () => {
+  remove.addEventListener("click", async () => {
     const view = selected();
     if (!view) return;
-    if (!window.confirm(`Delete the view "${view.name}"?`)) return;
+    const confirmed = await confirmDialog({
+      title: `Delete the view "${view.name}"?`,
+      body: "The saved filters and sort are removed. Your inventory is not changed.",
+      confirmLabel: "Delete view",
+      tone: "danger",
+    });
+    if (!confirmed || selected()?.id !== view.id) return;
     views = deleteView(views, view.id);
     selectedId = "";
     nameInput.value = "";
