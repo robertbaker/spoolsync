@@ -1,0 +1,18 @@
+name: Cancel workflow run
+description: Cancel the current run after a failure so the other jobs stop spending minutes.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@v9
+      with:
+        script: |
+          try {
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+          } catch (error) {
+            core.warning(`Failed to cancel workflow: ${error.message}`);
+          }

@@ -12,7 +12,6 @@ concurrency:
 permissions:
   contents: read
   pull-requests: read
-  actions: write
 
 jobs:
   changes:
@@ -48,7 +47,10 @@ jobs:
               - 'starwind.config.json'
               - 'package.json'
               - 'bun.lock'
+              - 'README.md'
+              - 'docs/**'
               - '.github/workflows/ci.yml'
+              - '.github/actions/**'
             # Anything that can change browser behavior: runs the whole suite.
             e2e:
               - 'src/**'
@@ -62,6 +64,7 @@ jobs:
               - 'package.json'
               - 'bun.lock'
               - '.github/workflows/ci.yml'
+              - '.github/actions/**'
             # Changed spec files only: runs just those specs when nothing above changed.
             e2e_specs:
               - 'e2e/**/*.spec.ts'
@@ -71,48 +74,62 @@ jobs:
               - 'bun.lock'
               - '.github/workflows/ci.yml'
 
-  check:
-    name: Lint, type check, unit tests
+  # Independent checks run as parallel jobs; the `ci` job below is the single required status.
+  static:
+    name: Lint, package types, docs
+    timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: bun run lint
+      - run: bun run check:packages
+      - run: bun run docs:services:check
+      - if: failure()
+        uses: ./.github/actions/cancel-run
+
+  typecheck:
+    name: Astro type check
+    timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: bun run check
+      - if: failure()
+        uses: ./.github/actions/cancel-run
+
+  unit:
+    name: Unit tests
     timeout-minutes: 15
     needs: changes
     if: needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run check
       # The completion tests run the real bash, zsh, and fish; REQUIRE_COMPLETION_SHELLS makes a
       # missing shell fail here instead of being skipped.
       - name: Install shells for completion tests
-        run: sudo apt-get update && sudo apt-get install -y zsh fish
+        run: sudo apt-get install -y --no-install-recommends zsh fish
+      - uses: ./.github/actions/setup
       - run: bun run test
         env:
           REQUIRE_COMPLETION_SHELLS: "1"
-
-      - name: Cancel workflow on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            try {
-              await github.rest.actions.cancelWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.runId,
-              });
-            } catch (error) {
-              core.warning(`Failed to cancel workflow: ${error.message}`);
-            }
+      - if: failure()
+        uses: ./.github/actions/cancel-run
 
   e2e:
     name: E2E
@@ -120,26 +137,21 @@ jobs:
     if: needs.changes.outputs.e2e == 'true' || needs.changes.outputs.e2e_specs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup
       - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
-      # Runs even on a cache hit: the cache holds browsers only, not the apt system deps.
-      - run: bunx playwright install --with-deps chromium
+      # Runs even on a cache hit: the cache holds browsers only, not the apt system deps. The
+      # config runs headless, so only the headless shell is needed.
+      - run: bunx playwright install --with-deps --only-shell chromium
       - run: bun run build
       - run: bun run bundle:check
       # Full suite when app code changed; otherwise only the spec files that changed.
@@ -165,47 +177,30 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
-
-      - name: Cancel workflow on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            try {
-              await github.rest.actions.cancelWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.runId,
-              });
-            } catch (error) {
-              core.warning(`Failed to cancel workflow: ${error.message}`);
-            }
+      - if: failure()
+        uses: ./.github/actions/cancel-run
 
   cli:
-    name: CLI build and smoke test
+    name: CLI tests (Node ${{ matrix.node }})
     timeout-minutes: 10
     needs: changes
     if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     strategy:
+      fail-fast: false
       matrix:
         node: [20, 22]
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-      - run: bun install --frozen-lockfile
-      - run: bun run --filter spoolsync build
+      - uses: ./.github/actions/setup
+      # Builds the CLI, then runs its integration tests against the built dist/cli.js.
+      - run: bun run test:cli
       - name: Smoke test built CLI
         working-directory: packages/spoolsync-cli
         run: |
@@ -214,18 +209,17 @@ jobs:
       - name: Check package contents
         working-directory: packages/spoolsync-cli
         run: npm pack --dry-run
+      - if: failure()
+        uses: ./.github/actions/cancel-run
 
-      - name: Cancel workflow on failure
-        if: failure()
-        uses: actions/github-script@v9
-        with:
-          script: |
-            try {
-              await github.rest.actions.cancelWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: context.runId,
-              });
-            } catch (error) {
-              core.warning(`Failed to cancel workflow: ${error.message}`);
-            }
+  # One stable status for branch protection: skipped jobs pass, failed or cancelled ones fail.
+  ci:
+    name: CI
+    needs: [changes, static, typecheck, unit, e2e, cli]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | grep -Eq '"result": "(failure|cancelled)"' && exit 1
+          exit 0

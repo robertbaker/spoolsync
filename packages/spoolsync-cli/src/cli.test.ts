@@ -32,7 +32,7 @@ function stopWatching(child: { kill(signal?: NodeJS.Signals): void; stdin?: unkn
     const stdin = child.stdin as { write(text: string): unknown; flush?(): unknown };
     stdin.write("q\n");
     void stdin.flush?.();
-  } else stopWatching(child);
+  } else child.kill("SIGINT");
 }
 
 let directory: string;
