@@ -41,7 +41,7 @@ const spoolman = serviceView("spoolman");
     <PageHeader
       eyebrow="Step 1 of 3"
       title="Load inventories"
-      description="Drop your export files or open a service to fetch from it. Nothing is modified yet, and loaded inventories clear when you close this tab."
+      description="Drop your export files or open a service to fetch from it. Nothing is modified yet. Loaded inventories and API keys clear when you close this tab; your Spoolman address, match answers and history stay on this device."
     />
 
     <section id="tour-drop" class="app-card mt-8" aria-labelledby="smart-heading">
@@ -207,7 +207,7 @@ const spoolman = serviceView("spoolman");
                 </summary>
                 <div class="p-4 pt-1">
                   <p class="mb-4 text-sm text-muted-foreground">
-                    Your password goes straight to TigerTag's sign-in service and is never stored; SpoolSync keeps only the session token.
+                    Your password goes straight to TigerTag's sign-in service and is never stored; SpoolSync keeps only the session token, for this tab only unless you choose to remember it.
                   </p>
                   <TigertagConnectionForm badge />
                 </div>
@@ -227,7 +227,7 @@ const spoolman = serviceView("spoolman");
                   <Button type="button" color="primary" id="bambuddy-fetch" aria-describedby="bambuddy-hint">Fetch spools</Button>
                 </div>
                 <p id="bambuddy-hint" class="field-hint">
-                  Needs an API key with the Read status scope. Enter the address and key to enable fetching. Kept for this browser tab only.
+                  Needs an API key with the Read status scope. Enter the address and key to enable fetching. Kept for this tab only and cleared when it closes.
                 </p>
               </div>
             )}
@@ -245,7 +245,7 @@ const spoolman = serviceView("spoolman");
                   <Button type="button" color="primary" id="filamentdb-fetch" aria-describedby="filamentdb-hint">Fetch spools</Button>
                 </div>
                 <p id="filamentdb-hint" class="field-hint">
-                  Enter the server address to enable fetching. The token is only needed when user management is on. Kept for this browser tab only.
+                  Enter the server address to enable fetching. The token is only needed when user management is on. Kept for this tab only and cleared when it closes.
                 </p>
               </div>
             )}
@@ -295,7 +295,7 @@ const spoolman = serviceView("spoolman");
           <Button type="button" variant="outline" color="neutral" size="sm" id="copy-reorder" hidden>Copy reorder list</Button>
           <Button type="button" variant="outline" color="neutral" size="sm" id="print-labels" hidden>Print labels</Button>
           <Button type="button" variant="outline" color="neutral" size="sm" id="download-combined" hidden>Download all as CSV</Button>
-          <Button type="button" variant="outline" color="neutral" size="sm" id="unload-all" hidden>Unload all</Button>
+          <Button type="button" variant="outline" color="error" size="sm" class="sm:ml-auto" id="unload-all" hidden>Unload all</Button>
         <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
           <input
             id="spool-search-input"

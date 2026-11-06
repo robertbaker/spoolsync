@@ -55,7 +55,7 @@ const { badge = false } = Astro.props;
   </div>
   <label class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg border border-transparent p-2 text-sm transition-colors has-[:checked]:border-border has-[:checked]:bg-muted/40 hover:bg-muted/20" for="spoolman-remember">
     <input id="spoolman-remember" name="rememberToken" type="checkbox" class="size-4 shrink-0" />
-    <span>Remember token on this device (otherwise it clears when the tab closes)</span>
+    <span>Remember token on this device (otherwise it is kept for this tab only and cleared when it closes)</span>
   </label>
   <div class="flex flex-wrap gap-3">
     <Button type="submit" color="primary" id="spoolman-test">Save and test</Button>
