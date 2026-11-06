@@ -13,6 +13,7 @@ import {
   type SyncHistoryRecord,
 } from "~/lib/browser/storage/sync-history";
 
+import { confirmDialog } from "../confirm-dialog";
 import { h, showToast } from "../dom";
 import { copyText } from "./clipboard";
 import { button, download } from "./presentation";
@@ -80,12 +81,16 @@ export function createHistoryView(container: HTMLElement = document.createElemen
     }
   });
   exportJson.id = "sync-history-export";
-  const clear = button("Clear history", () => {
+  const clear = button("Clear history", async () => {
     if (!history.length) return;
-    if (
-      !confirm(`Forget ${history.length} recorded ${history.length === 1 ? "entry" : "entries"}?`)
-    )
-      return;
+    const total = history.length;
+    const confirmed = await confirmDialog({
+      title: `Forget ${total} recorded ${total === 1 ? "entry" : "entries"}?`,
+      body: "The sync history is removed from this browser. This cannot be undone.",
+      confirmLabel: "Forget history",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     clearSyncHistory();
     history = [];
     render();

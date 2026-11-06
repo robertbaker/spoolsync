@@ -96,8 +96,8 @@ test("sign in to TigerTag, fetch the cloud inventory and apply a change", async 
     .filter({ has: page.getByText("Spoolstock 410e5312") });
   await card.getByRole("radio", { name: "875" }).check();
 
-  page.once("dialog", (dialog) => void dialog.accept());
   await page.getByRole("button", { name: /^Apply \d+ changes? to TigerTag$/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Write changes" }).click();
   await expect(page.getByText(/^\d+ applied$/)).toBeVisible();
   expect(writes[0]?.url).toContain("/users/u1/inventory/docA");
   expect(writes[0]?.fields).toMatchObject({ weight_available: 875 });

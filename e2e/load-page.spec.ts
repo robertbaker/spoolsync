@@ -392,6 +392,7 @@ test("Unload all clears every loaded service in one step", async ({ page }) => {
   ]);
   await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
   await page.locator("#unload-all").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unload all" }).click();
   await expect(page.locator("#load-bar")).toBeHidden();
   await expect(page.locator("#unload-all")).toBeHidden();
   await expect(page.locator("#spoolio-status")).toContainText("Not loaded");
@@ -478,6 +479,7 @@ test("sample data lets a first-time visitor try matching, and never replaces rea
   await expect(page.locator("#load-bar-summary")).toContainText("2 services loaded");
   await expect(page.locator("#sample-prompt")).toBeHidden();
   await page.locator("#unload-all").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unload all" }).click();
   await expect(page.locator("#sample-prompt")).toBeVisible();
   await page.getByRole("button", { name: "Try it with sample data" }).click();
   await expect(page.locator("#smart-message")).toContainText("Sample data loaded");
@@ -485,11 +487,14 @@ test("sample data lets a first-time visitor try matching, and never replaces rea
 
   // With a real inventory loaded the sample is not offered on Sync either.
   await page.locator("#unload-all").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unload all" }).click();
+  await expect(page.locator("#unload-all")).toBeHidden();
   await page.locator("#spoolio-file").setInputFiles({
     name: "real.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "r", brand: "Real" }] })),
   });
+  await expect(page.locator("#spoolio-status")).toContainText("1 loaded");
   await expect(page.locator("#sample-prompt")).toBeHidden();
   await page.goto("/sync");
   await expect(page.getByRole("button", { name: "Try sample data" })).toBeHidden();
@@ -566,6 +571,7 @@ test("each loaded service shows its headline numbers", async ({ page }) => {
     "3,320 g remaining",
   );
   await page.locator("#unload-all").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unload all" }).click();
   await expect(stats).toBeHidden();
 });
 
@@ -587,6 +593,7 @@ test("remaining filament is charted as ranked bars with a table view", async ({ 
   await expect(page.locator("#loaded-chart")).toBeHidden();
 
   await page.locator("#unload-all").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Unload all" }).click();
   await page.getByRole("button", { name: "Try it with sample data" }).click();
   const chart = page.locator("#loaded-chart");
   await expect(chart).toBeVisible();

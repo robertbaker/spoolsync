@@ -20,7 +20,11 @@ test("Spoolman connection can be set up and cleared without leaving the Load pag
   await page.route("http://spoolman.test:7912/**", (route) =>
     route.request().method() === "OPTIONS"
       ? route.fulfill({ status: 204, headers: cors })
-      : route.fulfill({ status: 200, headers: cors, json: { version: "0.22.0" } }),
+      : route.fulfill({
+          status: 200,
+          headers: cors,
+          json: route.request().url().endsWith("/api/v1/info") ? { version: "0.23.1" } : [],
+        }),
   );
   await page.locator("#spoolman-url").fill("spoolman.test:7912");
   await page.getByRole("button", { name: "Save and test" }).click();
@@ -28,6 +32,7 @@ test("Spoolman connection can be set up and cleared without leaving the Load pag
   await expect(page.locator("#spoolman-load")).toBeEnabled();
 
   await page.getByRole("button", { name: "Forget" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Forget" }).click();
   await expect(page.locator("#spoolman-load")).toBeDisabled();
   await expect(page.locator("#spoolman-target")).toHaveText("No Spoolman server configured yet.");
 });
@@ -40,7 +45,7 @@ test("changing the Spoolman address drops its fetched snapshot but keeps file in
     filaments: [filament],
     spools: [{ id: 51, filament, initial_weight: 1000, remaining_weight: 860, extra: {} }],
   });
-  await page.route("http://one.test:7912/**", async (route) => {
+  await page.route(/^http:\/\/(one|two)\.test:7912\//, async (route) => {
     const request = route.request();
     if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
     if (new URL(request.url()).pathname === "/api/v1/info")
