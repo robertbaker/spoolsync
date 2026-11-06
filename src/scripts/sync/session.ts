@@ -22,6 +22,7 @@ import {
 } from "@spoolsync/core/core/model";
 import {
   decideMatch,
+  decideMatches,
   ensureResolution,
   findMatches,
   reconcileBulkEdits,
@@ -263,8 +264,7 @@ export class SyncSession {
       this.checkpoint(
         `${same ? "confirming" : "rejecting"} ${suggestions.length} ${suggestions.length === 1 ? "match" : "matches"}`,
       );
-    for (const suggestion of suggestions)
-      this.decisions = decideMatch(this.decisions, suggestion, same);
+    this.decisions = decideMatches(this.decisions, suggestions, same);
     this.persistence.saveMatchDecisions(this.decisions);
     return suggestions.length;
   }

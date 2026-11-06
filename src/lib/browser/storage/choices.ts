@@ -8,8 +8,20 @@ const RESOLUTIONS_KEY = "spoolsync:resolutions";
 
 /** Match confirmations and rejections, kept across visits so the same question is not asked twice. */
 export function loadMatchDecisions(): MatchDecisions {
+  const raw = read(local, DECISIONS_KEY);
+  // Charts, the action bar and the Sync page ask on every render; parse only when the stored text
+  // changed. Callers get their own arrays, so mutating a result never corrupts the cache.
+  if (!lastDecisions || lastDecisions.raw !== raw)
+    lastDecisions = { raw, decisions: parseDecisions(raw) };
+  const { confirmed, rejected } = lastDecisions.decisions;
+  return { confirmed: [...confirmed], rejected: [...rejected] };
+}
+
+let lastDecisions: { raw: string | null; decisions: MatchDecisions } | null = null;
+
+function parseDecisions(raw: string | null): MatchDecisions {
   try {
-    const parsed = JSON.parse(read(local, DECISIONS_KEY) ?? "{}") as Partial<MatchDecisions>;
+    const parsed = JSON.parse(raw ?? "{}") as Partial<MatchDecisions>;
     return {
       confirmed: Array.isArray(parsed.confirmed)
         ? parsed.confirmed.filter((p) => typeof p === "string")
