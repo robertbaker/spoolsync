@@ -45,10 +45,11 @@ test.describe("Sidebar navigation", () => {
     await expect(html).toHaveAttribute("data-sidebar", "expanded");
     await collapse.click();
     await expect(html).toHaveAttribute("data-sidebar", "collapsed");
-    await expect(page.getByRole("button", { name: "Expand sidebar" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+    // On the desktop rail the logo is the expand control and the chevron button is hidden.
+    await expect(page.getByRole("link", { name: "Expand sidebar" })).toBeVisible();
+    const chevron = page.locator("[data-sb-collapse]");
+    await expect(chevron).toBeHidden();
+    await expect(chevron).toHaveAttribute("aria-expanded", "false");
     // Links keep their accessible names when only icons are shown.
     await expect(
       page
