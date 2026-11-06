@@ -1166,11 +1166,12 @@ test("changes to the plan can be undone and redone from buttons and the keyboard
 
   // Individual picks are undoable too.
   await page.getByLabel("Filter spools").fill("");
+  // The final assertion needs this pick, so wait for the radios instead of skipping when a
+  // count() taken before they render says there are none.
   const radio = page.getByRole("radio").first();
-  if (await radio.count()) {
-    await radio.check();
-    await expect(undo).toContainText("Undo change to");
-  }
+  await expect(radio).toBeVisible();
+  await radio.check();
+  await expect(undo).toContainText("Undo change to");
   await page.getByRole("button", { name: "Reset choices" }).click();
   await expect(undo).toContainText("Undo resetting all choices");
   await undo.click();
