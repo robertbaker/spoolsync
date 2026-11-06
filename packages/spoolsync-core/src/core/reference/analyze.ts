@@ -188,10 +188,13 @@ function proposalsFor(
   return out;
 }
 
+const NUMERIC_EN_COLLATOR = new Intl.Collator("en", { numeric: true });
+const EN_COLLATOR = new Intl.Collator("en");
+
 const byIdentity = (a: CommonSpool, b: CommonSpool) =>
   SOURCE_IDS.indexOf(a.source) - SOURCE_IDS.indexOf(b.source) ||
-  a.sourceId.localeCompare(b.sourceId, "en", { numeric: true }) ||
-  a.sourceId.localeCompare(b.sourceId, "en");
+  NUMERIC_EN_COLLATOR.compare(a.sourceId, b.sourceId) ||
+  EN_COLLATOR.compare(a.sourceId, b.sourceId);
 
 /**
  * Matches every spool against the catalog and works out, per spool, what the reference would fill
@@ -275,23 +278,59 @@ export const needsChoice = (item: ReferenceItem): boolean =>
   (item.match.status === "ambiguous" || item.match.status === "suggested");
 
 export function summarizeReference(items: readonly ReferenceItem[]): ReferenceSummary {
-  const all = items.flatMap((item) => item.proposals);
+  let matched = 0;
+  let ambiguous = 0;
+  let suggested = 0;
+  let unmatched = 0;
+  let withMissing = 0;
+  let withDifferences = 0;
+  let colorMismatches = 0;
+  let colorClose = 0;
+  let proposals = 0;
+  let safe = 0;
+  let review = 0;
+  let applicable = 0;
+
+  for (const item of items) {
+    if (item.selected !== null) matched++;
+    if (item.match.status === "ambiguous") ambiguous++;
+    else if (item.match.status === "suggested") suggested++;
+    else if (item.match.status === "none") unmatched++;
+
+    let hasMissing = false;
+    let hasDiffers = false;
+    for (const diff of item.diffs) {
+      if (diff.status === "missing") hasMissing = true;
+      else if (diff.status === "differs") hasDiffers = true;
+    }
+    if (hasMissing) withMissing++;
+    if (hasDiffers) withDifferences++;
+
+    if (item.color?.verdict === "mismatch") colorMismatches++;
+    else if (item.color?.verdict === "close") colorClose++;
+
+    for (const proposal of item.proposals) {
+      proposals++;
+      if (proposal.confidence === "safe") safe++;
+      else if (proposal.confidence === "review") review++;
+      if (proposal.applicable) applicable++;
+    }
+  }
+
   return {
     spools: items.length,
-    matched: items.filter((item) => item.selected !== null).length,
-    ambiguous: items.filter((item) => item.match.status === "ambiguous").length,
-    suggested: items.filter((item) => item.match.status === "suggested").length,
-    unmatched: items.filter((item) => item.match.status === "none").length,
-    withMissing: items.filter((item) => item.diffs.some((diff) => diff.status === "missing"))
-      .length,
-    withDifferences: items.filter((item) => item.diffs.some((diff) => diff.status === "differs"))
-      .length,
-    colorMismatches: items.filter((item) => item.color?.verdict === "mismatch").length,
-    colorClose: items.filter((item) => item.color?.verdict === "close").length,
-    proposals: all.length,
-    safe: all.filter((proposal) => proposal.confidence === "safe").length,
-    review: all.filter((proposal) => proposal.confidence === "review").length,
-    applicable: all.filter((proposal) => proposal.applicable).length,
+    matched,
+    ambiguous,
+    suggested,
+    unmatched,
+    withMissing,
+    withDifferences,
+    colorMismatches,
+    colorClose,
+    proposals,
+    safe,
+    review,
+    applicable,
   };
 }
 

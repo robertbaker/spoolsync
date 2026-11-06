@@ -14,6 +14,25 @@ import { strictValuesEqual, type RecordEdits } from "./record-edits";
 import type { FieldValue, FieldChange, GroupResolution, PlannedChange } from "./types";
 import { valuesEqual } from "./values";
 
+const NATIVE_KEYS: Record<SourceId, keyof CrossIds> = {
+  spoolman: "spoolmanId",
+  spoolstock: "spoolstockShortId",
+  spoolio: "spoolioId",
+  tigertag: "tigertagUid",
+  threeDfp: "threeDfpId",
+  bambuddy: "bambuddyId",
+  filameter: "filameterId",
+  filadex: "filadexId",
+  filamentdb: "filamentdbSerial",
+  filamentDbApp: "filamentDbAppId",
+  spoolmaster: "spoolmasterId",
+  spoolhoarder: "spoolhoarderId",
+  spoolapp: "spoolappId",
+  spoolkeep: "spoolkeepId",
+};
+
+const cloneFieldValue = (v: FieldValue): FieldValue => (Array.isArray(v) ? [...v] : v);
+
 function groupLinks(group: SpoolGroup): CrossIds {
   const links: CrossIds = {};
   const claims = new Map<keyof CrossIds, Set<string | number>>();
@@ -31,29 +50,13 @@ function groupLinks(group: SpoolGroup): CrossIds {
   // Do not propagate an arbitrary foreign claim when records disagree.
   for (const [key, values] of claims)
     if (values.size === 1) Object.assign(links, { [key]: [...values][0] });
-  const nativeKeys: Record<SourceId, keyof CrossIds> = {
-    spoolman: "spoolmanId",
-    spoolstock: "spoolstockShortId",
-    spoolio: "spoolioId",
-    tigertag: "tigertagUid",
-    threeDfp: "threeDfpId",
-    bambuddy: "bambuddyId",
-    filameter: "filameterId",
-    filadex: "filadexId",
-    filamentdb: "filamentdbSerial",
-    filamentDbApp: "filamentDbAppId",
-    spoolmaster: "spoolmasterId",
-    spoolhoarder: "spoolhoarderId",
-    spoolapp: "spoolappId",
-    spoolkeep: "spoolkeepId",
-  };
   // The loaded service owns its record's identity; foreign cross-IDs cannot override it.
   for (const source of presentSources(group)) {
     const member = group.members[source]!;
     const id =
       source === "spoolman" || source === "bambuddy" ? Number(member.sourceId) : member.sourceId;
     if (typeof id === "number" && !Number.isFinite(id)) continue;
-    Object.assign(links, { [nativeKeys[source]]: id });
+    Object.assign(links, { [NATIVE_KEYS[source]]: id });
   }
   return links;
 }
@@ -150,7 +153,7 @@ export function buildPlan(
             ? strictValuesEqual(member[field], to)
             : valuesEqual(field, member[field], to);
         if (!same)
-          changes.push({ field, from: structuredClone(member[field]), to: structuredClone(to) });
+          changes.push({ field, from: cloneFieldValue(member[field]), to: cloneFieldValue(to) });
       }
       const memberLinks = missingLinks(member, links, source);
       if (changes.length || Object.keys(memberLinks).length) {

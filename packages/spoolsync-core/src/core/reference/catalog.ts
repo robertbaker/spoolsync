@@ -195,8 +195,8 @@ export class ReferenceCatalog {
 
   /** Words that identify the brand and polymer rather than the product. */
   private omitTokens(vendor: string | null, material: string | null): Set<string> {
-    const omit = new Set<string>();
-    for (const word of [...nameTokens(vendor ?? ""), ...nameTokens(material ?? "")]) omit.add(word);
+    const omit = nameTokens(vendor ?? "");
+    for (const word of nameTokens(material ?? "")) omit.add(word);
     return omit;
   }
 

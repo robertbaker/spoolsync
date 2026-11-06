@@ -37,7 +37,7 @@ const asCount = (value: unknown): number | null =>
 
 /** Error text is shortened and stripped of line breaks and control characters. */
 export function cleanErrorText(text: string): string {
-  // eslint-disable-next-line no-control-regex
+  /* eslint-disable no-control-regex */
   return text
     .replace(/[\u0000-\u001f\u007f]+/g, " ")
     .trim()

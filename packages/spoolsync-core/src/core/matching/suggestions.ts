@@ -25,10 +25,14 @@ export function suggestMatches(
       for (const a of membersA) {
         for (const b of membersB) {
           const pair: [RecordKey, RecordKey] = [recordKey(a), recordKey(b)];
-          if (rejected.has(pairKey(...pair))) blocked = true;
+          if (rejected.has(pairKey(...pair))) {
+            blocked = true;
+            break;
+          }
           const { score, reasons } = policy.similarity(a, b);
           if (!best || score > best.score) best = { pair, score, reasons, roots: [rootA, rootB] };
         }
+        if (blocked) break;
       }
       if (!blocked && best && best.score >= policy.suggestionThreshold) candidates.push(best);
     }

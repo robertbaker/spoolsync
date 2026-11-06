@@ -27,6 +27,8 @@ export function spoolBuyLinks(spool: CommonSpool, languages?: readonly string[])
   return buyLinks({ brand: spool.vendor, material: spool.material, color: spool.name }, languages);
 }
 
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 /**
  * Groups reorder items by brand (case-insensitively), brands in alphabetical order with the
  * no-brand group last. Inside a group the incoming order (emptiest first) is kept.
@@ -52,9 +54,7 @@ export function groupByBrand(
     group.items.push(item);
     groups.set(id, group);
   }
-  const ordered = [...groups.values()].sort((a, b) =>
-    a.brand.localeCompare(b.brand, undefined, { numeric: true, sensitivity: "base" }),
-  );
+  const ordered = [...groups.values()].sort((a, b) => NUMERIC_COLLATOR.compare(a.brand, b.brand));
   return blank.items.length ? [...ordered, blank] : ordered;
 }
 

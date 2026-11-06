@@ -24,6 +24,8 @@ import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 import { byId, h, setChildren } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
 
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 type Sort = { key: SortKey; direction: "asc" | "desc" } | null;
 
 /** Clicking a column sorts it ascending, then descending, then returns to the loaded order. */
@@ -54,10 +56,7 @@ export function sortSpools(spools: CommonSpool[], sort: Sort): CommonSpool[] {
     const order =
       typeof left === "number" && typeof right === "number"
         ? left - right
-        : String(left).localeCompare(String(right), undefined, {
-            numeric: true,
-            sensitivity: "base",
-          });
+        : NUMERIC_COLLATOR.compare(String(left), String(right));
     return order * direction;
   });
 }

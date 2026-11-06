@@ -245,6 +245,8 @@ const UNKNOWN_LABEL: Record<Exclude<ViewGroup, "none">, string> = {
   location: "No location",
 };
 
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 /**
  * Splits spools into sections, keeping the incoming (sorted) order inside each. Sections are
  * ordered by name with the blank section last. `none` gives a single unlabelled section.
@@ -265,9 +267,8 @@ export function groupSpools(spools: readonly CommonSpool[], group: ViewGroup): S
     section.spools.push(spool);
     sections.set(id, section);
   }
-  const ordered = [...sections.values()].sort((a, b) =>
-    a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }),
-  );
+
+  const ordered = [...sections.values()].sort((a, b) => NUMERIC_COLLATOR.compare(a.label, b.label));
   return blank.spools.length ? [...ordered, blank] : ordered;
 }
 

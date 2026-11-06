@@ -243,6 +243,7 @@ export class ReferenceController {
     const loadedSources = new Set<SourceId>(this.results.keys());
     const byKey = new Map(this.analysis.items.map((item) => [item.spoolKey, item] as const));
     let pruned = false;
+    /* eslint-disable-next-line unicorn/no-useless-spread */
     for (const [key, referenceId] of [...this.choices]) {
       const source = key.split(":")[0] as SourceId;
       if (!loadedSources.has(source) || !this.catalog) continue;

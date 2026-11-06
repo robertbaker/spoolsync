@@ -120,6 +120,7 @@ export class CleanupController {
       else dropped += 1;
     }
     // Bundles stand or fall together: if one member dropped out, the others cannot be applied alone.
+    /* eslint-disable-next-line unicorn/no-useless-spread */
     for (const id of [...active]) {
       const bundle = byId.get(id)?.bundle;
       if (!bundle || !active.has(id)) continue;

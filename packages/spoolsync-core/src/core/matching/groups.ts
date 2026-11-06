@@ -25,7 +25,11 @@ export class Groups {
     const [ra, rb] = [this.find(a), this.find(b)];
     if (ra === rb) return true;
     const sa = this.sources.get(ra)!;
-    return [...this.sources.get(rb)!].every((source) => !sa.has(source));
+    const sb = this.sources.get(rb)!;
+    for (const source of sb) {
+      if (sa.has(source)) return false;
+    }
+    return true;
   }
 
   /** Whether all these records' groups can become one without two records from one service. */

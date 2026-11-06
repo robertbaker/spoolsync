@@ -30,8 +30,9 @@ function sameWeight(a: number | null, b: number | null): boolean {
 const colorSignature = (spool: CommonSpool): string =>
   spool.colors.map((color) => colorFamily(color)).join(" + ");
 
-const byId = (a: CommonSpool, b: CommonSpool) =>
-  a.sourceId.localeCompare(b.sourceId, undefined, { numeric: true });
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true });
+
+const byId = (a: CommonSpool, b: CommonSpool) => NUMERIC_COLLATOR.compare(a.sourceId, b.sourceId);
 
 /**
  * Why two spools in the same service look like one spool entered twice, or `null` when they do not.

@@ -23,10 +23,13 @@ import {
 } from "./types";
 import { buildVendorIndex } from "./vendors";
 
+const NUMERIC_EN_COLLATOR = new Intl.Collator("en", { numeric: true });
+const EN_COLLATOR = new Intl.Collator("en");
+
 const byIdentity = (a: CommonSpool, b: CommonSpool) =>
   SOURCE_IDS.indexOf(a.source) - SOURCE_IDS.indexOf(b.source) ||
-  a.sourceId.localeCompare(b.sourceId, "en", { numeric: true }) ||
-  a.sourceId.localeCompare(b.sourceId, "en");
+  NUMERIC_EN_COLLATOR.compare(a.sourceId, b.sourceId) ||
+  EN_COLLATOR.compare(a.sourceId, b.sourceId);
 
 function initialDraft(spool: CommonSpool): CleanupDraft {
   const draft: CleanupDraft = {};

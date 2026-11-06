@@ -47,16 +47,12 @@ describe.each(COMPLETION_SHELLS)("%s script", (shell) => {
 test("bash completes option values, files, and option names", () => {
   if (!shellOrSkip("bash")) return;
   const run = (words: string[], cword: number) =>
-    spawnSync(
-      "bash",
-      [
-        "-c",
-        `${completionScript("bash")}\nCOMP_WORDS=(${words.map((word) => `'${word}'`).join(" ")}); COMP_CWORD=${cword}; _spoolsync; printf '%s\\n' "\${COMPREPLY[@]}"`,
-      ],
-      { encoding: "utf8" },
-    )
+    spawnSync("bash", {
+      input: `${completionScript("bash")}\nCOMP_WORDS=(${words.map((word) => `'${word}'`).join(" ")}); COMP_CWORD=${cword}; _spoolsync; printf '%s\\n' "\${COMPREPLY[@]}"`,
+      encoding: "utf8",
+    })
       .stdout.trim()
-      .split("\n");
+      .split(/\r?\n/);
   expect(run(["spoolsync", "--create-in", "spool"], 2)).toEqual(["spoolman", "spoolio"]);
   expect(run(["spoolsync", "--resolve", "mat"], 2)).toEqual(["material="]);
   expect(run(["spoolsync", "--completion", ""], 2)).toEqual(["bash", "zsh", "fish"]);

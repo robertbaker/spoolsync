@@ -46,6 +46,8 @@ function spoolButton(source: SourceId, id: string, name: string | null): HTMLEle
   return link;
 }
 
+const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true });
+
 function serviceBlock(visit: VisitSummary): HTMLElement {
   const label = SOURCE_LABELS[visit.source];
   if (!visitHasChanges(visit))
@@ -60,11 +62,7 @@ function serviceBlock(visit: VisitSummary): HTMLElement {
       ),
     );
   const movers = [...visit.drops, ...visit.gains]
-    .sort(
-      (a, b) =>
-        Math.abs(b.delta) - Math.abs(a.delta) ||
-        a.id.localeCompare(b.id, undefined, { numeric: true }),
-    )
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta) || NUMERIC_COLLATOR.compare(a.id, b.id))
     .slice(0, MOVERS_SHOWN);
   const more = visit.counts.drops + visit.counts.gains - movers.length;
   const row = (kind: string, name: HTMLElement, detail: string) =>
