@@ -3,6 +3,9 @@ import type { MatchDecisions } from "../core/match";
 import { SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
 import { findMatchesCached as findMatches } from "../planner";
 
+/** Same ordering as `localeCompare` with defaults, without per-call setup. */
+const LABEL_COLLATOR = new Intl.Collator();
+
 export type BreakdownField = "material" | "vendor" | "color" | "location";
 
 export interface MaterialShare {
@@ -86,7 +89,7 @@ export function remainingBy(
   }
   const ranked = [...totals.values()]
     .map((entry) => ({ ...entry, grams: Math.round(entry.grams) }))
-    .sort((a, b) => b.grams - a.grams || a.material.localeCompare(b.material));
+    .sort((a, b) => b.grams - a.grams || LABEL_COLLATOR.compare(a.material, b.material));
   const rows = ranked.slice(0, limit);
   const tail = ranked.slice(limit);
   if (tail.length)

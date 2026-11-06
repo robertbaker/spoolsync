@@ -107,6 +107,8 @@ export interface DryingOptions {
 }
 
 const RANK: Record<Moisture, number> = { high: 0, medium: 1, low: 2 };
+/** Same ordering as `localeCompare` with defaults, without per-call setup. */
+const DRYING_COLLATOR = new Intl.Collator();
 
 /**
  * The spools worth drying before a print: archived and empty ones are left out, as are materials
@@ -125,14 +127,21 @@ export function spoolsToDry(
     if (advice.moisture === "low" && !options.includeLow) continue;
     entries.push({ spool, advice });
   }
-  const name = (entry: DryingEntry) =>
-    [entry.spool.vendor, entry.spool.name].filter(Boolean).join(" ");
-  return entries.sort(
-    (a, b) =>
-      RANK[a.advice.moisture] - RANK[b.advice.moisture] ||
-      dryingGroupName(a.spool.material).localeCompare(dryingGroupName(b.spool.material)) ||
-      name(a).localeCompare(name(b)),
-  );
+  // Sort keys are computed once per entry, not once per comparison.
+  return entries
+    .map((entry) => ({
+      entry,
+      rank: RANK[entry.advice.moisture],
+      group: dryingGroupName(entry.spool.material),
+      name: [entry.spool.vendor, entry.spool.name].filter(Boolean).join(" "),
+    }))
+    .sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        DRYING_COLLATOR.compare(a.group, b.group) ||
+        DRYING_COLLATOR.compare(a.name, b.name),
+    )
+    .map(({ entry }) => entry);
 }
 
 export interface DryingGroup {

@@ -3,6 +3,9 @@ import type { CommonSpool, LoadResult } from "../core/model";
 import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
 import { uniqueSpools } from "./breakdown";
 
+/** Same ordering as `localeCompare` with defaults, without per-call setup. */
+const VENDOR_COLLATOR = new Intl.Collator();
+
 export interface ReorderItem {
   spool: CommonSpool;
   /** Share of the full weight left, 0 to 1, or `null` when the full weight is unknown. */
@@ -31,7 +34,7 @@ export function reorderItems(
     (a, b) =>
       (a.fraction ?? 1) - (b.fraction ?? 1) ||
       (a.spool.remainingWeight ?? 0) - (b.spool.remainingWeight ?? 0) ||
-      (a.spool.vendor ?? "").localeCompare(b.spool.vendor ?? "") ||
+      VENDOR_COLLATOR.compare(a.spool.vendor ?? "", b.spool.vendor ?? "") ||
       (a.spool.source < b.spool.source ? -1 : a.spool.source > b.spool.source ? 1 : 0) ||
       (a.spool.sourceId < b.spool.sourceId ? -1 : a.spool.sourceId > b.spool.sourceId ? 1 : 0),
   );

@@ -41,6 +41,14 @@ export function loadFilamentDbFile(text: string): FilamentDbLoadResult {
   } catch {
     throw new Error("This file is not valid JSON. Export spools from FilamentDB and try again.");
   }
+  return loadFilamentDbRecords(parsed);
+}
+
+/**
+ * Loads already-parsed spool JSON (the list a server returned), through the same validation and
+ * mapping as {@link loadFilamentDbFile}, without serialising it to text and parsing it again.
+ */
+export function loadFilamentDbRecords(parsed: unknown): FilamentDbLoadResult {
   const entries = entriesOf(parsed);
   const warnings: string[] = [];
   const records: FilamentDbSpool[] = [];

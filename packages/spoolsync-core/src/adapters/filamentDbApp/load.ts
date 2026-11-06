@@ -55,6 +55,20 @@ export function loadFilamentDbAppFile(text: string): FilamentDbAppLoadResult {
       "This file is not valid JSON. Export a snapshot from Filament DB and try again.",
     );
   }
+  return loadFilamentDbAppDocument(parsed);
+}
+
+/**
+ * Loads an already-parsed snapshot (what the server returned), through the same validation and
+ * mapping as {@link loadFilamentDbAppFile}, without serialising it to text and parsing it again.
+ * Only objects and lists are JSON documents; anything else goes through the text path unchanged.
+ */
+export function loadFilamentDbAppRecords(parsed: unknown): FilamentDbAppLoadResult {
+  if (parsed !== null && typeof parsed === "object") return loadFilamentDbAppDocument(parsed);
+  return loadFilamentDbAppFile(JSON.stringify(parsed) ?? "");
+}
+
+function loadFilamentDbAppDocument(parsed: unknown): FilamentDbAppLoadResult {
   const file = parseFilamentDbApp(parsed);
   const live = file.filaments.filter(isLive);
   if (file.filaments.length && !live.some((f) => "vendor" in f || "type" in f))
