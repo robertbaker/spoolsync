@@ -207,17 +207,39 @@ const spoolman = serviceView("spoolman");
               </details>
             )}
             {source.api && (
-              <div class="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                <input id="bambuddy-url" type="url" placeholder="http://bambuddy.local:8000" aria-label="Bambuddy server address" class="field-input mt-0" />
-                <input id="bambuddy-key" type="password" placeholder="Bambuddy API key" aria-label="Bambuddy API key" class="field-input mt-0" />
-                <Button type="button" color="primary" id="bambuddy-fetch">Fetch spools</Button>
+              <div class="mb-3">
+                <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div>
+                    <label class="field-label" for="bambuddy-url">Bambuddy server address</label>
+                    <input id="bambuddy-url" type="url" placeholder="http://bambuddy.local:8000" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="bambuddy-key">Bambuddy API key</label>
+                    <input id="bambuddy-key" type="password" placeholder="API key" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <Button type="button" color="primary" id="bambuddy-fetch" aria-describedby="bambuddy-hint">Fetch spools</Button>
+                </div>
+                <p id="bambuddy-hint" class="field-hint">
+                  Needs an API key with the Read status scope. Enter the address and key to enable fetching. Kept for this browser tab only.
+                </p>
               </div>
             )}
             {source.id === "filamentdb" && (
-              <div class="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                <input id="filamentdb-url" type="url" placeholder="http://filamentdb.local:3000" aria-label="FilamentDB server address" class="field-input mt-0" />
-                <input id="filamentdb-token" type="password" placeholder="Session token (only with user management)" aria-label="FilamentDB session token" class="field-input mt-0" />
-                <Button type="button" color="primary" id="filamentdb-fetch">Fetch spools</Button>
+              <div class="mb-3">
+                <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div>
+                    <label class="field-label" for="filamentdb-url">FilamentDB server address</label>
+                    <input id="filamentdb-url" type="url" placeholder="http://filamentdb.local:3000" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="filamentdb-token">FilamentDB session token</label>
+                    <input id="filamentdb-token" type="password" placeholder="Only with user management" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <Button type="button" color="primary" id="filamentdb-fetch" aria-describedby="filamentdb-hint">Fetch spools</Button>
+                </div>
+                <p id="filamentdb-hint" class="field-hint">
+                  Enter the server address to enable fetching. The token is only needed when user management is on. Kept for this browser tab only.
+                </p>
               </div>
             )}
             <p class="mb-4 text-sm text-muted-foreground">{source.cloud ? `Or use a file: ${source.how}` : source.how}</p>
