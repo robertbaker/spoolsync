@@ -181,7 +181,7 @@ jobs:
         uses: ./.github/actions/cancel-run
 
   cli:
-    name: CLI tests (Node ${{ matrix.node }})
+    name: CLI tests (Node ${{ matrix.label }})
     timeout-minutes: 10
     needs: changes
     if: needs.changes.outputs.cli == 'true'
@@ -192,7 +192,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        include:
+          - label: LTS
+            node: lts/*
+          - label: Current
+            node: node
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

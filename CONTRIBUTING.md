@@ -11,7 +11,7 @@ bun install
 bun run dev
 ```
 
-Run commands from the repository root so Bun resolves both workspace packages. Use Node.js 20
+Run commands from the repository root so Bun resolves both workspace packages. Use Node.js 22
 or later for the built CLI and its integration tests. Dependency versions are recorded in
 `bun.lock`; use `bun install --frozen-lockfile` to reproduce the locked installation.
 

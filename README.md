@@ -171,7 +171,7 @@ reference files without changing them and exits unsuccessfully if a supported ro
 The public `spoolsync` npm package provides the `spoolsync` command, using the same matching,
 planning and supported write adapters as the web app. A run with file inputs is a dry run unless
 `--output-dir` is supplied; source files are never changed. Read-only sources are inputs only.
-The installed CLI requires Node.js 20 or later. See the [CLI guide](packages/spoolsync-cli/README.md)
+The installed CLI requires Node.js 22 or later. See the [CLI guide](packages/spoolsync-cli/README.md)
 for empty targets, match decisions, JSON reports, and partial-write recovery.
 
 ```sh

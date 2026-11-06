@@ -37,7 +37,7 @@ spoolsync --help
 spoolsync --version
 ```
 
-Requires Node.js 20 or later. Use `spoolsync --version --json` to read the installed version in scripts.
+Requires Node.js 22 or later. Use `spoolsync --version --json` to read the installed version in scripts.
 
 ## Quick start
 
