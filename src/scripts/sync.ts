@@ -177,6 +177,13 @@ if (loaded.size < 2) {
       `Only ${SOURCE_LABELS[state.loadedSources()[0]!]} is loaded`;
     byId("sync-empty-body").textContent = "Load at least one more service to compare against.";
   }
+  // The empty state is a dead end whose only way forward is its buttons, so land on its heading
+  // rather than leaving screen-reader users on a page that just swapped a placeholder. Only when
+  // nobody has started interacting: never steal focus from someone already tabbing.
+  const emptyTitle = byId("sync-empty-title");
+  emptyTitle.tabIndex = -1;
+  if (document.activeElement === document.body || document.activeElement === null)
+    emptyTitle.focus({ preventScroll: true });
 } else {
   byId("sync-empty").hidden = true;
   byId("sync-app").hidden = false;

@@ -149,9 +149,11 @@ test("changes to the plan can be undone and redone, and a new change drops the r
   expect(state.undo()).toBeNull();
 
   state.checkpoint("adding a spool to Spoolio");
-  state.resolutionFor(group).createIn.push("spoolio");
+  state.updateResolution(group, (draft) => draft.createIn.push("spoolio"));
   state.checkpoint("picking a weight");
-  state.resolutionFor(group).values["remainingWeight"] = 123;
+  state.updateResolution(group, (draft) => {
+    draft.values["remainingWeight"] = 123;
+  });
   expect(state.undoLabel()).toBe("picking a weight");
 
   expect(state.undo()).toBe("picking a weight");
@@ -175,17 +177,64 @@ test("changes to the plan can be undone and redone, and a new change drops the r
   expect(state.redoLabel()).toBeNull();
 });
 
-test("snapshots are independent copies and the history is bounded", () => {
+test("recompute reuses the match until the records or the answers change", () => {
+  const { state, saveResolutions } = answerSession();
+  state.recompute();
+  const first = state.match;
+  expect(first.suggestions).toHaveLength(1);
+
+  // A plan-only redraw (nothing matched differently) keeps the match but still reconciles and saves.
+  state.recompute();
+  expect(state.match).toBe(first);
+  expect(saveResolutions).toHaveBeenCalledTimes(2);
+
+  // A new answer is a new decisions object, so the match is computed again.
+  state.decide(first.suggestions[0]!, true);
+  state.recompute();
+  expect(state.match).not.toBe(first);
+  expect(state.match.suggestions).toHaveLength(0);
+
+  // Undoing restores the earlier answers object, which differs from the last one matched.
+  state.undo();
+  state.recompute();
+  expect(state.match.suggestions).toHaveLength(1);
+
+  // New records (a reload or an apply) are matched again too.
+  const again = state.match;
+  state.loaded.set("spoolio", snapshot("spoolio", [makeSpool("spoolio", "one")]));
+  state.recompute();
+  expect(state.match).not.toBe(again);
+});
+
+test("snapshots are not changed by later edits and the history is bounded", () => {
   const { state } = session(
     new Map([["spoolman", snapshot("spoolman", [makeSpool("spoolman", "1")])]]),
   );
   state.recompute();
   const group = state.match.groups[0]!;
+  state.updateResolution(group, (draft) => {
+    draft.values["name"] = "before";
+  });
   state.checkpoint("first");
-  state.resolutionFor(group).values["name"] = "changed after the snapshot";
+  const shared = state.resolutionFor(group);
+  state.updateResolution(group, (draft) => {
+    draft.values["name"] = "changed after the snapshot";
+    draft.createIn.push("spoolio");
+  });
+  // The object the snapshot holds is untouched; the live map got a new one.
+  expect(shared.values["name"]).toBe("before");
+  expect(shared.createIn).toEqual([]);
+  expect(state.resolutionFor(group)).not.toBe(shared);
   state.undo();
-  // The restored choices are not the object that was mutated afterwards.
-  expect(state.resolutionFor(group).values["name"]).toBeUndefined();
+  expect(state.resolutionFor(group).values["name"]).toBe("before");
+  expect(state.resolutionFor(group).createIn).toEqual([]);
+  // Editing a snapshotted object in place is a bug, so it fails loudly instead of corrupting undo.
+  expect(() => {
+    state.resolutionFor(group).values["name"] = "in place";
+  }).toThrow();
+  state.redo();
+  expect(state.resolutionFor(group).values["name"]).toBe("changed after the snapshot");
+  state.undo();
 
   for (let index = 0; index < 120; index++) state.checkpoint(`change ${index}`);
   let undone = 0;
@@ -231,7 +280,7 @@ test("bulk answers and resets are single steps in the same history as plan chang
   const group = state.match.groups[0]!;
 
   state.checkpoint("adding a spool to Spoolio");
-  state.resolutionFor(group).createIn.push("spoolio");
+  state.updateResolution(group, (draft) => draft.createIn.push("spoolio"));
 
   expect(state.decideAll(false)).toBe(1);
   expect(state.undoLabel()).toBe("rejecting 1 match");
@@ -262,7 +311,9 @@ test("restoring a step restores answers and plan choices together", () => {
   state.recompute();
   const group = state.match.groups[0]!;
   state.checkpoint("pick");
-  state.resolutionFor(group).values["remainingWeight"] = 9;
+  state.updateResolution(group, (draft) => {
+    draft.values["remainingWeight"] = 9;
+  });
   state.decide(state.match.suggestions[0]!, false);
   expect(state.decisionCounts()).toEqual({ same: 0, different: 1 });
 
