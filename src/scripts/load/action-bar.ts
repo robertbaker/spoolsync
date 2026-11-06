@@ -1,4 +1,4 @@
-import { findMatches } from "@spoolsync/core/planner";
+import { findMatchesCached as findMatches } from "@spoolsync/core/planner";
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
 

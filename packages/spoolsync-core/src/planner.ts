@@ -185,3 +185,40 @@ export function planSync(
 export function findMatches(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {
   return matchSpools(spools, decisions);
 }
+
+let lastMatch: {
+  spools: CommonSpool[];
+  spoolSet: ReadonlySet<CommonSpool>;
+  decisions: MatchDecisions;
+  result: MatchResult;
+} | null = null;
+
+const sameItems = <T>(a: readonly T[], b: readonly T[]): boolean =>
+  a.length === b.length && a.every((item, index) => item === b[index]);
+
+/**
+ * `findMatches` for read-only callers (charts, counts, drawers) that ask repeatedly with the same
+ * inventory. The last answer is reused while the records (by identity; matching sorts them, so
+ * order does not matter, and duplicate records throw before anything is cached) and the saved
+ * decisions (by content) are unchanged, so records must be replaced rather than edited in place
+ * between calls. The returned result is shared: do not mutate it. Callers that keep or change their
+ * match (the Sync session) should use `findMatches`.
+ */
+export function findMatchesCached(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {
+  if (
+    lastMatch &&
+    lastMatch.spools.length === spools.length &&
+    spools.every((spool) => lastMatch!.spoolSet.has(spool)) &&
+    sameItems(lastMatch.decisions.confirmed, decisions.confirmed) &&
+    sameItems(lastMatch.decisions.rejected, decisions.rejected)
+  )
+    return lastMatch.result;
+  const result = matchSpools(spools, decisions);
+  lastMatch = {
+    spools: [...spools],
+    spoolSet: new Set(spools),
+    decisions: { confirmed: [...decisions.confirmed], rejected: [...decisions.rejected] },
+    result,
+  };
+  return result;
+}

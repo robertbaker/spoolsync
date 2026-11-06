@@ -97,17 +97,30 @@ export function findDuplicateSpools(
       .filter((result) => result.source === source)
       .flatMap((result) => result.spools)
       .sort(byId);
-    // Bucketing by material keeps the pairwise comparison cheap for large inventories.
+    // Pairs only link when archived state, material, brand and colour family all agree (see
+    // `pairReasons`), so bucketing on exactly those keeps the pairwise comparison cheap for large
+    // inventories without changing which pairs are compared or their order within a bucket.
     const buckets = new Map<string, CommonSpool[]>();
     for (const spool of spools) {
-      const key = normalize(spool.material);
-      if (key) buckets.set(key, [...(buckets.get(key) ?? []), spool]);
+      const material = normalize(spool.material);
+      if (!material) continue;
+      const key = [spool.archived, material, normalize(spool.vendor), colorSignature(spool)].join(
+        "\u0000",
+      );
+      const bucket = buckets.get(key);
+      if (bucket) bucket.push(spool);
+      else buckets.set(key, [spool]);
     }
     const parent = new Map<CommonSpool, CommonSpool>();
     const root = (spool: CommonSpool): CommonSpool => {
-      let current = spool;
-      while (parent.has(current)) current = parent.get(current)!;
-      return current;
+      let top = spool;
+      while (parent.has(top)) top = parent.get(top)!;
+      for (let current = spool; current !== top;) {
+        const next = parent.get(current)!;
+        parent.set(current, top);
+        current = next;
+      }
+      return top;
     };
     const pairReasonLists = new Map<CommonSpool, string[][]>();
     const linked = new Set<CommonSpool>();
@@ -121,14 +134,19 @@ export function findDuplicateSpools(
           linked.add(a).add(b);
           const [rootA, rootB] = [root(a), root(b)];
           if (rootA !== rootB) parent.set(rootB, rootA);
-          for (const spool of [a, b])
-            pairReasonLists.set(spool, [...(pairReasonLists.get(spool) ?? []), reasons]);
+          for (const spool of [a, b]) {
+            const lists = pairReasonLists.get(spool);
+            if (lists) lists.push(reasons);
+            else pairReasonLists.set(spool, [reasons]);
+          }
         }
     const members = new Map<CommonSpool, CommonSpool[]>();
     for (const spool of spools) {
       if (!linked.has(spool)) continue;
       const top = root(spool);
-      members.set(top, [...(members.get(top) ?? []), spool]);
+      const group = members.get(top);
+      if (group) group.push(spool);
+      else members.set(top, [spool]);
     }
     for (const group of members.values()) {
       groups.push({

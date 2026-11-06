@@ -1,7 +1,7 @@
 import { colorFamily } from "../core/color";
 import type { MatchDecisions } from "../core/match";
 import { SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
-import { findMatches } from "../planner";
+import { findMatchesCached as findMatches } from "../planner";
 
 export type BreakdownField = "material" | "vendor" | "color" | "location";
 
