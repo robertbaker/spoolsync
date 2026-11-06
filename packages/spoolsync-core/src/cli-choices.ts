@@ -109,7 +109,7 @@ export function deriveCliChoices(
     createIn,
     confirm: decisions.confirmed.filter(known).map(pairArgument),
     reject: decisions.rejected.filter(known).map(pairArgument),
-    extra: [...produced].filter((item) => !wanted.has(item)).length,
-    missing: [...wanted].filter((item) => !produced.has(item)).length,
+    extra: produced.difference(wanted).size,
+    missing: wanted.difference(produced).size,
   };
 }

@@ -178,7 +178,7 @@ export function renderTrendChart(container: HTMLElement, hasLoaded: boolean): vo
     h(
       "tbody",
       {},
-      ...[...points].reverse().map((point) =>
+      ...points.toReversed().map((point) =>
         h(
           "tr",
           { class: "border-t" },

@@ -71,6 +71,13 @@
     "vite": "^8.3.6",
     "wrangler": "^4.158.0"
   },
+  "browserslist": [
+    "last 2 chrome versions",
+    "last 2 edge versions",
+    "last 2 firefox versions",
+    "last 2 safari versions",
+    "last 2 ios_saf versions"
+  ],
   "engines": {
     "bun": ">=1.2"
   }

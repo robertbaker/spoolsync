@@ -73,7 +73,7 @@ export function proposeCleanup(
   const proposals: CleanupProposal[] = [];
   const warnings: CleanupWarning[] = [];
 
-  for (const spool of [...spools].sort(byIdentity)) {
+  for (const spool of spools.toSorted(byIdentity)) {
     const spoolKey = recordKey(spool);
     const draft = initialDraft(spool);
     const recorded = new Map<ComparableField, Recorded[]>();

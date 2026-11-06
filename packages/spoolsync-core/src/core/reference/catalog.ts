@@ -121,7 +121,7 @@ export class ReferenceCatalog {
   constructor(filaments: readonly ReferenceFilament[], options: CatalogOptions = {}) {
     this.vendorIndex = buildVendorIndex(options.vendorAliases);
     const text = (value: string | null) => value ?? "";
-    this.entries = [...filaments].sort(
+    this.entries = filaments.toSorted(
       (a, b) =>
         EN_COLLATOR.compare(text(a.vendor), text(b.vendor)) ||
         EN_COLLATOR.compare(text(a.material), text(b.material)) ||

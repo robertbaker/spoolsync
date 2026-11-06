@@ -28,7 +28,7 @@ export function matchSpools(
   policy: MatchingPolicy = defaultMatchingPolicy,
 ): MatchResult {
   // Stable traversal also makes equal-score suggestions independent of input file order.
-  spools = [...spools].sort((a, b) => {
+  spools = spools.toSorted((a, b) => {
     const source = (SOURCE_INDEX.get(a.source) ?? 0) - (SOURCE_INDEX.get(b.source) ?? 0);
     if (source) return source;
     return a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0;

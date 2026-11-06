@@ -11,6 +11,9 @@ bun install
 bun run dev
 ```
 
+The website supports current versions of Chrome, Edge, Firefox and Safari (see `browserslist` in
+`package.json`) and does not support older browsers, so modern JavaScript and CSS need no polyfills.
+
 Run commands from the repository root so Bun resolves both workspace packages. Use Node.js 22
 or later for the built CLI and its integration tests. Dependency versions are recorded in
 `bun.lock`; use `bun install --frozen-lockfile` to reproduce the locked installation.

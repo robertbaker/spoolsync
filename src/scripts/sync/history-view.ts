@@ -145,7 +145,7 @@ export function createHistoryView(container: HTMLElement = document.createElemen
   );
 
   function render(): void {
-    const items = [...shown()].reverse();
+    const items = shown().toReversed();
     const filtering =
       filter.source !== "all" ||
       filter.via !== "all" ||

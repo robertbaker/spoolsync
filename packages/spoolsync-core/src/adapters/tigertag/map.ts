@@ -139,7 +139,7 @@ function groupTwins(records: TtagRecord[]): TtagRecord[][] {
   }
   const seen = new Set<string>();
   const groups: TtagRecord[][] = [];
-  for (const record of [...records].sort((a, b) => a.uid.localeCompare(b.uid))) {
+  for (const record of records.toSorted((a, b) => a.uid.localeCompare(b.uid))) {
     if (seen.has(record.uid)) continue;
     const group: TtagRecord[] = [];
     const pending = [record.uid];

@@ -160,7 +160,7 @@ function buyLinks(reference: ReferenceFilament): HTMLElement | null {
   const region = visitorRegion();
   const ships = (link: (typeof links)[number]) =>
     region && link.shipsTo.length ? link.shipsTo.includes(region) : null;
-  const ordered = [...links].sort((x, y) => Number(ships(y) === true) - Number(ships(x) === true));
+  const ordered = links.toSorted((x, y) => Number(ships(y) === true) - Number(ships(x) === true));
   const nodes: Array<Node | string> = ["Where to buy: "];
   ordered.slice(0, 3).forEach((link, index) => {
     if (index) nodes.push(", ");

@@ -212,7 +212,7 @@ export function analyzeReference(
   const items: ReferenceItem[] = [];
   const proposals: ReferenceProposal[] = [];
 
-  for (const spool of [...spools].sort(byIdentity)) {
+  for (const spool of spools.toSorted(byIdentity)) {
     const key = recordKey(spool);
     const match = catalog.match(spool);
     const choice = options.choices?.get(key);

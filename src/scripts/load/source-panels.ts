@@ -62,7 +62,7 @@ export function wireSourcePanels(state: LoadState): {
   // Put the services used last time first. This runs once at startup so the picker never shifts
   // while the visitor is working with it.
   const recent = readRecent().slice(0, MAX_RECENT);
-  for (const source of [...recent].reverse()) {
+  for (const source of recent.toReversed()) {
     const tile = panels.find((panel) => panel.source === source)?.tile;
     tile?.parentElement?.prepend(tile);
   }

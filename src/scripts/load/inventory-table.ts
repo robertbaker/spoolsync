@@ -48,7 +48,7 @@ export function sortSpools(spools: CommonSpool[], sort: Sort): CommonSpool[] {
     }
   };
   const direction = sort.direction === "asc" ? 1 : -1;
-  return [...spools].sort((a, b) => {
+  return spools.toSorted((a, b) => {
     const left = value(a);
     const right = value(b);
     if (left === null || left === "") return right === null || right === "" ? 0 : 1;

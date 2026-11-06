@@ -113,6 +113,134 @@ describe("SpoolmanClient", () => {
     );
   });
 
+  describe("paging with X-Total-Count", () => {
+    const withTotal = (body: unknown, total: number | string) =>
+      new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json", "x-total-count": String(total) },
+      });
+    const pager = (all: SpoolmanSpool[], total: number | string = all.length) =>
+      fakeFetch((url) => {
+        const offset = Number(url.searchParams.get("offset"));
+        const limit = Number(url.searchParams.get("limit"));
+        return withTotal(all.slice(offset, offset + limit), total);
+      });
+    const offsetsOf = (calls: Call[]) =>
+      calls
+        .map((call) => Number(new URL(call.url).searchParams.get("offset")))
+        .sort((a, b) => a - b);
+
+    test("requests the remaining pages together and keeps them in order", async () => {
+      const all = Array.from({ length: 4500 }, (_, i) => spool(i + 1));
+      const { calls, fetchImpl } = pager(all);
+      const client = new SpoolmanClient({ baseUrl: "http://10.0.0.5:7912" }, fetchImpl, "https:");
+      const spools = await client.listSpools();
+      expect(spools.map((item) => item.id)).toEqual(all.map((item) => item.id));
+      expect(offsetsOf(calls)).toEqual([0, 1000, 2000, 3000, 4000]);
+    });
+
+    test("a total on a page boundary still confirms the end with one empty page", async () => {
+      const exact = pager(Array.from({ length: 2000 }, (_, i) => spool(i + 1)));
+      const spools = await new SpoolmanClient(
+        { baseUrl: "http://h" },
+        exact.fetchImpl,
+        "http:",
+      ).listSpools();
+      expect(spools).toHaveLength(2000);
+      expect(offsetsOf(exact.calls)).toEqual([0, 1000, 2000]);
+    });
+
+    test("pages one at a time when the total is missing or unusable", async () => {
+      const all = Array.from({ length: 2500 }, (_, i) => spool(i + 1));
+      const none = fakeFetch((url) => {
+        const offset = Number(url.searchParams.get("offset"));
+        return json(all.slice(offset, offset + 1000));
+      });
+      expect(
+        await new SpoolmanClient({ baseUrl: "http://h" }, none.fetchImpl, "http:").listSpools(),
+      ).toHaveLength(2500);
+      expect(none.calls.map((call) => new URL(call.url).searchParams.get("offset"))).toEqual([
+        "0",
+        "1000",
+        "2000",
+      ]);
+      const junk = pager(all, "lots");
+      expect(
+        await new SpoolmanClient({ baseUrl: "http://h" }, junk.fetchImpl, "http:").listSpools(),
+      ).toHaveLength(2500);
+      expect(junk.calls).toHaveLength(3);
+    });
+
+    test("keeps going when the total undercounts and the last page is full", async () => {
+      const all = Array.from({ length: 3200 }, (_, i) => spool(i + 1));
+      const { fetchImpl } = pager(all, 2000);
+      const spools = await new SpoolmanClient(
+        { baseUrl: "http://h" },
+        fetchImpl,
+        "http:",
+      ).listSpools();
+      expect(spools).toHaveLength(3200);
+    });
+
+    test("stops at the first short page like one-by-one paging", async () => {
+      const { fetchImpl } = fakeFetch((url) => {
+        const offset = Number(url.searchParams.get("offset"));
+        const size = offset === 1000 ? 10 : 1000;
+        return withTotal(
+          Array.from({ length: size }, (_, i) => spool(offset + i + 1)),
+          5000,
+        );
+      });
+      const spools = await new SpoolmanClient(
+        { baseUrl: "http://h" },
+        fetchImpl,
+        "http:",
+      ).listSpools();
+      expect(spools).toHaveLength(1010);
+    });
+
+    test("still rejects duplicate IDs with the same message", async () => {
+      const { fetchImpl } = fakeFetch(() =>
+        withTotal(
+          Array.from({ length: 1000 }, (_, i) => spool(i + 1)),
+          3000,
+        ),
+      );
+      await rejects(
+        new SpoolmanClient({ baseUrl: "http://h" }, fetchImpl, "http:").listSpools(),
+        (error: unknown) =>
+          error instanceof SpoolmanError &&
+          error.kind === "parse" &&
+          error.message.startsWith(
+            "Spoolman returned duplicate /spool ID 1 while paging inventory. Reload the inventory;",
+          ),
+      );
+    });
+
+    test("fails with the page's error and cancels the pages still in flight", async () => {
+      const aborted: number[] = [];
+      const { fetchImpl } = fakeFetch((url, init) => {
+        const offset = Number(url.searchParams.get("offset"));
+        if (offset === 0)
+          return withTotal(
+            Array.from({ length: 1000 }, (_, i) => spool(i + 1)),
+            4000,
+          );
+        if (offset === 1000) return json({ detail: "boom" }, 500);
+        return new Promise<Response>((_, reject) =>
+          init.signal?.addEventListener("abort", () => {
+            aborted.push(offset);
+            reject(new Error("aborted"));
+          }),
+        );
+      });
+      await rejects(
+        new SpoolmanClient({ baseUrl: "http://h" }, fetchImpl, "http:").listSpools(),
+        (error: unknown) => error instanceof SpoolmanError && error.kind === "http",
+      );
+      expect(aborted.sort()).toEqual([2000, 3000]);
+    });
+  });
+
   test("sends the bearer token and the Local Network Access flag", async () => {
     const { calls, fetchImpl } = fakeFetch(() => json({ version: "0.23.0" }));
     await new SpoolmanClient(

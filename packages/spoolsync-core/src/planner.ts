@@ -76,7 +76,11 @@ export function reconcileBulkEdits(
       continue;
     }
     const ancestors = ancestorGroupIds(group);
-    const contributors = [...previous].filter(([id]) => ancestors.has(id)).map(([, edit]) => edit);
+    const contributors = previous
+      .entries()
+      .filter(([id]) => ancestors.has(id))
+      .map(([, edit]) => edit)
+      .toArray();
     if (!contributors.length) continue;
     const merged: Record<string, unknown> = {};
     for (const key of BULK_EDIT_KEYS) {

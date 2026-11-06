@@ -150,7 +150,10 @@ export class LoadInsights {
     const present = new Set(
       [...this.results.values()].flatMap((result) => result.spools.map(spoolKey)),
     );
-    return [...this.watched].filter((key) => present.has(key));
+    return this.watched
+      .values()
+      .filter((key) => present.has(key))
+      .toArray();
   }
 
   /** Weight drops from the latest reload, by spool key. */

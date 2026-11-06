@@ -130,7 +130,7 @@ export class CleanupController {
       dropped += 1;
     }
     this.accepted = active;
-    this.rejected = new Set([...this.rejected].filter((id) => byId.has(id) && !active.has(id)));
+    this.rejected = new Set(this.rejected.values().filter((id) => byId.has(id) && !active.has(id)));
     this.held = held;
     this.dropped = dropped;
     this.stored = [];
