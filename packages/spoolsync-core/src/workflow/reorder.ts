@@ -3,6 +3,9 @@ import type { CommonSpool, LoadResult } from "../core/model";
 import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
 import { uniqueSpools } from "./breakdown";
 
+/** Same ordering as `localeCompare` with defaults, without per-call setup. */
+const VENDOR_COLLATOR = new Intl.Collator();
+
 export interface ReorderItem {
   spool: CommonSpool;
   /** Share of the full weight left, 0 to 1, or `null` when the full weight is unknown. */
