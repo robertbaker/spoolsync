@@ -34,64 +34,118 @@ function getNormalized(spool: CommonSpool): NormalizedSpool {
   return norm;
 }
 
-/** How alike two spools look, with the reasons, for records no cross-id links. */
-export function similarity(a: CommonSpool, b: CommonSpool): { score: number; reasons: string[] } {
+/**
+ * Scores a pair; when `reasons` is given, also records why in the same order as always. Passing
+ * `null` skips building the reason text, which keeps the many-pairs comparison allocation-free.
+ */
+function evaluate(a: CommonSpool, b: CommonSpool, reasons: string[] | null): number {
   let score = 0;
-  const reasons: string[] = [];
-  const add = (points: number, reason: string) => {
-    score += points;
-    reasons.push(reason);
-  };
-
   const na = getNormalized(a);
   const nb = getNormalized(b);
 
   if (a.upc && b.upc) {
-    if (na.upc === nb.upc) add(50, "same barcode");
-    else add(-20, "different barcodes");
+    if (na.upc === nb.upc) {
+      score += 50;
+      reasons?.push("same barcode");
+    } else {
+      score -= 20;
+      reasons?.push("different barcodes");
+    }
   }
-  const textField = (
-    field: "vendor" | "material" | "name",
-    label: string,
-    same: number,
-    differ: number,
-  ) => {
-    const x = na[field];
-    const y = nb[field];
-    if (!x || !y) return;
-    if (x === y) add(same, `same ${label}`);
-    else if (differ) add(differ, `different ${label}`);
-  };
-  textField("vendor", "brand", 15, -30);
-  textField("material", "material", 15, -30);
-  textField("name", "name", 15, 0);
+  score += textScore(na.vendor, nb.vendor, "brand", 15, -30, reasons);
+  score += textScore(na.material, nb.material, "material", 15, -30, reasons);
+  score += textScore(na.name, nb.name, "name", 15, 0, reasons);
 
   const ca = a.colors[0];
   const cb = b.colors[0];
   if (ca && cb) {
     const distance = ca === cb ? 0 : deltaE2000(ca, cb);
-    if (distance < 3) add(20, "same color");
-    else if (distance < 10) add(10, "similar color");
-    else if (distance > 25) add(-30, "different color");
+    if (distance < 3) {
+      score += 20;
+      reasons?.push("same color");
+    } else if (distance < 10) {
+      score += 10;
+      reasons?.push("similar color");
+    } else if (distance > 25) {
+      score -= 30;
+      reasons?.push("different color");
+    }
   }
   if (
     a.initialWeight !== null &&
     b.initialWeight !== null &&
     Math.abs(a.initialWeight - b.initialWeight) <= 5
   ) {
-    add(10, "same spool size");
+    score += 10;
+    reasons?.push("same spool size");
   }
   if (a.remainingWeight !== null && b.remainingWeight !== null) {
     const larger = Math.max(a.remainingWeight, b.remainingWeight, 1);
-    if (Math.abs(a.remainingWeight - b.remainingWeight) / larger <= 0.05)
-      add(10, "similar remaining weight");
+    if (Math.abs(a.remainingWeight - b.remainingWeight) / larger <= 0.05) {
+      score += 10;
+      reasons?.push("similar remaining weight");
+    }
   }
-  if (a.purchasedOn && b.purchasedOn && a.purchasedOn === b.purchasedOn)
-    add(10, "same purchase date");
+  if (a.purchasedOn && b.purchasedOn && a.purchasedOn === b.purchasedOn) {
+    score += 10;
+    reasons?.push("same purchase date");
+  }
+  return score;
+}
+
+function textScore(
+  x: string,
+  y: string,
+  label: string,
+  same: number,
+  differ: number,
+  reasons: string[] | null,
+): number {
+  if (!x || !y) return 0;
+  if (x === y) {
+    reasons?.push(`same ${label}`);
+    return same;
+  }
+  if (differ) {
+    reasons?.push(`different ${label}`);
+    return differ;
+  }
+  return 0;
+}
+
+/** How alike two spools look, with the reasons, for records no cross-id links. */
+export function similarity(a: CommonSpool, b: CommonSpool): { score: number; reasons: string[] } {
+  const reasons: string[] = [];
+  const score = evaluate(a, b, reasons);
   return { score, reasons };
+}
+
+/** The score alone, identical to `similarity(a, b).score` but without building the reasons. */
+export const similarityScore = (a: CommonSpool, b: CommonSpool): number => evaluate(a, b, null);
+
+/**
+ * The most `similarity` could score for this pair: every rule that can add points is assumed to
+ * fire, and none that subtract. Never below the real score, so a pair whose bound cannot beat the
+ * best so far (or the threshold) can be skipped without changing any result.
+ */
+export function similarityUpperBound(a: CommonSpool, b: CommonSpool): number {
+  const na = getNormalized(a);
+  const nb = getNormalized(b);
+  let bound = 0;
+  if (a.upc && b.upc) bound += 50;
+  if (na.vendor && nb.vendor) bound += 15;
+  if (na.material && nb.material) bound += 15;
+  if (na.name && nb.name) bound += 15;
+  if (a.colors[0] && b.colors[0]) bound += 20;
+  if (a.initialWeight !== null && b.initialWeight !== null) bound += 10;
+  if (a.remainingWeight !== null && b.remainingWeight !== null) bound += 10;
+  if (a.purchasedOn && b.purchasedOn) bound += 10;
+  return bound;
 }
 
 export const defaultMatchingPolicy: MatchingPolicy = {
   similarity,
+  score: similarityScore,
+  scoreUpperBound: similarityUpperBound,
   suggestionThreshold: SUGGEST_THRESHOLD,
 };

@@ -46,5 +46,12 @@ export interface SimilarityResult {
 /** Fuzzy scoring only affects suggestions; identity links retain their fixed rules. */
 export interface MatchingPolicy {
   similarity(a: CommonSpool, b: CommonSpool): SimilarityResult;
+  /**
+   * Optional fast paths, used only to avoid work: `score` must equal `similarity(a, b).score`, and
+   * `scoreUpperBound` must never be below it. Policies without them are scored through `similarity`
+   * for every pair.
+   */
+  score?(a: CommonSpool, b: CommonSpool): number;
+  scoreUpperBound?(a: CommonSpool, b: CommonSpool): number;
   suggestionThreshold: number;
 }
