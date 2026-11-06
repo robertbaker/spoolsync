@@ -1,5 +1,4 @@
 import { h } from "./dom";
-import { isTypingTarget } from "./shortcuts";
 
 const SHORTCUTS: Array<[string, string]> = [
   ["/", "Focus the search or filter on this page"],
@@ -88,16 +87,4 @@ function ensureDialog(): HTMLDialogElement {
 export function openShortcutsHelp(): void {
   const element = ensureDialog();
   if (!element.open) element.showModal();
-}
-
-/** "?" opens the shortcuts list from anywhere a letter would not be typed into a field. */
-export function wireShortcutsHelp(): void {
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "?" || event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.defaultPrevented || isTypingTarget(document.activeElement)) return;
-    event.preventDefault();
-    openShortcutsHelp();
-  });
-  for (const trigger of document.querySelectorAll("[data-open-shortcuts]"))
-    trigger.addEventListener("click", openShortcutsHelp);
 }

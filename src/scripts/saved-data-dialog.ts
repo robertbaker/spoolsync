@@ -1,4 +1,4 @@
-import { LOCALE_CHANGED, initLocale, watchLanguageChanges } from "~/lib/i18n";
+import { LOCALE_CHANGED } from "~/lib/i18n";
 import {
   exportSettings,
   forgetEverything,
@@ -237,20 +237,12 @@ export function openSavedData(): void {
   if (!element.open) element.showModal();
 }
 
-/**
- * Wires the footer triggers, and applies the saved language to `<html lang>` on every page (this
- * runs from the shared layout). Changing the language redraws the open dialog in place and keeps
- * keyboard focus on the language control.
- */
-export function wireSavedData(): void {
-  initLocale();
-  watchLanguageChanges();
-  document.addEventListener(LOCALE_CHANGED, () => {
-    if (!dialog?.open) return;
-    const focused = document.activeElement?.id;
-    rebuild(dialog.firstElementChild as HTMLElement);
-    if (focused) document.getElementById(focused)?.focus();
-  });
-  for (const trigger of document.querySelectorAll("[data-open-saved-data]"))
-    trigger.addEventListener("click", openSavedData);
-}
+// Changing the language redraws the open dialog in place and keeps keyboard focus on the language
+// control. This module loads on first use (see `lazy-tools.ts`), so it listens from then on; the
+// language itself is applied to every page by the layout.
+document.addEventListener(LOCALE_CHANGED, () => {
+  if (!dialog?.open) return;
+  const focused = document.activeElement?.id;
+  rebuild(dialog.firstElementChild as HTMLElement);
+  if (focused) document.getElementById(focused)?.focus();
+});

@@ -136,11 +136,10 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
 <script>
   import "~/scripts/tour";
   import "~/scripts/pwa";
-  import { announceUpdate, wireChangelog } from "~/scripts/changelog-dialog";
-  import { wireSavedData } from "~/scripts/saved-data-dialog";
+  import { initLocale, watchLanguageChanges } from "~/lib/i18n";
+  import { announceUpdate } from "~/scripts/changelog-announce";
+  import { wireLazyTools } from "~/scripts/lazy-tools";
   import { wirePalettePicker } from "~/scripts/palette-picker";
-  import { wireShortcutsHelp } from "~/scripts/shortcuts-help";
-  import { wirePalette } from "~/scripts/palette";
   import { wireSidebar } from "~/scripts/sidebar";
   import { wireSetupTriggers } from "~/scripts/setup/launch";
 
@@ -148,12 +147,12 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   announceUpdate(document.querySelector<HTMLElement>("[data-open-changelog]")?.dataset["version"] ?? "");
   // Before the tools, so the phone drawer closes before one of them opens a dialog.
   wireSidebar();
-  wireShortcutsHelp();
-  wirePalette();
+  wireLazyTools();
   wireSetupTriggers();
-  wireSavedData();
+  // Applies the saved language to `<html lang>` on every page and follows changes from other tabs.
+  initLocale();
+  watchLanguageChanges();
   wirePalettePicker();
-  wireChangelog();
 
   // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
   const syncAria = (el: Element | null) => {
