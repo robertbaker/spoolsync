@@ -22,7 +22,8 @@ export class Groups {
   }
 
   canUnion(a: RecordKey, b: RecordKey): boolean {
-    const [ra, rb] = [this.find(a), this.find(b)];
+    const ra = this.find(a);
+    const rb = this.find(b);
     if (ra === rb) return true;
     const sa = this.sources.get(ra)!;
     const sb = this.sources.get(rb)!;
@@ -34,9 +35,12 @@ export class Groups {
 
   /** Whether all these records' groups can become one without two records from one service. */
   canUnionAll(keys: RecordKey[]): boolean {
-    const roots = [...new Set(keys.map((key) => this.find(key)))];
+    const seenRoots = new Set<RecordKey>();
     const seen = new Set<SourceId>();
-    for (const root of roots) {
+    for (const key of keys) {
+      const root = this.find(key);
+      if (seenRoots.has(root)) continue;
+      seenRoots.add(root);
       for (const source of this.sources.get(root)!) {
         if (seen.has(source)) return false;
         seen.add(source);
@@ -47,11 +51,16 @@ export class Groups {
 
   /** Joins two groups unless that would put two records from one service together. */
   union(a: RecordKey, b: RecordKey): boolean {
-    if (!this.canUnion(a, b)) return false;
-    const [ra, rb] = [this.find(a), this.find(b)];
+    const ra = this.find(a);
+    const rb = this.find(b);
     if (ra === rb) return true;
+    const sa = this.sources.get(ra)!;
+    const sb = this.sources.get(rb)!;
+    for (const source of sb) {
+      if (sa.has(source)) return false;
+    }
     this.parent.set(rb, ra);
-    for (const source of this.sources.get(rb)!) this.sources.get(ra)!.add(source);
+    for (const source of sb) sa.add(source);
     return true;
   }
 }

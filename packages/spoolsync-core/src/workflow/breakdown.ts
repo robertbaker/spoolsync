@@ -32,10 +32,23 @@ function valueOf(spool: CommonSpool, field: BreakdownField): string | undefined 
   return spool[field]?.trim() || undefined;
 }
 
-/** The record that stands for a linked spool: the first with a known weight, else the first. */
-function representative(members: Partial<Record<(typeof SOURCE_IDS)[number], CommonSpool>>) {
-  const ordered = SOURCE_IDS.flatMap((source) => members[source] ?? []);
-  return ordered.find((spool) => spool.remainingWeight !== null) ?? ordered[0]!;
+/**
+ * The records that form a linked spool and the one that stands for it (first with known weight,
+ * else first).
+ */
+function groupMembersAndRepresentative(
+  membersBySource: Partial<Record<(typeof SOURCE_IDS)[number], CommonSpool>>,
+): { members: CommonSpool[]; representative: CommonSpool } {
+  const members: CommonSpool[] = [];
+  let reprWithWeight: CommonSpool | undefined;
+  for (const source of SOURCE_IDS) {
+    const member = membersBySource[source];
+    if (member) {
+      members.push(member);
+      if (!reprWithWeight && member.remainingWeight !== null) reprWithWeight = member;
+    }
+  }
+  return { members, representative: reprWithWeight ?? members[0]! };
 }
 
 /**
@@ -54,11 +67,17 @@ export function remainingBy(
   const totals = new Map<string, MaterialShare>();
   let duplicatesRemoved = 0;
   for (const group of groups) {
-    const members = SOURCE_IDS.flatMap((source) => group.members[source] ?? []);
+    const { members, representative: spool } = groupMembersAndRepresentative(group.members);
     duplicatesRemoved += members.length - 1;
-    const spool = representative(group.members);
-    const material =
-      members.map((candidate) => valueOf(candidate, field)).find(Boolean) ?? UNKNOWN[field];
+    let material: string | undefined;
+    for (const candidate of members) {
+      const value = valueOf(candidate, field);
+      if (value) {
+        material = value;
+        break;
+      }
+    }
+    material ??= UNKNOWN[field];
     const key = material.toLowerCase();
     const entry = totals.get(key) ?? { material, grams: 0, spools: 0 };
     entry.grams += spool.remainingWeight ?? 0;
@@ -108,8 +127,8 @@ export function uniqueSpools(
     results.flatMap((result) => result.spools),
     decisions,
   );
-  return groups.map((group) => ({
-    spool: representative(group.members),
-    members: SOURCE_IDS.flatMap((source) => group.members[source] ?? []),
-  }));
+  return groups.map((group) => {
+    const { members, representative: spool } = groupMembersAndRepresentative(group.members);
+    return { spool, members };
+  });
 }

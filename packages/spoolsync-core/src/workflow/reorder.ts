@@ -15,28 +15,26 @@ export function reorderItems(
   decisions: MatchDecisions,
   rule: LowStockRule = DEFAULT_LOW_STOCK,
 ): ReorderItem[] {
-  return uniqueSpools(results, decisions)
-    .map(({ spool, members }) => {
-      // A linked spool is low if its best-known record says so.
-      const low = members.some((member) => isRunningLow(member, rule));
-      return low ? { spool, remaining: spool.remainingWeight } : null;
-    })
-    .filter((item): item is { spool: CommonSpool; remaining: number | null } => item !== null)
-    .map(({ spool }) => ({
-      spool,
-      fraction:
-        spool.remainingWeight !== null && spool.initialWeight
-          ? spool.remainingWeight / spool.initialWeight
-          : null,
-    }))
-    .sort(
-      (a, b) =>
-        (a.fraction ?? 1) - (b.fraction ?? 1) ||
-        (a.spool.remainingWeight ?? 0) - (b.spool.remainingWeight ?? 0) ||
-        (a.spool.vendor ?? "").localeCompare(b.spool.vendor ?? "") ||
-        (a.spool.source < b.spool.source ? -1 : a.spool.source > b.spool.source ? 1 : 0) ||
-        (a.spool.sourceId < b.spool.sourceId ? -1 : a.spool.sourceId > b.spool.sourceId ? 1 : 0),
-    );
+  const items: ReorderItem[] = [];
+  for (const { spool, members } of uniqueSpools(results, decisions)) {
+    if (members.some((member) => isRunningLow(member, rule))) {
+      items.push({
+        spool,
+        fraction:
+          spool.remainingWeight !== null && spool.initialWeight
+            ? spool.remainingWeight / spool.initialWeight
+            : null,
+      });
+    }
+  }
+  return items.sort(
+    (a, b) =>
+      (a.fraction ?? 1) - (b.fraction ?? 1) ||
+      (a.spool.remainingWeight ?? 0) - (b.spool.remainingWeight ?? 0) ||
+      (a.spool.vendor ?? "").localeCompare(b.spool.vendor ?? "") ||
+      (a.spool.source < b.spool.source ? -1 : a.spool.source > b.spool.source ? 1 : 0) ||
+      (a.spool.sourceId < b.spool.sourceId ? -1 : a.spool.sourceId > b.spool.sourceId ? 1 : 0),
+  );
 }
 
 /** A plain-text shopping list: one line per low spool, with what is left. */

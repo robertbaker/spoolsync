@@ -73,8 +73,16 @@ export function costPerKg(
         unpriced++;
         continue;
       }
-      const label =
-        spool[grouping]?.trim() || members.map((m) => m[grouping]?.trim()).find(Boolean);
+      let label = spool[grouping]?.trim();
+      if (!label) {
+        for (const m of members) {
+          const val = m[grouping]?.trim();
+          if (val) {
+            label = val;
+            break;
+          }
+        }
+      }
       add(label || UNKNOWN[grouping], priced);
     }
   }

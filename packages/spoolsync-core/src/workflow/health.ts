@@ -38,35 +38,37 @@ export interface HealthReport {
 
 const blank = (value: string | null): boolean => !value || !value.trim();
 
-/** Weight fields hold grams; `null` is "unknown" and is not an error here. */
-function weightIssues(spool: CommonSpool): HealthIssue[] {
-  const weights = [spool.remainingWeight, spool.initialWeight, spool.emptySpoolWeight];
-  const issues: HealthIssue[] = [];
-  if (weights.some((weight) => weight !== null && !Number.isFinite(weight)))
-    issues.push("invalid-number");
-  if (weights.some((weight) => weight !== null && Number.isFinite(weight) && weight < 0))
-    issues.push("negative-weight");
-  const { remainingWeight: remaining, initialWeight: initial } = spool;
-  if (
-    remaining !== null &&
-    initial !== null &&
-    Number.isFinite(remaining) &&
-    Number.isFinite(initial) &&
-    remaining > initial
-  )
-    issues.push("over-initial");
-  return issues;
-}
-
 /** The problems with one spool, in `HEALTH_ISSUES` order. */
 export function spoolIssues(spool: CommonSpool): HealthIssue[] {
-  const found = new Set<HealthIssue>(weightIssues(spool));
-  if (spool.remainingWeight === null) found.add("missing-weight");
-  if (!spool.colors.length) found.add("missing-color");
-  if (blank(spool.vendor)) found.add("missing-vendor");
-  if (blank(spool.material)) found.add("missing-material");
-  if (blank(spool.location)) found.add("missing-location");
-  return HEALTH_ISSUES.filter((issue) => found.has(issue));
+  const issues: HealthIssue[] = [];
+  if (spool.remainingWeight === null) issues.push("missing-weight");
+  if (!spool.colors.length) issues.push("missing-color");
+  if (blank(spool.vendor)) issues.push("missing-vendor");
+  if (blank(spool.material)) issues.push("missing-material");
+  if (blank(spool.location)) issues.push("missing-location");
+
+  const rw = spool.remainingWeight;
+  const iw = spool.initialWeight;
+  const ew = spool.emptySpoolWeight;
+
+  if (
+    (rw !== null && Number.isFinite(rw) && rw < 0) ||
+    (iw !== null && Number.isFinite(iw) && iw < 0) ||
+    (ew !== null && Number.isFinite(ew) && ew < 0)
+  )
+    issues.push("negative-weight");
+
+  if (
+    (rw !== null && !Number.isFinite(rw)) ||
+    (iw !== null && !Number.isFinite(iw)) ||
+    (ew !== null && !Number.isFinite(ew))
+  )
+    issues.push("invalid-number");
+
+  if (rw !== null && iw !== null && Number.isFinite(rw) && Number.isFinite(iw) && rw > iw)
+    issues.push("over-initial");
+
+  return issues;
 }
 
 /** Checks every loaded spool for missing fields and impossible values. Nothing is changed. */

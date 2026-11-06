@@ -1,11 +1,15 @@
-import { SOURCE_IDS, SOURCE_LABELS, type CommonSpool, type SourceId } from "../model";
+import { SOURCE_LABELS, type CommonSpool, type SourceId } from "../model";
 import type { Groups } from "./groups";
-import { recordKey } from "./keys";
+import { recordKey, SOURCE_INDEX } from "./keys";
 import type { RecordKey } from "./types";
 
 /** The cross-id keys a record answers to, including its own native id. */
 function identityKeys(spool: CommonSpool): string[] {
-  const keys = new Set<string>([`${spool.source}:${spool.sourceId}`]);
+  const native = `${spool.source}:${spool.sourceId}`;
+  const keys: string[] = [native];
+  const add = (key: string) => {
+    if (key !== native && !keys.includes(key)) keys.push(key);
+  };
   const {
     spoolmanId,
     spoolstockShortId,
@@ -22,21 +26,21 @@ function identityKeys(spool: CommonSpool): string[] {
     spoolappId,
     spoolkeepId,
   } = spool.crossIds;
-  if (spoolmanId !== undefined) keys.add(`spoolman:${spoolmanId}`);
-  if (spoolstockShortId) keys.add(`spoolstock:${spoolstockShortId}`);
-  if (spoolioId) keys.add(`spoolio:${spoolioId}`);
-  if (tigertagUid) keys.add(`tigertag:${tigertagUid}`);
-  if (threeDfpId) keys.add(`threeDfp:${threeDfpId}`);
-  if (bambuddyId !== undefined) keys.add(`bambuddy:${bambuddyId}`);
-  if (filameterId) keys.add(`filameter:${filameterId}`);
-  if (filadexId) keys.add(`filadex:${filadexId}`);
-  if (filamentdbSerial) keys.add(`filamentdb:${filamentdbSerial}`);
-  if (filamentDbAppId) keys.add(`filamentDbApp:${filamentDbAppId}`);
-  if (spoolmasterId) keys.add(`spoolmaster:${spoolmasterId}`);
-  if (spoolhoarderId) keys.add(`spoolhoarder:${spoolhoarderId}`);
-  if (spoolappId) keys.add(`spoolapp:${spoolappId}`);
-  if (spoolkeepId) keys.add(`spoolkeep:${spoolkeepId}`);
-  return [...keys];
+  if (spoolmanId !== undefined) add(`spoolman:${spoolmanId}`);
+  if (spoolstockShortId) add(`spoolstock:${spoolstockShortId}`);
+  if (spoolioId) add(`spoolio:${spoolioId}`);
+  if (tigertagUid) add(`tigertag:${tigertagUid}`);
+  if (threeDfpId) add(`threeDfp:${threeDfpId}`);
+  if (bambuddyId !== undefined) add(`bambuddy:${bambuddyId}`);
+  if (filameterId) add(`filameter:${filameterId}`);
+  if (filadexId) add(`filadex:${filadexId}`);
+  if (filamentdbSerial) add(`filamentdb:${filamentdbSerial}`);
+  if (filamentDbAppId) add(`filamentDbApp:${filamentDbAppId}`);
+  if (spoolmasterId) add(`spoolmaster:${spoolmasterId}`);
+  if (spoolhoarderId) add(`spoolhoarder:${spoolhoarderId}`);
+  if (spoolappId) add(`spoolapp:${spoolappId}`);
+  if (spoolkeepId) add(`spoolkeep:${spoolkeepId}`);
+  return keys;
 }
 
 export function linkIdentityClaims(
@@ -47,10 +51,11 @@ export function linkIdentityClaims(
   const problems: string[] = [];
   const claims = new Map<string, RecordKey[]>();
   for (const spool of spools) {
+    const key = recordKey(spool);
     for (const identity of identityKeys(spool)) {
       const keys = claims.get(identity);
-      if (keys) keys.push(recordKey(spool));
-      else claims.set(identity, [recordKey(spool)]);
+      if (keys) keys.push(key);
+      else claims.set(identity, [key]);
     }
   }
   // Prefer identities backed by a loaded native record, then use the stable source order.
@@ -58,8 +63,8 @@ export function linkIdentityClaims(
   const orderedClaims = [...claims].sort(([a], [b]) => {
     const native = Number(byKey.has(b)) - Number(byKey.has(a));
     if (native) return native;
-    const sourceA = SOURCE_IDS.indexOf(a.slice(0, a.indexOf(":")) as SourceId);
-    const sourceB = SOURCE_IDS.indexOf(b.slice(0, b.indexOf(":")) as SourceId);
+    const sourceA = SOURCE_INDEX.get(a.slice(0, a.indexOf(":"))) ?? -1;
+    const sourceB = SOURCE_INDEX.get(b.slice(0, b.indexOf(":"))) ?? -1;
     return sourceA - sourceB || a.localeCompare(b);
   });
   for (const [identity, keys] of orderedClaims) {

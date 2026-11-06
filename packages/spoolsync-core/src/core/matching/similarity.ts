@@ -11,6 +11,29 @@ const normalize = (value: string | null): string =>
     .replace(/\+/g, " plus ")
     .replace(/[^a-z0-9]+/g, "");
 
+interface NormalizedSpool {
+  upc: string;
+  vendor: string;
+  material: string;
+  name: string;
+}
+
+const normalizedCache = new WeakMap<CommonSpool, NormalizedSpool>();
+
+function getNormalized(spool: CommonSpool): NormalizedSpool {
+  let norm = normalizedCache.get(spool);
+  if (!norm) {
+    norm = {
+      upc: normalize(spool.upc),
+      vendor: normalize(spool.vendor),
+      material: normalize(spool.material),
+      name: normalize(spool.name),
+    };
+    normalizedCache.set(spool, norm);
+  }
+  return norm;
+}
+
 /** How alike two spools look, with the reasons, for records no cross-id links. */
 export function similarity(a: CommonSpool, b: CommonSpool): { score: number; reasons: string[] } {
   let score = 0;
@@ -20,8 +43,11 @@ export function similarity(a: CommonSpool, b: CommonSpool): { score: number; rea
     reasons.push(reason);
   };
 
+  const na = getNormalized(a);
+  const nb = getNormalized(b);
+
   if (a.upc && b.upc) {
-    if (normalize(a.upc) === normalize(b.upc)) add(50, "same barcode");
+    if (na.upc === nb.upc) add(50, "same barcode");
     else add(-20, "different barcodes");
   }
   const textField = (
@@ -30,7 +56,8 @@ export function similarity(a: CommonSpool, b: CommonSpool): { score: number; rea
     same: number,
     differ: number,
   ) => {
-    const [x, y] = [normalize(a[field]), normalize(b[field])];
+    const x = na[field];
+    const y = nb[field];
     if (!x || !y) return;
     if (x === y) add(same, `same ${label}`);
     else if (differ) add(differ, `different ${label}`);
@@ -39,9 +66,10 @@ export function similarity(a: CommonSpool, b: CommonSpool): { score: number; rea
   textField("material", "material", 15, -30);
   textField("name", "name", 15, 0);
 
-  const [ca, cb] = [a.colors[0], b.colors[0]];
+  const ca = a.colors[0];
+  const cb = b.colors[0];
   if (ca && cb) {
-    const distance = deltaE2000(ca, cb);
+    const distance = ca === cb ? 0 : deltaE2000(ca, cb);
     if (distance < 3) add(20, "same color");
     else if (distance < 10) add(10, "similar color");
     else if (distance > 25) add(-30, "different color");

@@ -97,8 +97,13 @@ export const COLOR_FAMILIES = [
 ] as const;
 export type ColorFamily = (typeof COLOR_FAMILIES)[number];
 
+const familyCache = new Map<string, ColorFamily>();
+const MAX_CACHED_FAMILIES = 512;
+
 /** A named family for an "RRGGBB" colour, by hue, saturation and lightness, for grouping spools. */
 export function colorFamily(hex: string): ColorFamily {
+  const cached = familyCache.get(hex);
+  if (cached) return cached;
   const channel = (offset: number) => parseInt(hex.slice(offset, offset + 2), 16) / 255;
   const [r, g, b] = [channel(0), channel(2), channel(4)];
   const max = Math.max(r, g, b);
@@ -106,19 +111,26 @@ export function colorFamily(hex: string): ColorFamily {
   const lightness = (max + min) / 2;
   const delta = max - min;
   const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
-  if (lightness < 0.14) return "Black";
-  if (lightness > 0.92 && saturation < 0.5) return "White";
-  if (saturation < 0.14) return lightness > 0.88 ? "White" : lightness < 0.2 ? "Black" : "Gray";
-  let hue =
-    max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
-  hue = (hue * 60 + 360) % 360;
-  if (hue < 45 && lightness < 0.42 && saturation > 0.2) return "Brown";
-  if (hue >= 345 || hue < 15) return lightness > 0.72 ? "Pink" : "Red";
-  if (hue < 45) return "Orange";
-  if (hue < 70) return "Yellow";
-  if (hue < 165) return "Green";
-  if (hue < 200) return "Teal";
-  if (hue < 255) return "Blue";
-  if (hue < 300) return "Purple";
-  return "Pink";
+  let result: ColorFamily;
+  if (lightness < 0.14) result = "Black";
+  else if (lightness > 0.92 && saturation < 0.5) result = "White";
+  else if (saturation < 0.14)
+    result = lightness > 0.88 ? "White" : lightness < 0.2 ? "Black" : "Gray";
+  else {
+    let hue =
+      max === r ? ((g - b) / delta) % 6 : max === g ? (b - r) / delta + 2 : (r - g) / delta + 4;
+    hue = (hue * 60 + 360) % 360;
+    if (hue < 45 && lightness < 0.42 && saturation > 0.2) result = "Brown";
+    else if (hue >= 345 || hue < 15) result = lightness > 0.72 ? "Pink" : "Red";
+    else if (hue < 45) result = "Orange";
+    else if (hue < 70) result = "Yellow";
+    else if (hue < 165) result = "Green";
+    else if (hue < 200) result = "Teal";
+    else if (hue < 255) result = "Blue";
+    else if (hue < 300) result = "Purple";
+    else result = "Pink";
+  }
+  if (familyCache.size >= MAX_CACHED_FAMILIES) familyCache.delete(familyCache.keys().next().value!);
+  familyCache.set(hex, result);
+  return result;
 }

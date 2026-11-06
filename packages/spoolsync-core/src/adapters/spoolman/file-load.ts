@@ -22,13 +22,12 @@ export { unflatten } from "./unflatten";
  * Writes API-shaped JSON, the form other tools read.
  */
 
-function isFlat(rows: unknown[]): boolean {
-  const first = rows[0];
-  return (
-    !!first &&
-    typeof first === "object" &&
-    Object.keys(first).some((key) => key.startsWith("filament."))
-  );
+function isRowFlat(row: unknown): boolean {
+  if (!row || typeof row !== "object") return false;
+  for (const key in row as Record<string, unknown>) {
+    if (key.startsWith("filament.")) return true;
+  }
+  return false;
 }
 
 /**
@@ -49,7 +48,8 @@ function wrongExport(keys: string[]): string | undefined {
 }
 
 function parseRows(text: string): unknown[] {
-  const trimmed = text.replace(/^﻿/, "").trimStart();
+  const stripped = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const trimmed = stripped.trimStart();
   if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
     let parsed: unknown;
     try {
@@ -88,32 +88,37 @@ export interface SpoolmanFileLoadResult extends LoadResult {
 }
 
 export function loadSpoolmanFile(text: string): SpoolmanFileLoadResult {
-  const trimmed = text.replace(/^\uFEFF/, "").trimStart();
+  const stripped = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const trimmed = stripped.trimStart();
   const spreadsheetEscapes = !trimmed.startsWith("[") && !trimmed.startsWith("{");
   const rows = parseRows(text);
   const warnings: string[] = [];
-  const spools = rows.flatMap((row, index) => {
+  const spools = [];
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
     let candidate: unknown;
     try {
-      candidate = isFlat([row])
+      candidate = isRowFlat(row)
         ? unflatten(row as Record<string, unknown>, spreadsheetEscapes)
         : row;
     } catch (error) {
       warnings.push(
         `Spool ${index + 1}: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return [];
+      continue;
     }
     const parsed = SpoolSchema.safeParse(candidate);
-    if (parsed.success) return [spoolmanToCommon(parsed.data)];
-    warnings.push(
-      `Spool ${index + 1}: ${parsed.error.issues
-        .slice(0, 3)
-        .map((i) => `${i.path.join(".")} ${i.message}`)
-        .join(", ")}`,
-    );
-    return [];
-  });
+    if (parsed.success) {
+      spools.push(spoolmanToCommon(parsed.data));
+    } else {
+      warnings.push(
+        `Spool ${index + 1}: ${parsed.error.issues
+          .slice(0, 3)
+          .map((i) => `${i.path.join(".")} ${i.message}`)
+          .join(", ")}`,
+      );
+    }
+  }
   return {
     source: "spoolman",
     origin: "file",

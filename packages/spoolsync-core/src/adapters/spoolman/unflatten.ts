@@ -24,7 +24,8 @@ function coerce(key: string, value: unknown, spreadsheetEscapes: boolean): unkno
   if (value === "" || value === undefined) return null;
   if (spreadsheetEscapes && typeof value === "string" && FORMULA_ESCAPE.test(value))
     value = value.slice(1);
-  const leaf = key.split(".").at(-1)!;
+  const dotIndex = key.lastIndexOf(".");
+  const leaf = dotIndex === -1 ? key : key.slice(dotIndex + 1);
   if (
     typeof value === "string" &&
     (NUMERIC.has(leaf) || leaf === "filament_id" || leaf === "vendor_id")
@@ -61,7 +62,7 @@ function mergeColumn(
     return;
   }
   Object.defineProperty(node, key, {
-    value: structuredClone(value),
+    value: typeof value === "object" && value !== null ? structuredClone(value) : value,
     enumerable: true,
     writable: true,
     configurable: true,
@@ -80,7 +81,7 @@ export function unflatten(
     let node = out;
     const path = extraAt >= 0 ? [...parts.slice(0, extraAt), "extra"] : parts.slice(0, -1);
     for (const part of path) {
-      if (["__proto__", "constructor", "prototype"].includes(part))
+      if (part === "__proto__" || part === "constructor" || part === "prototype")
         throw new Error(`Unsupported Spoolman export column: ${key}.`);
       node[part] ??= Object.create(null);
       if (typeof node[part] !== "object" || Array.isArray(node[part]))

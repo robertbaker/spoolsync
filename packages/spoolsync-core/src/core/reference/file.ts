@@ -51,7 +51,7 @@ export function parseReferenceFile(
 ): ParsedReferenceFile {
   if (content.length > MAX_REFERENCE_CHARS)
     throw new Error("The reference file is larger than 60 MB. Split it or remove unused columns.");
-  const body = content.replace(/^﻿/, "");
+  const body = content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
   const mapping = options.mapping ?? GENERIC_MAPPING;
   const providerId = options.providerId ?? "file";
   let attribution = options.attribution ?? "";

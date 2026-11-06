@@ -19,7 +19,7 @@ export function strictHeaders(transform: (header: string) => string = (header) =
 
 /** Spreadsheet exports can declare their delimiter on a separate first line. */
 export function csvInput(text: string): { text: string; delimiter: string } {
-  text = text.replace(/^\uFEFF/, "");
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const marker = /^sep=([,;\t|])\r?\n/i.exec(text);
   return marker
     ? { text: text.slice(marker[0].length), delimiter: marker[1]! }
@@ -66,7 +66,16 @@ export function csvText(
   rows: Record<string, unknown>[],
   emptyColumns: readonly string[] = [],
 ): string {
-  const rowFields = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+  const seen = new Set<string>();
+  const rowFields: string[] = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!seen.has(key)) {
+        seen.add(key);
+        rowFields.push(key);
+      }
+    }
+  }
   const fields = rowFields.length ? rowFields : [...emptyColumns];
   return (
     Papa.unparse(
@@ -77,9 +86,15 @@ export function csvText(
 }
 
 export function field(row: Record<string, unknown>, ...names: string[]): unknown {
-  for (const name of names) {
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i]!;
+    let val = row[name];
+    if (val !== undefined && val !== "") return val;
     const key = name.toLowerCase().replace(/[\s-]+/g, "_");
-    if (row[key] !== undefined && row[key] !== "") return row[key];
+    if (key !== name) {
+      val = row[key];
+      if (val !== undefined && val !== "") return val;
+    }
   }
   return undefined;
 }

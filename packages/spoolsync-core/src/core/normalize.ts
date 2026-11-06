@@ -29,18 +29,17 @@ export function toText(value: unknown): string | null {
 
 export function toBoolean(value: unknown): boolean {
   if (typeof value === "boolean") return value;
-  return typeof value === "string" && ["true", "1", "yes"].includes(value.trim().toLowerCase());
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
 /** Normalises `#rgb`, `#rrggbb` and `#rrggbbaa` to uppercase `RRGGBB`; anything else is null. */
 export function toHex(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const bare = value.trim().replace(/^#/, "");
-  if (/^[0-9a-f]{3}$/i.test(bare)) {
-    return [...bare]
-      .map((c) => c + c)
-      .join("")
-      .toUpperCase();
+  if (bare.length === 3 && /^[0-9a-f]{3}$/i.test(bare)) {
+    return (bare[0]! + bare[0]! + bare[1]! + bare[1]! + bare[2]! + bare[2]!).toUpperCase();
   }
   if (/^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(bare)) return bare.slice(0, 6).toUpperCase();
   return null;

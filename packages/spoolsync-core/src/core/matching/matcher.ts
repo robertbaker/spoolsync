@@ -1,10 +1,17 @@
-import { SOURCE_IDS, type CommonSpool } from "../model";
+import type { CommonSpool, SourceId } from "../model";
 import { Groups } from "./groups";
 import { linkIdentityClaims } from "./identity";
-import { groupKey, recordKey } from "./keys";
+import { escapeGroupKeyPart, groupKey, recordKey, SOURCE_INDEX } from "./keys";
 import { defaultMatchingPolicy } from "./similarity";
 import { suggestMatches } from "./suggestions";
 import type { RecordKey, MatchDecisions, MatchResult, SpoolGroup, MatchingPolicy } from "./types";
+
+const groupOrder = (group: SpoolGroup): number => {
+  for (const [source, index] of SOURCE_INDEX) {
+    if (group.members[source as SourceId]) return index;
+  }
+  return -1;
+};
 
 /**
  * Groups records that are the same physical spool, one record per service at most.
@@ -22,7 +29,7 @@ export function matchSpools(
 ): MatchResult {
   // Stable traversal also makes equal-score suggestions independent of input file order.
   spools = [...spools].sort((a, b) => {
-    const source = SOURCE_IDS.indexOf(a.source) - SOURCE_IDS.indexOf(b.source);
+    const source = (SOURCE_INDEX.get(a.source) ?? 0) - (SOURCE_INDEX.get(b.source) ?? 0);
     if (source) return source;
     return a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0;
   });
@@ -59,7 +66,10 @@ export function matchSpools(
     return members;
   };
   const current = [...roots()];
-  const groupId = (members: CommonSpool[]) => groupKey(members.map(recordKey));
+  const groupId = (members: CommonSpool[]) =>
+    members.length === 1
+      ? escapeGroupKeyPart(recordKey(members[0]!))
+      : groupKey(members.map(recordKey));
   const result: SpoolGroup[] = [];
   const idByRoot = new Map<RecordKey, string>();
   for (const [root, members] of current) {
@@ -72,7 +82,6 @@ export function matchSpools(
 
   const suggestions = suggestMatches(current, groups, rejected, idByRoot, policy);
 
-  const order = (group: SpoolGroup) => SOURCE_IDS.findIndex((source) => group.members[source]);
-  result.sort((a, b) => order(a) - order(b) || a.id.localeCompare(b.id));
+  result.sort((a, b) => groupOrder(a) - groupOrder(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return { groups: result, suggestions, problems };
 }

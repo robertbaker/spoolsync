@@ -86,8 +86,10 @@ export function nameTokens(text: string, omit: ReadonlySet<string> = new Set()):
 /** Sørensen-Dice on two token sets: 1 for the same words in any order, 0 for none in common. */
 export function tokenSimilarity(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
   if (!a.size || !b.size) return 0;
+  const smaller = a.size <= b.size ? a : b;
+  const larger = a.size <= b.size ? b : a;
   let shared = 0;
-  for (const token of a) if (b.has(token)) shared += 1;
+  for (const token of smaller) if (larger.has(token)) shared += 1;
   return (2 * shared) / (a.size + b.size);
 }
 
@@ -96,6 +98,8 @@ const materialCore = (parsed: ParsedMaterial) => formatMaterial(parsed, false);
 function confidenceFor(score: number): ReferenceConfidence {
   return score >= 85 ? "high" : score >= 65 ? "medium" : "low";
 }
+
+const EN_COLLATOR = new Intl.Collator("en");
 
 const byScoreThenId = (a: ReferenceCandidate, b: ReferenceCandidate) =>
   b.score - a.score ||
@@ -119,10 +123,10 @@ export class ReferenceCatalog {
     const text = (value: string | null) => value ?? "";
     this.entries = [...filaments].sort(
       (a, b) =>
-        text(a.vendor).localeCompare(text(b.vendor), "en") ||
-        text(a.material).localeCompare(text(b.material), "en") ||
-        text(a.colorName).localeCompare(text(b.colorName), "en") ||
-        text(a.name).localeCompare(text(b.name), "en") ||
+        EN_COLLATOR.compare(text(a.vendor), text(b.vendor)) ||
+        EN_COLLATOR.compare(text(a.material), text(b.material)) ||
+        EN_COLLATOR.compare(text(a.colorName), text(b.colorName)) ||
+        EN_COLLATOR.compare(text(a.name), text(b.name)) ||
         (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
     );
     this.indexed = this.entries.map((reference) => this.index(reference));
@@ -211,7 +215,9 @@ export class ReferenceCatalog {
       // A brand written with extra words ("Prusament PLA") still reaches its records.
       for (const [id, items] of this.byVendor) {
         if (id === vendorId) continue;
-        const [short, long] = id.length < vendorId.length ? [id, vendorId] : [vendorId, id];
+        const isShorter = id.length < vendorId.length;
+        const short = isShorter ? id : vendorId;
+        const long = isShorter ? vendorId : id;
         if (short.length >= 5 && long.startsWith(short))
           for (const item of items)
             if (!pool.has(item.reference.id))
@@ -288,8 +294,14 @@ export class ReferenceCatalog {
       }
 
       let similarity: number | null = null;
-      if (spoolTokens.size && item.nameSets.length)
-        similarity = Math.max(...item.nameSets.map((set) => tokenSimilarity(spoolTokens, set)));
+      if (spoolTokens.size && item.nameSets.length) {
+        let max = 0;
+        for (const set of item.nameSets) {
+          const sim = tokenSimilarity(spoolTokens, set);
+          if (sim > max) max = sim;
+        }
+        similarity = max;
+      }
       if (similarity !== null) {
         score += Math.round(similarity * 35);
         reasons.push(

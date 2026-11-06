@@ -50,8 +50,8 @@ async function parseInventoryFile(
   let text = typeof input === "string" ? input : new TextDecoder().decode(input);
 
   // Windows exports may include a UTF-8 BOM, including in JSON files.
-  text = text.replace(/^\uFEFF/, "");
-  if (!text.trim())
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  if (!/\S/.test(text))
     throw new Error("The inventory file is empty. Choose an export from your service.");
   if (source === "spoolman" && text.startsWith("SQLite format 3\0"))
     throw new Error(

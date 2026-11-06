@@ -71,6 +71,16 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
       document.dispatchEvent(new CustomEvent(SELECTION_CHANGED));
     });
 
+    const open = openConflicts(group, resolution).length;
+    const status = h(
+      "span",
+      {
+        "data-status-for": group.id,
+        class: `rounded-full px-2 py-0.5 text-xs font-medium ${open ? "bg-warning/15 text-warning-text" : "bg-success/15 text-success-text"}`,
+      },
+      open ? `${open} to resolve` : "Ready",
+    );
+
     const card = h(
       "article",
       {
@@ -108,7 +118,7 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
             ...sources.map((s) => sourceTag(s, group.members[s]!.sourceId)),
           ),
         ),
-        h("span", { "data-status-for": group.id }),
+        status,
       ),
     );
 
@@ -204,8 +214,11 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
   let lastFilter = state.filter;
   let query = "";
 
+  const searchCache = new WeakMap<SpoolGroup, string>();
   function searchText(group: SpoolGroup): string {
-    return SOURCE_IDS.flatMap((source) => {
+    const cached = searchCache.get(group);
+    if (cached !== undefined) return cached;
+    const text = SOURCE_IDS.flatMap((source) => {
       const spool = group.members[source];
       return spool
         ? [spool.vendor, spool.material, spool.name, spool.sourceId, spool.location, spool.upc]
@@ -214,6 +227,8 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
+    searchCache.set(group, text);
+    return text;
   }
 
   function renderGroups(): void {
@@ -240,7 +255,7 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     }
     const hidden = candidates - cards.length;
     const children: HTMLElement[] = cards.length
-      ? [...cards]
+      ? cards
       : [
           h(
             "p",
@@ -276,15 +291,23 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
       );
     }
     byId("groups").replaceChildren(...children);
-    for (const group of rendered) updateGroupStatus(group);
   }
 
   const groupSearch = document.getElementById("group-search") as HTMLInputElement | null;
   wireSlashFocus(groupSearch);
+  let groupSearchFrame: number | null = null;
   groupSearch?.addEventListener("input", (event) => {
     query = (event.target as HTMLInputElement).value;
     shown = PAGE_SIZE;
-    renderGroups();
+    if (typeof requestAnimationFrame === "function") {
+      if (groupSearchFrame !== null) cancelAnimationFrame(groupSearchFrame);
+      groupSearchFrame = requestAnimationFrame(() => {
+        groupSearchFrame = null;
+        renderGroups();
+      });
+    } else {
+      renderGroups();
+    }
   });
 
   return renderGroups;

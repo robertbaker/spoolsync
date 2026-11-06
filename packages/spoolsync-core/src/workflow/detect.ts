@@ -42,11 +42,12 @@ function hasKey(records: unknown, keys: readonly string[]): boolean {
   );
 }
 
+const stripBom = (text: string): string => (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+
 /** Header names that identify Spool Hoarder's two CSV layouts among otherwise generic columns. */
 function csvSignatureSource(text: string): SourceId | null {
-  const header = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/, 1)[0]!
+  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
+  const header = stripBom(firstLine)
     .split(/[,;\t]/)
     .map((name) =>
       name
@@ -67,11 +68,12 @@ function csvSignatureSource(text: string): SourceId | null {
  */
 function signatureSource(input: string | Uint8Array): SourceId | null {
   if (typeof input !== "string" && input.byteLength > 0 && input[0] === 0x50) return null;
-  const text = typeof input === "string" ? input : new TextDecoder().decode(input);
-  if (!/^\s*[[{]/.test(text.replace(/^\uFEFF/, ""))) return csvSignatureSource(text);
+  const raw = typeof input === "string" ? input : new TextDecoder().decode(input);
+  const text = stripBom(raw);
+  if (!/^\s*[[{]/.test(text)) return csvSignatureSource(text);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text.replace(/^\uFEFF/, ""));
+    parsed = JSON.parse(text);
   } catch {
     return null;
   }

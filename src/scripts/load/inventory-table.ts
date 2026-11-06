@@ -95,6 +95,19 @@ export function createInventoryTable(
     );
   }
 
+  const searchCache = new WeakMap<CommonSpool, string>();
+  const spoolSearchText = (s: CommonSpool): string => {
+    let text = searchCache.get(s);
+    if (text === undefined) {
+      text = [s.vendor, s.material, s.name, s.location, s.sourceId, ...s.colors]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      searchCache.set(s, text);
+    }
+    return text;
+  };
+
   function weight(spool: CommonSpool): string {
     const remaining = spool.remainingWeight === null ? "?" : Math.round(spool.remainingWeight);
     const initial = spool.initialWeight === null ? "?" : Math.round(spool.initialWeight);
@@ -179,9 +192,18 @@ export function createInventoryTable(
   const searchInput = document.getElementById("spool-search-input") as HTMLInputElement | null;
 
   if (searchInput) {
+    let frameId: number | null = null;
     searchInput.addEventListener("input", () => {
       searchQuery = searchInput.value.trim().toLowerCase();
-      renderTable();
+      if (typeof requestAnimationFrame === "function") {
+        if (frameId !== null) cancelAnimationFrame(frameId);
+        frameId = requestAnimationFrame(() => {
+          frameId = null;
+          renderTable();
+        });
+      } else {
+        renderTable();
+      }
     });
   }
 
@@ -342,13 +364,7 @@ export function createInventoryTable(
       lowButton.setAttribute("aria-pressed", String(lowOnly));
     }
     const matching = searchQuery
-      ? all.filter((s) => {
-          const text = [s.vendor, s.material, s.name, s.location, s.sourceId, ...s.colors]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return text.includes(searchQuery);
-        })
+      ? all.filter((s) => spoolSearchText(s).includes(searchQuery))
       : all;
     const insightFilter = insights?.activeFilter ?? null;
     const narrowed =
