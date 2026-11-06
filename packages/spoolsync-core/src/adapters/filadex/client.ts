@@ -1,4 +1,4 @@
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+import { fetchWithHeaderTimeout, type FetchLike } from "../shared/fetch";
 
 export interface FiladexConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:5000`. */
@@ -49,25 +49,25 @@ export class FiladexClient {
     init: RequestInit & { json?: unknown } = {},
   ): Promise<Response> {
     const { json, ...rest } = init;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      return await this.fetchImpl(`${this.baseUrl}${path}`, {
-        ...rest,
-        headers: {
-          Accept: "application/json",
-          ...(json === undefined ? {} : { "Content-Type": "application/json" }),
-          ...(this.cookie ? { Cookie: this.cookie } : {}),
+      return await fetchWithHeaderTimeout(
+        this.fetchImpl,
+        `${this.baseUrl}${path}`,
+        {
+          ...rest,
+          headers: {
+            Accept: "application/json",
+            ...(json === undefined ? {} : { "Content-Type": "application/json" }),
+            ...(this.cookie ? { Cookie: this.cookie } : {}),
+          },
+          ...(json === undefined ? {} : { body: JSON.stringify(json) }),
         },
-        ...(json === undefined ? {} : { body: JSON.stringify(json) }),
-        signal: controller.signal,
-      });
+        this.timeoutMs,
+      );
     } catch (error) {
       throw new Error(
         `Could not reach Filadex at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
-      clearTimeout(timer);
     }
   }
 

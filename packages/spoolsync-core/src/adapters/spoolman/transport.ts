@@ -79,9 +79,9 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
     path: string,
     options: Omit<RequestOptions<unknown>, "schema">,
   ): Promise<{ body: string }> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    const init: RequestInit = { method, signal: controller.signal };
+    // One deadline for the request and for reading the body.
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    const init: RequestInit = { method, signal };
     if (options.body !== undefined) {
       init.body = JSON.stringify(options.body);
       init.headers = { "content-type": "application/json" };
@@ -104,7 +104,7 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
       body = await response.text();
     } catch (error) {
       if (error instanceof SpoolmanError) throw error;
-      if (controller.signal.aborted) {
+      if (signal.aborted) {
         throw new SpoolmanError(
           "timeout",
           `Spoolman did not answer within ${this.timeoutMs / 1000}s`,
@@ -115,8 +115,6 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
         "network",
         `Could not reach Spoolman at ${this.baseUrl.origin}: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
-      clearTimeout(timer);
     }
     if (!response.ok) {
       const detail = body;

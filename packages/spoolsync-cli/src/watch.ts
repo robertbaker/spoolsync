@@ -1,3 +1,4 @@
+import { once } from "node:events";
 import { watch as fsWatch } from "node:fs";
 import path from "node:path";
 
@@ -165,10 +166,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
     }),
   );
 
-  if (!signal.aborted)
-    await new Promise<void>((resolve) =>
-      signal.addEventListener("abort", () => resolve(), { once: true }),
-    );
+  if (!signal.aborted) await once(signal, "abort");
   clearTimeout(timer);
   for (const watcher of watchers) watcher.close();
   await running;

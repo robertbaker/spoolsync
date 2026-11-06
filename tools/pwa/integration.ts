@@ -37,10 +37,7 @@ export function serviceWorker(): AstroIntegration {
             return { url, content: await readFile(path.join(root, name)) };
           }),
         );
-        const template = await readFile(
-          path.join(path.dirname(fileURLToPath(import.meta.url)), "sw.js"),
-          "utf8",
-        );
+        const template = await readFile(path.join(import.meta.dirname, "sw.js"), "utf8");
         await writeFile(
           path.join(root, "sw.js"),
           renderServiceWorker(template, cacheVersion(entries), urls),

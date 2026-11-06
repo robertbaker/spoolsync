@@ -1,4 +1,4 @@
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+import { fetchWithHeaderTimeout, type FetchLike } from "../shared/fetch";
 
 export interface FilamentDbConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:3000`. */
@@ -45,25 +45,25 @@ export class FilamentDbClient {
 
   private async request(method: "GET" | "POST", body?: unknown): Promise<unknown> {
     let response: Response;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      response = await this.fetchImpl(`${this.baseUrl}/api/spools`, {
-        method,
-        headers: {
-          Accept: "application/json",
-          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      response = await fetchWithHeaderTimeout(
+        this.fetchImpl,
+        `${this.baseUrl}/api/spools`,
+        {
+          method,
+          headers: {
+            Accept: "application/json",
+            ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        signal: controller.signal,
-      });
+        this.timeoutMs,
+      );
     } catch (error) {
       throw new Error(
         `Could not reach FilamentDB at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
-      clearTimeout(timer);
     }
     if (response.status === 401 || response.status === 403)
       throw new Error("FilamentDB refused the request. Check the session token.");

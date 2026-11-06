@@ -1,4 +1,4 @@
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+import { fetchWithHeaderTimeout, type FetchLike } from "../shared/fetch";
 
 export interface FilamentDbAppConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:3456`. */
@@ -86,26 +86,26 @@ export class FilamentDbAppClient {
     path: string,
     body?: unknown,
   ): Promise<unknown> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
     try {
-      response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-        method,
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        headers: {
-          Accept: "application/json",
-          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+      response = await fetchWithHeaderTimeout(
+        this.fetchImpl,
+        `${this.baseUrl}${path}`,
+        {
+          method,
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          headers: {
+            Accept: "application/json",
+            ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+            ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          },
         },
-        signal: controller.signal,
-      });
+        this.timeoutMs,
+      );
     } catch (error) {
       throw new Error(
         `Could not reach Filament DB at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
-      clearTimeout(timer);
     }
     if (response.status === 401)
       throw new Error("Filament DB refused the request. Check the API key (FILAMENTDB_API_KEY).");

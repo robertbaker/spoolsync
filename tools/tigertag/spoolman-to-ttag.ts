@@ -1,8 +1,6 @@
 #!/usr/bin/env bun
 
-import path from "node:path";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
 
 import { parseArgs, printHelp } from "./converter/args";
 import { createTtag } from "./converter/convert";
@@ -60,6 +58,6 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   main();
 }

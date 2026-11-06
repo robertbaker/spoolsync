@@ -102,17 +102,14 @@ function readCache(): CachedChangelog | null {
 
 /** Fetches the changelog from GitHub, giving up after a few seconds so the dialog never hangs. */
 async function fetchChangelog(): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const response = await fetch(CHANGELOG_URL, { signal: controller.signal, cache: "no-cache" });
-    if (!response.ok) throw new Error(`GitHub answered ${response.status}.`);
-    const text = await response.text();
-    write(local, CACHE_KEY, JSON.stringify({ text, fetchedAt: new Date().toISOString() }));
-    return text;
-  } finally {
-    clearTimeout(timer);
-  }
+  const response = await fetch(CHANGELOG_URL, {
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    cache: "no-cache",
+  });
+  if (!response.ok) throw new Error(`GitHub answered ${response.status}.`);
+  const text = await response.text();
+  write(local, CACHE_KEY, JSON.stringify({ text, fetchedAt: new Date().toISOString() }));
+  return text;
 }
 
 const link = (href: string, label: string, extra = "") =>
@@ -470,7 +467,7 @@ function show(text: string, note: string | null): void {
 }
 
 function describeFailure(error: unknown): string {
-  return error instanceof Error && error.name !== "AbortError"
+  return error instanceof Error && error.name !== "AbortError" && error.name !== "TimeoutError"
     ? error.message
     : "It took too long to answer.";
 }

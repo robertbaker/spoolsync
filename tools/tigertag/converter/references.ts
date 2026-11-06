@@ -1,12 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { CliError } from "./errors";
 import type { ReferenceRow } from "./types";
 
 const DATABASE = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
+  import.meta.dirname,
   "../../../packages/spoolsync-core/src/adapters/tigertag/reference-data",
 );
 
