@@ -38,9 +38,11 @@ function isGrossBasis(basis: string): boolean {
 }
 
 /** Joins filament-level and spool-level notes, keeping both when present. */
-function joinNotes(...values: unknown[]): string | null {
-  const parts = values.map(text).filter((part): part is string => part !== null);
-  return parts.length ? parts.join("\n") : null;
+function joinNotes(a: unknown, b: unknown): string | null {
+  const noteA = text(a);
+  const noteB = text(b);
+  if (noteA && noteB) return `${noteA}\n${noteB}`;
+  return noteA ?? noteB;
 }
 
 /**

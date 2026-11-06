@@ -11,6 +11,25 @@ function normalize(filename: string, platform: NodeJS.Platform): string {
 const WINDOWS_DEVICE_NAME =
   /^(con|prn|aux|nul|com[0-9\u00b9\u00b2\u00b3]|lpt[0-9\u00b9\u00b2\u00b3])(\..*)?$/i;
 
+const isDisallowedWindowsName = (name: string): boolean => {
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i);
+    if (
+      code < 32 ||
+      code === 60 /* < */ ||
+      code === 62 /* > */ ||
+      code === 58 /* : */ ||
+      code === 34 /* " */ ||
+      code === 124 /* | */ ||
+      code === 63 /* ? */ ||
+      code === 42 /* * */
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Windows treats some names specially: device names such as NUL or COM1 (even with an extension),
  * `name:stream` alternate data streams, trailing dots or spaces, and reserved characters. Writing
@@ -24,7 +43,7 @@ export function assertPortableOutputName(
   const name = path.win32.basename(filename);
   if (WINDOWS_DEVICE_NAME.test(name))
     throw new Error(`"${name}" is a reserved Windows device name. Choose another file name.`);
-  if (/[<>:"|?*]/.test(name) || [...name].some((character) => character.charCodeAt(0) < 32))
+  if (isDisallowedWindowsName(name))
     throw new Error(
       `"${name}" contains a character Windows does not allow in file names (< > : " | ? *). Choose another file name.`,
     );

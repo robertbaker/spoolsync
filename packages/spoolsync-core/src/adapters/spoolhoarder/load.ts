@@ -1,4 +1,5 @@
 import type { CommonSpool, LoadResult } from "../../core/model";
+import { toBoolean } from "../../core/normalize";
 import { parseTable } from "../shared/tabular";
 import { hueforgeRowToCommon, templateRowToCommon } from "./map";
 
@@ -29,10 +30,11 @@ export function loadSpoolHoarderCsv(text: string): LoadResult {
   const warnings: string[] = [];
   const spools: CommonSpool[] = [];
   const seen = new Set<string>();
-  rows.forEach((row, index) => {
-    if (layout === "template" && /^(true|1|yes)$/i.test(String(row["isdeleted"] ?? "").trim())) {
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index]!;
+    if (layout === "template" && toBoolean(row["isdeleted"])) {
       warnings.push(`Row ${index + 2}: marked deleted in Spool Hoarder; skipped.`);
-      return;
+      continue;
     }
     const spool =
       layout === "template" ? templateRowToCommon(row, index) : hueforgeRowToCommon(row, index);
@@ -40,11 +42,11 @@ export function loadSpoolHoarderCsv(text: string): LoadResult {
       warnings.push(
         `Row ${index + 2}: ID ${spool.sourceId} appears more than once; using the first row.`,
       );
-      return;
+      continue;
     }
     seen.add(spool.sourceId);
     spools.push(spool);
-  });
+  }
   if (layout === "hueforge" && spools.length)
     warnings.push(
       "This is a HueForge library export: it lists filament colors without weights, so remaining and initial weights are not available.",
