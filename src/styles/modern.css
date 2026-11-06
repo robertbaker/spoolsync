@@ -355,3 +355,25 @@ button:disabled {
     background: GrayText;
   }
 }
+
+/*
+ * Floating UI offsets, in one place. Below md the page has a bottom navigation, so the toast stack,
+ * the PWA banner and the tour button sit above it (--float-bottom, --toast-bottom) and the sticky
+ * action bars sit above those (--bar-bottom). From md up they drop to the page corner, and the bars
+ * leave room on the right for the tour button (--bar-end-pad).
+ */
+:root {
+  --float-bottom: 6rem;
+  --toast-bottom: 6rem;
+  --bar-bottom: 10rem;
+  --bar-end-pad: 0px;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --float-bottom: 1rem;
+    --toast-bottom: 1.5rem;
+    --bar-bottom: 1rem;
+    --bar-end-pad: 9rem;
+  }
+}

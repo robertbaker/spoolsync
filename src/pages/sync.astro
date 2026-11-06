@@ -21,10 +21,19 @@ import { SITE_TITLE } from "~/config";
       description="Spools are matched across your loaded inventories. Pick a value wherever services disagree, then apply or download your changes."
     />
 
-    <!-- Rendered up front so the page does not shift when the script decides there is nothing to sync. -->
-    <div id="sync-empty" class="mt-10">
+    <!-- Neutral placeholder, same footprint as the empty state, until the script knows what is loaded. -->
+    <div id="sync-loading" class="mt-10" aria-busy="true">
+      <div class="mx-auto grid max-w-xl gap-3 rounded-2xl border border-dashed bg-card/50 px-6 py-12" role="presentation">
+        <span class="skeleton-line"></span>
+        <span class="skeleton-line"></span>
+        <span class="skeleton-line"></span>
+      </div>
+      <p class="sr-only">Loading your inventories…</p>
+    </div>
+
+    <div id="sync-empty" class="mt-10" hidden>
       <div class="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-dashed bg-card/50 px-6 py-12 text-center shadow-xs" role="status">
-        <div class="animate-subtle-pulse">
+        <div>
           <IconAvatar icon="material-symbols:sync-alt" color="primary" containerSize="xl" size="xl" rounded="full" />
         </div>
         <h2 id="sync-empty-title" class="mt-5 text-xl font-bold tracking-tight">Nothing loaded yet</h2>
@@ -80,7 +89,7 @@ import { SITE_TITLE } from "~/config";
       <div
         id="sync-bar"
         hidden
-        class="sticky bottom-40 z-10 mt-6 flex flex-nowrap items-center justify-between gap-3 rounded-2xl border bg-card/95 p-2.5 pl-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:p-3 sm:pl-5 md:bottom-4 md:pr-36"
+        class="sticky bottom-[var(--bar-bottom)] z-10 mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border bg-card/95 p-2.5 pl-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80 sm:p-3 sm:pl-5 md:pr-[var(--bar-end-pad)]"
       >
         <p id="sync-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite"></p>
         <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">

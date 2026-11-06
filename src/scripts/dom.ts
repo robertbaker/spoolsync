@@ -1,5 +1,14 @@
 /** Tiny DOM helpers for the client scripts. Text is always set as text, never parsed as HTML. */
 
+import {
+  baseClasses,
+  outlineColorClasses,
+  sizeClasses,
+  solidColorClasses,
+  type ButtonColor,
+  type ButtonSize,
+} from "~/components/starwind/controls/Button/buttonVariants";
+
 type Child = Node | string | null | undefined | false;
 
 export function h<K extends keyof HTMLElementTagNameMap>(
@@ -14,6 +23,24 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     element.append(child);
   }
   return element;
+}
+
+/**
+ * Classes for a button built in script, matching the Starwind `Button` so the two cannot drift.
+ * (The component's own `getButtonClasses` also runs tailwind-merge, which is not worth shipping to
+ * every page, so this composes the same shared class maps directly.)
+ */
+export function buttonClass({
+  variant = "outline",
+  color = "neutral",
+  size = "sm",
+}: {
+  variant?: "solid" | "outline";
+  color?: ButtonColor;
+  size?: ButtonSize;
+} = {}): string {
+  const style = variant === "solid" ? solidColorClasses[color] : outlineColorClasses[color];
+  return `${baseClasses} motion-safe:active:scale-[0.98] ${style} ${sizeClasses[size]}`;
 }
 
 export function byId<T extends HTMLElement>(id: string): T {
@@ -55,7 +82,7 @@ export function showToast(
     container = h("div", {
       id: "toast-container",
       class:
-        "fixed bottom-24 right-5 md:bottom-6 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0",
+        "fixed bottom-[var(--toast-bottom)] right-5 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4 sm:px-0",
       role: "region",
       "aria-label": "Notifications",
     });
@@ -110,11 +137,7 @@ export function showToast(
 
 /** A copyable one-line code block. */
 export function copyLine(text: string): HTMLElement {
-  const button = h(
-    "button",
-    { type: "button", class: "shrink-0 rounded border px-2 py-1 text-xs hover:bg-muted" },
-    "Copy",
-  );
+  const button = h("button", { type: "button", class: buttonClass({ size: "xs" }) }, "Copy");
   button.addEventListener("click", () => {
     navigator.clipboard?.writeText(text).then(
       () => {
