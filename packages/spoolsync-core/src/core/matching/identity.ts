@@ -3,6 +3,9 @@ import type { Groups } from "./groups";
 import { recordKey, SOURCE_INDEX } from "./keys";
 import type { RecordKey } from "./types";
 
+/** Same ordering as `a.localeCompare(b)` (default locale, no options), minus the per-call setup. */
+const IDENTITY_COLLATOR = new Intl.Collator();
+
 /** The cross-id keys a record answers to, including its own native id. */
 function identityKeys(spool: CommonSpool): string[] {
   const native = `${spool.source}:${spool.sourceId}`;
@@ -60,13 +63,20 @@ export function linkIdentityClaims(
   }
   // Prefer identities backed by a loaded native record, then use the stable source order.
   // Ambiguous cross-ID claims must not produce different links when inputs are reordered.
-  const orderedClaims = [...claims].sort(([a], [b]) => {
-    const native = Number(byKey.has(b)) - Number(byKey.has(a));
-    if (native) return native;
-    const sourceA = SOURCE_INDEX.get(a.slice(0, a.indexOf(":"))) ?? -1;
-    const sourceB = SOURCE_INDEX.get(b.slice(0, b.indexOf(":"))) ?? -1;
-    return sourceA - sourceB || a.localeCompare(b);
-  });
+  // Sort keys are computed once per claim, not once per comparison.
+  const orderedClaims = [...claims]
+    .map((claim) => ({
+      claim,
+      native: byKey.has(claim[0]) ? 1 : 0,
+      source: SOURCE_INDEX.get(claim[0].slice(0, claim[0].indexOf(":"))) ?? -1,
+    }))
+    .sort(
+      (a, b) =>
+        b.native - a.native ||
+        a.source - b.source ||
+        IDENTITY_COLLATOR.compare(a.claim[0], b.claim[0]),
+    )
+    .map(({ claim }) => claim);
   for (const [identity, keys] of orderedClaims) {
     if (keys.length < 2) continue;
     // All or nothing: a partial link would quietly attach some claimants and not others.

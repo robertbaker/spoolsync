@@ -35,6 +35,10 @@ const title = (reference: ReferenceFilament) =>
     .filter(Boolean)
     .join(" ") || reference.id;
 
+/** Same orderings as `localeCompare` with defaults and with "en", without per-call setup. */
+const FIELD_COLLATOR = new Intl.Collator();
+const TITLE_COLLATOR = new Intl.Collator("en");
+
 const hash = (hex: string) => `#${hex}`;
 
 /**
@@ -82,11 +86,11 @@ export function correctionRecords(items: readonly ReferenceItem[]): CorrectionRe
   return [...records.values()]
     .map(({ reference, points }) => ({
       reference,
-      points: [...points.values()].sort((a, b) => a.field.localeCompare(b.field)),
+      points: [...points.values()].sort((a, b) => FIELD_COLLATOR.compare(a.field, b.field)),
     }))
     .sort(
       (a, b) =>
-        title(a.reference).localeCompare(title(b.reference), "en") ||
+        TITLE_COLLATOR.compare(title(a.reference), title(b.reference)) ||
         (a.reference.id < b.reference.id ? -1 : 1),
     );
 }

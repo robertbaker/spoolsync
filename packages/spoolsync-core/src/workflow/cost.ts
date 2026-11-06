@@ -2,6 +2,9 @@ import type { MatchDecisions } from "../core/match";
 import { SOURCE_IDS, SOURCE_LABELS, type CommonSpool, type LoadResult } from "../core/model";
 import { uniqueSpools } from "./breakdown";
 
+/** Same ordering as `localeCompare` with defaults, without per-call setup. */
+const LABEL_COLLATOR = new Intl.Collator();
+
 export type CostGrouping = "service" | "material" | "vendor";
 
 export interface CostShare {
@@ -96,7 +99,7 @@ export function costPerKg(
   });
   const ranked = [...totals.values()]
     .map(toShare)
-    .sort((a, b) => b.costPerKg - a.costPerKg || a.label.localeCompare(b.label));
+    .sort((a, b) => b.costPerKg - a.costPerKg || LABEL_COLLATOR.compare(a.label, b.label));
   let rows = ranked;
   if (grouping !== "service" && ranked.length > limit) {
     const tail = ranked.slice(limit - 1);
@@ -111,7 +114,7 @@ export function costPerKg(
         totalPrice: price,
         kilograms,
       },
-    ].sort((a, b) => b.costPerKg - a.costPerKg || a.label.localeCompare(b.label));
+    ].sort((a, b) => b.costPerKg - a.costPerKg || LABEL_COLLATOR.compare(a.label, b.label));
   }
   return { rows, unpriced, totalSpools };
 }
