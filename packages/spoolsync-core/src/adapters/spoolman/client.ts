@@ -33,6 +33,8 @@ export type { SpoolmanConnection, SpoolmanErrorKind } from "./connection";
 export type { SpoolmanTransport } from "./transport";
 
 const PAGE_SIZE = 1000;
+/** Pages requested at once once the total is known; small, so a home server is not flooded. */
+const PAGE_CONCURRENCY = 3;
 
 export class SpoolmanClient {
   readonly baseUrl: URL;
@@ -64,11 +66,8 @@ export class SpoolmanClient {
   ): Promise<T[]> {
     const items: T[] = [];
     const seenIds = new Set<number>();
-    for (let offset = 0; ; offset += PAGE_SIZE) {
-      const page = await this.transport.request("GET", path, {
-        query: { ...query, limit: PAGE_SIZE, offset },
-        schema: z.array(schema),
-      });
+    const pageSchema = z.array(schema);
+    const absorb = (page: T[]): void => {
       for (const item of page) {
         if (seenIds.has(item.id))
           throw new SpoolmanError(
@@ -78,6 +77,59 @@ export class SpoolmanClient {
         seenIds.add(item.id);
         items.push(item);
       }
+    };
+    const fetchPage = async (offset: number, signal?: AbortSignal) => {
+      const options = {
+        query: { ...query, limit: PAGE_SIZE, offset },
+        schema: pageSchema,
+        ...(signal ? { signal } : {}),
+      };
+      if (this.transport.requestPage) return this.transport.requestPage("GET", path, options);
+      return { data: await this.transport.request("GET", path, options) };
+    };
+
+    let offset = 0;
+    const first = await fetchPage(offset);
+    absorb(first.data);
+    offset += PAGE_SIZE;
+    if (first.data.length < PAGE_SIZE) return items;
+
+    // The first page says how many records there are, so the remaining pages can be requested a
+    // few at a time instead of one round trip each. They are still absorbed in offset order and
+    // stop at the first short page, so the result and the duplicate check match one-by-one paging.
+    // Without a readable total (no header, or CORS does not expose it) paging stays serial below.
+    const total = first.totalCount;
+    if (first.data.length === PAGE_SIZE && total !== undefined && total > PAGE_SIZE) {
+      const offsets: number[] = [];
+      for (let next = offset; next < total; next += PAGE_SIZE) offsets.push(next);
+      const pages: T[][] = Array.from<T[]>({ length: offsets.length });
+      const stop = new AbortController();
+      let cursor = 0;
+      try {
+        await Promise.all(
+          Array.from({ length: Math.min(PAGE_CONCURRENCY, offsets.length) }, async () => {
+            while (cursor < offsets.length) {
+              const index = cursor++;
+              pages[index] = (await fetchPage(offsets[index]!, stop.signal)).data;
+            }
+          }),
+        );
+      } catch (error) {
+        stop.abort();
+        throw error;
+      }
+      for (const page of pages) {
+        absorb(page);
+        offset += PAGE_SIZE;
+        if (page.length < PAGE_SIZE) return items;
+      }
+    }
+
+    // The total is only a hint for how many pages to ask for at once. A full last page still means
+    // there may be more (records added meanwhile, or a low count), so carry on one at a time.
+    for (; ; offset += PAGE_SIZE) {
+      const page = (await fetchPage(offset)).data;
+      absorb(page);
       if (page.length < PAGE_SIZE) return items;
     }
   }

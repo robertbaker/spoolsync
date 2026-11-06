@@ -14,6 +14,8 @@ export interface RequestOptions<T> {
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
   schema: z.ZodType<T>;
+  /** Cancels the request when aborted (in addition to the transport's own timeout). */
+  signal?: AbortSignal;
 }
 
 /** HTTP operations used by the endpoint client; implementations can replace the transport. */
@@ -22,11 +24,20 @@ export interface SpoolmanTransport {
   apiUrl(path: string, query?: RequestOptions<unknown>["query"]): string;
   requestInit(init?: RequestInit): RequestInit;
   request<T>(method: string, path: string, options: RequestOptions<T>): Promise<T>;
+  /**
+   * Like `request`, plus the server's `X-Total-Count` when it sent a readable one. Optional: a
+   * transport without it is paged one request at a time, as before.
+   */
+  requestPage?<T>(
+    method: string,
+    path: string,
+    options: RequestOptions<T>,
+  ): Promise<{ data: T; totalCount?: number }>;
   send(
     method: string,
     path: string,
     options: Omit<RequestOptions<unknown>, "schema">,
-  ): Promise<{ body: string }>;
+  ): Promise<{ body: string; totalCount?: number }>;
 }
 
 export class HttpSpoolmanTransport implements SpoolmanTransport {
@@ -74,13 +85,26 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
     return this.parse(body, options.schema, path);
   }
 
+  async requestPage<T>(
+    method: string,
+    path: string,
+    options: RequestOptions<T>,
+  ): Promise<{ data: T; totalCount?: number }> {
+    const { body, totalCount } = await this.send(method, path, options);
+    const data = this.parse(body, options.schema, path);
+    return totalCount === undefined ? { data } : { data, totalCount };
+  }
+
   async send(
     method: string,
     path: string,
     options: Omit<RequestOptions<unknown>, "schema">,
-  ): Promise<{ body: string }> {
+  ): Promise<{ body: string; totalCount?: number }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const onCallerAbort = () => controller.abort();
+    if (options.signal?.aborted) controller.abort();
+    else options.signal?.addEventListener("abort", onCallerAbort, { once: true });
     const init: RequestInit = { method, signal: controller.signal };
     if (options.body !== undefined) {
       init.body = JSON.stringify(options.body);
@@ -104,6 +128,7 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
       body = await response.text();
     } catch (error) {
       if (error instanceof SpoolmanError) throw error;
+      if (options.signal?.aborted) throw new SpoolmanError("network", "Request cancelled");
       if (controller.signal.aborted) {
         throw new SpoolmanError(
           "timeout",
@@ -117,6 +142,7 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
       );
     } finally {
       clearTimeout(timer);
+      options.signal?.removeEventListener("abort", onCallerAbort);
     }
     if (!response.ok) {
       const detail = body;
@@ -126,7 +152,10 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
         response.status,
       );
     }
-    return { body };
+    // Only readable cross-origin when the server lists it in Access-Control-Expose-Headers.
+    const rawTotal = response.headers.get("x-total-count");
+    const total = rawTotal?.trim() ? Number(rawTotal) : Number.NaN;
+    return Number.isInteger(total) && total >= 0 ? { body, totalCount: total } : { body };
   }
 
   private parse<T>(text: string, schema: z.ZodType<T>, path: string): T {
