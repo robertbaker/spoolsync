@@ -69,7 +69,7 @@ export function createControlsView(
   ): void {
     state.checkpoint(label);
     for (const group of state.match.groups) {
-      action(group, state.resolutionFor(group));
+      state.updateResolution(group, (draft) => action(group, draft));
     }
     state.persist();
     renderAll();

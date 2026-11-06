@@ -55,6 +55,38 @@ test("clearing removes named parts and undo restores the edit", () => {
   expect(state.bulkEdits().get(ids[1]!)).toEqual({ location: null, note: "n" });
 });
 
+test("a patch that changes only some targets still counts, and one that changes none does not", () => {
+  const { state, ids } = make();
+  expect(state.applyBulkEdit([ids[0]!], { tag: "dry" }, "first")).toBe(1);
+  // Group 0 already has this edit; group 1 gains it, so the step is recorded for both targets.
+  expect(state.applyBulkEdit([ids[0]!, ids[1]!], { tag: "dry" }, "both")).toBe(2);
+  expect(state.undoLabel()).toBe("both");
+  // Nothing differs now, including when an id is repeated.
+  expect(state.applyBulkEdit([ids[0]!, ids[0]!, ids[1]!], { tag: "dry" }, "again")).toBe(0);
+  expect(state.undoLabel()).toBe("both");
+});
+
+test("bulk edits survive undo and redo without later edits leaking into snapshots", () => {
+  const { state, ids } = make();
+  state.applyBulkEdit(ids, { location: "Shelf" }, "one");
+  state.applyBulkEdit([ids[0]!], { tag: "dry" }, "two");
+  expect(state.bulkEdits().get(ids[0]!)).toEqual({ location: "Shelf", tag: "dry" });
+
+  state.undo();
+  expect(state.bulkEdits().get(ids[0]!)).toEqual({ location: "Shelf" });
+  // A new edit after undoing must not rewrite what redo or the earlier step remembers.
+  state.applyBulkEdit([ids[0]!], { note: "changed" }, "three");
+  expect(state.redoLabel()).toBeNull();
+  state.undo();
+  expect(state.bulkEdits().get(ids[0]!)).toEqual({ location: "Shelf" });
+  state.undo();
+  expect(state.bulkEdits().size).toBe(0);
+  state.redo();
+  state.redo();
+  expect(state.bulkEdits().get(ids[0]!)).toEqual({ location: "Shelf", note: "changed" });
+  expect(state.bulkEdits().get(ids[1]!)).toEqual({ location: "Shelf" });
+});
+
 test("selection drops groups that disappear on recompute", () => {
   const { state, ids } = make();
   state.setSelected(ids, true);

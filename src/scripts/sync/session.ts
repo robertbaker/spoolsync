@@ -17,6 +17,7 @@ import type {
 import {
   SOURCE_IDS,
   WRITABLE_SOURCE_IDS,
+  type CommonSpool,
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
@@ -30,6 +31,13 @@ import {
 } from "@spoolsync/core/planner";
 
 const MAX_UNDO = 50;
+
+function freezeResolution(resolution: GroupResolution): void {
+  if (Object.isFrozen(resolution)) return;
+  Object.freeze(resolution.values);
+  Object.freeze(resolution.createIn);
+  Object.freeze(resolution);
+}
 
 /** A point in the history: the plan's choices and the answers given to possible matches. */
 interface UndoEntry {
@@ -73,16 +81,46 @@ export class SyncSession {
   resolutionFor(group: SpoolGroup) {
     return ensureResolution(this.resolutions, group);
   }
+
+  /**
+   * Changes one group's resolution by replacing it with an edited copy. Undo snapshots share
+   * resolution objects, so once a checkpoint has been taken an object must never be edited in place
+   * (it is frozen then; an in-place edit throws). Call `checkpoint` first, then this.
+   */
+  updateResolution(group: SpoolGroup, edit: (draft: GroupResolution) => void): void {
+    const current = this.resolutionFor(group);
+    const draft: GroupResolution = {
+      ...current,
+      values: { ...current.values },
+      createIn: [...current.createIn],
+    };
+    edit(draft);
+    this.resolutions.set(group.id, draft);
+  }
   persist() {
     this.persistence.saveResolutions(this.resolutions);
     this.persistence.saveBulkEdits?.(this.edits);
   }
 
+  /** What `match` was computed from, so a redraw that changed neither skips the matcher. */
+  private matched: { spools: CommonSpool[]; decisions: MatchDecisions } | null = null;
+
   recompute(): void {
-    this.match = findMatches(
-      [...this.loaded.values()].flatMap((result) => result.spools),
-      this.decisions,
-    );
+    const spools = [...this.loaded.values()].flatMap((result) => result.spools);
+    const previous = this.matched;
+    // Matching depends only on the records and the answers (both replaced, never edited, when they
+    // change: a reload or apply brings new records, a decision a new answers object). Plan-only
+    // changes such as bulk picks, bulk edits, resets and most undo steps leave both alone, and the
+    // match is by far the slowest part of a redraw.
+    const unchanged =
+      previous !== null &&
+      previous.decisions === this.decisions &&
+      previous.spools.length === spools.length &&
+      previous.spools.every((spool, index) => spool === spools[index]);
+    if (!unchanged) {
+      this.match = findMatches(spools, this.decisions);
+      this.matched = { spools, decisions: this.decisions };
+    }
     // Keep choices when a group gains a member after a match or remote creation.
     this.resolutions = reconcileResolutions(this.match.groups, this.resolutions);
     this.edits = reconcileBulkEdits(this.match.groups, this.edits);
@@ -149,7 +187,13 @@ export class SyncSession {
       const merged = mergeBulkEdit(next.get(id), patch);
       if (merged) next.set(id, merged);
     }
-    if (JSON.stringify([...next]) === JSON.stringify([...this.edits])) return 0;
+    // Only the targeted groups can differ, so compare just those instead of serializing every edit.
+    const changed = [...new Set(targets)].some((id) => {
+      const after = next.get(id);
+      const before = this.edits.get(id);
+      return after !== before && JSON.stringify(after) !== JSON.stringify(before);
+    });
+    if (!changed) return 0;
     this.checkpoint(label);
     this.edits = next;
     this.persist();
@@ -193,22 +237,28 @@ export class SyncSession {
     this.redoStack = [];
   }
 
+  /**
+   * A snapshot copies the containers but shares the objects inside them: resolutions are frozen
+   * (see `updateResolution`), and decisions and bulk edits are only ever replaced, never edited.
+   * That makes a checkpoint cost the size of the map, not a deep copy of every choice.
+   */
   private snapshot(label: string): UndoEntry {
+    for (const resolution of this.resolutions.values()) freezeResolution(resolution);
     return {
       label,
-      resolutions: structuredClone(this.resolutions),
-      decisions: structuredClone(this.decisions),
+      resolutions: new Map(this.resolutions),
+      decisions: this.decisions,
       excluded: new Set(this.excludedKeys),
-      bulkEdits: structuredClone(this.edits),
+      bulkEdits: new Map(this.edits),
     };
   }
 
   /** Puts back a snapshot's choices and match answers, saving both. */
   private restore(entry: UndoEntry): void {
-    this.resolutions = structuredClone(entry.resolutions);
-    this.decisions = structuredClone(entry.decisions);
+    this.resolutions = new Map(entry.resolutions);
+    this.decisions = entry.decisions;
     this.excludedKeys = new Set(entry.excluded);
-    this.edits = structuredClone(entry.bulkEdits);
+    this.edits = new Map(entry.bulkEdits);
     this.persist();
     this.persistence.saveMatchDecisions(this.decisions);
   }

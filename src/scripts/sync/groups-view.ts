@@ -26,9 +26,10 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     value: FieldValue | undefined,
   ): void {
     state.checkpoint(`change to ${field}`);
-    const resolution = state.resolutionFor(group);
-    if (value === undefined) delete resolution.values[field];
-    else resolution.values[field] = value;
+    state.updateResolution(group, (draft) => {
+      if (value === undefined) delete draft.values[field];
+      else draft.values[field] = value;
+    });
     state.persist();
 
     onChanged();
@@ -185,9 +186,11 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
               state.checkpoint(
                 `${input.checked ? "adding" : "not adding"} a spool to ${SOURCE_LABELS[source]}`,
               );
-              resolution.createIn = input.checked
-                ? [...new Set([...resolution.createIn, source])]
-                : resolution.createIn.filter((s) => s !== source);
+              state.updateResolution(group, (draft) => {
+                draft.createIn = input.checked
+                  ? [...new Set([...draft.createIn, source])]
+                  : draft.createIn.filter((s) => s !== source);
+              });
               state.persist();
 
               onChanged();
