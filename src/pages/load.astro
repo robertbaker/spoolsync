@@ -335,7 +335,7 @@ const spoolman = serviceView("spoolman");
       <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
         Nothing loaded yet. Drop export files above or open a service below.
       </p>
-      <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" icon="material-symbols:arrow-forward" iconPosition="right">
+      <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" aria-describedby="load-bar-summary" icon="material-symbols:arrow-forward" iconPosition="right">
         Continue to review
       </Button>
     </div>

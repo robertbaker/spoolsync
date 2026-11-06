@@ -44,7 +44,12 @@ export function notice(tone: Tone, title: string, ...body: Child[]): HTMLElement
 }
 
 /** Transient toast notification (popover="manual" pattern with auto-dismiss). */
-export function showToast(message: string, tone: Tone = "info", durationMs = 2800): HTMLElement {
+export function showToast(
+  message: string,
+  tone: Tone = "info",
+  // Errors stay longer (WCAG 2.2.1): people need time to read what went wrong.
+  durationMs = tone === "error" ? 8000 : 2800,
+): HTMLElement {
   let container = document.getElementById("toast-container");
   if (!container) {
     container = h("div", {
@@ -60,7 +65,7 @@ export function showToast(message: string, tone: Tone = "info", durationMs = 280
   const toast = h(
     "div",
     {
-      class: `pointer-events-auto flex items-center justify-between gap-3 rounded-xl border p-3.5 text-sm shadow-lg backdrop-blur-md transition-all duration-200 opacity-0 translate-y-2 bg-card ${TONES[tone]}`,
+      class: `pointer-events-auto flex items-center justify-between gap-3 rounded-xl border p-3.5 text-sm shadow-lg backdrop-blur-md transition-all duration-200 motion-reduce:transition-none opacity-0 translate-y-2 bg-card ${TONES[tone]}`,
       role: tone === "error" ? "alert" : "status",
     },
     h("span", { class: "font-medium leading-snug" }, message),
@@ -72,14 +77,25 @@ export function showToast(message: string, tone: Tone = "info", durationMs = 280
           "ml-2 shrink-0 rounded p-1 text-xs opacity-70 hover:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         "aria-label": "Dismiss notification",
       },
-      "✕",
+      h("span", { "aria-hidden": "true" }, "✕"),
     ),
   );
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const dismiss = () => {
+    clearTimeout(timer);
     toast.classList.add("opacity-0", "translate-y-2");
     setTimeout(() => toast.remove(), 200);
   };
+  const arm = () => {
+    clearTimeout(timer);
+    if (durationMs > 0) timer = setTimeout(dismiss, durationMs);
+  };
+  // Hovering or focusing a toast pauses its timer, so it can be read at any pace.
+  toast.addEventListener("pointerenter", () => clearTimeout(timer));
+  toast.addEventListener("pointerleave", arm);
+  toast.addEventListener("focusin", () => clearTimeout(timer));
+  toast.addEventListener("focusout", arm);
 
   toast.querySelector("button")?.addEventListener("click", dismiss);
   container.append(toast);
@@ -87,9 +103,7 @@ export function showToast(message: string, tone: Tone = "info", durationMs = 280
     toast.classList.remove("opacity-0", "translate-y-2");
   });
 
-  if (durationMs > 0) {
-    setTimeout(dismiss, durationMs);
-  }
+  arm();
 
   return toast;
 }
