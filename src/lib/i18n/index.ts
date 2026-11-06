@@ -1,10 +1,6 @@
 import { local, read, write } from "../browser/storage/access";
-import { de } from "./de";
 import { en, type Catalogue, type MessageKey } from "./en";
-import { es } from "./es";
 import { formatMessage, numberFormat, type MessageParams } from "./format";
-import { fr } from "./fr";
-import { nl } from "./nl";
 
 export type { MessageKey } from "./en";
 export type { MessageParams } from "./format";
@@ -26,10 +22,61 @@ export const LANGUAGE_KEY = "spoolsync:language";
 export const LOCALE_CHANGED = "spoolsync:locale-changed";
 
 /**
- * Catalogues by locale. Lookups are per key: a key missing from a translation (for example one
- * added to English first) falls back to English instead of showing a blank or a raw key.
+ * Catalogues by locale. English is always present; the others start empty and are filled by
+ * {@link loadCatalogue}, so a visitor downloads only their own language. Lookups are per key: a key
+ * missing from a translation (for example one added to English first, or one not loaded yet) falls
+ * back to English instead of showing a blank or a raw key.
  */
-export const CATALOGUES: Record<Locale, Readonly<Partial<Catalogue>>> = { en, de, es, fr, nl };
+export const CATALOGUES: Record<Locale, Readonly<Partial<Catalogue>>> = {
+  en,
+  de: {},
+  es: {},
+  fr: {},
+  nl: {},
+};
+
+const loaded = new Set<Locale>(["en"]);
+
+/** Fills in a locale's catalogue. Also how tests and tools load every language at once. */
+export function registerCatalogue(locale: Locale, catalogue: Readonly<Partial<Catalogue>>): void {
+  CATALOGUES[locale] = catalogue;
+  loaded.add(locale);
+}
+
+const loaders: Record<Exclude<Locale, "en">, () => Promise<Readonly<Partial<Catalogue>>>> = {
+  de: () => import("./de").then((module) => module.de),
+  es: () => import("./es").then((module) => module.es),
+  fr: () => import("./fr").then((module) => module.fr),
+  nl: () => import("./nl").then((module) => module.nl),
+};
+
+const loading = new Map<Locale, Promise<void>>();
+
+/** Whether the locale's messages are available now (English always is). */
+export const isCatalogueLoaded = (locale: Locale): boolean => loaded.has(locale);
+
+/**
+ * Downloads a locale's catalogue on first use. Resolves once it is registered; a failed download
+ * rejects and is forgotten, so a later call tries again. Until then lookups use English.
+ */
+export function loadCatalogue(locale: Locale): Promise<void> {
+  if (loaded.has(locale) || locale === "en") return Promise.resolve();
+  let pending = loading.get(locale);
+  if (!pending) {
+    pending = loaders[locale]().then(
+      (catalogue) => {
+        loading.delete(locale);
+        registerCatalogue(locale, catalogue);
+      },
+      (error: unknown) => {
+        loading.delete(locale);
+        throw error;
+      },
+    );
+    loading.set(locale, pending);
+  }
+  return pending;
+}
 
 export const isLocale = (value: unknown): value is Locale =>
   typeof value === "string" && (LOCALES as readonly string[]).includes(value);
@@ -80,9 +127,24 @@ export function setLocale(locale: string): boolean {
   current = locale;
   write(local, LANGUAGE_KEY, locale === "en" ? null : locale);
   applyDocumentLanguage(locale);
-  if (typeof document !== "undefined")
-    document.dispatchEvent(new CustomEvent(LOCALE_CHANGED, { detail: { locale } }));
+  announceLocale(locale);
   return true;
+}
+
+/**
+ * Tells the page the language changed. When the new language's messages are not downloaded yet the
+ * event waits for them (so open panels redraw once, in the new language); if the download fails it
+ * still fires and the page stays in English.
+ */
+function announceLocale(locale: Locale): void {
+  if (typeof document === "undefined") return;
+  const dispatch = () => {
+    // A newer choice made while this one was downloading has its own event.
+    if (getLocale() === locale)
+      document.dispatchEvent(new CustomEvent(LOCALE_CHANGED, { detail: { locale } }));
+  };
+  if (isCatalogueLoaded(locale)) dispatch();
+  else loadCatalogue(locale).then(dispatch, dispatch);
 }
 
 /**
@@ -141,6 +203,11 @@ export function watchLanguageChanges(): void {
     if (event.key !== LANGUAGE_KEY && event.key !== null) return;
     const locale = reloadLocale();
     applyDocumentLanguage(locale);
-    document.dispatchEvent(new CustomEvent(LOCALE_CHANGED, { detail: { locale } }));
+    announceLocale(locale);
   });
 }
+
+// A visitor who chose another language gets its messages before any page script that imports this
+// module runs (top-level await holds importers back), so the first render is already translated.
+// English, the default, never waits. A failed download leaves the page in English.
+if (getLocale() !== "en") await loadCatalogue(getLocale()).catch(() => undefined);
