@@ -33,7 +33,7 @@ import { wireHealthDashboard } from "./load/health-dashboard";
 import { LoadInsights } from "./load/insights";
 import { renderInsights } from "./load/insights-view";
 import { createInventoryTable } from "./load/inventory-table";
-import { wireLabelPrinting } from "./load/label-sheet";
+import { wireLazyLabelPrinting } from "./load/label-lazy";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
 import { wireReferencePanel } from "./load/reference-view";
@@ -69,7 +69,7 @@ const loadedChart = document.getElementById("loaded-chart");
 const insightsRoot = document.getElementById("loaded-insights");
 const loadedTrend = document.getElementById("loaded-trend");
 const loadedCost = document.getElementById("loaded-cost");
-const labels = wireLabelPrinting({
+const labels = wireLazyLabelPrinting({
   results: state.results,
   visibleSpools: () => renderTable.visibleSpools(),
 });
@@ -126,15 +126,18 @@ filterBox?.addEventListener("keydown", (event) => {
     showToast(`No loaded spool has the code ${scan.code}. Load that service first.`, "info");
   }
 });
-const render = () => {
+// `dataChanged` is false when only how things are shown changed (weight unit, price symbol,
+// language): the reports and the cleanup suggestions are computed from the spools alone, so they
+// are kept and only redrawn. Anything that can change a spool takes the full path.
+const draw = (dataChanged: boolean) => {
   // The locale listener below outlives a page that was torn down (and test DOMs without this page).
   if (!document.getElementById("loaded-table")) return;
-  insights.refresh();
+  if (dataChanged) insights.refresh();
   renderTable();
   drawer.update();
   views?.update();
   reorder?.update();
-  cleanup?.update();
+  cleanup?.update(dataChanged);
   // After the cleanup panel, whose suggestions are one input to the score.
   health?.update();
   tableTools?.update();
@@ -159,6 +162,8 @@ const render = () => {
   const samplePrompt = document.getElementById("sample-prompt");
   if (samplePrompt) samplePrompt.hidden = state.results.size > 0;
 };
+const render = () => draw(true);
+const renderPresentation = () => draw(false);
 const { store, setStatus } = createLoadStatusView(state, render);
 // Services loaded from this page are remembered so the next visit lists them first. Sample data
 // uses the plain `store` and is deliberately left out.
@@ -195,8 +200,8 @@ for (const source of SOURCE_IDS) {
 render();
 
 // Weight unit and price symbol changes redraw the charts and stats; setup guide is lazy.
-document.addEventListener(DISPLAY_CHANGED, render);
-document.addEventListener(LOCALE_CHANGED, render);
+document.addEventListener(DISPLAY_CHANGED, renderPresentation);
+document.addEventListener(LOCALE_CHANGED, renderPresentation);
 void Promise.all([
   import("./setup/wizard"),
   import("@spoolsync/core/adapters/spoolman"),
