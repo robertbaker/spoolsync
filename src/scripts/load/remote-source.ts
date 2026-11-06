@@ -42,6 +42,17 @@ export function wireRemoteSource(
   const { source, button, message } = options;
   const tile = document.querySelector<HTMLElement>(`[data-tile="${source}"]`);
   const idleLabel = [...button.childNodes];
+  // A pill beside the tile's status badge, so a fetch is visible even when the panel is closed.
+  // It lives outside the badge itself, which is rebuilt whenever the panel's own status changes.
+  const busyPill = h(
+    "span",
+    {
+      "data-tile-busy": "",
+      class:
+        "shrink-0 self-start rounded-full border border-info/40 bg-info/10 px-2 py-0.5 text-[0.68rem] font-medium",
+    },
+    "Fetching…",
+  );
 
   const setBusy = (busy: boolean): void => {
     if (busy) {
@@ -49,12 +60,14 @@ export function wireRemoteSource(
       message.setAttribute("aria-busy", "true");
       tile?.setAttribute("aria-busy", "true");
       tile?.classList.add("motion-safe:animate-pulse");
+      tile?.querySelector("[data-tile-status]")?.after(busyPill);
       button.replaceChildren("Fetching…");
     } else {
       button.removeAttribute("aria-busy");
       message.removeAttribute("aria-busy");
       tile?.removeAttribute("aria-busy");
       tile?.classList.remove("motion-safe:animate-pulse");
+      busyPill.remove();
       button.replaceChildren(...idleLabel);
     }
   };

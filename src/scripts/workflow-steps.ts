@@ -78,8 +78,12 @@ export function wireWorkflowSteps(root: ParentNode = document): () => void {
   const page = (nav.dataset["page"] as WorkflowStepId | undefined) ?? "load";
   const live = nav.querySelector<HTMLElement>("[data-workflow-live]");
 
+  // Once the Apply section has been seen entering or leaving the middle of the viewport, where the
+  // person is reading beats the (sticky) hash. A new hash navigation hands control back to it.
+  let scrolled: WorkflowStepId | null = null;
+
   const render = () => {
-    const current = currentFromHash(page, location.hash);
+    const current = scrolled ?? currentFromHash(page, location.hash);
     const views = workflowProgress(current, countLoaded());
     for (const view of views) {
       const item = nav.querySelector<HTMLElement>(`[data-step="${view.id}"]`);
@@ -103,10 +107,41 @@ export function wireWorkflowSteps(root: ParentNode = document): () => void {
 
   const controller = new AbortController();
   const options = { signal: controller.signal };
+  const applySection = page === "load" ? null : root.querySelector<HTMLElement>("#tour-apply");
+  let observer: IntersectionObserver | undefined;
+  if (applySection && typeof IntersectionObserver !== "undefined") {
+    let first = true;
+    observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        if (!entry) return;
+        // The first report is just the initial state; only a real crossing should override the hash.
+        if (first && !entry.isIntersecting) {
+          first = false;
+          return;
+        }
+        first = false;
+        scrolled = entry.isIntersecting ? "apply" : "review";
+        render();
+      },
+      { rootMargin: "-45% 0px -45% 0px" },
+    );
+    observer.observe(applySection);
+  }
   document.addEventListener(INVENTORIES_CHANGED_EVENT, render, options);
-  window.addEventListener("hashchange", render, options);
+  window.addEventListener(
+    "hashchange",
+    () => {
+      scrolled = null;
+      render();
+    },
+    options,
+  );
   window.addEventListener("pageshow", render, options);
   document.addEventListener(LOCALE_CHANGED, render, options);
   render();
-  return () => controller.abort();
+  return () => {
+    controller.abort();
+    observer?.disconnect();
+  };
 }

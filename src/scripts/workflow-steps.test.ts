@@ -100,6 +100,36 @@ test("wiring is a no-op without the stepper", () => {
   expect(() => wireWorkflowSteps()()).not.toThrow();
 });
 
+test("the Apply step follows the Apply section as it crosses the middle of the viewport", () => {
+  document.body.insertAdjacentHTML("beforeend", '<section id="tour-apply"></section>');
+  type Callback = (entries: Partial<IntersectionObserverEntry>[]) => void;
+  let report: Callback = () => {};
+  const original = globalThis.IntersectionObserver;
+  globalThis.IntersectionObserver = class {
+    constructor(callback: Callback) {
+      report = callback;
+    }
+    observe() {}
+    disconnect() {}
+  } as unknown as typeof IntersectionObserver;
+  try {
+    const stop = wireWorkflowSteps();
+    const state = (id: string) =>
+      document.querySelector<HTMLElement>(`[data-step="${id}"]`)!.dataset["state"];
+    // The initial "not visible" report is not a crossing and changes nothing.
+    report([{ isIntersecting: false }]);
+    expect(state("review")).toBe("current");
+    report([{ isIntersecting: true }]);
+    expect(state("apply")).toBe("current");
+    expect(state("review")).not.toBe("current");
+    report([{ isIntersecting: false }]);
+    expect(state("review")).toBe("current");
+    stop();
+  } finally {
+    globalThis.IntersectionObserver = original;
+  }
+});
+
 test("the step names and status lines follow the chosen language, and redraw when it changes", () => {
   document.body.innerHTML = `
     <nav data-workflow-steps data-page="load">
