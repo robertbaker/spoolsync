@@ -16,12 +16,10 @@ import {
   type SectionKind,
 } from "~/lib/changelog";
 
-import { h, showToast } from "./dom";
+import { READ_KEY, SEEN_KEY } from "./changelog-announce";
+import { h } from "./dom";
 
 const CACHE_KEY = "spoolsync:changelog-cache";
-const SEEN_KEY = "spoolsync:last-seen-version";
-/** The version the changelog was last opened at, so "new since" survives the update toast. */
-const READ_KEY = "spoolsync:changelog-read";
 /** Releases drawn in the dialog; older ones are one link away on GitHub. */
 const MAX_RELEASES = 20;
 /** The newest releases start expanded; the rest are collapsed so the list stays scannable. */
@@ -613,29 +611,4 @@ export async function openChangelog(current: string): Promise<void> {
   write(local, SEEN_KEY, current);
   write(local, READ_KEY, current);
   await load();
-}
-
-/** Wires every "[data-open-changelog]" control, which carries the running version. */
-export function wireChangelog(): void {
-  for (const trigger of document.querySelectorAll<HTMLElement>("[data-open-changelog]"))
-    trigger.addEventListener("click", () => void openChangelog(trigger.dataset["version"] ?? ""));
-}
-
-/**
- * Says so once, the first time the page loads after the version changed. A first-ever visit just
- * records the version, so nobody is told about an "update" they never had.
- */
-export function announceUpdate(current: string): void {
-  if (!current) return;
-  const seen = read(local, SEEN_KEY);
-  if (seen === current) return;
-  write(local, SEEN_KEY, current);
-  // The version they had before the update is the baseline for "new since you last looked".
-  if (seen && read(local, READ_KEY) === null) write(local, READ_KEY, seen);
-  if (seen)
-    showToast(
-      `SpoolSync updated to v${current}. Open the changelog in the sidebar to see what's new.`,
-      "info",
-      9000,
-    );
 }

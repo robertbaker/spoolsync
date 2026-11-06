@@ -95,7 +95,7 @@ export function wireCleanupPanel(
   results: ReadonlyMap<SourceId, LoadResult>,
   store: CleanupStore = browserStore,
   today: () => string = () => new Date().toISOString().slice(0, 10),
-): { update(): void; open(): void; applicableSpools(): number } {
+): { update(dataChanged?: boolean): void; open(): void; applicableSpools(): number } {
   const controller = new CleanupController(results, store, today);
   const details = h("details", {
     id: "cleanup-details",
@@ -114,6 +114,7 @@ export function wireCleanupPanel(
   details.append(summary, content);
   root.replaceChildren(details);
   let limit = PAGE;
+  let refreshed = false;
 
   function summaryText(): string {
     const counts = controller.counts();
@@ -559,9 +560,11 @@ export function wireCleanupPanel(
   });
 
   return {
-    update() {
+    /** `dataChanged` false only redraws: the suggestions already match the spools. */
+    update(dataChanged = true) {
       root.hidden = results.size === 0;
-      controller.refresh();
+      if (dataChanged || !refreshed) controller.refresh();
+      refreshed = true;
       summary.textContent = summaryText();
       if (details.open && !root.hidden) draw();
     },

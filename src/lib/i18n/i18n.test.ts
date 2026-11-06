@@ -164,3 +164,53 @@ test("language tags resolve to the supported base language", () => {
   expect(resolveLocale("pt-BR")).toBeNull();
   expect(resolveLocale(null)).toBeNull();
 });
+
+// A separate copy of the module starts like a page does: only English is loaded.
+const freshModule = async () =>
+  (await import(`./index.ts?fresh=${Math.random()}`)) as typeof import("./index");
+
+test("a language other than English is downloaded on first use, and lookups fall back until then", async () => {
+  const fresh = await freshModule();
+  expect(fresh.isCatalogueLoaded("en")).toBe(true);
+  expect(fresh.isCatalogueLoaded("de")).toBe(false);
+  expect(fresh.t("lang.label", {}, "de")).toBe("Language");
+  await fresh.loadCatalogue("de");
+  expect(fresh.isCatalogueLoaded("de")).toBe(true);
+  expect(fresh.t("lang.label", {}, "de")).toBe("Sprache");
+  // Asking again is free.
+  await fresh.loadCatalogue("de");
+});
+
+test("choosing a language announces it once its messages are in", async () => {
+  const fresh = await freshModule();
+  const seen: string[] = [];
+  const listener = (event: Event) => seen.push((event as CustomEvent).detail.locale);
+  document.addEventListener(fresh.LOCALE_CHANGED, listener);
+  try {
+    expect(fresh.setLocale("es")).toBe(true);
+    expect(seen).toEqual([]);
+    expect(document.documentElement.lang).toBe("es");
+    await fresh.loadCatalogue("es");
+    await Promise.resolve();
+    expect(seen).toEqual(["es"]);
+    expect(fresh.t("lang.label")).toBe(CATALOGUES.es["lang.label"]!);
+  } finally {
+    document.removeEventListener(fresh.LOCALE_CHANGED, listener);
+  }
+});
+
+test("a language chosen while another was still downloading wins", async () => {
+  const fresh = await freshModule();
+  const seen: string[] = [];
+  const listener = (event: Event) => seen.push((event as CustomEvent).detail.locale);
+  document.addEventListener(fresh.LOCALE_CHANGED, listener);
+  try {
+    fresh.setLocale("nl");
+    fresh.setLocale("fr");
+    await Promise.all([fresh.loadCatalogue("nl"), fresh.loadCatalogue("fr")]);
+    await Promise.resolve();
+    expect(seen).toEqual(["fr"]);
+  } finally {
+    document.removeEventListener(fresh.LOCALE_CHANGED, listener);
+  }
+});
