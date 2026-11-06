@@ -4,10 +4,11 @@ import { isFilament, mapDoc } from "./map";
 import type { FilameterBackup, FilameterDoc, FilameterLoadResult } from "./types";
 
 export function loadFilameterFile(text: string): FilameterLoadResult {
-  if (text.trim().startsWith("{") || text.trim().startsWith("[")) {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(trimmed);
     } catch {
       throw new Error("This is not valid FilaMeter JSON.");
     }
@@ -17,10 +18,15 @@ export function loadFilameterFile(text: string): FilameterLoadResult {
       throw new Error(
         "This does not look like a FilaMeter backup: expected a regular document list.",
       );
+    const spools = [];
+    let spoolIndex = 0;
+    for (const doc of regular) {
+      if (isFilament(doc)) spools.push(mapDoc(doc, spoolIndex++));
+    }
     return {
       source: "filameter",
       file: backup as FilameterBackup | FilameterDoc[],
-      spools: regular.filter(isFilament).map(mapDoc),
+      spools,
       warnings: [],
       loadedAt: new Date().toISOString(),
       origin: "file",
@@ -29,10 +35,13 @@ export function loadFilameterFile(text: string): FilameterLoadResult {
   const { rows, headers } = parseTable(text);
   if (!headers.includes("filament"))
     throw new Error("This CSV does not include FilaMeter's filament column.");
-  const docs: FilameterDoc[] = rows.map((row, index) => {
+  const docs: FilameterDoc[] = [];
+  const spools = [];
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index]!;
     const used = toNumber(field(row, "used_weight")) ?? 0;
     const remaining = toNumber(field(row, "remaining"));
-    return {
+    const doc: FilameterDoc = {
       _id: `csv-${index + 1}`,
       filament: toText(field(row, "filament")) ?? "",
       material: toText(field(row, "material")) ?? "",
@@ -45,11 +54,13 @@ export function loadFilameterFile(text: string): FilameterLoadResult {
       location: field(row, "location"),
       comments: field(row, "comments"),
     };
-  });
+    docs.push(doc);
+    spools.push(mapDoc(doc, index));
+  }
   return {
     source: "filameter",
     file: docs,
-    spools: docs.map(mapDoc),
+    spools,
     warnings: [],
     loadedAt: new Date().toISOString(),
     origin: "file",

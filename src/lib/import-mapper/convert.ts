@@ -301,7 +301,10 @@ const FIELD_NAMES: Record<MapField, string> = {
   articleNumber: "article number",
 };
 
-const round = (value: number, digits = 2) => Number(value.toFixed(digits));
+const round = (value: number, digits = 2) => {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+};
 
 /**
  * Converts the rows with a confirmed mapping. Rows that cannot become a spool are listed with the

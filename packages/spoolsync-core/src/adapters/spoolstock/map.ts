@@ -13,12 +13,15 @@ import type { SpoolstockRecord } from "./csv";
 function colors(value: string | undefined): string[] {
   const trimmed = value?.trim();
   if (!trimmed) return [];
-  try {
-    const parsed: unknown = JSON.parse(trimmed);
-    return uniqueHexes(Array.isArray(parsed) ? parsed : [parsed]);
-  } catch {
-    return uniqueHexes(trimmed.split(","));
+  if (trimmed.charCodeAt(0) === 0x5b /* '[' */ || trimmed.charCodeAt(0) === 0x22 /* '"' */) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      return uniqueHexes(Array.isArray(parsed) ? parsed : [parsed]);
+    } catch {
+      // Fall through to comma split
+    }
   }
+  return uniqueHexes(trimmed.split(","));
 }
 
 /** `filament.features` is a JSON array of labels such as ["Matte"] or ["Metallic","Silk"]. */
@@ -26,16 +29,24 @@ function finish(value: string | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed) return null;
   let labels: unknown[];
-  try {
-    const parsed: unknown = JSON.parse(trimmed);
-    labels = Array.isArray(parsed) ? parsed : [parsed];
-  } catch {
+  if (trimmed.charCodeAt(0) === 0x5b /* '[' */ || trimmed.charCodeAt(0) === 0x22 /* '"' */) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      labels = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      labels = trimmed.split(",");
+    }
+  } else {
     labels = trimmed.split(",");
   }
-  const text = labels
-    .map((label) => (typeof label === "string" ? label.trim() : ""))
-    .filter(Boolean)
-    .join(", ");
+  let text = "";
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
+    if (typeof label === "string") {
+      const item = label.trim();
+      if (item) text = text ? `${text}, ${item}` : item;
+    }
+  }
   return text || null;
 }
 

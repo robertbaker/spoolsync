@@ -135,16 +135,20 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
   let printButton: HTMLButtonElement;
 
   const chosen = (): CommonSpool[] => {
-    const loaded = [...results.values()];
-    return selectLabelSpools(
-      loaded.flatMap((result) => result.spools),
-      {
-        mode: options.selection,
-        visible: visibleSpools(),
-        rule: currentLowStockRule(),
-        ...(options.oncePerSpool ? { linked: uniqueSpools(loaded, loadMatchDecisions()) } : {}),
-      },
-    );
+    const loaded: LoadResult[] = [];
+    const spools: CommonSpool[] = [];
+    for (const result of results.values()) {
+      loaded.push(result);
+      for (let i = 0; i < result.spools.length; i++) {
+        spools.push(result.spools[i]!);
+      }
+    }
+    return selectLabelSpools(spools, {
+      mode: options.selection,
+      visible: visibleSpools(),
+      rule: currentLowStockRule(),
+      ...(options.oncePerSpool ? { linked: uniqueSpools(loaded, loadMatchDecisions()) } : {}),
+    });
   };
 
   function refresh(): void {

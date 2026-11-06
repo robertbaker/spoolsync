@@ -26,12 +26,14 @@ export function loadFiladexFile(text: string): FiladexLoadResult {
     const { rows, headers } = parseTable(text);
     if (!headers.includes("colorname") || !headers.includes("material"))
       throw new Error("This CSV does not include Filadex's material and colorName columns.");
-    records = rows.map((row, index) => ({
-      id: `csv-${index + 1}`,
-      ...Object.fromEntries(
-        CSV_COLUMNS.map((column) => [column, field(row, column) ?? ""] as const),
-      ),
-    }));
+    records = rows.map((row, index) => {
+      const record: Record<string, unknown> = { id: `csv-${index + 1}` };
+      for (let i = 0; i < CSV_COLUMNS.length; i++) {
+        const column = CSV_COLUMNS[i]!;
+        record[column] = field(row, column) ?? "";
+      }
+      return record as unknown as FiladexRecord;
+    });
   }
   return {
     source: "filadex",

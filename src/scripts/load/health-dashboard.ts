@@ -73,10 +73,8 @@ export function trendCoordinates(
     const x =
       scores.length === 1 ? width / 2 : padding + (usableWidth * index) / (scores.length - 1);
     const clamped = Math.min(100, Math.max(0, score));
-    return [
-      Number(x.toFixed(2)),
-      Number((padding + usableHeight * (1 - clamped / 100)).toFixed(2)),
-    ];
+    const y = padding + usableHeight * (1 - clamped / 100);
+    return [Math.round(x * 100) / 100, Math.round(y * 100) / 100];
   });
 }
 

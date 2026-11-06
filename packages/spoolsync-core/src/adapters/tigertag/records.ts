@@ -12,10 +12,13 @@ import {
 
 /** Truncates to a UTF-8 byte budget (the chip's colour name slot is 28 bytes). */
 export function utf8Slice(value: string, bytes: number): string {
-  const encoder = new TextEncoder();
+  let byteLen = 0;
   let out = "";
   for (const char of value) {
-    if (encoder.encode(out + char).length > bytes) break;
+    const cp = char.codePointAt(0)!;
+    const charBytes = cp <= 0x7f ? 1 : cp <= 0x7ff ? 2 : cp <= 0xffff ? 3 : 4;
+    if (byteLen + charBytes > bytes) break;
+    byteLen += charBytes;
     out += char;
   }
   return out;
@@ -24,18 +27,23 @@ export function utf8Slice(value: string, bytes: number): string {
 const byte = (value: number | null) => Math.max(0, Math.min(255, Math.round(value ?? 0)));
 const uint16 = (value: number | null) => Math.max(0, Math.min(65535, Math.round(value ?? 0)));
 
+const COLOR_SLOTS = ["", "2", "3"] as const;
+
 function setColors(target: Record<string, unknown>, list: string[]): void {
-  const slots: Array<"" | "2" | "3"> = ["", "2", "3"];
-  slots.forEach((suffix, index) => {
+  for (let index = 0; index < COLOR_SLOTS.length; index++) {
+    const suffix = COLOR_SLOTS[index]!;
     const hex = list[index];
-    const channels = hex
-      ? [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16))
-      : [0, 0, 0];
-    if (!hex && suffix && !(`color_r${suffix}` in target)) return;
-    ["color_r", "color_g", "color_b"].forEach(
-      (name, i) => (target[`${name}${suffix}`] = channels[i]),
-    );
-  });
+    if (!hex) {
+      if (suffix && !(`color_r${suffix}` in target)) continue;
+      target[`color_r${suffix}`] = 0;
+      target[`color_g${suffix}`] = 0;
+      target[`color_b${suffix}`] = 0;
+    } else {
+      target[`color_r${suffix}`] = parseInt(hex.slice(0, 2), 16);
+      target[`color_g${suffix}`] = parseInt(hex.slice(2, 4), 16);
+      target[`color_b${suffix}`] = parseInt(hex.slice(4, 6), 16);
+    }
+  }
   if (target["color_a"] === undefined) target["color_a"] = 255;
   // Keep whatever shape the record already used for the display list.
   target["online_color_list"] = list;

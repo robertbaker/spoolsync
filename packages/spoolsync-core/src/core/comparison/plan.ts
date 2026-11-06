@@ -33,6 +33,8 @@ const NATIVE_KEYS: Record<SourceId, keyof CrossIds> = {
 
 const cloneFieldValue = (v: FieldValue): FieldValue => (Array.isArray(v) ? [...v] : v);
 
+const BULK_EDIT_FIELDS = ["location", "comment", "remainingWeight"] as const;
+
 function groupLinks(group: SpoolGroup): CrossIds {
   const links: CrossIds = {};
   const claims = new Map<keyof CrossIds, Set<string | number>>();
@@ -48,15 +50,21 @@ function groupLinks(group: SpoolGroup): CrossIds {
     }
   }
   // Do not propagate an arbitrary foreign claim when records disagree.
-  for (const [key, values] of claims)
-    if (values.size === 1) Object.assign(links, { [key]: [...values][0] });
+  for (const [key, values] of claims) {
+    if (values.size === 1) {
+      for (const val of values) {
+        (links as Record<string, unknown>)[key] = val;
+        break;
+      }
+    }
+  }
   // The loaded service owns its record's identity; foreign cross-IDs cannot override it.
   for (const source of presentSources(group)) {
     const member = group.members[source]!;
     const id =
       source === "spoolman" || source === "bambuddy" ? Number(member.sourceId) : member.sourceId;
     if (typeof id === "number" && !Number.isFinite(id)) continue;
-    Object.assign(links, { [NATIVE_KEYS[source]]: id });
+    (links as Record<string, unknown>)[NATIVE_KEYS[source]] = id;
   }
   return links;
 }
@@ -91,8 +99,9 @@ function missingLinks(
 ): CrossIds {
   const out: CrossIds = {};
   for (const key of LINKABLE_IDS[source]) {
-    if (links[key] !== undefined && target?.crossIds[key] === undefined)
-      Object.assign(out, { [key]: links[key] });
+    if (links[key] !== undefined && target?.crossIds[key] === undefined) {
+      (out as Record<string, unknown>)[key] = links[key];
+    }
   }
   return out;
 }
@@ -124,20 +133,23 @@ export function buildPlan(
       const member = group.members[source];
       if (!member) continue;
       const changes: FieldChange[] = [];
-      const targets = new Map(
-        Object.entries(resolution.values) as Array<[ComparableField, FieldValue]>,
-      );
+      const targets = new Map<ComparableField, FieldValue>();
+      for (const key in resolution.values) {
+        targets.set(key as ComparableField, resolution.values[key as ComparableField]!);
+      }
       // Accepted record edits (data cleanup) fill fields the person did not resolve themselves.
       const own = recordEdits.get(recordKey(member));
       const ownFields = new Set<ComparableField>();
-      if (own)
-        for (const [field, to] of Object.entries(own) as Array<[ComparableField, FieldValue]>) {
-          if (to === undefined || targets.has(field)) continue;
-          targets.set(field, to);
-          ownFields.add(field);
+      if (own) {
+        for (const key in own) {
+          const to = own[key as ComparableField];
+          if (to === undefined || targets.has(key as ComparableField)) continue;
+          targets.set(key as ComparableField, to);
+          ownFields.add(key as ComparableField);
         }
+      }
       // A bulk edit overrides the resolved value; a tag is added to the resolved or member's note.
-      for (const field of ["location", "comment", "remainingWeight"] as const) {
+      for (const field of BULK_EDIT_FIELDS) {
         const edited = editedField(
           edit,
           field,

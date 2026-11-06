@@ -11,7 +11,11 @@ import type {
 import { isBlank, valuesEqual } from "./values";
 
 export function presentSources(group: SpoolGroup): SourceId[] {
-  return SOURCE_IDS.filter((source) => group.members[source]);
+  const present: SourceId[] = [];
+  for (const source of SOURCE_IDS) {
+    if (group.members[source]) present.push(source);
+  }
+  return present;
 }
 
 /** Every field where the group's members differ or some are blank. Matching fields are left out. */
@@ -56,11 +60,13 @@ export function defaultResolution(group: SpoolGroup): GroupResolution {
 }
 
 export function openConflicts(group: SpoolGroup, resolution: GroupResolution): ComparableField[] {
-  return compareGroup(group)
-    .filter(
-      (comparison) => comparison.kind === "conflict" && !(comparison.field in resolution.values),
-    )
-    .map((comparison) => comparison.field);
+  const result: ComparableField[] = [];
+  for (const comparison of compareGroup(group)) {
+    if (comparison.kind === "conflict" && !(comparison.field in resolution.values)) {
+      result.push(comparison.field);
+    }
+  }
+  return result;
 }
 
 /**
@@ -72,13 +78,23 @@ export function mergedValues(group: SpoolGroup, resolution: GroupResolution): Sp
   const out = {} as Record<ComparableField, FieldValue>;
   for (const field of COMPARABLE_FIELDS) {
     if (field in resolution.values) {
-      out[field] = resolution.values[field]!;
+      const val = resolution.values[field]!;
+      out[field] = Array.isArray(val) ? [...val] : val;
       continue;
     }
-    const found = sources
-      .map((source) => group.members[source]![field])
-      .find((value) => !isBlank(value));
-    out[field] = found ?? (field === "archived" ? false : field === "colors" ? [] : null);
+    let found: FieldValue | undefined;
+    for (const source of sources) {
+      const value = group.members[source]![field];
+      if (!isBlank(value)) {
+        found = value;
+        break;
+      }
+    }
+    if (found !== undefined) {
+      out[field] = Array.isArray(found) ? [...found] : found;
+    } else {
+      out[field] = field === "archived" ? false : field === "colors" ? [] : null;
+    }
   }
-  return structuredClone(out) as SpoolValues;
+  return out as SpoolValues;
 }

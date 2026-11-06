@@ -61,8 +61,18 @@ export interface RollbackDocument {
 const NOTE =
   "Restoring sets each field back only while it still holds the value in 'after'. Spools SpoolSync created are listed under 'creations' and must be deleted in the service by hand; cross-service ids that were added are not removed.";
 
-const describe = (parts: ReadonlyArray<string | null | undefined>, fallback: string): string =>
-  parts.filter(Boolean).join(" ").slice(0, MAX_TEXT) || fallback;
+const describeSpool = (
+  vendor: string | null | undefined,
+  material: string | null | undefined,
+  name: string | null | undefined,
+  fallback: string,
+): string => {
+  let s = "";
+  if (vendor) s = vendor;
+  if (material) s = s ? `${s} ${material}` : material;
+  if (name) s = s ? `${s} ${name}` : name;
+  return (s.length > MAX_TEXT ? s.slice(0, MAX_TEXT) : s) || fallback;
+};
 
 /** The rollback for a set of planned changes, taken before any of them is written. */
 export function buildRollback(
@@ -75,24 +85,28 @@ export function buildRollback(
   for (const change of changes) {
     if (change.kind === "create") {
       creations.push({
-        label: describe(
-          [change.values.vendor, change.values.material, change.values.name],
+        label: describeSpool(
+          change.values.vendor,
+          change.values.material,
+          change.values.name,
           "New spool",
         ),
       });
       continue;
     }
+    // A change that only stamps cross-service ids has no field to put back.
+    if (!change.changes.length) continue;
     const fields = change.changes.map((item) => ({
       field: item.field,
       before: item.from,
       after: item.to,
     }));
-    // A change that only stamps cross-service ids has no field to put back.
-    if (!fields.length) continue;
     updates.push({
       sourceId: change.spool.sourceId,
-      label: describe(
-        [change.spool.vendor, change.spool.material, change.spool.name],
+      label: describeSpool(
+        change.spool.vendor,
+        change.spool.material,
+        change.spool.name,
         `Spool ${change.spool.sourceId}`,
       ),
       changes: fields,

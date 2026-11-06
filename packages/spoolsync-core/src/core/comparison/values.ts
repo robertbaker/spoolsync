@@ -19,13 +19,19 @@ export function isBlank(value: FieldValue): boolean {
 
 /** Equality as a person would judge it: case and spacing in text, sub-gram weight noise ignored. */
 export function valuesEqual(field: ComparableField, a: FieldValue, b: FieldValue): boolean {
+  if (a === b) return true;
   if (isBlank(a) || isBlank(b)) return isBlank(a) && isBlank(b);
-  if (Array.isArray(a) && Array.isArray(b))
-    return a.length === b.length && a.every((v, i) => v === b[i]);
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return false;
+    }
+    return true;
+  }
   if (typeof a === "number" && typeof b === "number")
     return Math.abs(a - b) <= (TOLERANCE[field] ?? 0);
   if (typeof a === "string" && typeof b === "string") return normalizeText(a) === normalizeText(b);
-  return a === b;
+  return false;
 }
 
 export function formatValue(field: ComparableField, value: FieldValue): string {

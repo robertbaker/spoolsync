@@ -100,13 +100,14 @@ export function parseSpoolstockCsv(csvText: string): ParsedSpoolstockCsv {
   }
 
   const records: SpoolstockRecord[] = [];
-  parsed.data.forEach((row, index) => {
+  for (let index = 0; index < parsed.data.length; index++) {
+    const row = parsed.data[index]!;
     const result = SpoolstockRecordSchema.safeParse(row);
     if (result.success) records.push(result.data);
     else
       warnings.push(
         `Row ${index + 2}: ${result.error.issues.map((issue) => issue.message).join(", ")}`,
       );
-  });
+  }
   return { records, warnings };
 }

@@ -3,11 +3,14 @@ import { field, parseTable } from "../shared/tabular";
 import { inventoryFromRecords, numericId, recordsFrom } from "./map";
 import type { BambuddyLoadResult, BambuddySpool } from "./types";
 
+const FORMULA_ESCAPE = /^'[=+\-@\t\r]/;
+
 export function loadBambuddyFile(text: string): BambuddyLoadResult {
-  if (text.trim().startsWith("{") || text.trim().startsWith("[")) {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(trimmed);
     } catch {
       throw new Error("This is not valid Bambuddy JSON.");
     }
@@ -27,12 +30,11 @@ export function loadBambuddyFile(text: string): BambuddyLoadResult {
   const syntheticIds = new Set<number>();
   const records = rows.map((rawRow, index) => {
     // Bambuddy protects spreadsheet formulas with a leading apostrophe on export.
-    const row = Object.fromEntries(
-      Object.entries(rawRow).map(([key, value]) => [
-        key,
-        typeof value === "string" && /^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value,
-      ]),
-    );
+    const row: Record<string, unknown> = {};
+    for (const key in rawRow) {
+      const value = rawRow[key];
+      row[key] = typeof value === "string" && FORMULA_ESCAPE.test(value) ? value.slice(1) : value;
+    }
     if (!toText(field(row, "material")))
       throw new Error(`Bambuddy CSV data row ${index + 1} is missing a material.`);
     const rawId = field(row, "id");

@@ -79,7 +79,17 @@ export class LoadInsights {
 
   /** Recomputes reports from what is loaded now and forgets changes that no longer apply. */
   refresh(): void {
-    const loaded = SOURCE_IDS.flatMap((source) => this.results.get(source) ?? []);
+    const loaded: LoadResult[] = [];
+    const spools = [];
+    for (const source of SOURCE_IDS) {
+      const result = this.results.get(source);
+      if (result) {
+        loaded.push(result);
+        for (let i = 0; i < result.spools.length; i++) {
+          spools.push(result.spools[i]!);
+        }
+      }
+    }
     const different = this.storage.readDifferentPairs?.();
     this.duplicates = findDuplicateSpools(
       loaded,
@@ -89,7 +99,6 @@ export class LoadInsights {
     );
     this.duplicateSpoolKeys = duplicateKeys(this.duplicates);
     this.health = checkInventoryHealth(loaded);
-    const spools = loaded.flatMap((result) => result.spools);
     this.spoolCount = spools.length;
     this.missingPrice = missingPriceKeys(spools, spoolKey);
     for (const [source, entry] of this.changes)
