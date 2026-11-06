@@ -22,6 +22,28 @@ export function presentSources(group: SpoolGroup): SourceId[] {
 export function compareGroup(group: SpoolGroup): FieldComparison[] {
   const sources = presentSources(group);
   if (sources.length < 2) return [];
+  // The Sync page asks about the same group many times per render. Matching rebuilds groups, so an
+  // answer is reused while the group's member records are the same objects. Callers must treat the
+  // result as read-only.
+  const members = sources.map((source) => group.members[source]);
+  const cached = comparisonCache.get(group);
+  if (
+    cached &&
+    cached.members.length === members.length &&
+    cached.members.every((member, index) => member === members[index])
+  )
+    return cached.comparisons;
+  const comparisons = compareMembers(group, sources);
+  comparisonCache.set(group, { members, comparisons });
+  return comparisons;
+}
+
+const comparisonCache = new WeakMap<
+  SpoolGroup,
+  { members: unknown[]; comparisons: FieldComparison[] }
+>();
+
+function compareMembers(group: SpoolGroup, sources: SourceId[]): FieldComparison[] {
   const comparisons: FieldComparison[] = [];
   for (const field of COMPARABLE_FIELDS) {
     const options: FieldOption[] = [];

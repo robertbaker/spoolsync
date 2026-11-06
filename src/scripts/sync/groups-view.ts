@@ -210,6 +210,8 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
   }
 
   const PAGE_SIZE = 25;
+  const SHOW_ALL_BATCH = 100;
+  let renderToken = 0;
   let shown = PAGE_SIZE;
   let lastFilter = state.filter;
   let query = "";
@@ -240,20 +242,28 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     const groups = state
       .visibleGroups()
       .filter((group) => !needle || searchText(group).includes(needle));
-    // Build cards only for the visible window so very large inventories stay responsive.
+    // Build cards only for the visible window so very large inventories stay responsive. "Show all"
+    // builds a first batch now and appends the rest a batch per frame, so the page never freezes.
+    renderToken++;
+    const token = renderToken;
     const cards: HTMLElement[] = [];
-    const rendered: SpoolGroup[] = [];
-    let candidates = 0;
-    for (const group of groups) {
-      if (!hasContent(group)) continue;
-      candidates++;
-      if (cards.length >= shown) continue;
-      const card = groupCard(group);
-      if (!card) continue;
-      cards.push(card);
-      rendered.push(group);
-    }
-    const hidden = candidates - cards.length;
+    const eligible = groups.filter(hasContent);
+    const candidates = eligible.length;
+    const chunked =
+      shown === Number.POSITIVE_INFINITY && typeof requestAnimationFrame === "function";
+    const limit = chunked ? SHOW_ALL_BATCH : shown;
+    let next = 0;
+    const buildCards = (count: number): HTMLElement[] => {
+      const built: HTMLElement[] = [];
+      while (next < eligible.length && built.length < count) {
+        const card = groupCard(eligible[next++]!);
+        if (card) built.push(card);
+      }
+      return built;
+    };
+    cards.push(...buildCards(limit));
+    const pending = chunked && next < eligible.length;
+    const hidden = pending ? 0 : candidates - cards.length;
     const children: HTMLElement[] = cards.length
       ? cards
       : [
@@ -290,7 +300,25 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
         ),
       );
     }
-    byId("groups").replaceChildren(...children);
+    const container = byId("groups");
+    container.replaceChildren(...children);
+    if (!pending) return;
+    // Append the remaining cards a batch per frame; any newer render supersedes this one.
+    const status = h("p", { class: "text-sm text-muted-foreground", "aria-live": "polite" });
+    const updateStatus = () => {
+      status.textContent = `Showing ${container.querySelectorAll("[data-group]").length} of ${candidates} spools…`;
+    };
+    updateStatus();
+    container.append(status);
+    const appendBatch = () => {
+      if (token !== renderToken) return;
+      status.before(...buildCards(SHOW_ALL_BATCH));
+      if (next < eligible.length) {
+        updateStatus();
+        requestAnimationFrame(appendBatch);
+      } else status.remove();
+    };
+    requestAnimationFrame(appendBatch);
   }
 
   const groupSearch = document.getElementById("group-search") as HTMLInputElement | null;

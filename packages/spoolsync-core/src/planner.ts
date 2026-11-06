@@ -171,6 +171,24 @@ export function decideMatch(
   return same ? { confirmed: next, rejected: cleared } : { confirmed: cleared, rejected: next };
 }
 
+/** `decideMatch` for many suggestions at once, in one pass instead of one array copy per pair. */
+export function decideMatches(
+  decisions: MatchDecisions,
+  suggestions: readonly MatchSuggestion[],
+  same: boolean,
+): MatchDecisions {
+  const selected = new Set(same ? decisions.confirmed : decisions.rejected);
+  const opposite = new Set(same ? decisions.rejected : decisions.confirmed);
+  for (const suggestion of suggestions) {
+    const pair = pairKey(...suggestion.pair);
+    selected.add(pair);
+    opposite.delete(pair);
+  }
+  return same
+    ? { confirmed: [...selected], rejected: [...opposite] }
+    : { confirmed: [...opposite], rejected: [...selected] };
+}
+
 export function planSync(
   groups: SpoolGroup[],
   resolutions: ReadonlyMap<string, GroupResolution>,
