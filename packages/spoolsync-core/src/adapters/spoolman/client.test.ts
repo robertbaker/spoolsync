@@ -131,3 +131,21 @@ test("body transport failures are network errors", async () => {
   );
   expect(client.info()).rejects.toMatchObject({ kind: "network" });
 });
+
+test("aborting the signal cancels an in-flight spool listing", async () => {
+  const seen: AbortSignal[] = [];
+  const client = new SpoolmanClient(
+    { baseUrl: "http://spoolman.test" },
+    (_input, init) =>
+      new Promise<Response>((_resolve, reject) => {
+        seen.push(init!.signal!);
+        init!.signal!.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+      }),
+  );
+  const abort = new AbortController();
+  const listing = client.listSpools({ signal: abort.signal });
+  abort.abort();
+  await expect(listing).rejects.toMatchObject({ kind: "network", message: "Request cancelled" });
+  expect(seen).toHaveLength(1);
+  expect(seen[0]!.aborted).toBe(true);
+});

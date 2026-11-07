@@ -12,9 +12,15 @@ export { exportSpoolmanJson, loadSpoolmanFile, unflatten } from "./file";
 export type { ApplyLogEntry } from "./apply";
 
 /** Loads every spool, archived included, from a Spoolman or Spoolman-NG server. */
-export async function loadSpoolman(connection: SpoolmanConnection): Promise<LoadResult> {
+export async function loadSpoolman(
+  connection: SpoolmanConnection,
+  options: { signal?: AbortSignal } = {},
+): Promise<LoadResult> {
   const client = new SpoolmanClient(connection);
-  const spools = await client.listSpools({ allowArchived: true });
+  const spools = await client.listSpools({
+    allowArchived: true,
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
   return {
     source: "spoolman",
     origin: "api",

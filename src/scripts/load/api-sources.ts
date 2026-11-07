@@ -47,9 +47,9 @@ function wireSpoolman(context: LoadContext): void {
       if (!connection) return null;
       return {
         loading: notice("info", "Fetching…", h("p", {}, connection.baseUrl)),
-        async load() {
+        async load(signal) {
           const { loadSpoolman } = await import("@spoolsync/core/adapters/spoolman");
-          return loadSpoolman(connection);
+          return loadSpoolman(connection, { signal });
         },
         success: (result) => success(result, connection.baseUrl, false),
       };

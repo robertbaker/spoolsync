@@ -6,7 +6,8 @@ import type { LoadContext } from "./state";
 
 export interface RemoteLoadRequest {
   loading: HTMLElement;
-  load(): Promise<LoadResult>;
+  /** `signal` aborts when the request is cancelled or times out; loaders that can may honour it. */
+  load(signal: AbortSignal): Promise<LoadResult>;
   success(result: LoadResult): HTMLElement[];
 }
 
@@ -31,9 +32,9 @@ const TIMED_OUT = Symbol("timed out");
  *
  * While a request runs the button, its message area and the service's tile are marked busy, and the
  * loading notice carries a Cancel button. Cancelling and timing out both bump the source's request
- * revision, so a response that arrives later is rejected like any other stale one. The adapters do
- * not take an abort signal, so this stops waiting for the server rather than closing the
- * connection.
+ * revision, so a response that arrives later is rejected like any other stale one. Each load also
+ * gets an abort signal that fires on cancel or timeout; adapters that accept it (Spoolman) close
+ * their connections, the rest just stop being waited on.
  */
 export function wireRemoteSource(
   { state, store }: LoadContext,
@@ -92,6 +93,7 @@ export function wireRemoteSource(
       finished = true;
       settle();
     };
+    const abort = new AbortController();
     button.disabled = true;
     setBusy(true);
 
@@ -99,6 +101,7 @@ export function wireRemoteSource(
     cancel.addEventListener("click", () => {
       if (!state.isCurrent(source, current)) return;
       state.nextRevision(source);
+      abort.abort();
       message.replaceChildren(notice("info", "Cancelled. Nothing was loaded."));
       finishRequest();
     });
@@ -110,10 +113,11 @@ export function wireRemoteSource(
       timer = setTimeout(() => resolve(TIMED_OUT), options.timeoutMs ?? FETCH_TIMEOUT_MS);
     });
     try {
-      const result = await Promise.race([request.load(), timeout]);
+      const result = await Promise.race([request.load(abort.signal), timeout]);
       if (!state.isCurrent(source, current)) return;
       if (result === TIMED_OUT) {
         state.nextRevision(source);
+        abort.abort();
         const retry = h("button", { type: "button", class: buttonClass({ size: "xs" }) }, "Retry");
         retry.addEventListener("click", () => button.click());
         message.replaceChildren(

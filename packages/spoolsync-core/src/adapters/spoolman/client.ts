@@ -63,6 +63,7 @@ export class SpoolmanClient {
     path: string,
     schema: z.ZodType<T>,
     query: RequestOptions<unknown>["query"] = {},
+    outer?: AbortSignal,
   ): Promise<T[]> {
     const items: T[] = [];
     const seenIds = new Set<number>();
@@ -78,7 +79,8 @@ export class SpoolmanClient {
         items.push(item);
       }
     };
-    const fetchPage = async (offset: number, signal?: AbortSignal) => {
+    const fetchPage = async (offset: number, inner?: AbortSignal) => {
+      const signal = outer && inner ? AbortSignal.any([outer, inner]) : (outer ?? inner);
       const options = {
         query: { ...query, limit: PAGE_SIZE, offset },
         schema: pageSchema,
@@ -142,8 +144,15 @@ export class SpoolmanClient {
     return this.transport.request("GET", "/health", { schema: HealthSchema });
   }
 
-  listSpools(options: { allowArchived?: boolean } = {}): Promise<SpoolmanSpool[]> {
-    return this.listAll("/spool", SpoolSchema, { allow_archived: options.allowArchived ?? true });
+  listSpools(
+    options: { allowArchived?: boolean; signal?: AbortSignal } = {},
+  ): Promise<SpoolmanSpool[]> {
+    return this.listAll(
+      "/spool",
+      SpoolSchema,
+      { allow_archived: options.allowArchived ?? true },
+      options.signal,
+    );
   }
 
   listFilaments(): Promise<SpoolmanFilament[]> {
