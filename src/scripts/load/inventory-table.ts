@@ -20,8 +20,16 @@ import {
 import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns";
 import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
-import { buttonClass, byId, h, setChildren } from "../dom";
+import { byId, h, setChildren } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
+import {
+  emptyState,
+  groupRow,
+  headerRow,
+  noMatchMessage,
+  tableShell,
+  windowControls,
+} from "./inventory-markup";
 import { spoolRow } from "./inventory-row";
 
 const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -237,28 +245,7 @@ export function createInventoryTable(
 
     if (!all.length) {
       byId("loaded-summary").textContent = "";
-      // Hand the visitor the two ways forward instead of a dead end.
-      const choose = h(
-        "button",
-        { type: "button", class: buttonClass({ variant: "solid", color: "primary" }) },
-        "Choose files",
-      );
-      choose.addEventListener("click", () => document.getElementById("smart-file")?.click());
-      const sample = h("button", { type: "button", class: buttonClass() }, "Try sample data");
-      sample.addEventListener("click", () => document.getElementById("try-sample")?.click());
-      container.replaceChildren(
-        h(
-          "div",
-          { class: "empty-state" },
-          h("p", { class: "font-medium text-foreground" }, "Nothing loaded yet."),
-          h(
-            "p",
-            { class: "text-sm text-muted-foreground" },
-            "Pick export files or connect a service above to see your spools here.",
-          ),
-          h("div", { class: "mt-3 flex flex-wrap justify-center gap-2" }, choose, sample),
-        ),
-      );
+      container.replaceChildren(emptyState());
       return;
     }
 
@@ -295,17 +282,11 @@ export function createInventoryTable(
 
     if ((searchQuery || lowOnly || insightFilter || rangeActive) && !filtered.length) {
       container.replaceChildren(
-        h(
-          "p",
-          { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-          searchQuery
-            ? `No spools matching "${searchQuery}".`
-            : rangeActive
-              ? "No spools match the material and weight filters."
-              : insightFilter
-                ? `No spools match "${filterLabel(insightFilter)}".`
-                : "No spools are running low.",
-        ),
+        noMatchMessage({
+          searchQuery,
+          rangeActive,
+          insightLabel: insightFilter ? filterLabel(insightFilter) : null,
+        }),
       );
       return;
     }
@@ -344,119 +325,35 @@ export function createInventoryTable(
     );
     const rowOf = new Map(drawn.map((spool, index) => [spool, rows[index]!]));
     const bodyRows = windowed.sections.flatMap((section) => [
-      section.label
-        ? h(
-            "tr",
-            { class: "spool-group-row" },
-            h(
-              "th",
-              {
-                scope: "colgroup",
-                colspan: String(headers.length),
-                class: "bg-muted/40 text-left text-sm font-semibold",
-              },
-              `${section.label} (${section.total})`,
-            ),
-          )
-        : null,
+      section.label ? groupRow(section.label, section.total, headers.length) : null,
       ...section.spools.map((spool) => rowOf.get(spool)!),
     ]);
-
-    const hiddenRows = windowed.total - windowed.shown;
-    const windowButton =
-      "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary";
-    const showMore = h(
-      "button",
-      { type: "button", class: windowButton },
-      t("table.window.more", { count: Math.min(WINDOW_STEP, hiddenRows) }),
-    );
-    showMore.addEventListener("click", () => {
-      focusAfterDraw = windowed.shown;
-      rowLimit = nextLimit(rowLimit, windowed.total);
+    const head = headerRow(headers, sort, (key, label) => {
+      sort = nextSort(sort, key);
+      updatePreferences({ tableSort: sort ?? undefined });
       renderTable();
+      // The table is redrawn, so hand keyboard focus to the same column's button.
+      const next = [...container.querySelectorAll("th button")].find((candidate) =>
+        candidate.textContent?.startsWith(label),
+      );
+      (next as HTMLElement | undefined)?.focus();
     });
-    const showAll = h("button", { type: "button", class: windowButton }, t("table.window.all"));
-    showAll.addEventListener("click", () => {
-      focusAfterDraw = windowed.shown;
-      rowLimit = windowed.total;
-      renderTable();
-    });
-    const windowControls =
-      hiddenRows > 0
-        ? h(
-            "div",
-            { class: "table-window" },
-            h(
-              "p",
-              { class: "text-muted-foreground" },
-              t("table.window.status", { shown: windowed.shown, total: windowed.total }),
-            ),
-            showMore,
-            hiddenRows > WINDOW_STEP ? showAll : null,
-          )
-        : null;
     setChildren(
       container,
-      h(
-        "div",
-        {
-          class: "spool-table-wrapper",
-          tabindex: "0",
-          role: "region",
-          "aria-label": "Loaded spools table (scrollable)",
+      tableShell(head, bodyRows),
+      windowControls(
+        windowed,
+        () => {
+          focusAfterDraw = windowed.shown;
+          rowLimit = nextLimit(rowLimit, windowed.total);
+          renderTable();
         },
-        h(
-          "table",
-          {},
-          h(
-            "thead",
-            {},
-            h(
-              "tr",
-              {},
-              ...headers.map((header) => {
-                if (!header.key) return h("th", { scope: "col" }, header.label);
-                const active = sort?.key === header.key ? sort.direction : null;
-                const button = h(
-                  "button",
-                  {
-                    type: "button",
-                    class:
-                      "inline-flex items-center gap-1 font-inherit uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary",
-                  },
-                  header.label,
-                  h(
-                    "span",
-                    { "aria-hidden": "true", class: "text-[0.7em]" },
-                    active === "asc" ? "▲" : active === "desc" ? "▼" : "↕",
-                  ),
-                );
-                button.addEventListener("click", () => {
-                  sort = nextSort(sort, header.key!);
-                  updatePreferences({ tableSort: sort ?? undefined });
-                  renderTable();
-                  // The table is redrawn, so hand keyboard focus to the same column's button.
-                  const next = [...container.querySelectorAll("th button")].find((candidate) =>
-                    candidate.textContent?.startsWith(header.label),
-                  );
-                  (next as HTMLElement | undefined)?.focus();
-                });
-                return h(
-                  "th",
-                  {
-                    scope: "col",
-                    "aria-sort":
-                      active === "asc" ? "ascending" : active === "desc" ? "descending" : "none",
-                  },
-                  button,
-                );
-              }),
-            ),
-          ),
-          h("tbody", {}, ...bodyRows),
-        ),
+        () => {
+          focusAfterDraw = windowed.shown;
+          rowLimit = windowed.total;
+          renderTable();
+        },
       ),
-      windowControls,
     );
     // Spoken only after "Show more"; an unrelated redraw (such as watching a spool) stays silent.
     if (focusAfterDraw !== null) {
