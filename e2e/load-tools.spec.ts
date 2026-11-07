@@ -85,10 +85,14 @@ test("the reorder list links a SUNLU spool to the SUNLU store first, with the co
 
   const sunlu = panel.locator("li a[data-shop='sunlu']").first();
   const href = await sunlu.getAttribute("href");
-  const url = new URL(href!);
-  expect(url.origin).toBe("https://store.sunlu.com");
-  expect(url.searchParams.get("sca_ref")).toBe("12700401.UcCqD96LNe");
-  expect(url.searchParams.get("q")).toBe("PLA Fire Red");
+  expect(href).toMatch(/^\/go\/sunlu\/[^?]*$/);
+  expect(href).not.toContain("sca_ref");
+  const response = await page.request.get(href!, { maxRedirects: 0 });
+  expect(response.status()).toBe(302);
+  const target = new URL(response.headers()["location"]!);
+  expect(target.origin).toBe("https://store.sunlu.com");
+  expect(target.searchParams.get("sca_ref")).toBe("12700401.UcCqD96LNe");
+  expect(target.searchParams.get("q")).toBe("PLA Fire Red");
   await expect(sunlu).toHaveAttribute("rel", /sponsored/);
   await expect(panel).toContainText("Coupon code SpoolSync (5% off)");
 
@@ -101,7 +105,8 @@ test("the reorder list links a SUNLU spool to the SUNLU store first, with the co
   // Prusament has no store of its own here, so it gets Amazon only.
   const amazon = panel.locator("a[data-shop='amazon']");
   expect(await amazon.count()).toBeGreaterThanOrEqual(2);
-  await expect(amazon.first()).toHaveAttribute("href", /tag=spoolsync-20/);
+  await expect(amazon.first()).toHaveAttribute("href", /^\/go\/amazon\/[^?]*$/);
+  await expect(amazon.first()).not.toHaveAttribute("href", /tag=/);
   await expect(panel.locator("[data-disclosure]")).toHaveCount(2);
   await expect(panel).toContainText(
     "As an Amazon Associate, SpoolSync earns from qualifying purchases.",

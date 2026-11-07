@@ -32,7 +32,7 @@
     "incremental": true,
     "tsBuildInfoFile": "./.tsbuildinfo"
   },
-  "include": [".astro/types.d.ts", "src", "tests", "e2e", "packages/*/src"],
+  "include": [".astro/types.d.ts", "src", "tests", "e2e", "packages/*/src", "worker"],
   "exclude": [
     "dist",
     "node_modules",

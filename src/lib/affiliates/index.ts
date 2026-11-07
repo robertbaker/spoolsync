@@ -1,7 +1,9 @@
 import { amazon } from "./amazon";
+import { redirectPath } from "./redirect";
 import { searchStoreProgram } from "./stores";
 import type { AffiliateProgram, BuyLink, BuyQuery } from "./types";
 
+export { languagesFromHeader, REDIRECT_PREFIX, redirectPath, resolveRedirect } from "./redirect";
 export { AMAZON_STORES, AMAZON_TAG, detectAmazonStore } from "./amazon";
 export type { AffiliateProgram, BuyLink, BuyQuery } from "./types";
 
@@ -87,12 +89,13 @@ export function buyLinks(
   const links: BuyLink[] = [];
   for (const program of programs) {
     if (!sellsBrand(program, query.brand)) continue;
-    const url = program.link(query);
-    if (url)
+    // The destination is built (and checked) here, but only when the visitor clicks does the Worker
+    // build it again; the page itself carries just the on-site path.
+    if (program.link(query))
       links.push({
         programId: program.id,
         shop: program.name,
-        url,
+        url: redirectPath(program.id, query),
         brandStore: program.brands !== "any",
         couponCode: program.coupon?.code ?? null,
         couponOffer: program.coupon?.offer ?? null,

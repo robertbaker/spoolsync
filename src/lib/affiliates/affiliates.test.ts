@@ -1,10 +1,30 @@
 import { describe, expect, test } from "bun:test";
 
 import { AMAZON_STORES, detectAmazonStore } from "./amazon";
-import { AFFILIATE_PROGRAMS, buyLinks, programsOf } from "./index";
+import {
+  AFFILIATE_PROGRAMS,
+  buyLinks as buyRedirects,
+  languagesFromHeader,
+  programsOf,
+  resolveRedirect,
+} from "./index";
 import { searchStoreProgram } from "./stores";
 
 const EN = ["en-US"];
+
+/** Shop links as the visitor lands on them: the redirect path followed to the shop address. */
+function buyLinks(...args: Parameters<typeof buyRedirects>) {
+  const programs = args[2] ?? AFFILIATE_PROGRAMS;
+  return buyRedirects(...args).map((link) => {
+    const target = resolveRedirect(
+      new URL(link.url, "https://site.test"),
+      programs,
+      args[1]?.join(","),
+    );
+    if (!target) throw new Error(`no redirect for ${link.url}`);
+    return { ...link, url: target };
+  });
+}
 
 describe("Amazon", () => {
   test("links encode every part and never let a name change the query", () => {
@@ -173,4 +193,58 @@ describe("the program registry", () => {
       expect(program.hosts(EN).length).toBeGreaterThan(0);
     }
   });
+});
+
+describe("the redirect", () => {
+  const site = "https://site.test";
+
+  test("links on the page are on-site paths with no affiliate parameters", () => {
+    for (const link of buyRedirects({ brand: "SUNLU", material: "PLA", color: "Red" }, EN)) {
+      expect(link.url.startsWith(`/go/${link.programId}/`)).toBe(true);
+      expect(link.url).not.toContain("?");
+      expect(link.url).not.toMatch(/sca_ref|spoolsync-20|aff=|tag=|https?:/);
+    }
+  });
+
+  test("the destination matches the program's own link, with the language read from the request", () => {
+    const [sunlu, amazon] = buyRedirects({ brand: "SUNLU", material: "PLA", color: "Red" }, [
+      "en-GB",
+    ]);
+    expect(resolveRedirect(new URL(sunlu!.url, site), AFFILIATE_PROGRAMS, "en-GB")).toContain(
+      "sca_ref=",
+    );
+    expect(
+      new URL(resolveRedirect(new URL(amazon!.url, site), AFFILIATE_PROGRAMS, "en-GB")!).host,
+    ).toBe("www.amazon.co.uk");
+  });
+
+  test("without a language the Accept-Language header picks the Amazon store", () => {
+    const url = new URL(`${site}/go/amazon/Prusa/PLA/_`);
+    expect(new URL(resolveRedirect(url, AFFILIATE_PROGRAMS, "de-DE,de;q=0.9,en;q=0.5")!).host).toBe(
+      "www.amazon.de",
+    );
+    expect(new URL(resolveRedirect(url, AFFILIATE_PROGRAMS)!).host).toBe("www.amazon.com");
+  });
+
+  test("unknown programs, other paths and empty searches resolve to nothing", () => {
+    expect(resolveRedirect(new URL(`${site}/go/nope/x/_/_`), AFFILIATE_PROGRAMS)).toBeNull();
+    expect(resolveRedirect(new URL(`${site}/go/amazon/_/_/_`), AFFILIATE_PROGRAMS)).toBeNull();
+    expect(resolveRedirect(new URL(`${site}/go/amazon/Prusa`), AFFILIATE_PROGRAMS)).toBeNull();
+    expect(resolveRedirect(new URL(`${site}/load`), AFFILIATE_PROGRAMS)).toBeNull();
+    expect(resolveRedirect(new URL(`${site}/go/%E0%A4%A`), AFFILIATE_PROGRAMS)).toBeNull();
+  });
+
+  test("Accept-Language is ordered by quality and drops wildcards and refusals", () => {
+    expect(languagesFromHeader("fr;q=0.5, en-GB, *;q=0.1, de;q=0")).toEqual(["en-GB", "fr"]);
+    expect(languagesFromHeader(null)).toEqual([]);
+  });
+});
+
+test("parts round-trip through the path, including slashes, underscores and non-Latin text", () => {
+  const [link] = buyRedirects({ brand: "A/B_C", material: "PLA+", color: "黒 #1?" }, EN);
+  expect(link!.url).not.toContain("?");
+  const target = new URL(
+    resolveRedirect(new URL(link!.url, "https://site.test"), AFFILIATE_PROGRAMS)!,
+  );
+  expect(target.searchParams.get("k")).toBe("A/B_C PLA+ 黒 #1?");
 });

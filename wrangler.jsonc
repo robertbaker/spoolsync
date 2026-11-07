@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "assets": {
     "directory": "dist",
+    "run_worker_first": ["/go/*"],
     "not_found_handling": "404-page"
   },
   "account_id": "1e577dc124a5e5df1751c0aca5a4e856",
@@ -14,6 +15,7 @@
     "port": 4324
   },
   "minify": true,
+  "main": "worker/index.ts",
   "name": "spoolsync",
   "preview_urls": false,
   "routes": [

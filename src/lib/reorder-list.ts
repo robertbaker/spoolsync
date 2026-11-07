@@ -1,6 +1,7 @@
 import { SOURCE_LABELS, type CommonSpool } from "@spoolsync/core/core/model";
 import type { ReorderItem } from "@spoolsync/core/workflow";
 
+import { SITE_URL } from "../config/site";
 import { buyLinks, type BuyLink } from "./affiliates";
 
 /**
@@ -99,7 +100,8 @@ export function reorderCsv(groups: readonly BrandGroup[], languages?: readonly s
   const lines: string[] = [CSV_COLUMNS.join(",")];
   for (const group of groups) {
     for (const { spool, fraction } of group.items) {
-      const url = spoolBuyLinks(spool, languages)[0]?.url;
+      const path = spoolBuyLinks(spool, languages)[0]?.url;
+      const url = path ? new URL(path, SITE_URL).href : undefined;
       const cells: Array<string | number> = [
         safeText(spool.vendor ? clean(spool.vendor) : ""),
         safeText(spool.material),

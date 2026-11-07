@@ -16,6 +16,7 @@
     "**/test-results/**",
     "**/playwright-report/**",
     "**/worker-configuration.d.ts",
-    "packages/spoolsync-cli/README.md"
+    "packages/spoolsync-cli/README.md",
+    "**/CHANGELOG.md"
   ]
 }

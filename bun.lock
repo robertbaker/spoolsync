@@ -46,7 +46,7 @@
     },
     "packages/spoolsync-cli": {
       "name": "spoolsync",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "bin": {
         "spoolsync": "./dist/cli.js",
       },

@@ -65,9 +65,11 @@ const link = "underline hover:text-foreground";
         <h2 id="privacy-affiliate" class="text-xl font-semibold text-foreground">Affiliate links</h2>
         <p class="mt-2">
           The shop links in the reorder list ("Find to buy" and "Search this brand") are affiliate links. If you
-          buy after following one, the shop pays SpoolSync a commission at no extra cost to you. A link contains
-          only the brand, material and color being searched for, never your inventory, and nothing is sent until
-          you click. The shop then handles your visit under its own privacy notice. The links are marked&nbsp;<code>rel="sponsored"</code>.
+          buy after following one, the shop pays SpoolSync a commission at no extra cost to you. Each link goes
+          through a redirect on spoolsync.com, so the affiliate tracking is added when you click rather than shown
+          in the page. The redirect receives only the brand, material and color being searched for (and your
+          browser's language, to pick an Amazon store), never your inventory, and nothing is sent until you
+          click, and SpoolSync does not add them to any record beyond the ordinary server logs above. The shop then handles your visit under its own privacy notice. The links are marked&nbsp;<code>rel="sponsored"</code>.
         </p>
         <ul class="mt-3 space-y-3">
           {

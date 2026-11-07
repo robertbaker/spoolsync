@@ -37,6 +37,7 @@ export interface AffiliateProgram {
 export interface BuyLink {
   programId: string;
   shop: string;
+  /** An on-site `/go/<program>?…` path that redirects to the shop; never the shop's own address. */
   url: string;
   /** Whether the link belongs to a shop for the brand itself, as opposed to a general shop. */
   brandStore: boolean;

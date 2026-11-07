@@ -27,7 +27,7 @@ test("a spool searches by brand, material and color name", () => {
   });
   const [link] = spoolBuyLinks(spool, EN);
   expect(link!.shop).toBe("Amazon");
-  expect(new URL(link!.url).searchParams.get("k")).toBe("Prusament PLA Galaxy Black");
+  expect(link!.url).toMatch(/^\/go\/amazon\/Prusament\/PLA\/Galaxy%20Black$/);
   expect(
     spoolBuyLinks(makeSpool("spoolman", "2", { vendor: null, material: null, name: null }), EN),
   ).toEqual([]);
@@ -47,7 +47,7 @@ test("brands are grouped ignoring case, sorted, with spools lacking a brand last
     ["Prusament", ["1", "5"]],
     ["No brand", ["2", "6"]],
   ]);
-  expect(new URL(groups[0]!.links[0]!.url).searchParams.get("k")).toBe("esun filament");
+  expect(groups[0]!.links[0]!.url).toBe("/go/amazon/esun/filament/_");
   expect(groups[2]!.links).toEqual([]);
   expect(groupByBrand([])).toEqual([]);
 });
@@ -125,6 +125,7 @@ test("a brand with its own store lists that store before Amazon, in the CSV too"
     ["SUNLU", "Amazon"],
   ]);
   const rows = reorderCsv(groups, EN).trim().split("\r\n");
-  expect(rows[2]).toContain("https://store.sunlu.com/search?q=PLA+Black&sca_ref=");
-  expect(rows[1]).toContain("https://www.amazon.com/s?k=");
+  expect(rows[2]).toContain("https://www.spoolsync.com/go/sunlu/");
+  expect(rows[1]).toContain("https://www.spoolsync.com/go/amazon/");
+  expect(rows.join("")).not.toMatch(/sca_ref|spoolsync-20/);
 });

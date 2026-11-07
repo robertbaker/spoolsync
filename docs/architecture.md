@@ -658,9 +658,15 @@ older custom shop address was removed, and the panel forgets its `spoolsync:shop
 `buyLinks({ brand, material, color })` asks every program in `AFFILIATE_PROGRAMS` (`index.ts`) for a
 link: a program is either a maker's own store for named brands (matched ignoring case and
 punctuation, so `SUN-LU` is SUNLU) or a general shop (`brands: "any"`), and the maker's store comes
-first, so a SUNLU spool lists SUNLU then Amazon. Parts are encoded by `URL`, links open with
-`rel="noopener noreferrer sponsored"`, and only brand, material and color are in a link; nothing from
-the inventory is sent until the visitor clicks. **Adding a program** is one entry: for a Shopify-style
+first, so a SUNLU spool lists SUNLU then Amazon. Links on the page are on-site
+`/go/<program>/<brand>/<material>/<color>` paths (`redirect.ts`; `_` is an empty part, and there is no
+query string), never the shop address, so the affiliate parameters do not appear in the DOM, the CSV
+(`search_url` is the absolute `SITE_URL/go/…` link) or copied text. `worker/index.ts` (`main` in
+`wrangler.jsonc`, run first only for `/go/*`) calls `resolveRedirect`, which rebuilds the shop link
+with the program's own `link()` and answers `302` with `no-store`; an unknown program or a malformed
+path goes to `/`. Amazon's store comes from the request's `Accept-Language`. Parts are encoded by
+`encodeURIComponent`, links open with `rel="noopener noreferrer sponsored"`, and only brand, material
+and color are in a link; nothing from the inventory is sent until the visitor clicks. **Adding a program** is one entry: for a Shopify-style
 store call `searchStoreProgram` (`stores.ts`) with the brands, origin, the affiliate parameters, the
 disclosure and optionally a coupon, then add it to `AFFILIATE_PROGRAMS`. The panel shows each used
 program's disclosure once and a coupon next to its link, the CSV's `search_url` is the first link,
