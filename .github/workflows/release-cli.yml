@@ -8,8 +8,9 @@ name: Release CLI
 #   - Fine-grained PAT (or a GitHub App token) with Contents: read/write on this repository.
 #   - Add the token's owner (or the app) to the main ruleset's bypass list, or to "Allow specified actors
 #     to bypass required pull requests" in classic branch protection.
-# The release commit re-triggers CI, but its subject is excluded from the releasable check below, so it
-# does not release again.
+# The release commit subject ends in [skip ci] (see release-it's git.commitMessage in
+# packages/spoolsync-cli/package.json), so CI does not run on it. Its subject is also excluded from the
+# releasable check below, so a later run never releases because of it.
 # npm auth uses Trusted Publishing (OIDC), so no NPM_TOKEN secret is needed. Configure the trusted
 # publisher on npmjs.com: repository robertbaker/spoolsync, workflow `release-cli.yml`.
 

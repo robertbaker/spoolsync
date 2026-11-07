@@ -52,7 +52,7 @@
     "git": {
       "tagName": "spoolsync-cli-v${version}",
       "tagMatch": "spoolsync-cli-v[0-9]*",
-      "commitMessage": "chore(spoolsync-cli): release v${version}",
+      "commitMessage": "chore(spoolsync-cli): release v${version} [skip ci]",
       "requireCleanWorkingDir": true,
       "assets": [
         "package.json",
