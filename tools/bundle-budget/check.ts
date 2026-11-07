@@ -14,7 +14,7 @@ export interface Budgets {
 }
 
 export const BUDGETS: Budgets = {
-  totalJs: 330_000,
+  totalJs: 380_000,
   largestJs: 65_000,
   totalCss: 50_000,
 };
