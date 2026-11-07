@@ -1001,7 +1001,10 @@ credit line and a key over the endpoint, mapping and paging, so a changed settin
 stored records are re-validated on read. `settings.ts` sanitizes everything saved.
 
 **Load page.** The "Reference data" panel (`load/reference-view.ts`, `#reference-panel`, a
-`details[data-panel="reference"]` so the palette's `?panel=reference` landing opens it) is a view over
+`details[data-panel="reference"]` so the palette's `?panel=reference` landing opens it; the shell and
+redraw cycle live there, while `reference-source-view`/`reference-remote-source` (source and catalog),
+`reference-policy-view`, `reference-results-view` and `reference-card` build the sections through the
+shared `PanelContext` in `reference-context`, with common DOM helpers in `reference-widgets`) is a view over
 `ReferenceController`, which owns the catalog, the policy, the filters (everything to review, missing,
 differs, color check, needs a choice, no match), per-field accept/reject, "Fill all missing" and
 "Overwrite selected" (both act on the spools in view), candidate choices, and undo. Cards show the

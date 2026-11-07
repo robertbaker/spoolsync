@@ -26,8 +26,10 @@ import { buildVendorIndex } from "./vendors";
 const NUMERIC_EN_COLLATOR = new Intl.Collator("en", { numeric: true });
 const EN_COLLATOR = new Intl.Collator("en");
 
+const SOURCE_RANK = new Map<string, number>(SOURCE_IDS.map((id, index) => [id, index]));
+
 const byIdentity = (a: CommonSpool, b: CommonSpool) =>
-  SOURCE_IDS.indexOf(a.source) - SOURCE_IDS.indexOf(b.source) ||
+  SOURCE_RANK.get(a.source)! - SOURCE_RANK.get(b.source)! ||
   NUMERIC_EN_COLLATOR.compare(a.sourceId, b.sourceId) ||
   EN_COLLATOR.compare(a.sourceId, b.sourceId);
 
