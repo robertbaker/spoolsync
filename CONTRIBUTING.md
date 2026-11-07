@@ -22,6 +22,8 @@ The development site runs at `http://localhost:4321`. For the built site, run `b
 followed by `bun run preview`, which serves through Wrangler at `http://127.0.0.1:4324`.
 Deployment targets the maintainer's Cloudflare domain (`wrangler.jsonc`) and needs
 `CLOUDFLARE_ACCOUNT_ID` or a Wrangler login; contributors do not need to deploy to verify a change.
+The `Deploy site` workflow (`.github/workflows/deploy.yml`) builds and deploys automatically after
+`Release CLI` succeeds on `main`; it needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets.
 
 ## Checks
 

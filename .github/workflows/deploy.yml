@@ -1,0 +1,46 @@
+name: Deploy site
+
+# Builds the site and deploys it to Cloudflare Workers (static assets, see wrangler.jsonc) after the
+# Release CLI workflow finishes successfully on main. That workflow runs only after a green CI run, and
+# it exits successfully when there is nothing to release, so the site is still deployed from every
+# validated main commit; this also keeps the reference snapshot built into the site fresh.
+# Required repository secrets:
+#   - CLOUDFLARE_API_TOKEN: API token with the "Edit Cloudflare Workers" permission for the account
+#     and the spoolsync.com zone (the custom domain routes in wrangler.jsonc).
+#   - CLOUDFLARE_ACCOUNT_ID: the account that owns the Worker (matches `account_id` in wrangler.jsonc).
+
+on:
+  workflow_run:
+    workflows: [Release CLI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      # Latest main, so the release commit (version bump, changelog) is included.
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - uses: ./.github/actions/setup
+
+      - name: Build
+        run: bun run build
+
+      - name: Deploy to Cloudflare
+        run: bunx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
