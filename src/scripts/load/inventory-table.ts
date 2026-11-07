@@ -17,12 +17,12 @@ import {
   sanitizeSettings,
   type ViewSettings,
 } from "~/lib/saved-views";
-import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns";
 import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
 import { buttonClass, byId, h, setChildren } from "../dom";
 import type { InsightFilter, LoadInsights } from "./insights";
+import { spoolRow } from "./inventory-row";
 
 const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
@@ -80,21 +80,6 @@ export function createInventoryTable(
   insights?: LoadInsights,
   onWatchChange?: () => void,
 ) {
-  function swatches(colors: string[]): HTMLElement {
-    if (!colors.length) return h("span", { class: "text-muted-foreground" }, "—");
-    return h(
-      "span",
-      { class: "flex gap-1", title: colors.map((c) => `#${c}`).join(", ") },
-      ...colors.slice(0, 4).map((color) => {
-        const swatch = h("span", {
-          class: "filament-swatch inline-block size-4 rounded-full border",
-        });
-        swatch.style.backgroundColor = `#${color}`;
-        return swatch;
-      }),
-    );
-  }
-
   const searchCache = new WeakMap<CommonSpool, string>();
   const spoolSearchText = (s: CommonSpool): string => {
     let text = searchCache.get(s);
@@ -107,53 +92,6 @@ export function createInventoryTable(
     }
     return text;
   };
-
-  function weight(spool: CommonSpool): string {
-    const remaining = spool.remainingWeight === null ? "?" : Math.round(spool.remainingWeight);
-    const initial = spool.initialWeight === null ? "?" : Math.round(spool.initialWeight);
-    return `${remaining} / ${initial} g`;
-  }
-
-  function links(spool: CommonSpool): string {
-    const {
-      spoolmanId,
-      spoolstockShortId,
-      spoolioId,
-      tigertagUid,
-      threeDfpId,
-      bambuddyId,
-      filameterId,
-      filadexId,
-      filamentdbSerial,
-      spoolmasterId,
-      spoolhoarderId,
-      spoolappId,
-      spoolkeepId,
-    } = spool.crossIds;
-    const parts = [];
-    if (spool.source !== "spoolman" && spoolmanId !== undefined)
-      parts.push(`Spoolman #${spoolmanId}`);
-    if (spool.source !== "spoolstock" && spoolstockShortId)
-      parts.push(`Spoolstock ${spoolstockShortId}`);
-    if (spool.source !== "spoolio" && spoolioId) parts.push(`Spoolio ${spoolioId.slice(0, 8)}`);
-    if (spool.source !== "tigertag" && tigertagUid)
-      parts.push(`TigerTag ${tigertagUid.slice(0, 14)}`);
-    if (spool.source !== "threeDfp" && threeDfpId) parts.push(`3DFP ${threeDfpId.slice(0, 8)}`);
-    if (spool.source !== "bambuddy" && bambuddyId !== undefined)
-      parts.push(`Bambuddy #${bambuddyId}`);
-    if (spool.source !== "filameter" && filameterId)
-      parts.push(`FilaMeter ${filameterId.slice(0, 8)}`);
-    if (spool.source !== "filadex" && filadexId) parts.push(`Filadex ${filadexId.slice(0, 8)}`);
-    if (spool.source !== "filamentdb" && filamentdbSerial)
-      parts.push(`FilamentDB ${filamentdbSerial.slice(0, 8)}`);
-    if (spool.source !== "spoolmaster" && spoolmasterId) parts.push(`SpoolMaster ${spoolmasterId}`);
-    if (spool.source !== "spoolhoarder" && spoolhoarderId)
-      parts.push(`Spool Hoarder ${spoolhoarderId.slice(0, 8)}`);
-    if (spool.source !== "spoolapp" && spoolappId) parts.push(`Spool ${spoolappId.slice(0, 8)}`);
-    if (spool.source !== "spoolkeep" && spoolkeepId)
-      parts.push(`SpoolKeep ${spoolkeepId.slice(0, 8)}`);
-    return parts.join(", ") || "—";
-  }
 
   let searchQuery = "";
   // The columns shown, restored from the last visit. The name column always stays.
@@ -205,49 +143,6 @@ export function createInventoryTable(
         renderTable();
       }
     });
-  }
-
-  function watchButton(key: string, spool: CommonSpool, watching: boolean): HTMLElement {
-    const label =
-      [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") || spool.sourceId;
-    const button = h(
-      "button",
-      {
-        type: "button",
-        "aria-pressed": String(watching),
-        "aria-label": `Watch ${label} (${SOURCE_LABELS[spool.source]} ${spool.sourceId})`,
-        "data-watch": key,
-        class:
-          "rounded-md border px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-foreground",
-      },
-      watching ? "Watching" : "Watch",
-    );
-    button.addEventListener("click", () => {
-      insights?.toggleWatch(key);
-      onWatchChange?.();
-      // The table is redrawn, so hand keyboard focus to the same spool's button when it remains.
-      document.querySelector<HTMLElement>(`[data-watch="${CSS.escape(key)}"]`)?.focus();
-    });
-    return button;
-  }
-
-  /**
-   * The spool's name as a button, which opens the detail drawer for keyboard and screen reader
-   * users.
-   */
-  function detailsButton(key: string, name: string | null): HTMLElement {
-    return h(
-      "button",
-      {
-        type: "button",
-        "data-open-spool": key,
-        "aria-haspopup": "dialog",
-        class:
-          "text-left underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-primary",
-      },
-      name ?? "—",
-      h("span", { class: "sr-only" }, " (open details)"),
-    );
   }
 
   /** One-click filter chips: duplicates, watched spools, and each health check that found something. */
@@ -438,80 +333,15 @@ export function createInventoryTable(
     }
     const windowed = windowSections(sections, rowLimit);
     const drawn = windowed.sections.flatMap((section) => section.spools);
-    const rows = drawn.map((spool) => {
-      const key = spoolKey(spool);
-      const drop = drops?.get(key);
-      const watching = insights?.watched.has(key) ?? false;
-      const flags = insights
-        ? [
-            insights.duplicateSpoolKeys.has(key) ? "Possible duplicate" : null,
-            ...(insights.health.byKey.get(key) ?? []).map((issue) =>
-              t(`health.factor.${issue}` as MessageKey),
-            ),
-            insights.missingPrice.has(key) ? t("health.factor.missing-price") : null,
-          ].filter(Boolean)
-        : [];
-      const cells: Record<TableColumn, HTMLElement> = {
-        source: h("td", { class: "whitespace-nowrap font-medium" }, SOURCE_LABELS[spool.source]),
-        id: h(
-          "td",
-          { class: "max-w-40 truncate font-mono text-xs", title: spool.sourceId },
-          spool.sourceId,
-        ),
-        vendor: h("td", {}, spool.vendor ?? "—"),
-        material: h("td", {}, spool.material ?? "—"),
-        name: h("td", {}, detailsButton(key, spool.name), spool.archived ? " (archived)" : ""),
-        color: h("td", {}, swatches(spool.colors)),
-        remaining: h(
-          "td",
-          { class: "whitespace-nowrap" },
-          weight(spool),
-          isLow(spool)
-            ? h(
-                "span",
-                {
-                  class:
-                    "ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-text",
-                },
-                "Low",
-              )
-            : null,
-          drop
-            ? h(
-                "span",
-                {
-                  class:
-                    "ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning-text",
-                },
-                `Dropped ${Math.round(-drop.delta)} g`,
-              )
-            : null,
-        ),
-        location: h("td", {}, spool.location ?? "—"),
-        linked: h("td", { class: "text-xs" }, links(spool)),
-      };
-      const row = h(
-        "tr",
-        {
-          "data-spool-row": "",
-          class:
-            `cursor-pointer hover:bg-muted/40 ${spool.archived ? "text-muted-foreground/70" : ""} ${drop ? "bg-warning/10" : ""}`.trim(),
-          ...(flags.length ? { title: flags.join("; ") } : {}),
-        },
-        ...columns.map((column) => cells[column]),
-        insights ? h("td", {}, watchButton(key, spool, watching)) : null,
-      );
-      // A click anywhere on the row opens the detail drawer, except on other controls and while
-      // the visitor is selecting text. The name button is the keyboard route to the same action.
-      row.addEventListener("click", (event) => {
-        const target = event.target instanceof Element ? event.target : null;
-        const control = target?.closest("button, a, input, select, textarea, label");
-        if (control && !control.hasAttribute("data-open-spool")) return;
-        if (!control && window.getSelection()?.toString()) return;
-        document.dispatchEvent(new CustomEvent(OPEN_SPOOL_EVENT, { detail: { key } }));
-      });
-      return row;
-    });
+    const rows = drawn.map((spool) =>
+      spoolRow(spool, {
+        columns,
+        insights,
+        onWatchChange,
+        low: isLow(spool),
+        drop: drops?.get(spoolKey(spool)),
+      }),
+    );
     const rowOf = new Map(drawn.map((spool, index) => [spool, rows[index]!]));
     const bodyRows = windowed.sections.flatMap((section) => [
       section.label
