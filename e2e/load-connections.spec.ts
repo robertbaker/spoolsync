@@ -63,7 +63,11 @@ test("changing the Spoolman address drops its fetched snapshot but keeps file in
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "Kept" }] })),
   });
+  // Loading a file opens its own panel and closes the others once it finishes. The tile toggles, so
+  // clicking before that settles can close the Spoolman panel that was open at the time.
+  await expect(page.locator("#spoolio-status")).toContainText("1 loaded from file");
   await page.locator('[data-tile="spoolman"]').click();
+  await expect(page.locator('[data-tile="spoolman"]')).toHaveAttribute("aria-expanded", "true");
   await page.locator("#spoolman-url").fill("http://one.test:7912");
   await page.getByRole("button", { name: "Save and test" }).click();
   await expect(page.getByText("Connected to Spoolman 0.23.1")).toBeVisible();
