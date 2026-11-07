@@ -1,14 +1,13 @@
-import type { CommonSpool } from "@spoolsync/core/core/model";
 import type { ReferenceFilament } from "@spoolsync/core/core/reference";
 
 import { h } from "../dom";
+import { BUTTON, PRESSED, spoolLabel } from "./panel-ui";
+
+export { BUTTON, PRESSED, spoolLabel };
 
 /** Cards drawn at once; "Show more" draws the next batch. */
 export const PAGE = 25;
 
-export const BUTTON =
-  "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
-export const PRESSED = "border-primary bg-primary/10 text-foreground";
 export const BADGE = {
   safe: "border-success/40 bg-success/10 text-success-text",
   review: "border-warning/40 bg-warning/10",
@@ -19,12 +18,6 @@ export const VERDICT = {
   close: "Close",
   mismatch: "Does not match",
 } as const;
-
-export const spoolLabel = (spool: CommonSpool | undefined, key: string) =>
-  spool
-    ? [spool.vendor, spool.material, spool.name].filter(Boolean).join(" ") ||
-      `Spool ${spool.sourceId}`
-    : key;
 
 /** A small color chip; the color is set through the style object, which a strict CSP allows. */
 export function swatch(hex: string | null | undefined): HTMLElement {

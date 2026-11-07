@@ -817,7 +817,7 @@ drops entries whose spool is gone, whose value changed since, or whose service c
 `workflow/cleanup.ts` reuses the Load page's duplicate detection on a copy with accepted changes
 applied and reports groups that only appear afterwards (report only; nothing is merged).
 
-The Load page's "Clean up data" panel (`load/cleanup-view.ts`, `#cleanup-panel`, a
+The Load page's "Clean up data" panel (`load/cleanup-view.ts` for the shell, with `cleanup-rules-view`, `cleanup-list-view` and `cleanup-notes-view` building its sections, `#cleanup-panel`, a
 `details[data-panel="cleanup"]` so the palette's `?panel=cleanup` landing opens it) is a view over
 `CleanupController`, which owns the rule toggles, the filters (rule, confidence), per-item
 accept/reject/reset, "Select all safe", and undo. It reads and writes storage through a

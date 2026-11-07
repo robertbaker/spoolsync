@@ -10,7 +10,7 @@ import {
 import { t, type MessageKey } from "~/lib/i18n";
 
 import { h } from "../dom";
-import { displayValue } from "./cleanup-view";
+import { displayValue } from "./cleanup-values";
 import { plural } from "./presentation";
 import type { PanelContext } from "./reference-context";
 import {
