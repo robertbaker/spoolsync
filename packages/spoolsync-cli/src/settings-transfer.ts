@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { isLowStockPercent } from "@spoolsync/core/core/stock";
 
 import { checkConfig } from "./config";
@@ -6,6 +8,40 @@ import { checkConfig } from "./config";
 const FORMAT = "spoolsync-settings";
 const VERSION = 1;
 const LOW_STOCK_KEY = "spoolsync:low-stock-percent";
+
+const SAVABLE_PATH_KEYS = new Set([
+  "spoolman",
+  "spoolstock",
+  "spoolio",
+  "tigertag",
+  "three-dfp",
+  "bambuddy",
+  "filameter",
+  "filadex",
+  "filamentdb",
+  "filament-db",
+  "spoolmaster",
+  "spoolhoarder",
+  "spool",
+  "spoolkeep",
+  "output-dir",
+]);
+
+const SAVABLE_KEYS = new Set([
+  ...SAVABLE_PATH_KEYS,
+  "empty",
+  "create-in",
+  "resolve",
+  "format",
+  "json",
+  "low-threshold",
+  "spoolman-url",
+  "filamentdb-url",
+  "filament-db-url",
+  "bambuddy-url",
+  "filadex-url",
+  "filadex-user",
+]);
 
 /**
  * A settings export from the CLI. Its `entries` use the browser's keys for what both understand
@@ -73,6 +109,13 @@ export function parseImportDocument(text: string, source = "the settings file"):
       throw new Error(`${source} has a "cli" section that is not an object.`);
     settings = { ...(document.cli as Record<string, unknown>) };
     checkConfig(source, settings);
+    const base = path.dirname(path.resolve(source));
+    for (const [key, value] of Object.entries(settings)) {
+      if (!SAVABLE_KEYS.has(key))
+        throw new Error(`Config file "${source}": "${key}" cannot be saved as a default setting.`);
+      if (SAVABLE_PATH_KEYS.has(key) && typeof value === "string" && !path.isAbsolute(value))
+        settings[key] = path.join(base, value);
+    }
   }
   const skipped: string[] = [];
   for (const [key, value] of Object.entries(entries)) {

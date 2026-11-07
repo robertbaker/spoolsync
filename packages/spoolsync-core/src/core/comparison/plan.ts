@@ -186,7 +186,7 @@ export function buildPlan(
         kind: "create",
         source,
         groupId: group.id,
-        values: applyEditToValues(mergedValues(group, resolution), edit),
+        values: applyEditToValues(mergedValues(group, resolution, recordEdits), edit),
         links: missingLinks(undefined, links, source),
         groupIds: links,
       });

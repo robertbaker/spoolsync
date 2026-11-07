@@ -182,4 +182,27 @@ describe("planRollback", () => {
     expect(change).toMatchObject({ kind: "update", source: "spoolman", links: {} });
     expect(change!.groupId).toBe("rollback:3");
   });
+
+  test("refuses a mismatched inventory service and skips already-restored cleanup casing edits", () => {
+    expect(() =>
+      planRollback(document, {
+        source: "spoolio",
+        spools: [],
+        warnings: [],
+        loadedAt: "2026-11-04T10:05:00.000Z",
+      }),
+    ).toThrow(/The rollback file is for Spoolman, not Spoolio/);
+
+    const cleanupDoc = buildRollback(
+      "spoolman",
+      [update("1", [{ field: "vendor", from: "prusament", to: "Prusament" }])],
+      { target: "t", now },
+    );
+    const alreadyRestored = planRollback(
+      cleanupDoc,
+      inventory([makeSpool("spoolman", "1", { vendor: "prusament" })]),
+    );
+    expect(alreadyRestored.changes).toEqual([]);
+    expect(alreadyRestored.skipped[0]?.reason).toBe("already has its earlier value");
+  });
 });

@@ -58,18 +58,38 @@ export function uniqueHexes(values: unknown[]): string[] {
 export function toDate(value: unknown): string | null {
   const text = toText(value);
   if (!text) return null;
-  const match = /^(\d{4}-\d{2}-\d{2})/.exec(text);
-  if (match?.[1]) {
-    const [year, month, day] = match[1].split("-").map(Number) as [number, number, number];
+  const isValidYmd = (year: number, month: number, day: number): boolean => {
+    if (year < 1000 || year > 9999 || month < 1 || month > 12 || day < 1) return false;
     const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     const days = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    if (month < 1 || month > 12 || day < 1 || day > days[month - 1]!) return null;
+    return day <= days[month - 1]!;
+  };
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  if (match) {
+    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+    if (!isValidYmd(year, month, day)) return null;
     if (text.length > 10 && (!/^[Tt ]/.test(text.slice(10)) || Number.isNaN(Date.parse(text))))
       return null;
-    return match[1];
+    return `${match[1]}-${match[2]}-${match[3]}`;
   }
+  const ymdSlash = /^(\d{4})[/.](\d{1,2})[/.](\d{1,2})$/.exec(text);
+  if (ymdSlash) {
+    const [year, month, day] = [Number(ymdSlash[1]), Number(ymdSlash[2]), Number(ymdSlash[3])];
+    if (!isValidYmd(year, month, day)) return null;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  const mdySlash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text);
+  if (mdySlash) {
+    const [month, day, year] = [Number(mdySlash[1]), Number(mdySlash[2]), Number(mdySlash[3])];
+    if (!isValidYmd(year, month, day)) return null;
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  if (/^\d+$/.test(text)) return null;
   const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const year = parsed.getUTCFullYear();
+  if (year < 1000 || year > 9999) return null;
+  return parsed.toISOString().slice(0, 10);
 }
 
 const SPOOLSTOCK_LOT_PREFIX = "spoolstock:spool:";

@@ -71,7 +71,10 @@ export function deriveCliChoices(
       Object.values(group.members).map((spool) => `${spool.source}:${spool.sourceId}`),
     ),
   );
-  const known = (pair: string) => pair.split("|").every((key) => records.has(key));
+  const known = (pair: string) => {
+    const parts = pair.split("|");
+    return parts.length === 2 && parts.every((key) => records.has(key) && !key.includes(","));
+  };
   const resolves: Array<[ComparableField, SourceId]> = [];
   const fields = new Set(
     [...resolutions.values()].flatMap((resolution) =>

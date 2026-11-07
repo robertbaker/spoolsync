@@ -155,10 +155,13 @@ describe("buildPlan", () => {
     const plan = buildPlan(
       [group!],
       new Map([[group!.id, { values: {}, createIn: ["spoolman"] }]]),
+      new Set(),
+      new Map(),
+      new Map([["spoolstock:new1", { vendor: "Bambu Lab" }]]),
     );
     expect(plan.get("spoolman")?.[0]).toMatchObject({
       kind: "create",
-      values: { vendor: "Prusament", location: "Bin 3", nozzleTempMin: 200 },
+      values: { vendor: "Bambu Lab", location: "Bin 3", nozzleTempMin: 200 },
       links: { spoolstockShortId: "new1" },
     });
   });

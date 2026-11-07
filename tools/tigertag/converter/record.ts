@@ -57,7 +57,8 @@ export function buildRecord(
   );
   const used = Number(spool.used_weight);
   const remaining = finiteNonNegative(
-    spool.remaining_weight ?? (Number.isFinite(used) && used >= 0 ? initial - used : undefined),
+    spool.remaining_weight ??
+      (Number.isFinite(used) && used >= 0 ? Math.max(0, initial - used) : undefined),
     initial,
     "remaining_weight",
     spoolId,

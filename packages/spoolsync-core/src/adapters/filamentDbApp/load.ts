@@ -46,10 +46,11 @@ export function parseFilamentDbApp(parsed: unknown): FilamentDbAppFile {
 }
 
 export function loadFilamentDbAppFile(text: string): FilamentDbAppLoadResult {
-  if (!/^s*[[{]/.test(text)) return loadFilamentDbAppCsv(text);
+  const clean = text.replace(/^\uFEFF/, "");
+  if (!/^\s*[[{]/.test(clean)) return loadFilamentDbAppCsv(clean);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(clean);
   } catch {
     throw new Error(
       "This file is not valid JSON. Export a snapshot from Filament DB and try again.",

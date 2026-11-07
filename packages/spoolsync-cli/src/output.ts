@@ -40,17 +40,25 @@ export function assertPortableOutputName(
   platform: NodeJS.Platform = process.platform,
 ): void {
   if (platform !== "win32") return;
-  const name = path.win32.basename(filename);
-  if (WINDOWS_DEVICE_NAME.test(name))
-    throw new Error(`"${name}" is a reserved Windows device name. Choose another file name.`);
-  if (isDisallowedWindowsName(name))
-    throw new Error(
-      `"${name}" contains a character Windows does not allow in file names (< > : " | ? *). Choose another file name.`,
-    );
-  if (/[. ]$/.test(name))
-    throw new Error(
-      `"${name}" ends with a dot or space, which Windows removes. Choose another file name.`,
-    );
+  const withoutRoot = filename
+    .replace(/^[A-Za-z]:[\\/]+/, "")
+    .replace(/^[\\/]{2}[^\\/]+[\\/][^\\/]+[\\/]?/, "");
+  const segments = withoutRoot
+    .split(/[\\/]+/)
+    .filter((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+  const candidates = segments.length ? segments : [path.win32.basename(filename)];
+  for (const name of candidates) {
+    if (WINDOWS_DEVICE_NAME.test(name))
+      throw new Error(`"${name}" is a reserved Windows device name. Choose another file name.`);
+    if (isDisallowedWindowsName(name))
+      throw new Error(
+        `"${name}" contains a character Windows does not allow in file names (< > : " | ? *). Choose another file name.`,
+      );
+    if (/[. ]$/.test(name))
+      throw new Error(
+        `"${name}" ends with a dot or space, which Windows removes. Choose another file name.`,
+      );
+  }
 }
 
 // Resolve existing ancestors too, so a new file inside a junction uses its actual directory.
@@ -93,6 +101,8 @@ export async function validateOutputPaths(
     const id = await identity(filename);
     if (id) inputIds.add(id);
   }
+  const outputPaths = new Set<string>();
+  const outputIds = new Set<string>();
   for (const filename of outputs) {
     assertPortableOutputName(filename, platform);
     const canonical = await canonicalPath(filename, platform);
@@ -101,6 +111,12 @@ export async function validateOutputPaths(
       throw new Error(
         `Output would overwrite an input inventory: ${filename}. Choose another output location.`,
       );
+    if (outputPaths.has(canonical) || (id && outputIds.has(id)))
+      throw new Error(
+        `Multiple exports would write to the same file: ${filename}. Choose distinct output locations.`,
+      );
+    outputPaths.add(canonical);
+    if (id) outputIds.add(id);
   }
 }
 

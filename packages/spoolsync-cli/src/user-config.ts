@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -91,7 +92,7 @@ export async function saveUserConfig(
       "There is nothing to save. Give the options you want as defaults, such as --output-dir ./updated or --spoolio spoolio.json, along with --save-config.",
     );
   await ensureDirectory(path.dirname(file), 0o700);
-  const temporary = `${file}.${process.pid}.tmp`;
+  const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporary, `${JSON.stringify(settings, null, 2)}\n`, {
       mode: 0o600,
@@ -117,8 +118,8 @@ export async function clearUserConfig(file: string): Promise<boolean> {
 
 /** Writes text to a file atomically (temporary file, then rename), readable only by the owner. */
 export async function writeTextAtomic(file: string, text: string, mode = 0o600): Promise<void> {
-  await ensureDirectory(path.dirname(file));
-  const temporary = `${file}.${process.pid}.tmp`;
+  await ensureDirectory(path.dirname(file), 0o700);
+  const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporary, text, { mode, flag: "wx" });
     await rename(temporary, file);

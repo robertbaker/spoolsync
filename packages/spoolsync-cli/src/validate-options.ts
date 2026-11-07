@@ -61,6 +61,27 @@ export function validateOptions(options: Options): void {
     throw new Error("Use either --filadex-url or --filadex <file>, not both.");
   if (!!filadexUrl !== !!filadexUser)
     throw new Error("--filadex-url and --filadex-user must be used together.");
+  for (const [flag, url] of [
+    ["--spoolman-url", spoolmanUrl],
+    ["--filamentdb-url", filamentdbUrl],
+    ["--filament-db-url", filamentDbUrl],
+    ["--bambuddy-url", bambuddyUrl],
+    ["--filadex-url", filadexUrl],
+  ] as const) {
+    if (!url) continue;
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new Error(`${flag} must be a valid http:// or https:// URL.`);
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      throw new Error(`${flag} must use http:// or https://.`);
+    if (parsed.username || parsed.password)
+      throw new Error(
+        `${flag} cannot include credentials in the URL. Pass a token flag or environment variable instead.`,
+      );
+  }
   if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
     throw new Error(
       "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url; file inputs are never written to a service.",
@@ -70,6 +91,7 @@ export function validateOptions(options: Options): void {
       inputs.has(source) ||
       (source === "spoolman" && spoolmanUrl) ||
       (source === "filamentdb" && filamentdbUrl) ||
+      (source === "filamentDbApp" && filamentDbUrl) ||
       (source === "bambuddy" && bambuddyUrl) ||
       (source === "filadex" && filadexUrl)
     )

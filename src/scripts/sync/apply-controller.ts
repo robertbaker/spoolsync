@@ -74,6 +74,7 @@ export interface ApplyContext {
 
 export class ApplyController {
   readonly logs = new Map<SourceId, ApplyLogEntry[]>();
+  private applying = false;
 
   constructor(
     private readonly services: Partial<Record<SourceId, ApplyService>>,
@@ -114,6 +115,7 @@ export class ApplyController {
   }
 
   async run(source: SourceId, changes: PlannedChange[], status: HTMLElement): Promise<void> {
+    if (this.applying) return;
     const service = this.services[source];
     const target = service?.connect();
     if (!service || !target) return;
@@ -132,44 +134,49 @@ export class ApplyController {
         rollback: Boolean(this.rollback?.enabled() && isWritableSource(source)),
       },
     );
-    if (!confirmed) return;
-    if (this.rollback?.enabled() && isWritableSource(source)) {
-      const document = this.rollback.build(source, changes, target.description);
-      if (document.updates.length || document.creations.length) {
-        try {
-          this.rollback.save(document);
-        } catch {
-          // Writing without the safety net would defeat the point, so nothing is written.
-          status.replaceChildren(
-            notice(
-              "error",
-              "Nothing was written",
-              'The rollback file could not be saved. Turn off "Save a rollback file" to write without one.',
-            ),
-          );
-          return;
+    if (!confirmed || this.applying) return;
+    this.applying = true;
+    try {
+      if (this.rollback?.enabled() && isWritableSource(source)) {
+        const document = this.rollback.build(source, changes, target.description);
+        if (document.updates.length || document.creations.length) {
+          try {
+            this.rollback.save(document);
+          } catch {
+            // Writing without the safety net would defeat the point, so nothing is written.
+            status.replaceChildren(
+              notice(
+                "error",
+                "Nothing was written",
+                'The rollback file could not be saved. Turn off "Save a rollback file" to write without one.',
+              ),
+            );
+            return;
+          }
         }
       }
+      status.replaceChildren(notice("info", "Applying…"));
+      try {
+        const result = await target.apply(changes, (done, total) => {
+          status.replaceChildren(notice("info", `Applying… ${done} of ${total}`));
+        });
+        this.logs.set(source, result.log);
+        this.remember(source, changes, result.log);
+        this.context.loaded.set(source, result.inventory);
+        this.saveInventory(result.inventory);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const log = [
+          ...(error instanceof ApplyReloadError ? error.log : []),
+          { groupId: "", ok: false, message },
+        ];
+        this.logs.set(source, log);
+        // A refresh failure after writes keeps the writes' counts; the extra entry is the error.
+        this.remember(source, changes, log, message);
+      }
+      this.context.onApplied();
+    } finally {
+      this.applying = false;
     }
-    status.replaceChildren(notice("info", "Applying…"));
-    try {
-      const result = await target.apply(changes, (done, total) => {
-        status.replaceChildren(notice("info", `Applying… ${done} of ${total}`));
-      });
-      this.logs.set(source, result.log);
-      this.remember(source, changes, result.log);
-      this.context.loaded.set(source, result.inventory);
-      this.saveInventory(result.inventory);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const log = [
-        ...(error instanceof ApplyReloadError ? error.log : []),
-        { groupId: "", ok: false, message },
-      ];
-      this.logs.set(source, log);
-      // A refresh failure after writes keeps the writes' counts; the extra entry is the error.
-      this.remember(source, changes, log, message);
-    }
-    this.context.onApplied();
   }
 }

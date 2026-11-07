@@ -163,7 +163,10 @@ function encode(
         required("an initial weight", next.initialWeight);
         payload["label_weight"] = whole(label, "label weight", next.initialWeight as number);
       }
-      if (touched("remainingWeight")) required("a remaining weight", next.remainingWeight);
+      if (touched("remainingWeight")) {
+        required("a remaining weight", next.remainingWeight);
+        required("an initial weight", next.initialWeight);
+      }
       if (next.initialWeight !== null && next.remainingWeight !== null) {
         if (next.remainingWeight < 0 || next.remainingWeight > next.initialWeight)
           throw new Error(

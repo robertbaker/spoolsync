@@ -87,12 +87,15 @@ test("an export with no settings still has a valid shape, and unusable files are
 });
 
 test("a planted secret or unknown key in the CLI section is refused like in a config file", () => {
-  const withKey = (key: string) =>
-    JSON.stringify({ format: "spoolsync-settings", version: 1, cli: { [key]: "x" } });
+  const withKey = (key: string, val: unknown = "x") =>
+    JSON.stringify({ format: "spoolsync-settings", version: 1, cli: { [key]: val } });
   expect(() => parseImportDocument(withKey("spoolman-token"), "x.json")).toThrow(
     "looks like a secret",
   );
   expect(() => parseImportDocument(withKey("not-a-key"), "x.json")).toThrow(
     'unknown key "not-a-key"',
+  );
+  expect(() => parseImportDocument(withKey("apply", true), "x.json")).toThrow(
+    "cannot be saved as a default setting",
   );
 });

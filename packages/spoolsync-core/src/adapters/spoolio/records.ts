@@ -16,10 +16,13 @@ export function setField(
     case "vendor":
       target["brand"] = value ?? "";
       break;
-    case "material":
-      target["type"] = MATERIAL_TYPES[String(value)] ?? value ?? "";
-      setNotes(target, target["notes"], MATERIAL_TYPES[String(value)] ? String(value) : undefined);
+    case "material": {
+      const key = String(value);
+      const mapped = Object.hasOwn(MATERIAL_TYPES, key) ? MATERIAL_TYPES[key] : undefined;
+      target["type"] = mapped ?? value ?? "";
+      setNotes(target, target["notes"], mapped ? key : undefined);
       break;
+    }
     case "name":
       target["colorName"] = value ?? "";
       break;

@@ -35,6 +35,7 @@ export function saveTigertagSession(value: TigertagSession, remember: boolean): 
 }
 
 export function clearTigertagSession(): void {
+  invalidateApiInventory("tigertag");
   write(local, TIGERTAG_SESSION_KEY, null);
   write(session, TIGERTAG_SESSION_KEY, null);
 }

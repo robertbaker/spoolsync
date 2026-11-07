@@ -129,7 +129,7 @@ export function parseTemperatureRange(
 ): { min: number; max: number } | null {
   if (typeof input !== "string") return null;
   const match =
-    /^\s*(\d{2,3}(?:[.,]\d+)?)\s*(?:°|º)?\s*([CF])?\s*(?:-|–|—|~|\/|to|\.\.)\s*(\d{2,3}(?:[.,]\d+)?)\s*(?:°|º)?\s*([CF])?\s*$/i.exec(
+    /^\s*(\d{1,3}(?:[.,]\d+)?)\s*(?:°|º)?\s*([CF])?\s*(?:-|–|—|~|\/|to|\.\.)\s*(\d{1,3}(?:[.,]\d+)?)\s*(?:°|º)?\s*([CF])?\s*$/i.exec(
       input,
     );
   if (!match) return null;
@@ -450,11 +450,16 @@ export function normalizeReferenceRecords(
       skipped += 1;
       return;
     }
-    const count = (seen.get(result.filament.id) ?? 0) + 1;
-    seen.set(result.filament.id, count);
-    filaments.push(
-      count === 1 ? result.filament : { ...result.filament, id: `${result.filament.id}#${count}` },
-    );
+    const baseId = result.filament.id;
+    let count = (seen.get(baseId) ?? 0) + 1;
+    let candidate = count === 1 ? baseId : `${baseId}#${count}`;
+    while (count > 1 && seen.has(candidate)) {
+      count += 1;
+      candidate = `${baseId}#${count}`;
+    }
+    seen.set(baseId, count);
+    seen.set(candidate, 1);
+    filaments.push(candidate === baseId ? result.filament : { ...result.filament, id: candidate });
   });
   return { filaments, warnings, skipped };
 }

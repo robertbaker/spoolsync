@@ -1,4 +1,5 @@
 import { fetchWithHeaderTimeout, type FetchLike } from "../shared/fetch";
+import { idOf } from "./map";
 
 export interface FilamentDbAppConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:3456`. */
@@ -56,9 +57,12 @@ export class FilamentDbAppClient {
     const list = await this.request("GET", "/api/locations");
     if (!Array.isArray(list)) throw new Error("Filament DB returned an unexpected location list.");
     const ids = new Map<string, string>();
-    for (const entry of list as Array<Record<string, unknown>>)
-      if (typeof entry["_id"] === "string" && typeof entry["name"] === "string")
-        ids.set(entry["name"].trim().toLowerCase(), entry["_id"]);
+    for (const entry of list as Array<Record<string, unknown>>) {
+      if (!entry || typeof entry !== "object" || entry["_deletedAt"]) continue;
+      const id = idOf(entry["_id"]);
+      const name = typeof entry["name"] === "string" ? entry["name"].trim().toLowerCase() : "";
+      if (id && name) ids.set(name, id);
+    }
     return ids;
   }
 

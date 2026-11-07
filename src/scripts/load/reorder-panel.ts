@@ -207,6 +207,7 @@ export function wireReorderPanel(
       document.body.append(sheet);
       document.body.classList.add("printing-reorder");
       const finish = () => {
+        window.removeEventListener("afterprint", finish);
         document.body.classList.remove("printing-reorder");
         sheet.remove();
       };

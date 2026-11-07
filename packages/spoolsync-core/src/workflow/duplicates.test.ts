@@ -98,4 +98,12 @@ test("a pair someone said is different is not reported, and cannot bridge two sp
 
   const none = findDuplicateSpools([result("spoolman", spools)], { isDifferent: () => true });
   expect(none).toEqual([]);
+
+  const transitive = findDuplicateSpools([result("spoolman", spools)], {
+    isDifferent: (a, b) => [a.sourceId, b.sourceId].sort().join("|") === "1|3",
+  });
+  for (const group of transitive) {
+    const ids = group.spools.map((spool) => spool.sourceId);
+    expect(ids.includes("1") && ids.includes("3")).toBe(false);
+  }
 });

@@ -1,6 +1,8 @@
 import type { SpoolGroup } from "../match";
+import { recordKey } from "../matching/keys";
 import { SOURCE_IDS, COMPARABLE_FIELDS, type ComparableField, type SourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
+import type { RecordEdits } from "./record-edits";
 import type {
   FieldValue,
   FieldOption,
@@ -95,7 +97,11 @@ export function openConflicts(group: SpoolGroup, resolution: GroupResolution): C
  * The full spool as it should look after the run: resolved values first, then each field from the
  * first service (in source order) that has one. Used to create the spool where it is missing.
  */
-export function mergedValues(group: SpoolGroup, resolution: GroupResolution): SpoolValues {
+export function mergedValues(
+  group: SpoolGroup,
+  resolution: GroupResolution,
+  recordEdits: RecordEdits = new Map(),
+): SpoolValues {
   const sources = presentSources(group);
   const out = {} as Record<ComparableField, FieldValue>;
   for (const field of COMPARABLE_FIELDS) {
@@ -106,7 +112,9 @@ export function mergedValues(group: SpoolGroup, resolution: GroupResolution): Sp
     }
     let found: FieldValue | undefined;
     for (const source of sources) {
-      const value = group.members[source]![field];
+      const member = group.members[source]!;
+      const edited = recordEdits.get(recordKey(member))?.[field];
+      const value = edited !== undefined ? edited : member[field];
       if (!isBlank(value)) {
         found = value;
         break;

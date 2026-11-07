@@ -130,8 +130,10 @@ export async function readZipEntry(bytes: Uint8Array, entry: ZipEntry): Promise<
 }
 
 async function readZipEntryUnchecked(bytes: Uint8Array, entry: ZipEntry): Promise<Uint8Array> {
-  if (entry.uncompressedSize > MAX_ENTRY_BYTES)
+  if (entry.uncompressedSize > MAX_ENTRY_BYTES || entry.compressedSize > MAX_ENTRY_BYTES)
     throw new ZipError("A file inside this spreadsheet is too large to read.");
+  if (entry.method === 0 && entry.compressedSize !== entry.uncompressedSize)
+    throw new ZipError("This file is not a valid spreadsheet: its contents are damaged.");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const header = entry.localHeaderOffset;
   if (header + 30 > bytes.byteLength || view.getUint32(header, true) !== LOCAL_SIGNATURE)

@@ -22,7 +22,10 @@ function browserEnvironment(): ClipboardEnvironment {
       document.body.append(box);
       try {
         box.select();
-        return document.execCommand("copy");
+        return (
+          (document as { execCommand?: (commandId: string) => boolean }).execCommand?.("copy") ??
+          false
+        );
       } catch {
         return false;
       } finally {

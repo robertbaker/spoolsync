@@ -112,11 +112,16 @@ export function printLabelSheet(spools: readonly CommonSpool[], presetId?: strin
   document.body.append(sheet);
   document.body.classList.add("printing-labels");
   const finish = () => {
+    window.removeEventListener("afterprint", finish);
     document.body.classList.remove("printing-labels");
     sheet.remove();
   };
   window.addEventListener("afterprint", finish, { once: true });
-  window.print();
+  try {
+    window.print();
+  } catch {
+    finish();
+  }
 }
 
 interface Inputs {

@@ -89,7 +89,7 @@ export async function runWorkflow(
               );
             } catch (error) {
               if (error instanceof ApplyReloadError) log.push(...error.log);
-              throw new ExecutionError(error, log, []);
+              throw new ExecutionError(error, log, [], undefined, rollbackFiles);
             }
           }
           return log;

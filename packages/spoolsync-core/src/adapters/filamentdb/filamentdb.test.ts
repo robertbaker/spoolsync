@@ -78,11 +78,11 @@ test("reads FilamentDB's ZIP export and keeps JSON support", async () => {
   expect(fromBytes.spools).toEqual(fromText.spools);
 });
 
-test("rejects a ZIP without spool files", async () => {
-  await expect(
+test("rejects a ZIP without spool files", () => {
+  expect(
     loadInventoryFile("filamentdb", buildZip([{ name: "readme.txt", content: "x" }])),
   ).rejects.toThrow("no spool files");
-  await expect(
+  expect(
     loadInventoryFile("filamentdb", buildZip([{ name: "a-b-c-d.json", content: '{"x":1}' }])),
   ).rejects.toThrow("no spool file has a serial");
 });

@@ -18,9 +18,26 @@ if (process.env["SKIP_REFERENCE_SNAPSHOT"] === "1") {
   process.exit(0);
 }
 
-const args = new Set(process.argv.slice(2));
-const outIndex = process.argv.indexOf("--out");
-const outDir = outIndex > 0 ? (process.argv[outIndex + 1] ?? "public") : "public";
+const rawArgs = process.argv.slice(2);
+let outDir = "public";
+let force = false;
+let strict = false;
+for (let i = 0; i < rawArgs.length; i++) {
+  const arg = rawArgs[i]!;
+  if (arg === "--force") force = true;
+  else if (arg === "--strict") strict = true;
+  else if (arg === "--out") {
+    const next = rawArgs[++i];
+    if (!next || next.startsWith("-")) throw new Error("--out requires a directory path");
+    outDir = next;
+  } else if (arg.startsWith("--out=")) {
+    const next = arg.slice("--out=".length);
+    if (!next) throw new Error("--out requires a directory path");
+    outDir = next;
+  } else {
+    throw new Error(`Unknown option: ${arg}`);
+  }
+}
 
 const results = await buildSnapshots(
   {
@@ -46,9 +63,9 @@ const results = await buildSnapshots(
   },
   {
     outDir,
-    force: args.has("--force"),
+    force,
     sources: { openprinttag: openPrintTagSource() },
   },
 );
 
-if (args.has("--strict") && results.some((result) => result.status === "failed")) process.exit(1);
+if (strict && results.some((result) => result.status === "failed")) process.exit(1);

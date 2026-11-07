@@ -85,11 +85,12 @@ export function spoolmanConnectPanel(deps: SpoolmanConnectDependencies): HTMLEle
       return;
     }
     url.value = baseUrl;
+    const latest = deps.loadSpoolmanConnection();
     // Session-only token unless the person already chose to remember one on the Connections page.
     const connection = {
       baseUrl,
       token: token.value,
-      rememberToken: stored?.rememberToken ?? false,
+      rememberToken: latest?.rememberToken ?? false,
     };
     deps.saveSpoolmanConnection(connection);
     connect.disabled = true;

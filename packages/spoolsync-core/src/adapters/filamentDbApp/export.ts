@@ -121,7 +121,7 @@ export function exportFilamentDbApp(
     );
   return {
     json: JSON.stringify(document, null, 2) + "\n",
-    total: spools.size,
+    total: spools.size + legacyRolls.size,
     updated,
     created,
     warnings,

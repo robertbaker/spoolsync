@@ -130,11 +130,14 @@ function nestFlatSpool(spool: unknown): unknown {
     return spool;
   }
   const nested: JsonRecord = {};
+  const blocked = new Set(["__proto__", "constructor", "prototype"]);
   for (const [key, value] of Object.entries(source)) {
     const parts = key.split(".");
+    if (parts.some((part) => !part || blocked.has(part))) continue;
     let target = nested;
     for (const part of parts.slice(0, -1)) {
-      if (typeof target[part] !== "object" || target[part] === null) target[part] = {};
+      if (!Object.hasOwn(target, part) || typeof target[part] !== "object" || target[part] === null)
+        target[part] = {};
       target = target[part];
     }
     target[parts[parts.length - 1] as string] = value;

@@ -30,8 +30,13 @@ function readTable(root: string, name: string): unknown[] {
   );
 }
 
-const [root, output] = process.argv.slice(2);
-if (!root || !output) {
+const args = process.argv.slice(2);
+if (args.includes("--help") || args.includes("-h")) {
+  console.log("Usage: bun tools/openprinttag-to-reference.ts <clone-dir> <output.json>");
+  process.exit(0);
+}
+const [root, output, ...extra] = args;
+if (!root || !output || extra.length || root.startsWith("-") || output.startsWith("-")) {
   console.error("Usage: bun tools/openprinttag-to-reference.ts <clone-dir> <output.json>");
   process.exit(2);
 }

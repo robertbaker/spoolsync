@@ -55,6 +55,23 @@ function setColors(target: Record<string, unknown>, list: string[]): void {
   } else if (type !== "mono") target["online_color_type"] = "mono";
 }
 
+function clearCatalogTemp(
+  target: Record<string, unknown>,
+  group: "nozzle" | "bed",
+  bound: "temp_min" | "temp_max",
+): void {
+  const catalog = target["catalogProduct"];
+  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) return;
+  const sub = (catalog as Record<string, unknown>)[group];
+  if (!sub || typeof sub !== "object" || Array.isArray(sub)) return;
+  if (bound in sub) {
+    target["catalogProduct"] = {
+      ...(catalog as Record<string, unknown>),
+      [group]: { ...(sub as Record<string, unknown>), [bound]: null },
+    };
+  }
+}
+
 function setField(target: Record<string, unknown>, field: ComparableField, value: unknown): void {
   switch (field) {
     case "vendor":
@@ -77,15 +94,19 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
       break;
     case "nozzleTempMin":
       target["data2"] = uint16(value as number | null);
+      if (value == null) clearCatalogTemp(target, "nozzle", "temp_min");
       break;
     case "nozzleTempMax":
       target["data3"] = uint16(value as number | null);
+      if (value == null) clearCatalogTemp(target, "nozzle", "temp_max");
       break;
     case "bedTempMin":
       target["data6"] = byte(value as number | null);
+      if (value == null) clearCatalogTemp(target, "bed", "temp_min");
       break;
     case "bedTempMax":
       target["data7"] = byte(value as number | null);
+      if (value == null) clearCatalogTemp(target, "bed", "temp_max");
       break;
     case "density":
       if (value == null) delete target["density"];

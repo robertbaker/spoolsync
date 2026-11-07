@@ -26,7 +26,9 @@ export function loadSpoolmanConnection(): StoredSpoolmanConnection | null {
 }
 
 export function saveSpoolmanConnection(connection: StoredSpoolmanConnection): void {
-  if (loadSpoolmanConnection()?.baseUrl !== connection.baseUrl) {
+  const previous = loadSpoolmanConnection();
+  const nextToken = connection.token?.trim() || undefined;
+  if (previous?.baseUrl !== connection.baseUrl || previous?.token !== nextToken) {
     invalidateApiInventory("spoolman");
   }
   write(
@@ -34,12 +36,13 @@ export function saveSpoolmanConnection(connection: StoredSpoolmanConnection): vo
     CONNECTION_KEY,
     JSON.stringify({ baseUrl: connection.baseUrl, rememberToken: connection.rememberToken }),
   );
-  const token = connection.token?.trim() || null;
+  const token = nextToken ?? null;
   write(connection.rememberToken ? local : session, TOKEN_KEY, token);
   write(connection.rememberToken ? session : local, TOKEN_KEY, null);
 }
 
 export function clearSpoolmanConnection(): void {
+  invalidateApiInventory("spoolman");
   write(local, CONNECTION_KEY, null);
   write(local, TOKEN_KEY, null);
   write(session, TOKEN_KEY, null);

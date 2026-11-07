@@ -1,4 +1,4 @@
-import type { CommonSpool } from "../../packages/spoolsync-core/src/core/model";
+import { isWritableSource, type CommonSpool } from "../../packages/spoolsync-core/src/core/model";
 import { loadInventoryFile } from "../../packages/spoolsync-core/src/workflow";
 import { auditConversions } from "./conversions";
 import { auditCycles } from "./cycles";
@@ -29,7 +29,7 @@ export async function runReferenceChecks(dependencies: ReferenceDependencies) {
         `${name}: ${loaded.spools.length} spools, ${loaded.warnings.length} import warnings`,
       );
       await auditConversions(name, loaded, reporter);
-      if (source !== "spoolstock" && source !== "bambuddy") {
+      if (isWritableSource(source) && source !== "bambuddy") {
         await auditEdits(name, source, loaded, reporter);
         await auditCycles(name, source, loaded, reporter);
       }

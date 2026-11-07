@@ -32,8 +32,17 @@ export function parseHexColor(value: unknown): ParsedColor | null {
 
 export function safeOptionalUrl(value: unknown): string | undefined {
   if (typeof value !== "string" || !value.trim()) return undefined;
+  let candidate = value.trim();
+  if (candidate.startsWith('"') && candidate.endsWith('"')) {
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (typeof parsed === "string") candidate = parsed.trim();
+    } catch {
+      // Keep original candidate
+    }
+  }
   try {
-    const url = new URL(value.trim());
+    const url = new URL(candidate);
     return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : undefined;
   } catch {
     return undefined;
@@ -71,6 +80,7 @@ export function normalizeAspect(filament: SpoolmanFilament, name: unknown): numb
 }
 
 export function temp(value: unknown, fallback: number, maximum = 255): number {
+  if (value == null || value === "") return fallback;
   const n = Number(value);
   return Number.isFinite(n) && n >= 0 ? Math.min(maximum, Math.round(n)) : fallback;
 }

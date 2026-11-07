@@ -33,7 +33,8 @@ function decodeXml(text: string): string {
         ? String.fromCodePoint(code)
         : match;
     }
-    return ENTITIES[body.toLowerCase()] ?? match;
+    const key = body.toLowerCase();
+    return Object.hasOwn(ENTITIES, key) ? ENTITIES[key]! : match;
   });
 }
 
@@ -156,6 +157,8 @@ export async function readXlsx(bytes: Uint8Array): Promise<XlsxWorkbook> {
   );
 
   const sheets: XlsxSheet[] = [];
+  let totalSheetChars = 0;
+  const maxTotalChars = 64 * 1024 * 1024;
   for (const match of workbookXml.matchAll(/<(?:\w+:)?sheet\b([^>]*?)\/?>/g)) {
     const attributes = match[1] ?? "";
     if (attribute(attributes, "state") === "veryHidden") continue;
@@ -165,6 +168,9 @@ export async function readXlsx(bytes: Uint8Array): Promise<XlsxWorkbook> {
     if (!name || !path) continue;
     const sheetXml = await readZipText(bytes, entries, path);
     if (sheetXml === undefined) continue;
+    totalSheetChars += sheetXml.length;
+    if (totalSheetChars > maxTotalChars)
+      throw new ZipError("A file inside this spreadsheet is too large to read.");
     sheets.push(parseSheet(name, sheetXml, sharedStrings));
   }
   return { sheets };

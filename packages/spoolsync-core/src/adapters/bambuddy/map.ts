@@ -1,4 +1,4 @@
-import type { CommonSpool } from "../../core/model";
+import type { CommonSpool, ComparableField } from "../../core/model";
 import { toNumber, toPositiveNumber, toText, uniqueHexes } from "../../core/normalize";
 import type { BambuddyLoadResult, BambuddySpool } from "./types";
 
@@ -18,6 +18,7 @@ export function mapSpool(
   spool: BambuddySpool,
   index: number,
   syntheticIds: ReadonlySet<number> = new Set(),
+  unavailable?: readonly ComparableField[],
 ): CommonSpool {
   const numeric = numericId(spool.id);
   const id = String(numeric ?? index + 1);
@@ -69,6 +70,7 @@ export function mapSpool(
     td: null,
     comment: toText(spool.note),
     archived: Boolean(spool.archived_at),
+    ...(unavailable?.length ? { unavailable } : {}),
     raw: spool,
   };
 }
@@ -89,10 +91,11 @@ export function priceWarnings(spools: BambuddySpool[]): string[] {
 export function inventoryFromRecords(
   records: BambuddySpool[],
   syntheticIds: ReadonlySet<number> = new Set(),
+  unavailable?: readonly ComparableField[],
 ): BambuddyLoadResult {
   return {
     source: "bambuddy",
-    spools: records.map((record, index) => mapSpool(record, index, syntheticIds)),
+    spools: records.map((record, index) => mapSpool(record, index, syntheticIds, unavailable)),
     warnings: priceWarnings(records),
     loadedAt: new Date().toISOString(),
   };

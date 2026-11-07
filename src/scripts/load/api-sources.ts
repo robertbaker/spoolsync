@@ -138,7 +138,10 @@ function wireFilamentDb(context: LoadContext): void {
     finish: updateEnabled,
     prepare() {
       const value = token.value.trim();
-      const connection = { baseUrl: url.value.trim(), ...(value ? { token: value } : {}) };
+      const connection = {
+        baseUrl: url.value.trim().replace(/\/+$/, ""),
+        ...(value ? { token: value } : {}),
+      };
       return {
         loading: notice("info", "Fetching FilamentDB spools…"),
         async load() {

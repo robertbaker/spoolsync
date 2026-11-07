@@ -30,7 +30,10 @@ export async function applyToFilamentDb(
 
   let done = 0;
   for (const change of changes) {
-    const noop = () => {};
+    const notes: string[] = [];
+    const warn = (note: string) => {
+      notes.push(note);
+    };
     try {
       let message: string;
       if (change.kind === "update") {
@@ -39,14 +42,15 @@ export async function applyToFilamentDb(
           throw new Error(
             `Spool ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
           );
-        updateRecord(record, change, noop);
+        updateRecord(record, change, warn);
         await client.saveSpool(record);
         message = `Updated spool ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
       } else {
-        const record = createRecord(change.values, "FilamentDB", noop);
+        const record = createRecord(change.values, "FilamentDB", warn);
         await client.saveSpool(record);
         message = `Created spool ${record["serial"]}`;
       }
+      if (notes.length) message += ` (${notes.join(" ")})`;
       log.push({ groupId: change.groupId, ok: true, message });
     } catch (error) {
       const what = change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool";

@@ -11,6 +11,7 @@ export class ExecutionError extends Error {
     readonly applied: ApplyLogEntry[] | undefined,
     readonly written: string[],
     readonly cleanupError?: unknown,
+    readonly rollbackFiles: readonly string[] = [],
   ) {
     super(
       `${message(cause)}${cleanupError === undefined ? "" : ` Staging cleanup also failed: ${message(cleanupError)}`}`,
@@ -27,6 +28,7 @@ export async function executeWrites(
 ): Promise<{ applied: ApplyLogEntry[] | undefined; written: string[] }> {
   let applied: ApplyLogEntry[] | undefined;
   let written: string[] = [];
+  let rollbackFiles: readonly string[] = [];
   let failed = false;
   let failure: unknown;
   try {
@@ -36,7 +38,10 @@ export async function executeWrites(
     failed = true;
     failure = error;
     if (error instanceof ApplyReloadError) applied = error.log;
-    if (error instanceof ExecutionError) applied = error.applied;
+    if (error instanceof ExecutionError) {
+      applied = error.applied;
+      rollbackFiles = error.rollbackFiles;
+    }
     if (error instanceof ExportCommitError) written = error.written;
   }
   let cleanupError: unknown;
@@ -49,6 +54,6 @@ export async function executeWrites(
       failure = error;
     }
   }
-  if (failed) throw new ExecutionError(failure, applied, written, cleanupError);
+  if (failed) throw new ExecutionError(failure, applied, written, cleanupError, rollbackFiles);
   return { applied, written };
 }

@@ -16,9 +16,21 @@ function setWeights(
   label: string,
   warn: Warn,
 ): void {
-  const total = initial ?? remaining;
-  if (total === null || total <= 0) return;
-  if (initial === null)
+  if (remaining !== null && remaining < 0)
+    throw new Error(
+      `${label}: remaining weight must be non-negative. Resolve the weights before exporting.`,
+    );
+  const total =
+    initial !== null && initial > 0
+      ? initial
+      : remaining !== null && remaining > 0
+        ? remaining
+        : null;
+  if (total === null) {
+    if (remaining === 0) record["remainingPercentage"] = "0";
+    return;
+  }
+  if (initial === null || initial <= 0)
     warn(`${label}: initial weight was unknown; remaining weight was used as the total.`);
   if (remaining !== null && remaining > total)
     throw new Error(

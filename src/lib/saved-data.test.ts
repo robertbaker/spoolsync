@@ -50,6 +50,16 @@ test("a session prefix group matches every loaded inventory", () => {
   expect(forgetGroup("inventories")).toBe(3);
 });
 
+test("session-only tokens and sessions are listed and cleared under connections", () => {
+  sessionStorage.setItem("spoolsync:spoolman-token", "session-secret");
+  sessionStorage.setItem("spoolsync:tigertag-session", '{"accessToken":"tok"}');
+  const items = listSavedData();
+  expect(items.map((item) => item.group.id)).toEqual(["connections", "inventories"]);
+  expect(forgetGroup("connections")).toBe(2);
+  expect(sessionStorage.getItem("spoolsync:spoolman-token")).toBeNull();
+  expect(sessionStorage.getItem("spoolsync:tigertag-session")).toBeNull();
+});
+
 test("forgetting everything clears all spoolsync keys, including ones no group names", () => {
   localStorage.setItem("spoolsync:prefs", "{}");
   localStorage.setItem("spoolsync:future-setting", "1");

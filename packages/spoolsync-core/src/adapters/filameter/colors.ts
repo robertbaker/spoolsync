@@ -156,5 +156,6 @@ const CSS_COLORS: Record<string, string> = {
 /** Resolves a CSS color keyword (case-insensitive) to an upper-case hex, or null. */
 export function cssColorHex(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  return CSS_COLORS[value.trim().toLowerCase()] ?? null;
+  const key = value.trim().toLowerCase();
+  return Object.hasOwn(CSS_COLORS, key) ? CSS_COLORS[key]! : null;
 }

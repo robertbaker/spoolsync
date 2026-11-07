@@ -88,6 +88,10 @@ describe("casing", () => {
   test("keeps unknown short capitals in all-caps text and asks for review", () => {
     const proposal = only({ name: "FDS BLUE" }, "name");
     expect(proposal).toMatchObject({ after: "FDS Blue", confidence: "review" });
+    expect(only({ name: "PROTOPASTA XYZ" }, "name")).toMatchObject({
+      after: "Proto-pasta XYZ",
+      confidence: "review",
+    });
   });
 });
 

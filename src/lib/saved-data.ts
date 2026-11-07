@@ -5,10 +5,12 @@ import { browserCatalogBodies } from "./browser/storage/catalog-db";
 import { sanitizeFileHistory } from "./browser/storage/file-history";
 import { sanitizeHealthHistory } from "./browser/storage/health-history";
 import { sanitizeWatchlist } from "./browser/storage/insights";
+import { invalidateApiInventory } from "./browser/storage/invalidate";
 import { sanitizeStockHistory } from "./browser/storage/stock-history";
 import { isLocale } from "./i18n";
 import { sanitizeColumnMaps } from "./import-mapper/store";
 import { LABEL_PRESETS, LABEL_SELECTIONS } from "./labels/labels";
+import { isPaletteId } from "./palettes";
 import { sanitizePreferences } from "./preferences";
 import { sanitizeViews } from "./saved-views";
 import { isDefaultColumns, sanitizeColumns } from "./table-columns";
@@ -190,15 +192,25 @@ function keysIn(storage: Storage, group: SavedGroup): string[] {
 /** What is saved right now, for every group that holds something. */
 export function listSavedData(): SavedItem[] {
   return SAVED_GROUPS.flatMap((group) => {
-    const storage = store(group.storage);
-    if (!storage) return [];
-    const keys = keysIn(storage, group);
-    if (!keys.length) return [];
-    const bytes = keys.reduce(
-      (sum, key) => sum + key.length + (storage.getItem(key)?.length ?? 0),
+    const primary = store(group.storage);
+    if (!primary) return [];
+    const keys = new Set(keysIn(primary, group));
+    let bytes = [...keys].reduce(
+      (sum, key) => sum + key.length + (primary.getItem(key)?.length ?? 0),
       0,
     );
-    return [{ group, keys, bytes }];
+    if (group.id === "connections") {
+      const secondary = store("session");
+      if (secondary) {
+        for (const key of keysIn(secondary, group)) {
+          if (key === "spoolsync:spoolman-token") continue;
+          keys.add(key);
+          bytes += key.length + (secondary.getItem(key)?.length ?? 0);
+        }
+      }
+    }
+    if (!keys.size) return [];
+    return [{ group, keys: [...keys], bytes }];
   });
 }
 
@@ -209,8 +221,20 @@ export function forgetGroup(id: string): number {
   if (!group || !storage) return 0;
   const keys = keysIn(storage, group);
   for (const key of keys) storage.removeItem(key);
+  let removed = keys.length;
+  if (id === "connections") {
+    const secondary = store("session");
+    if (secondary) {
+      for (const key of keysIn(secondary, group)) {
+        secondary.removeItem(key);
+        removed++;
+      }
+    }
+    for (const source of ["spoolman", "tigertag", "bambuddy", "filamentdb"] as const)
+      invalidateApiInventory(source);
+  }
   if (id === "reference-cache") void forgetCatalogRecords();
-  return keys.length;
+  return removed;
 }
 
 /** The kept reference catalogs' records live in IndexedDB; a failure to empty it is not an error. */
@@ -254,8 +278,10 @@ const PORTABLE_GROUPS = ["preferences", "files", "watchlist", "history", "answer
 const CHART_VIEWS = ["service", "material", "brand", "color", "location"];
 const COST_VIEWS = ["service", "material", "vendor"];
 
-const isStringList = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((item) => typeof item === "string");
+const isStringList = (value: unknown, maxItems = 500, maxItemLength = 200): value is string[] =>
+  Array.isArray(value) &&
+  value.length <= maxItems &&
+  value.every((item) => typeof item === "string" && item.length <= maxItemLength);
 
 /** Whether a stored value has the shape its key expects, so an imported file cannot plant junk. */
 function isValidEntry(key: string, text: string): boolean {
@@ -265,6 +291,8 @@ function isValidEntry(key: string, text: string): boolean {
         const clean = sanitizePreferences(JSON.parse(text));
         return Object.keys(clean).length > 0;
       }
+      case "spoolsync:palette":
+        return isPaletteId(text) && text !== "filament";
       case "spoolsync:file-history":
         return Object.keys(sanitizeFileHistory(JSON.parse(text))).length > 0;
       case "spoolsync:watchlist":
@@ -284,7 +312,7 @@ function isValidEntry(key: string, text: string): boolean {
       case "spoolsync:open-panels":
       case "spoolsync:recent-sources":
       case "spoolsync:palette-recent":
-        return isStringList(JSON.parse(text));
+        return isStringList(JSON.parse(text), 50, 100);
       case "spoolsync:chart-view":
         return CHART_VIEWS.includes(text);
       case "spoolsync:chart-table-open":
@@ -315,7 +343,7 @@ function isValidEntry(key: string, text: string): boolean {
       case "spoolsync:saved-views":
         return sanitizeViews(JSON.parse(text)).length > 0;
       case "spoolsync:cleanup-settings":
-        return isStringList((JSON.parse(text) as { enabled?: unknown }).enabled);
+        return isStringList((JSON.parse(text) as { enabled?: unknown }).enabled, 50, 100);
       case "spoolsync:reference-settings": {
         const value = JSON.parse(text) as { providerId?: unknown; policy?: unknown };
         return (
@@ -325,7 +353,7 @@ function isValidEntry(key: string, text: string): boolean {
       }
       case "spoolsync:match-decisions": {
         const value = JSON.parse(text) as { confirmed?: unknown; rejected?: unknown };
-        return isStringList(value.confirmed) && isStringList(value.rejected);
+        return isStringList(value.confirmed, 2000, 200) && isStringList(value.rejected, 2000, 200);
       }
       default:
         return false;
@@ -382,8 +410,16 @@ export function importSettings(text: string): ImportResult {
   if (!storage) throw new Error("Browser storage is unavailable, so settings cannot be imported.");
   const allowed = new Set(portableKeys());
   const result: ImportResult = { imported: [], skipped: [] };
+  let total = 0;
   for (const [key, value] of Object.entries(document.entries as Record<string, unknown>)) {
-    if (allowed.has(key) && typeof value === "string" && isValidEntry(key, value)) {
+    if (
+      allowed.has(key) &&
+      typeof value === "string" &&
+      value.length <= BACKUP_LIMITS.entryBytes &&
+      total + value.length <= BACKUP_LIMITS.totalBytes &&
+      isValidEntry(key, value)
+    ) {
+      total += value.length;
       storage.setItem(key, value);
       result.imported.push(key);
     } else result.skipped.push(key);

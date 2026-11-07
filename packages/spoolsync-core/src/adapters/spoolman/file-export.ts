@@ -106,10 +106,11 @@ export function exportSpoolmanJson(
       spools.push(target);
       created++;
     }
-    const { spoolstockShortId } = change.links;
+    const links = change.kind === "create" ? { ...change.groupIds, ...change.links } : change.links;
+    const { spoolstockShortId } = links;
     target.extra = {
       ...target.extra,
-      ...encodeExtras(linkExtras(change.links)),
+      ...encodeExtras(linkExtras(links)),
     };
     if (spoolstockShortId && !target["lot_nr"])
       target["lot_nr"] = spoolstockLotNr(spoolstockShortId);

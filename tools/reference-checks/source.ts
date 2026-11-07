@@ -16,5 +16,20 @@ export function sourceFromFilename(name: string): SourceId | null {
               ? "bambuddy"
               : normalized.startsWith("filameter")
                 ? "filameter"
-                : null;
+                : normalized.startsWith("filadex")
+                  ? "filadex"
+                  : normalized.startsWith("filament-db")
+                    ? "filamentDbApp"
+                    : normalized.startsWith("filamentdb")
+                      ? "filamentdb"
+                      : normalized.startsWith("spoolmaster")
+                        ? "spoolmaster"
+                        : normalized.startsWith("spoolhoarder") ||
+                            normalized.startsWith("spool-hoarder")
+                          ? "spoolhoarder"
+                          : normalized.startsWith("spoolkeep")
+                            ? "spoolkeep"
+                            : normalized.startsWith("spool")
+                              ? "spoolapp"
+                              : null;
 }

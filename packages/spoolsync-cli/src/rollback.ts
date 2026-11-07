@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { ApplyReloadError } from "@spoolsync/core/apply";
 import { FIELD_LABELS, formatValue, type PlannedChange } from "@spoolsync/core/core/compare";
 import {
   isWritableSource,
@@ -16,6 +17,7 @@ import {
   type RollbackPlan,
 } from "@spoolsync/core/workflow";
 
+import { ExecutionError } from "./execution";
 import type { Options } from "./options";
 import type { CliDependencies, CliOutput } from "./runtime";
 import type { RemoteService } from "./services";
@@ -127,7 +129,7 @@ export async function runRestore(
     if (candidate.source === document.source && candidate.apply) service = candidate;
   if (!service?.apply || !isWritableSource(service.source))
     throw new Error(
-      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : document.source === "bambuddy" ? "--bambuddy-url" : "--filadex-url"} <address>.`,
+      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : document.source === "filamentDbApp" ? "--filament-db-url" : document.source === "bambuddy" ? "--bambuddy-url" : "--filadex-url"} <address>.`,
     );
   const inventory = await service.load();
   const plan = planRollback(document, inventory);
@@ -144,9 +146,21 @@ export async function runRestore(
       dependencies,
     );
     if (rollbackFile && !options.json) output.error(`Saved rollback file ${rollbackFile}`);
-    applied = await service.apply(plan.changes, (done, total) => {
-      if (!options.json) output.error(`Restoring ${service.label} changes: ${done}/${total}`);
-    });
+    try {
+      applied = await service.apply(plan.changes, (done, total) => {
+        if (!options.json) output.error(`Restoring ${service.label} changes: ${done}/${total}`);
+      });
+    } catch (error) {
+      if (error instanceof ApplyReloadError)
+        throw new ExecutionError(
+          error,
+          error.log,
+          [],
+          undefined,
+          rollbackFile ? [rollbackFile] : [],
+        );
+      throw error;
+    }
     if (applied.some((entry) => !entry.ok)) output.setExitCode(1);
   }
   const changes = plan.changes.flatMap((change) =>

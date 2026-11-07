@@ -166,6 +166,8 @@ export function reportInventoryOnly(
     ? reorderItems([...loaded.values()], { confirmed: [], rejected: [] }, rule)
     : [];
   const cleanup = options.cleanupReport ? runCleanup(options, loaded) : undefined;
+  const csvFile = options.exportCsv;
+  const inventoryFiles = written.filter((file) => file !== csvFile);
   if (options.json) {
     const report: InventoryReport = {
       schemaVersion: REPORT_SCHEMA_VERSION,
@@ -187,10 +189,8 @@ export function reportInventoryOnly(
       ...(options.summary || options.reorder ? {} : { spools }),
       ...(cleanup ? { cleanup: cleanupSection(cleanup, options) } : {}),
       ...(reference ? { reference: referenceSection(reference, options) } : {}),
-      ...(options.exportCsv && written.includes(options.exportCsv)
-        ? { csvExport: options.exportCsv }
-        : {}),
-      written,
+      ...(csvFile && written.includes(csvFile) ? { csvExport: csvFile } : {}),
+      written: inventoryFiles,
       ...(changes && hasChanges(changes) ? { changesSinceLastRun: changes } : {}),
     };
     output.log(JSON.stringify(report, null, 2));
@@ -236,7 +236,11 @@ export function reportError(error: unknown, json: boolean, output: CliOutput): v
         {
           error: { message },
           ...(error instanceof ExecutionError
-            ? { applied: error.applied, written: error.written }
+            ? {
+                applied: error.applied,
+                written: error.written,
+                ...(error.rollbackFiles.length ? { rollbackFiles: error.rollbackFiles } : {}),
+              }
             : error instanceof ApplyReloadError
               ? { applied: error.log }
               : {}),
@@ -250,6 +254,10 @@ export function reportError(error: unknown, json: boolean, output: CliOutput): v
     if (error instanceof ExecutionError) {
       if (error.applied) output.error("Apply results:", error.applied);
       if (error.written.length) output.error("Files already replaced:", error.written);
+      if (error.rollbackFiles.length)
+        output.error(
+          `Rollback ${error.rollbackFiles.length === 1 ? "file" : "files"}:\n${error.rollbackFiles.map((file) => `  ${file}`).join("\n")}`,
+        );
     } else if (error instanceof ApplyReloadError) output.error("Apply results:", error.log);
     output.error('Run "spoolsync --help" for usage.');
   }

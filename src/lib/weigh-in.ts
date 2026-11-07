@@ -106,7 +106,7 @@ export function resolveTare(input: {
   saved: Readonly<Record<string, number>>;
 }): ResolvedTare | null {
   const key = brandKey(input.vendor) || NO_BRAND_KEY;
-  const custom = input.saved[key];
+  const custom = Object.hasOwn(input.saved, key) ? input.saved[key] : undefined;
   if (isTare(custom))
     return { grams: custom, origin: "custom", source: "your saved value for this brand" };
   if (isTare(input.recorded))

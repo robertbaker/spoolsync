@@ -83,8 +83,11 @@ export async function applyToFiladex(
   }
 
   let done = 0;
-  const noop = () => {};
   for (const change of changes) {
+    const notes: string[] = [];
+    const warn = (note: string) => {
+      notes.push(note);
+    };
     try {
       let message: string;
       if (change.kind === "update") {
@@ -94,14 +97,14 @@ export async function applyToFiladex(
             `Filament ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
           );
         const next = { ...current };
-        updateRecord(next, change, noop);
+        updateRecord(next, change, warn);
         const moved = new Set(
           WRITABLE.filter((key) => String(next[key] ?? "") !== String(current[key] ?? "")),
         );
         if (moved.size) await client.updateFilament(change.spool.sourceId, payload(next, moved));
         message = `Updated filament ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
       } else {
-        const record = createRecord(change.values, change.groupId, names, noop);
+        const record = createRecord(change.values, change.groupId, names, warn);
         // Explicit so the vendor and material are registered in the user's Filadex catalog.
         const created = (await client.createFilament({
           ...payload(record),
@@ -110,6 +113,7 @@ export async function applyToFiladex(
         })) as { id?: unknown };
         message = `Created filament${created?.id != null ? ` ${created.id}` : ""} (${record["name"]})`;
       }
+      if (notes.length) message += ` (${notes.join(" ")})`;
       log.push({ groupId: change.groupId, ok: true, message });
     } catch (error) {
       const what = change.kind === "update" ? `filament ${change.spool.sourceId}` : "new filament";

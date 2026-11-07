@@ -69,18 +69,34 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
     if (Object.keys(filament).length) filamentFields++;
     const row: Row = {};
     for (const column of COLUMNS) row[column] = source[column.toLowerCase()] ?? "";
-    if (spool.remainingWeight !== undefined)
+    let wroteSpoolField = false;
+    if (spool.remainingWeight !== undefined) {
       row["totalWeight"] =
         spool.remainingWeight === null
           ? ""
           : spool.remainingWeight + (change.spool.emptySpoolWeight ?? 0);
-    if (spool.purchaseDate !== undefined) row["purchaseDate"] = spool.purchaseDate ?? "";
-    if (spool.label !== undefined) row["label"] = spool.label;
-    if (spool.lotNumber !== undefined) row["lotNumber"] = spool.lotNumber ?? "";
+      wroteSpoolField = true;
+    }
+    if (spool.purchaseDate !== undefined) {
+      row["purchaseDate"] = spool.purchaseDate ?? "";
+      wroteSpoolField = true;
+    }
+    if (spool.label !== undefined) {
+      row["label"] = spool.label;
+      wroteSpoolField = true;
+    }
+    if (spool.lotNumber !== undefined) {
+      row["lotNumber"] = spool.lotNumber ?? "";
+      wroteSpoolField = true;
+    }
     if (spool.retired !== undefined)
       problem("The spool CSV importer ignores the retired flag, so it was not written.");
     for (const { field, to } of change.changes)
-      if (field === "location") row["location"] = typeof to === "string" ? to : "";
+      if (field === "location") {
+        row["location"] = typeof to === "string" ? to : "";
+        wroteSpoolField = true;
+      }
+    if (!wroteSpoolField) continue;
     rows.push(row);
     updated++;
   }

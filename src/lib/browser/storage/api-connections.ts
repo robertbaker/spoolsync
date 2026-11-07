@@ -3,7 +3,6 @@ import type { FilamentDbConnection } from "@spoolsync/core/adapters/filamentdb";
 
 import { read, write, session } from "./access";
 import { invalidateApiInventory } from "./invalidate";
-import { clearLoadResult } from "./inventories";
 
 const BAMBUDDY_CONNECTION_KEY = "spoolsync:bambuddy-connection";
 export function loadBambuddyConnection(): BambuddyConnection | null {
@@ -26,8 +25,8 @@ export function saveBambuddyConnection(connection: BambuddyConnection): void {
   write(session, BAMBUDDY_CONNECTION_KEY, JSON.stringify(connection));
 }
 export function clearBambuddyConnection(): void {
+  invalidateApiInventory("bambuddy");
   write(session, BAMBUDDY_CONNECTION_KEY, null);
-  clearLoadResult("bambuddy");
 }
 const FILAMENTDB_CONNECTION_KEY = "spoolsync:filamentdb-connection";
 export function loadFilamentDbConnection(): FilamentDbConnection | null {
@@ -46,4 +45,8 @@ export function saveFilamentDbConnection(connection: FilamentDbConnection): void
     invalidateApiInventory("filamentdb");
   }
   write(session, FILAMENTDB_CONNECTION_KEY, JSON.stringify(connection));
+}
+export function clearFilamentDbConnection(): void {
+  invalidateApiInventory("filamentdb");
+  write(session, FILAMENTDB_CONNECTION_KEY, null);
 }

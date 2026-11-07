@@ -75,7 +75,8 @@ export function buildSpoolPatch(
 }
 
 export function createSpoolParameters(change: PlannedCreate, filamentId: number): SpoolParameters {
-  const { values, links } = change;
+  const { values } = change;
+  const links = { ...change.groupIds, ...change.links };
   return {
     filament_id: filamentId,
     initial_weight: values.initialWeight,

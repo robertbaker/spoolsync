@@ -20,6 +20,8 @@ export function* tarFiles(archive: Uint8Array): Generator<{ path: string; text: 
     const header = archive.subarray(offset, offset + 512);
     if (header.every((byte) => byte === 0)) return;
     const size = Number.parseInt(field(124, 12, header).trim() || "0", 8);
+    if (!Number.isSafeInteger(size) || size < 0 || offset + 512 + size > archive.length)
+      throw new Error("Truncated or malformed tar archive");
     const type = field(156, 1, header);
     const prefix = field(345, 155, header);
     const name = longName ?? (prefix ? `${prefix}/` : "") + field(0, 100, header);
@@ -27,6 +29,12 @@ export function* tarFiles(archive: Uint8Array): Generator<{ path: string; text: 
     offset += 512 + Math.ceil(size / 512) * 512;
     if (type === "L") {
       longName = decoder.decode(body).replace(/\0.*$/s, "");
+      continue;
+    }
+    if (type === "x") {
+      const pax = decoder.decode(body);
+      const match = /(?:^|\n)\d+ path=([^\n]+)\n/.exec(pax);
+      if (match?.[1]) longName = match[1];
       continue;
     }
     longName = null;

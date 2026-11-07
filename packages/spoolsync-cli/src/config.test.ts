@@ -180,14 +180,20 @@ describe("the per-user settings file", () => {
 
   test("an explicit --config file beats the user file", () => {
     const { expanded } = withUser(
-      { "output-dir": "/user-out", "low-threshold": 10 },
+      { "output-dir": "/user-out", "low-threshold": 10, summary: true, reorder: true },
       ["--config", "p.json"],
       {
-        "p.json": JSON.stringify({ "output-dir": "/project-out" }),
+        "p.json": JSON.stringify({
+          "output-dir": "/project-out",
+          summary: false,
+          reorder: false,
+        }),
       },
     );
     expect(expanded).toContain("--output-dir=/project-out");
     expect(expanded).not.toContain("--output-dir=/user-out");
+    expect(expanded).not.toContain("--summary");
+    expect(expanded).not.toContain("--reorder");
     expect(expanded).toContain("--low-threshold=10");
   });
 

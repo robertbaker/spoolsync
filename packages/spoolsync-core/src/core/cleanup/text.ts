@@ -184,20 +184,19 @@ export function recase(text: string): { text: string; uncertain: boolean } | nul
   const shape = caseShape(text);
   if (shape !== "lower" && shape !== "upper") return null;
   let uncertain = false;
-  let result = titleCase(text);
-  if (shape === "upper") {
-    const originals = text.split(TOKENS);
-    result = result
-      .split(TOKENS)
-      .map((part, position) => {
-        const original = originals[position] ?? part;
-        if (original && !TOKENS.test(original) && maybeAcronym(original)) {
-          uncertain = true;
-          return original;
-        }
+  let first = true;
+  const result = text
+    .split(TOKENS)
+    .map((part) => {
+      if (!part || TOKENS.test(part)) return part;
+      const isFirst = first;
+      first = false;
+      if (shape === "upper" && maybeAcronym(part)) {
+        uncertain = true;
         return part;
-      })
-      .join("");
-  }
+      }
+      return titleWord(part, isFirst);
+    })
+    .join("");
   return result === text ? null : { text: result, uncertain };
 }

@@ -147,7 +147,7 @@ describe("fetching a catalog", () => {
 
   test("refuses a next link to another host and a link loop", async () => {
     const other = fakeIO([response({ items: [record(1)], next: "https://evil.example.net/x" })]);
-    await expect(
+    expect(
       fetchReferenceCatalog(
         provider,
         config({ pagination: { kind: "next-link", path: "next" } }),
@@ -190,8 +190,8 @@ describe("fetching a catalog", () => {
       response({ items: [record(1), record(2)] }),
       response({ items: [] }),
     ]);
-    await expect(
-      fetchReferenceCatalog(
+    expect(
+      await fetchReferenceCatalog(
         provider,
         config({
           urlTemplate: "https://data.example.org/api/{page}/filaments?size={limit}",
@@ -205,7 +205,7 @@ describe("fetching a catalog", () => {
         }),
         io,
       ),
-    ).resolves.toMatchObject({ pages: 2 });
+    ).toMatchObject({ pages: 2 });
     expect(urls[0]).toContain("/api/1/filaments");
     expect(new URL(urls[1]!).searchParams.get("p")).toBe("2");
   });
@@ -265,19 +265,17 @@ describe("failures", () => {
     expect(sleeps).toEqual([7000, 2000, 4000]);
   });
 
-  test("gives up after the retry limit", async () => {
+  test("gives up after the retry limit", () => {
     const { io } = fakeIO(Array.from({ length: 5 }, () => response({}, { status: 500 })));
-    await expect(
-      fetchReferenceCatalog(provider, config({ maxRetries: 2 }), io),
-    ).rejects.toMatchObject({
+    expect(fetchReferenceCatalog(provider, config({ maxRetries: 2 }), io)).rejects.toMatchObject({
       kind: "http",
       status: 500,
     });
   });
 
-  test("does not retry a client error", async () => {
+  test("does not retry a client error", () => {
     const { io, urls } = fakeIO([response({}, { status: 404 })]);
-    await expect(fetchReferenceCatalog(provider, config(), io)).rejects.toMatchObject({
+    expect(fetchReferenceCatalog(provider, config(), io)).rejects.toMatchObject({
       kind: "http",
       status: 404,
     });
@@ -297,19 +295,19 @@ describe("failures", () => {
     expect(urls).toHaveLength(2);
   });
 
-  test("rejects non-JSON, missing record lists, and unreadable records", async () => {
-    await expect(
+  test("rejects non-JSON, missing record lists, and unreadable records", () => {
+    expect(
       fetchReferenceCatalog(provider, config(), fakeIO([response(undefined)]).io),
     ).rejects.toMatchObject({
       kind: "not-json",
     });
-    await expect(
+    expect(
       fetchReferenceCatalog(provider, config(), fakeIO([response({ message: "hi" })]).io),
     ).rejects.toMatchObject({ kind: "no-records" });
-    await expect(
+    expect(
       fetchReferenceCatalog(provider, config(), fakeIO([response([{ nothing: "useful" }])]).io),
     ).rejects.toMatchObject({ kind: "no-records" });
-    await expect(
+    expect(
       fetchReferenceCatalog(
         provider,
         config({ mapping: { ...GENERIC_MAPPING, records: "data.rows" } }),
@@ -318,18 +316,18 @@ describe("failures", () => {
     ).rejects.toThrow('at "data.rows"');
   });
 
-  test("rejects an invalid endpoint before any request", async () => {
+  test("rejects an invalid endpoint before any request", () => {
     const { io, urls } = fakeIO([]);
-    await expect(
+    expect(
       fetchReferenceCatalog(provider, config({ urlTemplate: "http://data.example.org" }), io),
     ).rejects.toMatchObject({ kind: "invalid-url" });
     expect(urls).toEqual([]);
   });
 
-  test("cancelling stops before, during, and between requests", async () => {
+  test("cancelling stops before, during, and between requests", () => {
     const before = new AbortController();
     before.abort();
-    await expect(
+    expect(
       fetchReferenceCatalog(provider, config(), fakeIO([response({ items: [record(1)] })]).io, {
         signal: before.signal,
       }),
@@ -341,7 +339,7 @@ describe("failures", () => {
       during.abort();
       throw new DOMException("aborted", "AbortError");
     };
-    await expect(
+    expect(
       fetchReferenceCatalog(provider, config(), fake.io, { signal: during.signal }),
     ).rejects.toMatchObject({ kind: "aborted" });
 
@@ -350,7 +348,7 @@ describe("failures", () => {
       response({ items: [record(1)], next: "?page=2" }),
       response({ items: [record(2)] }),
     ]);
-    await expect(
+    expect(
       fetchReferenceCatalog(
         provider,
         config({ pagination: { kind: "next-link", path: "next" } }),

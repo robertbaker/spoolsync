@@ -52,19 +52,20 @@ const state = new SyncSession(
   loadBulkEdits(),
 );
 // Cleanups accepted on the Load page; any that no longer match the loaded values are left out.
-const cleanupEdits = recordEditsFromAccepted(
-  loadAcceptedCleanups(),
-  [...loaded.values()].flatMap((result) => result.spools),
-).edits;
+const allLoadedSpools = () => [...loaded.values()].flatMap((result) => result.spools);
+let cleanupEdits = recordEditsFromAccepted(loadAcceptedCleanups(), allLoadedSpools()).edits;
 // Reference data accepted on the Load page, checked the same way. Applied after cleanups: the
 // person picked these values from a catalog they chose.
-const referenceEdits = referenceEditsFromAccepted(
-  loadAcceptedReferences(),
-  [...loaded.values()].flatMap((result) => result.spools),
-).edits;
-const recordEdits = mergeRecordEdits(cleanupEdits, referenceEdits);
+let referenceEdits = referenceEditsFromAccepted(loadAcceptedReferences(), allLoadedSpools()).edits;
+let recordEdits = mergeRecordEdits(cleanupEdits, referenceEdits);
 const countFields = (edits: typeof cleanupEdits) =>
   [...edits.values()].reduce((sum, edit) => sum + Object.keys(edit).length, 0);
+function refreshRecordEdits(): void {
+  const spools = allLoadedSpools();
+  cleanupEdits = recordEditsFromAccepted(loadAcceptedCleanups(), spools).edits;
+  referenceEdits = referenceEditsFromAccepted(loadAcceptedReferences(), spools).edits;
+  recordEdits = mergeRecordEdits(cleanupEdits, referenceEdits);
+}
 // Come back to the same view of the differences list.
 state.filter = readPreferences().syncFilter ?? "all";
 const renderSummary = createSummaryView(state);
@@ -144,6 +145,7 @@ review.wireKeys();
 document.getElementById("sync-bar-review")?.addEventListener("click", () => review.start());
 
 function renderAll(): void {
+  refreshRecordEdits();
   state.recompute();
   renderSummary();
   // Redrawn with every change so a spool you just linked is counted once.

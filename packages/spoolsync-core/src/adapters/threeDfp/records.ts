@@ -17,13 +17,17 @@ const fields: Record<string, string> = {
   td: "td_value",
   colors: "rgb",
   nozzleTempMin: "spool_preferred_nozzle_temp",
+  nozzleTempMax: "spool_preferred_nozzle_temp",
   bedTempMin: "spool_preferred_bed_temp",
+  bedTempMax: "spool_preferred_bed_temp",
 };
 const propertyFields: Record<string, string> = {
   price: "purchase_price",
   purchasedOn: "purchase_date",
   nozzleTempMin: "preferred_nozzle_temp",
+  nozzleTempMax: "preferred_nozzle_temp",
   bedTempMin: "preferred_bed_temp",
+  bedTempMax: "preferred_bed_temp",
 };
 const aliases: Record<string, string[]> = {
   vendor: ["vendor", "manufacturer"],
@@ -97,7 +101,10 @@ export function createRecord(
     );
   const shortCode = runtime.randomUUID().replaceAll("-", "").slice(0, 9);
   const links = { ...change.groupIds, ...change.links };
-  const lot = links.spoolstockShortId ? `Lot: ${spoolstockLotNr(links.spoolstockShortId)}` : "";
+  const lotValue =
+    change.values.lotNr ??
+    (links.spoolstockShortId ? spoolstockLotNr(links.spoolstockShortId) : null);
+  const lot = lotValue ? `Lot: ${lotValue}` : "";
   const nozzleTemp = change.values.nozzleTempMin ?? change.values.nozzleTempMax;
   const bedTemp = change.values.bedTempMin ?? change.values.bedTempMax;
   const row: Record<string, unknown> = {

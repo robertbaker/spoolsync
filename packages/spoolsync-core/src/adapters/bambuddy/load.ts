@@ -64,11 +64,16 @@ export function loadBambuddyFile(text: string): BambuddyLoadResult {
       nozzle_temp_max: toNumber(field(row, "nozzle_temp_max")),
       note: field(row, "note"),
       storage_location: field(row, "storage_location"),
+      archived_at: field(row, "archived_at"),
     };
   }) as BambuddySpool[];
   recordsFrom(records);
+  const unavailable = [
+    ...(headers.includes("core_weight") ? [] : (["emptySpoolWeight"] as const)),
+    ...(headers.includes("archived_at") ? [] : (["archived"] as const)),
+  ];
   return {
-    ...inventoryFromRecords(records, syntheticIds),
+    ...inventoryFromRecords(records, syntheticIds, unavailable),
     file: records,
     origin: "file",
   };

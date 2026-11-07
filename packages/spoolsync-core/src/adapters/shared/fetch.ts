@@ -13,8 +13,11 @@ export async function fetchWithHeaderTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = init.signal
+    ? AbortSignal.any([init.signal, controller.signal])
+    : controller.signal;
   try {
-    return await fetchImpl(input, { ...init, signal: controller.signal });
+    return await fetchImpl(input, { ...init, signal });
   } finally {
     clearTimeout(timer);
   }

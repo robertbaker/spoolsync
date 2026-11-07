@@ -20,7 +20,9 @@ export const wirePasswordToggle = (btnId: string, inputId: string) => {
   btn.addEventListener("click", () => {
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
-    btn.textContent = isPassword ? "Hide" : "Show";
+    const label = isPassword ? "Hide" : "Show";
+    if (btn.firstElementChild) btn.firstElementChild.textContent = label;
+    else btn.textContent = label;
     btn.setAttribute("aria-label", isPassword ? "Hide value" : "Show value");
     btn.setAttribute("aria-pressed", String(isPassword));
   });

@@ -39,6 +39,11 @@ export async function prepareExports(
   // Serialize all exports before any filesystem or remote writes.
   const pendingFiles: Array<{ filename: string; text: string; bytes?: Uint8Array }> = [];
   const exportWarnings: Array<{ source: SourceId; message: string }> = [];
+  const protectedInputs = [
+    ...options.inputs.values(),
+    ...(options.reference ? [options.reference] : []),
+    ...(options.referenceReport ? [options.referenceReport] : []),
+  ];
   if (options.outputDir) {
     for (const source of WRITABLE_SOURCE_IDS) {
       if (!options.inputs.has(source) && !options.empty.includes(source)) continue;
@@ -70,7 +75,7 @@ export async function prepareExports(
       }
     }
     await dependencies.validateOutputPaths(
-      [...options.inputs.values()],
+      protectedInputs,
       pendingFiles.map((file) => file.filename),
     );
   }
@@ -81,10 +86,10 @@ export async function prepareExports(
     // Serialized with the other exports, so nothing is written if any of them fails.
     try {
       const { csv } = combinedInventoryCsv([...loaded.values()]);
-      await dependencies.validateOutputPaths(
-        [...options.inputs.values()],
-        [...pendingFiles.map((file) => file.filename), options.exportCsv],
-      );
+      await dependencies.validateOutputPaths(protectedInputs, [
+        ...pendingFiles.map((file) => file.filename),
+        options.exportCsv,
+      ]);
       staged = combineStaged(
         staged,
         await dependencies.stageOutputFiles(path.dirname(options.exportCsv), [

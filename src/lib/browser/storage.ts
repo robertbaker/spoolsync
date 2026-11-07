@@ -21,6 +21,7 @@ export {
   clearBambuddyConnection,
   loadFilamentDbConnection,
   saveFilamentDbConnection,
+  clearFilamentDbConnection,
 } from "./storage/api-connections";
 export type { InventorySnapshot, InventorySnapshots } from "./storage/insights";
 export {

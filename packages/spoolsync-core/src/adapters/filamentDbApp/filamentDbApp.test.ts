@@ -88,7 +88,7 @@ test("loads spools from a snapshot, resolving variants, tare and locations", asy
 });
 
 test("detects a snapshot and a filament list", async () => {
-  const json = JSON.stringify(snapshot);
+  const json = `\uFEFF  \n${JSON.stringify(snapshot)}`;
   expect(await detectInventorySources("snap.json", json)).toEqual([
     { source: "filamentDbApp", spoolCount: 2 },
   ]);
@@ -98,10 +98,20 @@ test("detects a snapshot and a filament list", async () => {
   ]);
 });
 
-test("rejects files that are not Filament DB exports", async () => {
-  await expect(loadInventoryFile("filamentDbApp", "{}")).rejects.toThrow(/Filament DB export/);
-  await expect(loadInventoryFile("filamentDbApp", "nope")).rejects.toThrow(/spool export/);
-  await expect(loadInventoryFile("filamentDbApp", "[nope")).rejects.toThrow(/valid JSON/);
+test("locationIds skips soft-deleted locations and normalizes ObjectId _id objects", async () => {
+  const fetchImpl = async () =>
+    Response.json([
+      { _id: { $oid: "loc1" }, name: "Drybox A" },
+      { _id: "loc2", name: "Deleted Box", _deletedAt: "2026-01-01T00:00:00Z" },
+    ]);
+  const client = new FilamentDbAppClient({ baseUrl: "http://x", fetchImpl });
+  expect(await client.locationIds()).toEqual(new Map([["drybox a", "loc1"]]));
+});
+
+test("rejects files that are not Filament DB exports", () => {
+  expect(loadInventoryFile("filamentDbApp", "{}")).rejects.toThrow(/Filament DB export/);
+  expect(loadInventoryFile("filamentDbApp", "nope")).rejects.toThrow(/spool export/);
+  expect(loadInventoryFile("filamentDbApp", "[nope")).rejects.toThrow(/valid JSON/);
 });
 
 test("reads the snapshot over the API with an optional bearer key", async () => {
@@ -123,12 +133,12 @@ test("reads the snapshot over the API with an optional bearer key", async () => 
   expect(loaded.spools).toHaveLength(2);
 });
 
-test("explains refused and unreachable servers", async () => {
+test("explains refused and unreachable servers", () => {
   const refuse = (status: number) => async () => new Response("", { status });
-  await expect(
+  expect(
     new FilamentDbAppClient({ baseUrl: "http://x", fetchImpl: refuse(401) }).snapshot(),
   ).rejects.toThrow(/API key/);
-  await expect(
+  expect(
     new FilamentDbAppClient({
       baseUrl: "http://x",
       fetchImpl: async () => {
@@ -314,7 +324,7 @@ test("reads the spool CSV export, keying a legacy roll by its filament", async (
   expect((await detectInventorySources("spools.csv", spoolCsv)).map((m) => m.source)).toEqual([
     "filamentDbApp",
   ]);
-  await expect(loadInventoryFile("filamentDbApp", "a,b\n1,2")).rejects.toThrow(/spool export/);
+  expect(loadInventoryFile("filamentDbApp", "a,b\n1,2")).rejects.toThrow(/spool export/);
 });
 
 test("a CSV-loaded inventory is written back as an import CSV of the changed spools", async () => {

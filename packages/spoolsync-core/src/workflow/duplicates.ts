@@ -112,6 +112,7 @@ export function findDuplicateSpools(
       else buckets.set(key, [spool]);
     }
     const parent = new Map<CommonSpool, CommonSpool>();
+    const componentOf = new Map<CommonSpool, Set<CommonSpool>>();
     const root = (spool: CommonSpool): CommonSpool => {
       let top = spool;
       while (parent.has(top)) top = parent.get(top)!;
@@ -122,18 +123,48 @@ export function findDuplicateSpools(
       }
       return top;
     };
+    const membersOf = (top: CommonSpool): Set<CommonSpool> => {
+      let set = componentOf.get(top);
+      if (!set) {
+        set = new Set([top]);
+        componentOf.set(top, set);
+      }
+      return set;
+    };
+    const isRejectedPair = (x: CommonSpool, y: CommonSpool): boolean =>
+      Boolean(options.isDifferent?.(x, y) || options.isDifferent?.(y, x));
     const pairReasonLists = new Map<CommonSpool, string[][]>();
     const linked = new Set<CommonSpool>();
     for (const bucket of buckets.values())
       for (let i = 0; i < bucket.length; i++)
         for (let j = i + 1; j < bucket.length; j++) {
           const [a, b] = [bucket[i]!, bucket[j]!];
-          if (options.isDifferent?.(a, b)) continue;
+          if (isRejectedPair(a, b)) continue;
           const reasons = pairReasons(a, b);
           if (!reasons) continue;
-          linked.add(a).add(b);
           const [rootA, rootB] = [root(a), root(b)];
-          if (rootA !== rootB) parent.set(rootB, rootA);
+          if (rootA !== rootB && options.isDifferent) {
+            const setA = membersOf(rootA);
+            const setB = membersOf(rootB);
+            let conflict = false;
+            for (const x of setA) {
+              for (const y of setB) {
+                if (isRejectedPair(x, y)) {
+                  conflict = true;
+                  break;
+                }
+              }
+              if (conflict) break;
+            }
+            if (conflict) continue;
+          }
+          linked.add(a).add(b);
+          if (rootA !== rootB) {
+            const setA = membersOf(rootA);
+            for (const item of membersOf(rootB)) setA.add(item);
+            componentOf.delete(rootB);
+            parent.set(rootB, rootA);
+          }
           for (const spool of [a, b]) {
             const lists = pairReasonLists.get(spool);
             if (lists) lists.push(reasons);

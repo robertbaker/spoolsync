@@ -1,3 +1,4 @@
+import { strictValuesEqual } from "../core/comparison/record-edits";
 import type { FieldValue, PlannedChange, PlannedUpdate } from "../core/comparison/types";
 import { valuesEqual } from "../core/comparison/values";
 import {
@@ -234,6 +235,10 @@ export interface RollbackPlan {
  * field that already has its earlier value are reported and left alone.
  */
 export function planRollback(document: RollbackDocument, inventory: LoadResult): RollbackPlan {
+  if (inventory.source !== document.source)
+    throw new Error(
+      `The rollback file is for ${document.service}, not ${SOURCE_LABELS[inventory.source] ?? inventory.source}.`,
+    );
   const bySourceId = new Map(inventory.spools.map((spool) => [spool.sourceId, spool]));
   const changes: PlannedUpdate[] = [];
   const skipped: RollbackSkip[] = [];
@@ -247,9 +252,16 @@ export function planRollback(document: RollbackDocument, inventory: LoadResult):
     const restore = [];
     for (const change of update.changes) {
       const current = spool[change.field];
-      if (valuesEqual(change.field, current, change.after)) {
+      const exactOnly = valuesEqual(change.field, change.before, change.after);
+      const matchesAfter = exactOnly
+        ? strictValuesEqual(current, change.after)
+        : valuesEqual(change.field, current, change.after);
+      const matchesBefore = exactOnly
+        ? strictValuesEqual(current, change.before)
+        : valuesEqual(change.field, current, change.before);
+      if (matchesAfter) {
         restore.push({ field: change.field, from: current, to: change.before });
-      } else if (valuesEqual(change.field, current, change.before)) {
+      } else if (matchesBefore) {
         skipped.push({
           label: update.label,
           field: change.field,

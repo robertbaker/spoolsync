@@ -23,8 +23,8 @@ export async function googleError(response: Response): Promise<TigertagCloudErro
     error?: { message?: string; status?: string };
   };
   const code = body.error?.message?.split(" ")[0] ?? body.error?.status ?? String(response.status);
-  return new TigertagCloudError(
-    SIGN_IN_MESSAGES[code] ?? `TigerTag cloud error: ${body.error?.message ?? response.status}`,
-    code,
-  );
+  const message = Object.hasOwn(SIGN_IN_MESSAGES, code)
+    ? SIGN_IN_MESSAGES[code]!
+    : `TigerTag cloud error: ${body.error?.message ?? response.status}`;
+  return new TigertagCloudError(message, code);
 }

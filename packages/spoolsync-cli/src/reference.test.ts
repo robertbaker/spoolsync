@@ -138,10 +138,10 @@ describe("loading the reference file", () => {
     expect(read?.parsed.filaments).toHaveLength(2);
     expect(read?.parsed.attribution).toBe("Test reference");
     expect(await loadReferenceFile(parseArgs([...files]), { readText })).toBeUndefined();
-    await expect(
+    expect(
       loadReferenceFile(parseArgs([...files, "--reference", "gone.json"]), { readText }),
     ).rejects.toThrow('Could not load reference file "gone.json": file not found');
-    await expect(
+    expect(
       loadReferenceFile(parseArgs([...files, "--reference", "bad.json"]), {
         readText: async () => "{oops",
       }),

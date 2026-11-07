@@ -19,10 +19,13 @@ export function parseArgs(argv: string[]): CliOptions {
     if (arg === "--help" || arg === "-h") options.help = true;
     else if (arg === "--include-archived") options.includeArchived = true;
     else if (arg.startsWith("--")) {
-      const [rawKey, inlineValue] = arg.slice(2).split("=", 2);
+      const separator = arg.indexOf("=");
+      const rawKey = separator > 0 ? arg.slice(2, separator) : arg.slice(2);
+      const inlineValue = separator > 0 ? arg.slice(separator + 1) : undefined;
       if (!valueOptions.has(rawKey)) throw new CliError(`Unknown option: --${rawKey}`, 2);
       const value = inlineValue ?? argv[++i];
-      if (!value || value.startsWith("--")) throw new CliError(`Missing value for --${rawKey}`, 2);
+      if (!value || (inlineValue === undefined && value.startsWith("-")))
+        throw new CliError(`Missing value for --${rawKey}`, 2);
       if (seen.has(rawKey)) throw new CliError(`Option --${rawKey} was provided more than once`, 2);
       seen.add(rawKey);
       switch (rawKey) {

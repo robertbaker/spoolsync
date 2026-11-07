@@ -87,6 +87,7 @@ export function templateRowToCommon(row: Row, index: number): CommonSpool {
     td: null,
     comment: joinNotes(field(row, "filamentNotes"), field(row, "notes")),
     archived: toBoolean(field(row, "depleted")) || DEPLETED_STATUSES.has(status),
+    unavailable: ["td"],
     raw: row,
   };
 }
@@ -125,6 +126,19 @@ export function hueforgeRowToCommon(row: Row, index: number): CommonSpool {
     td: toNonNegativeNumber(field(row, "td", "transmissivity")),
     comment: null,
     archived: owned !== undefined && !toBoolean(owned),
+    unavailable: [
+      "diameter",
+      "nozzleTempMin",
+      "nozzleTempMax",
+      "bedTempMin",
+      "bedTempMax",
+      "initialWeight",
+      "remainingWeight",
+      "emptySpoolWeight",
+      "location",
+      "price",
+      "comment",
+    ],
     raw: row,
   };
 }

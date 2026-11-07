@@ -33,5 +33,6 @@ import { SITE_TITLE } from "~/config";
 <script>
   import { countLoaded } from "~/scripts/workflow-steps";
 
-  location.replace(countLoaded() >= 2 ? "/sync" : "/load");
+  const target = countLoaded() >= 2 ? "/sync" : "/load";
+  location.replace(`${target}${location.search}${location.hash}`);
 </script>

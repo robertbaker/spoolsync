@@ -90,6 +90,7 @@ export function decodeSnapshot(raw: unknown): ReferenceSnapshot | null {
     provider.info.kind !== "remote" ||
     typeof generatedAt !== "number" ||
     !Number.isFinite(generatedAt) ||
+    Number.isNaN(new Date(generatedAt).getTime()) ||
     !Array.isArray(columns) ||
     !Array.isArray(rows)
   )

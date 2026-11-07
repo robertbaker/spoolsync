@@ -1,6 +1,12 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import {
+  isLowStockPercent,
+  MAX_LOW_STOCK_PERCENT,
+  MIN_LOW_STOCK_PERCENT,
+} from "@spoolsync/core/core/stock";
+
 import { closestOption } from "./suggest";
 
 /** Config keys are the long option names without dashes. Source keys hold file paths. */
@@ -28,19 +34,24 @@ const PATH_KEYS = new Set<string>([
   "reference-report",
   "rollback-dir",
 ]);
-const STRING_KEYS = new Set<string>([
-  ...PATH_KEYS,
-  "format",
+const URL_KEYS = new Set([
   "spoolman-url",
   "filamentdb-url",
   "filament-db-url",
   "bambuddy-url",
   "filadex-url",
-  "filadex-user",
 ]);
+const STRING_KEYS = new Set<string>([...PATH_KEYS, "format", ...URL_KEYS, "filadex-user"]);
 const NUMBER_KEYS = new Set(["low-threshold"]);
 const LIST_KEYS = new Set(["resolve", "confirm", "reject", "create-in", "empty"]);
-const BOOLEAN_KEYS = new Set(["apply", "json", "summary"]);
+const BOOLEAN_KEYS = new Set([
+  "apply",
+  "json",
+  "summary",
+  "reorder",
+  "fail-on-mismatch",
+  "no-rollback",
+]);
 /** Boolean, or text naming the rules to run. */
 const CLEANUP_KEYS = ["cleanup", "cleanup-report"];
 const ALLOWED_KEYS = [
@@ -159,6 +170,11 @@ function optionsFromFile(
     } else if (NUMBER_KEYS.has(key)) {
       if (typeof value !== "number" || !Number.isFinite(value))
         fail(configFile, `"${key}" must be a number.`);
+      if (key === "low-threshold" && !isLowStockPercent(value))
+        fail(
+          configFile,
+          `"${key}" must be a whole number of percent from ${MIN_LOW_STOCK_PERCENT} to ${MAX_LOW_STOCK_PERCENT}, such as 20.`,
+        );
       expanded.push(`--${key}=${value}`);
     } else if (LIST_KEYS.has(key)) {
       const items = typeof value === "string" ? [value] : value;
@@ -167,6 +183,21 @@ function optionsFromFile(
       for (const item of items as string[]) expanded.push(`--${key}=${item}`);
     } else {
       if (typeof value !== "string" || !value) fail(configFile, `"${key}" must be a text value.`);
+      if (URL_KEYS.has(key)) {
+        let parsedUrl: URL;
+        try {
+          parsedUrl = new URL(value);
+        } catch {
+          fail(configFile, `"${key}" must be a valid http:// or https:// URL.`);
+        }
+        if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
+          fail(configFile, `"${key}" must use http:// or https://.`);
+        if (parsedUrl.username || parsedUrl.password)
+          fail(
+            configFile,
+            `"${key}" contains credentials in the URL. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
+          );
+      }
       expanded.push(`--${key}=${PATH_KEYS.has(key) ? resolvePath(value as string) : value}`);
     }
   }
@@ -215,8 +246,10 @@ export function expandConfig(
   }
 
   let result = rest;
+  const configKeys = new Set<string>();
   if (configFile !== undefined) {
     const config = readConfig(configFile, dependencies);
+    for (const key of Object.keys(config)) configKeys.add(canonical(key));
     const fromConfig = optionsFromFile(configFile, config, givenFlags(rest), false);
     for (const option of fromConfig) settings.trace?.({ layer: "--config file", option });
     result = [...fromConfig, ...rest];
@@ -228,7 +261,7 @@ export function expandConfig(
   if (user) {
     const config = readUserConfig(user.path, dependencies);
     if (config) {
-      const given = givenFlags(result);
+      const given = new Set([...givenFlags(result), ...configKeys]);
       const hasInputs = [...given].some((flag) => INPUT_KEYS.has(flag));
       const expanded = optionsFromFile(user.path, config, given, hasInputs);
       const savedInputs = expanded.some((option) =>

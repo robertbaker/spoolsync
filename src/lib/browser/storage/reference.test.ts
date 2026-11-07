@@ -315,11 +315,11 @@ describe("saved data", () => {
 
 describe("browser sleep", () => {
   test("resolves after the delay and rejects when aborted", async () => {
-    await expect(sleep(1)).resolves.toBeUndefined();
+    expect(await sleep(1)).toBeUndefined();
     const controller = new AbortController();
     const waiting = sleep(10_000, controller.signal);
     controller.abort();
-    await expect(waiting).rejects.toMatchObject({ name: "AbortError" });
-    await expect(sleep(1, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(waiting).rejects.toMatchObject({ name: "AbortError" });
+    expect(sleep(1, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
   });
 });

@@ -1,4 +1,12 @@
+import { SERVICES } from "@spoolsync/core/core/services";
+
 import { socialCardStyles, type SocialCardFonts } from "./styles";
+
+function serviceNamesSentence(): string {
+  const names = SERVICES.map((service) => service.name);
+  if (names.length <= 2) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
+}
 
 export function socialCardHtml(fonts: SocialCardFonts): string {
   return `<!DOCTYPE html>
@@ -42,7 +50,7 @@ export function socialCardHtml(fonts: SocialCardFonts): string {
   <div class="hero-section">
     <h1 class="headline">Compare every spool list.</h1>
     <p class="description">
-      Compare 3D printer filament inventories across Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, and FilaMeter — then sync changes right in your browser.
+      Compare 3D printer filament inventories across ${serviceNamesSentence()} — then sync changes right in your browser.
     </p>
   </div>
 
