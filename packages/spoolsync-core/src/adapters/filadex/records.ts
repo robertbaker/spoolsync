@@ -16,7 +16,10 @@ function setWeights(
   label: string,
   warn: Warn,
 ): void {
-  if (remaining !== null && remaining < 0)
+  if (
+    (initial !== null && (!Number.isFinite(initial) || initial < 0)) ||
+    (remaining !== null && (!Number.isFinite(remaining) || remaining < 0))
+  )
     throw new Error(
       `${label}: remaining weight must be non-negative. Resolve the weights before exporting.`,
     );

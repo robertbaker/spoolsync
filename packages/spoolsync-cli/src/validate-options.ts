@@ -6,6 +6,7 @@ import {
 
 import { pairArg } from "./decisions";
 import type { Options } from "./options";
+import { SOURCE_KEYS } from "./user-config";
 
 export function validateOptions(options: Options): void {
   const {
@@ -134,7 +135,7 @@ export function validateOptions(options: Options): void {
     throw new Error(
       `--${reference ? "reference" : "reference-report"} cannot be combined with --summary or --reorder, which only report what is loaded.`,
     );
-  if (failOnMismatch && !reference && !referenceReport)
+  if (failOnMismatch && !reference && !referenceReport && !saveConfig)
     throw new Error(
       "--fail-on-mismatch needs a reference file to check against. Add --reference <file> or --reference-report <file>.",
     );
@@ -225,10 +226,11 @@ export function validateOptions(options: Options): void {
     (source === "bambuddy" && !!bambuddyUrl) ||
     (source === "filadex" && !!filadexUrl);
   for (const source of createIn)
-    if (!isLoaded(source)) throw new Error(`--create-in ${source} requires --${source} input`);
+    if (!isLoaded(source))
+      throw new Error(`--create-in ${source} requires --${SOURCE_KEYS[source]} input`);
   for (const [field, source] of resolves)
     if (!isLoaded(source))
-      throw new Error(`--resolve ${field}=${source} requires --${source} input`);
+      throw new Error(`--resolve ${field}=${source} requires --${SOURCE_KEYS[source]} input`);
   const confirmed = confirm.map(pairArg);
   const rejected = new Set(reject.map(pairArg));
   for (const pair of confirmed)

@@ -25,6 +25,11 @@ export const inputs = [
     desc: "Load FilamentDB directly; --apply writes back (token via --filamentdb-token or FILAMENTDB_TOKEN).",
   },
   {
+    flag: "--filament-db-url <url>",
+    copy: "--filament-db-url",
+    desc: "Load Filament DB (filament-db.app) directly; --apply writes back (key via --filament-db-token or FILAMENTDB_API_KEY).",
+  },
+  {
     flag: "--bambuddy-url <url>",
     copy: "--bambuddy-url",
     desc: "Load Bambuddy directly; --apply creates, updates and archives spools (key via --bambuddy-token or BAMBUDDY_API_KEY, with the Manage inventory scope to write).",
@@ -188,7 +193,7 @@ export const output = [
   {
     flag: "--restore-rollback <file>",
     copy: "--restore-rollback",
-    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --bambuddy-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
+    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
   },
   {
     flag: "--export-csv <file>",
@@ -198,7 +203,7 @@ export const output = [
   {
     flag: "--apply",
     copy: "--apply",
-    desc: "Apply planned changes directly to Spoolman. Requires --spoolman-url.",
+    desc: "Apply planned changes directly to connected API services (Spoolman, Filadex, Bambuddy, FilamentDB, or Filament DB).",
   },
   {
     flag: "--format <text|json>",

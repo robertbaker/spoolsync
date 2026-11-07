@@ -233,6 +233,12 @@ describe("CLI arguments", () => {
     expect(() => parseArgs([...files, "--confirm", "spoolman:1,filameter:2"])).toThrow(
       "loaded filameter",
     );
+    expect(() => parseArgs([...files, "--create-in", "threeDfp"])).toThrow(
+      "requires --three-dfp input",
+    );
+    expect(() => parseArgs([...files, "--resolve", "vendor=filamentDbApp"])).toThrow(
+      "requires --filament-db input",
+    );
     expect(() =>
       parseArgs([
         ...files,

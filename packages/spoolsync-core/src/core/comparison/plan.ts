@@ -61,6 +61,7 @@ function groupLinks(group: SpoolGroup): CrossIds {
   // The loaded service owns its record's identity; foreign cross-IDs cannot override it.
   for (const source of presentSources(group)) {
     const member = group.members[source]!;
+    if (source === "bambuddy" && member.crossIds.bambuddyId === undefined) continue;
     const id =
       source === "spoolman" || source === "bambuddy" ? Number(member.sourceId) : member.sourceId;
     if (typeof id === "number" && !Number.isFinite(id)) continue;
@@ -158,7 +159,7 @@ export function buildPlan(
         if (edited !== undefined) targets.set(field, edited);
       }
       for (const [field, to] of targets) {
-        if (!SOURCE_FIELDS[source].has(field)) continue;
+        if (!SOURCE_FIELDS[source].has(field) || member.unavailable?.includes(field)) continue;
         // A cleanup must register even when it only changes case or spacing.
         const same =
           ownFields.has(field) && targets.get(field) === own?.[field]

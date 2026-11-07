@@ -54,15 +54,26 @@ export function updateRecord(
   format: "csv" | "json",
   warnings: string[],
 ): void {
+  const changed = new Map(change.changes.map((item) => [item.field, item.to]));
   for (const item of change.changes) {
     const fieldName = fields[item.field];
     if (!fieldName) continue;
+    const rawValue =
+      (item.field === "nozzleTempMin" || item.field === "nozzleTempMax") &&
+      changed.has("nozzleTempMin") &&
+      changed.has("nozzleTempMax")
+        ? (changed.get("nozzleTempMin") ?? changed.get("nozzleTempMax"))
+        : (item.field === "bedTempMin" || item.field === "bedTempMax") &&
+            changed.has("bedTempMin") &&
+            changed.has("bedTempMax")
+          ? (changed.get("bedTempMin") ?? changed.get("bedTempMax"))
+          : item.to;
     const value =
-      item.field === "colors" && Array.isArray(item.to)
-        ? item.to[0]
-          ? `#${item.to[0]}`
+      item.field === "colors" && Array.isArray(rawValue)
+        ? rawValue[0]
+          ? `#${rawValue[0]}`
           : ""
-        : item.to;
+        : rawValue;
     for (const alias of aliases[item.field] ?? [])
       if (Object.hasOwn(row, alias)) row[alias] = value;
     if (item.field === "colors") {

@@ -13,7 +13,34 @@ export async function auditConversions(
   reporter: Pick<ReferenceReporter, "passed">,
 ): Promise<void> {
   for (const target of WRITABLE_SOURCE_IDS) {
-    const destination = await createEmptyInventory(target);
+    let destination = await createEmptyInventory(target);
+    if (target === "filamentDbApp" && loaded.spools.length > 0) {
+      // Filament DB requires non-template filaments to exist before spools can be attached.
+      const seen = new Set<string>();
+      const filaments: Record<string, unknown>[] = [];
+      for (let i = 0; i < loaded.spools.length; i++) {
+        const spool = loaded.spools[i]!;
+        const key = `${spool.vendor ?? ""}\0${spool.material ?? ""}\0${spool.name ?? ""}\0${spool.colors[0] ?? ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        filaments.push({
+          _id: `f_${i}`,
+          vendor: spool.vendor ?? "Generic",
+          type: spool.material ?? "PLA",
+          name: spool.name ?? "",
+          colorName: spool.name ?? "",
+          color: spool.colors[0] ? `#${spool.colors[0]}` : null,
+          spools: [],
+        });
+      }
+      destination = await loadInventoryFile(
+        "filamentDbApp",
+        JSON.stringify({
+          version: 8,
+          collections: { locations: [], filaments },
+        }),
+      );
+    }
     const changes = loaded.spools.map((spool, index) => ({
       kind: "create" as const,
       source: target,

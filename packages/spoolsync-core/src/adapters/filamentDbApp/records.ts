@@ -178,6 +178,13 @@ export function changePatches(
         break;
     }
   }
+  if (newNet && !change.changes.some((c) => c.field === "price") && change.spool.price !== null) {
+    if (netWeight && netWeight > 0) filament.cost = costPerKg(change.spool.price, netWeight);
+    else
+      context.problem(
+        "Filament DB prices per kilogram, so a spool price needs a net weight; the price was left unchanged.",
+      );
+  }
   if (context.legacyRoll) return legacyPatches(change, filament, spool, context);
   return { filament, spool };
 }
@@ -197,10 +204,16 @@ function legacyPatches(
     context.problem(
       "This roll is stored on the filament itself, so only its weight can be written; the other spool fields were left unchanged. Add a spool in Filament DB to keep them.",
     );
-  if (remainingWeight !== undefined) {
+  const remaining =
+    remainingWeight !== undefined
+      ? remainingWeight
+      : filament.spoolWeight !== undefined
+        ? change.spool.remainingWeight
+        : undefined;
+  if (remaining !== undefined) {
     const tare =
       filament.spoolWeight !== undefined ? filament.spoolWeight : change.spool.emptySpoolWeight;
-    filament.totalWeight = remainingWeight === null ? null : remainingWeight + (tare ?? 0);
+    filament.totalWeight = remaining === null ? null : remaining + (tare ?? 0);
   }
   return { filament, spool: {} };
 }
@@ -216,7 +229,10 @@ export function patchSnapshotFilament(
         filament["temperatures"] && typeof filament["temperatures"] === "object"
           ? (filament["temperatures"] as Record<string, unknown>)
           : {};
-      temperatures[key.slice("temperatures.".length)] = value;
+      const tempKey = key.slice("temperatures.".length);
+      temperatures[tempKey] = value;
+      if ((tempKey === "nozzleRangeMin" || tempKey === "nozzleRangeMax") && value === null)
+        delete temperatures["nozzle"];
       filament["temperatures"] = temperatures;
     } else filament[key] = value;
   }

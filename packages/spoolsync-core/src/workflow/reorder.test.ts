@@ -89,3 +89,33 @@ test("a stricter or looser rule changes who is listed", () => {
   expect(names(30)).toEqual(["Tenth", "Quarter"]);
   expect(names(5)).toEqual([]);
 });
+
+test("uses the running-low member's weight when the first group member is not low", () => {
+  const items = reorderItems(
+    [
+      result("spoolman", [
+        makeSpool("spoolman", "1", {
+          vendor: "Prusa",
+          material: "PLA",
+          name: "Blue",
+          initialWeight: 1000,
+          remainingWeight: 800,
+        }),
+      ]),
+      result("spoolio", [
+        makeSpool("spoolio", "a", {
+          vendor: "Prusa",
+          material: "PLA",
+          name: "Blue",
+          initialWeight: 1000,
+          remainingWeight: 100,
+          crossIds: { spoolmanId: 1 },
+        }),
+      ]),
+    ],
+    none,
+  );
+  expect(items).toHaveLength(1);
+  expect(items[0]!.spool.remainingWeight).toBe(100);
+  expect(items[0]!.fraction).toBe(0.1);
+});

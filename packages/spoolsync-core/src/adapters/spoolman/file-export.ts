@@ -51,22 +51,26 @@ export function exportSpoolmanJson(
         );
       target = existing;
       // A file must not contain different filament definitions under one shared ID.
+      const oldFilamentId = target.filament["id"];
       if (
-        (filamentUses.get(target.filament["id"]) ?? 0) > 1 &&
+        (filamentUses.get(oldFilamentId) ?? 0) > 1 &&
         change.changes.some(
           (item) =>
             FILAMENT_FIELDS.has(item.field) &&
             !(item.field === "diameter" && hasDiameterOverride(target)),
         )
       ) {
+        filamentUses.set(oldFilamentId, (filamentUses.get(oldFilamentId) ?? 1) - 1);
         target.filament["id"] = nextNew--;
         if (Object.hasOwn(target, "filament_id")) target["filament_id"] = target.filament["id"];
       }
+      const oldVendorId = target.filament.vendor?.["id"];
       if (
         target.filament.vendor &&
-        (vendorUses.get(target.filament.vendor["id"]) ?? 0) > 1 &&
+        (vendorUses.get(oldVendorId) ?? 0) > 1 &&
         change.changes.some((item) => item.field === "vendor" && item.to !== null)
       ) {
+        vendorUses.set(oldVendorId, (vendorUses.get(oldVendorId) ?? 1) - 1);
         target.filament.vendor["id"] = nextNew--;
         if (Object.hasOwn(target.filament, "vendor_id"))
           target.filament["vendor_id"] = target.filament.vendor["id"];

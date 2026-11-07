@@ -60,8 +60,16 @@ test("only durable, non-secret options are saved, with absolute paths", () => {
     "material=spoolio",
     "--output-dir",
     "out",
+    "--cleanup=casing,whitespace",
+    "--reference",
+    "ref.json",
+    "--fail-on-mismatch",
+    "--rollback-dir",
+    "rollbacks",
+    "--no-rollback",
     "--confirm",
     "spoolio:a,spoolkeep:b",
+    "--save-config",
     "--json",
   ]);
   const settings = savableSettings(options);
@@ -71,6 +79,11 @@ test("only durable, non-secret options are saved, with absolute paths", () => {
     "create-in": ["spoolio"],
     resolve: ["material=spoolio"],
     "output-dir": path.resolve("out"),
+    cleanup: "whitespace,casing",
+    reference: path.resolve("ref.json"),
+    "fail-on-mismatch": true,
+    "rollback-dir": path.resolve("rollbacks"),
+    "no-rollback": true,
     format: "json",
   });
   expect(JSON.stringify(settings)).not.toContain("token");

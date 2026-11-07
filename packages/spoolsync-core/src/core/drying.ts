@@ -85,9 +85,12 @@ export function dryingFor(
   const tempC = catalog?.dryingTemp ?? null;
   const hours = catalog?.dryingHours ?? null;
   if (tempC === null && hours === null) return typical ? { ...typical, origin: "typical" } : null;
+  const resolvedTemp = tempC ?? typical?.tempC ?? null;
+  const resolvedHours = hours ?? typical?.hours ?? null;
+  if (resolvedTemp === null || resolvedHours === null) return null;
   return {
-    tempC: tempC ?? typical?.tempC ?? 0,
-    hours: hours ?? typical?.hours ?? 0,
+    tempC: resolvedTemp,
+    hours: resolvedHours,
     // A catalog that gives drying settings says the filament benefits from drying.
     moisture: typical?.moisture ?? "medium",
     origin: "catalog",

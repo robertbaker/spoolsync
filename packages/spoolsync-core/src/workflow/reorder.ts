@@ -20,12 +20,14 @@ export function reorderItems(
 ): ReorderItem[] {
   const items: ReorderItem[] = [];
   for (const { spool, members } of uniqueSpools(results, decisions)) {
-    if (members.some((member) => isRunningLow(member, rule))) {
+    const low = members.filter((member) => isRunningLow(member, rule));
+    if (low.length) {
+      const target = isRunningLow(spool, rule) ? spool : low[0]!;
       items.push({
-        spool,
+        spool: target,
         fraction:
-          spool.remainingWeight !== null && spool.initialWeight
-            ? spool.remainingWeight / spool.initialWeight
+          target.remainingWeight !== null && target.initialWeight
+            ? target.remainingWeight / target.initialWeight
             : null,
       });
     }

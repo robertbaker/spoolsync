@@ -9,7 +9,7 @@ import { ensureDirectory } from "./ensure-directory";
 import type { Options } from "./options";
 
 /** The config key for each source's file option (the long option name without dashes). */
-const SOURCE_KEYS: Record<SourceId, string> = {
+export const SOURCE_KEYS: Record<SourceId, string> = {
   spoolman: "spoolman",
   spoolstock: "spoolstock",
   spoolio: "spoolio",
@@ -73,6 +73,12 @@ export function savableSettings(options: Options): Record<string, unknown> {
   if (options.outputDir) settings["output-dir"] = path.resolve(options.outputDir);
   if (options.json) settings["format"] = "json";
   if (options.lowThreshold !== undefined) settings["low-threshold"] = options.lowThreshold;
+  if (options.cleanup)
+    settings["cleanup"] = options.cleanupRules?.length ? options.cleanupRules.join(",") : true;
+  if (options.reference) settings["reference"] = path.resolve(options.reference);
+  if (options.failOnMismatch) settings["fail-on-mismatch"] = true;
+  if (options.rollbackDir) settings["rollback-dir"] = path.resolve(options.rollbackDir);
+  if (options.noRollback) settings["no-rollback"] = true;
   if (options.spoolmanUrl) settings["spoolman-url"] = options.spoolmanUrl;
   if (options.filamentdbUrl) settings["filamentdb-url"] = options.filamentdbUrl;
   if (options.filamentDbUrl) settings["filament-db-url"] = options.filamentDbUrl;

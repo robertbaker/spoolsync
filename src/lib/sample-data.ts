@@ -9,6 +9,16 @@ import {
   saveLoadResult,
   saveMatchDecisions,
 } from "./browser/storage";
+import { loadBulkEdits, saveBulkEdits } from "./browser/storage/bulk-edits";
+import { loadAcceptedCleanups, saveAcceptedCleanups } from "./browser/storage/cleanup";
+import {
+  loadAcceptedReferences,
+  loadReferenceChoices,
+  loadReferenceRuledOut,
+  saveAcceptedReferences,
+  saveReferenceChoices,
+  saveReferenceRuledOut,
+} from "./browser/storage/reference";
 
 /**
  * A small invented inventory in two writable services, so a first-time visitor can see matching,
@@ -142,10 +152,23 @@ export async function applySampleParam(
 export function clearSampleData(sources: readonly Parameters<typeof clearLoadResult>[0][]): void {
   for (const source of sources) clearLoadResult(source);
   clearResolutions();
+  const isSample = (key: string) => key.includes("sample-");
   const decisions = loadMatchDecisions();
-  const isSample = (pair: string) => pair.includes("sample-");
   saveMatchDecisions({
     confirmed: decisions.confirmed.filter((pair) => !isSample(pair)),
     rejected: decisions.rejected.filter((pair) => !isSample(pair)),
   });
+  const bulkEdits = loadBulkEdits();
+  for (const key of bulkEdits.keys()) {
+    if (isSample(key)) bulkEdits.delete(key);
+  }
+  saveBulkEdits(bulkEdits);
+  saveAcceptedCleanups(loadAcceptedCleanups().filter((entry) => !isSample(entry.spoolKey)));
+  saveAcceptedReferences(loadAcceptedReferences().filter((entry) => !isSample(entry.spoolKey)));
+  const refChoices = loadReferenceChoices();
+  for (const key of refChoices.keys()) {
+    if (isSample(key)) refChoices.delete(key);
+  }
+  saveReferenceChoices(refChoices);
+  saveReferenceRuledOut(loadReferenceRuledOut().filter((key) => !isSample(key)));
 }

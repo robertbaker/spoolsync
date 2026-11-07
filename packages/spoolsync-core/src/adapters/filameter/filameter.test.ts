@@ -90,3 +90,45 @@ test("FilaMeter create omits a null price", () => {
   expect(added._id).toBe("new-id");
   expect("price" in added).toBe(false);
 });
+
+test("FilaMeter keeps unknown weights unknown on create and update, never 0 g", () => {
+  const loaded = loadFilameterFile(docs);
+  const create = {
+    kind: "create",
+    source: "filameter",
+    groupId: "g2",
+    values: {
+      vendor: "V",
+      material: "PLA",
+      name: "Unknown",
+      colors: [],
+      price: null,
+      location: null,
+      comment: null,
+      initialWeight: null,
+      remainingWeight: null,
+    },
+    links: {},
+    groupIds: {},
+  } as never;
+  const out = exportFilameter(
+    loaded,
+    [
+      create,
+      update(
+        [
+          { field: "initialWeight", from: 1000, to: null },
+          { field: "remainingWeight", from: 900, to: null },
+        ],
+        loaded.spools[0],
+      ),
+    ],
+    { randomUUID: () => "unknown-id" } as never,
+  );
+  for (const text of [out.json, out.csv]) {
+    const reloaded = loadFilameterFile(text).spools;
+    for (const spool of [reloaded[0]!, reloaded.at(-1)!])
+      expect(spool).toMatchObject({ initialWeight: null, remainingWeight: null });
+  }
+  expect(out.warnings.join(" ")).toContain("weights are unknown");
+});

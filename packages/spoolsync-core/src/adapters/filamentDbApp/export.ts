@@ -106,9 +106,15 @@ export function exportFilamentDbApp(
       (filament) => idOf(filament["_id"]) === filamentOf.get(spool),
     );
     if (host) patchSnapshotFilament(host, patches.filament);
+    const remainingWeight =
+      patches.spool.remainingWeight !== undefined
+        ? patches.spool.remainingWeight
+        : patches.filament.spoolWeight !== undefined
+          ? change.spool.remainingWeight
+          : undefined;
     patchSnapshotSpool(
       spool,
-      patches.spool,
+      remainingWeight !== undefined ? { ...patches.spool, remainingWeight } : patches.spool,
       patches.filament.spoolWeight !== undefined
         ? patches.filament.spoolWeight
         : change.spool.emptySpoolWeight,

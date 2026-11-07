@@ -113,6 +113,12 @@ export function mergedValues(
     let found: FieldValue | undefined;
     for (const source of sources) {
       const member = group.members[source]!;
+      if (
+        field === "archived" &&
+        (!SOURCE_FIELDS[source].has("archived") || member.unavailable?.includes("archived"))
+      ) {
+        continue;
+      }
       const edited = recordEdits.get(recordKey(member))?.[field];
       const value = edited !== undefined ? edited : member[field];
       if (!isBlank(value)) {

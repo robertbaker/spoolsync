@@ -25,6 +25,8 @@ const SAVABLE_PATH_KEYS = new Set([
   "spool",
   "spoolkeep",
   "output-dir",
+  "reference",
+  "rollback-dir",
 ]);
 
 const SAVABLE_KEYS = new Set([
@@ -35,6 +37,9 @@ const SAVABLE_KEYS = new Set([
   "format",
   "json",
   "low-threshold",
+  "cleanup",
+  "fail-on-mismatch",
+  "no-rollback",
   "spoolman-url",
   "filamentdb-url",
   "filament-db-url",

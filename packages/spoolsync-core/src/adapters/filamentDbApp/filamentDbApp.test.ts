@@ -458,3 +458,13 @@ test("a snapshot export applies filament fields and uses the new empty-spool wei
     totalWeight: 500,
   });
 });
+
+test("changing emptySpoolWeight alone adjusts totalWeight in snapshot export so remainingWeight is preserved", async () => {
+  const { loaded, change } = await planUpdate([["emptySpoolWeight", 200, 120]]);
+  const result = exportFilamentDbApp(loaded as never, [change]);
+  const reloaded = await loadInventoryFile("filamentDbApp", result.json);
+  expect(reloaded.spools[0]).toMatchObject({
+    emptySpoolWeight: 120,
+    remainingWeight: 500,
+  });
+});

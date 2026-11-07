@@ -97,7 +97,9 @@ export function newFilament(values: SpoolValues, runtime: AdapterRuntime): Recor
     weightRemaining: 0,
     purchaseDate: "",
   };
-  for (const [field, value] of Object.entries(values))
+  for (const [field, value] of Object.entries(values)) {
+    if ((field === "material" || field === "vendor") && value == null) continue;
     setField(filament, field as ComparableField, value);
+  }
   return filament;
 }

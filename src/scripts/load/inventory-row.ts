@@ -31,6 +31,11 @@ const LINKS: ReadonlyArray<{
   { source: "filameter", label: "FilaMeter", id: (ids) => ids.filameterId?.slice(0, 8) },
   { source: "filadex", label: "Filadex", id: (ids) => ids.filadexId?.slice(0, 8) },
   { source: "filamentdb", label: "FilamentDB", id: (ids) => ids.filamentdbSerial?.slice(0, 8) },
+  {
+    source: "filamentDbApp",
+    label: "Filament DB",
+    id: (ids) => ids.filamentDbAppId?.slice(0, 8),
+  },
   { source: "spoolmaster", label: "SpoolMaster", id: (ids) => ids.spoolmasterId },
   { source: "spoolhoarder", label: "Spool Hoarder", id: (ids) => ids.spoolhoarderId?.slice(0, 8) },
   { source: "spoolapp", label: "Spool", id: (ids) => ids.spoolappId?.slice(0, 8) },

@@ -47,3 +47,24 @@ test("excluded changes are reported because the CLI cannot skip them", () => {
   expect(choices.extra).toBe(1);
   expect(choices.missing).toBe(0);
 });
+
+test("automatic fill fields do not emit redundant --resolve flags", () => {
+  const spools = [
+    makeSpool("spoolman", "1", { vendor: "Prusament", remainingWeight: 500 }),
+    makeSpool("spoolio", "a", { crossIds: { spoolmanId: 1 }, vendor: null, remainingWeight: 500 }),
+  ];
+  const match = matchSpools(spools, { confirmed: [], rejected: [] });
+  const resolutions = new Map();
+  const plan = buildPlan(match.groups, resolutions);
+  const choices = deriveCliChoices(
+    match.groups,
+    resolutions,
+    { confirmed: [], rejected: [] },
+    [],
+    plan,
+    ["spoolman", "spoolio"],
+  );
+  expect(choices.resolves).toEqual([]);
+  expect(choices.extra).toBe(0);
+  expect(choices.missing).toBe(0);
+});

@@ -59,6 +59,8 @@ describe("dryingFor", () => {
       moisture: "medium",
       origin: "catalog",
     });
+    expect(dryingFor("Mystery", { dryingTemp: 50, dryingHours: null })).toBeNull();
+    expect(dryingFor("Mystery", { dryingTemp: null, dryingHours: 4 })).toBeNull();
     expect(dryingFor("PETG", { dryingTemp: null, dryingHours: null })?.origin).toBe("typical");
   });
 });

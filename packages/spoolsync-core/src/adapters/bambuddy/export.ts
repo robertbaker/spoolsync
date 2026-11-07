@@ -35,12 +35,17 @@ export function exportBambuddyCsv(_loaded: BambuddyLoadResult, changes: PlannedC
       warnings.push(
         `Price was omitted for ${change.values.name ?? change.groupId}: a positive initial weight is required to calculate Bambuddy's cost per kilogram.`,
       );
-    const weights = exportWeights(
-      initialWeight,
-      change.values.remainingWeight,
-      `Bambuddy ${change.values.name ?? change.groupId}`,
-    );
-    if (!Number.isInteger(weights.total))
+    const label = `Bambuddy ${change.values.name ?? change.groupId}`;
+    const weightsUnknown = initialWeight === null && change.values.remainingWeight === null;
+    // Unknown weights are left blank, as the API path leaves them to Bambuddy's defaults.
+    const weights = weightsUnknown
+      ? {
+          total: "" as const,
+          used: "" as const,
+          warnings: [`${label}: weights are unknown, so they were left blank.`],
+        }
+      : exportWeights(initialWeight, change.values.remainingWeight, label);
+    if (weights.total !== "" && !Number.isInteger(weights.total))
       throw new Error(
         `Bambuddy ${change.values.name ?? change.groupId}: label weight must be a whole number of grams for CSV import. Resolve the initial weight before exporting.`,
       );

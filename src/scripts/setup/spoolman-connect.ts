@@ -92,7 +92,6 @@ export function spoolmanConnectPanel(deps: SpoolmanConnectDependencies): HTMLEle
       token: token.value,
       rememberToken: latest?.rememberToken ?? false,
     };
-    deps.saveSpoolmanConnection(connection);
     connect.disabled = true;
     connect.setAttribute("aria-busy", "true");
     result.replaceChildren(notice("info", t("wizard.spoolman.testing"), h("p", {}, baseUrl)));
@@ -100,6 +99,7 @@ export function spoolmanConnectPanel(deps: SpoolmanConnectDependencies): HTMLEle
       const diagnosis = await deps.diagnoseConnection(connection, await deps.browserEnvironment());
       result.replaceChildren(connectionDiagnosisNotice(diagnosis));
       if (diagnosis.code === "ok") {
+        deps.saveSpoolmanConnection(connection);
         const fetch = h("button", { type: "button", class: PRIMARY }, t("wizard.spoolman.fetch"));
         fetch.addEventListener("click", () => deps.fetchSpools());
         result.append(h("div", { class: "mt-3" }, fetch));

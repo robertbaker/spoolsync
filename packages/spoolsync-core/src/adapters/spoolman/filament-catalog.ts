@@ -105,6 +105,11 @@ export class FilamentCatalog {
     const existing = Array.from(this.filamentsByIdentity.get(key)?.values() ?? []).find(
       (candidate) =>
         (!template || metadataKey(candidate) === metadataKey(template)) &&
+        (!this.ranges ||
+          ((candidate.settings_extruder_temp_min || null) === values.nozzleTempMin &&
+            (candidate.settings_extruder_temp_max || null) === values.nozzleTempMax &&
+            (candidate.settings_bed_temp_min || null) === values.bedTempMin &&
+            (candidate.settings_bed_temp_max || null) === values.bedTempMax)) &&
         (values.initialWeight !== null || candidate.weight == null) &&
         (values.price !== null || candidate.price == null) &&
         (values.emptySpoolWeight !== null || candidate.spool_weight == null),

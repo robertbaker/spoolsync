@@ -21,6 +21,7 @@ import {
   isSampleInventory,
   sampleLink,
 } from "~/lib/sample-data";
+import { DISPLAY_CHANGED } from "~/lib/units";
 
 import { byId, h, notice, showToast } from "./dom";
 import { renderLoadedChart } from "./load/loaded-chart";
@@ -143,6 +144,9 @@ const renderSuggestions = createSuggestionsView(
 review.wireKeys();
 // "Review matches" in the sticky bar starts (or returns to) the one-at-a-time review.
 document.getElementById("sync-bar-review")?.addEventListener("click", () => review.start());
+document.addEventListener(DISPLAY_CHANGED, () => {
+  if (loaded.size >= 2) renderLoadedChart(byId("sync-chart"), loaded);
+});
 
 function renderAll(): void {
   refreshRecordEdits();

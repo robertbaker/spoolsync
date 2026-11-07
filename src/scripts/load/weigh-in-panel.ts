@@ -19,12 +19,18 @@ const BUTTON =
   "rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 /** What was typed, kept per spool so a redraw of the drawer does not wipe the boxes. */
-export type WeighInMemory = Map<string, { gross: string; tare: string }>;
+export type WeighInMemory = Map<string, { gross: string; tare: string; unit?: WeightUnit }>;
 
 /** A weight as the visitor would type it: in the display unit, no unit suffix, no grouping. */
 function inputValue(grams: number, unit: WeightUnit): string {
   const value = gramsToUnit(grams, unit);
   return String(Math.round(value * (unit === "oz" ? 100 : 10)) / (unit === "oz" ? 100 : 10));
+}
+
+function convertRemembered(raw: string, fromUnit: WeightUnit, toUnit: WeightUnit): string {
+  if (fromUnit === toUnit || raw.trim() === "") return raw;
+  const grams = parseScaleInput(raw, fromUnit);
+  return typeof grams === "number" ? inputValue(grams, toUnit) : raw;
 }
 
 /**
@@ -68,8 +74,13 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     class: "field-input mt-1 w-32 tabular-nums",
     "aria-describedby": "weigh-in-tare-note",
   });
-  gross.value = remembered?.gross ?? "";
-  tare.value = remembered?.tare ?? (start ? inputValue(start.grams, unit) : "");
+  const rememberedUnit = remembered?.unit ?? unit;
+  gross.value = remembered ? convertRemembered(remembered.gross, rememberedUnit, unit) : "";
+  tare.value = remembered
+    ? convertRemembered(remembered.tare, rememberedUnit, unit)
+    : start
+      ? inputValue(start.grams, unit)
+      : "";
 
   const tareNote = h("p", {
     id: "weigh-in-tare-note",
@@ -111,7 +122,7 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
   let staged: number | null = null;
 
   function update(): void {
-    memory.set(detail.key, { gross: gross.value, tare: tare.value });
+    memory.set(detail.key, { gross: gross.value, tare: tare.value, unit });
     const saved = readTares();
     const typedTare = parseScaleInput(tare.value, unit);
     const resolved = suggestion();

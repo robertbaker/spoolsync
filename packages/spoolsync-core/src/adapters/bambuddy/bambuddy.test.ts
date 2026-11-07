@@ -60,3 +60,21 @@ test("Bambuddy CSV export writes finish as subtype and the lot number as materia
     crossIds: {},
   });
 });
+
+test("Bambuddy CSV export leaves unknown weights blank instead of a 0 g label weight", () => {
+  const values = makeSpool("bambuddy", "x", { initialWeight: null, remainingWeight: null });
+  const loaded = loadBambuddyFile(["material", "PLA", ""].join("\n"));
+  const result = exportBambuddyCsv(loaded, [
+    { kind: "create", source: "bambuddy", groupId: "g", values, links: {}, groupIds: {} },
+  ]);
+  const [header, row] = result.csv.trim().split(String.fromCharCode(10));
+  const columns = header!.trim().split(",");
+  const cells = row!.trim().split(",");
+  expect(cells[columns.indexOf("label_weight")]).toBe("");
+  expect(cells[columns.indexOf("weight_used")]).toBe("");
+  expect(result.warnings.join(" ")).toContain("weights are unknown");
+  expect(loadBambuddyFile(result.csv).spools[0]).toMatchObject({
+    initialWeight: null,
+    remainingWeight: null,
+  });
+});

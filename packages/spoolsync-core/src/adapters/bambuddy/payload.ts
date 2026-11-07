@@ -168,7 +168,11 @@ function encode(
         required("an initial weight", next.initialWeight);
       }
       if (next.initialWeight !== null && next.remainingWeight !== null) {
-        if (next.remainingWeight < 0 || next.remainingWeight > next.initialWeight)
+        if (
+          !Number.isFinite(next.remainingWeight) ||
+          next.remainingWeight < 0 ||
+          next.remainingWeight > next.initialWeight
+        )
           throw new Error(
             `${label}: remaining weight must be between 0 and the initial weight. Resolve the weights before writing.`,
           );
