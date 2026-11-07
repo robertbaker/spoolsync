@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.4.0...spoolsync-cli-v0.5.0) (2026-11-07)
+
+### Features
+
+* **load:** abort Spoolman requests when a fetch is cancelled or times out ([26c9f56](https://github.com/robertbaker/spoolsync/commit/26c9f56e1ffa49e3cac699377a8f8e53785ba7ac))
+* **spoolsync-cli:** require Node.js 22 or later ([4ae92e9](https://github.com/robertbaker/spoolsync/commit/4ae92e99ed2259093715f23f671db748c36bbdf9))
+* **ux:** busy/cancel fetches, empty states, shared offsets and picker polish ([ae83929](https://github.com/robertbaker/spoolsync/commit/ae8392959bad1ce6e541f02646a0ec00c4db2b75))
+* **ux:** replace window.confirm with a shared dialog, save Spoolman only after a passing test ([e1aa2a1](https://github.com/robertbaker/spoolsync/commit/e1aa2a15de35345101b11ebf03c3f95e7c9716ff))
+* **ux:** stepper follows scroll, consistent persistence copy, destructive Unload all, tile busy pill ([46ee22b](https://github.com/robertbaker/spoolsync/commit/46ee22b99086b9b032abf3bf6a5cf698f20ad58c))
+
+### Bug Fixes
+
+* **core:** define the vendor collator used by reorder sorting ([514ec91](https://github.com/robertbaker/spoolsync/commit/514ec91435d50cb5fddbf4de1fc1deee7f8e1dca))
+* **ux:** keep Continue focusable and let error toasts be read ([70a7e1e](https://github.com/robertbaker/spoolsync/commit/70a7e1e92685c72f419fb47cd46d08a529ba0617))
+* **ux:** label and explain the Bambuddy and FilamentDB fetch forms ([88031f5](https://github.com/robertbaker/spoolsync/commit/88031f5a30310b7e6e7f63683f4e3d3ec4a45dda))
+
+### Performance Improvements
+
+* bucket duplicate detection and cache read-only matches ([4f7d24e](https://github.com/robertbaker/spoolsync/commit/4f7d24e6d7f91e2d5f959d2433244c22b6d6c48e))
+* **core:** load API responses without a JSON text round trip ([f1f0ca2](https://github.com/robertbaker/spoolsync/commit/f1f0ca22c2355f048576f985078c3c4d5a833c3b))
+* **core:** score match pairs without building reasons and prune exactly ([096ab64](https://github.com/robertbaker/spoolsync/commit/096ab6408868d67e213159715a6d20fc36a0c478))
+* **core:** sort with shared collators and precomputed keys ([46ff6ee](https://github.com/robertbaker/spoolsync/commit/46ff6eec290352c3eefe528c0c855c899a1aac98))
+* **i18n:** download only the active language ([c42d712](https://github.com/robertbaker/spoolsync/commit/c42d7125a004d356e24949348d483e5fb92401d8))
+* load the palette, shortcuts list, saved-data and changelog dialogs on first use ([3a9e705](https://github.com/robertbaker/spoolsync/commit/3a9e705233f1ace7a58f38d0c4263bf50d36b1da))
+* **load:** lazy label printing and skip data recompute on presentation changes ([47f3973](https://github.com/robertbaker/spoolsync/commit/47f397339b4fe94a6b177ec8ae3d867407710129))
+* **spoolman:** fetch remaining inventory pages concurrently ([7b13511](https://github.com/robertbaker/spoolsync/commit/7b1351188e26f87b91857085235f5c1e1c1bd92a))
+* **sync:** cache group comparisons, batch decisions, chunk "Show all" ([edc1dd7](https://github.com/robertbaker/spoolsync/commit/edc1dd748811c5cb8f959b2946e6c68834cb79da))
+* **sync:** cheap undo snapshots, skip unchanged matching, focus empty state ([0019c32](https://github.com/robertbaker/spoolsync/commit/0019c32a4b08671e5f9099a527c7dd62612edb35))
+
 ## [0.4.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.3.0...spoolsync-cli-v0.4.0) (2026-11-04)
 
 ### Features
