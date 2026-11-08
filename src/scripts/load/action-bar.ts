@@ -1,3 +1,4 @@
+import { allSpools } from "@spoolsync/core/core/model";
 import { findMatchesCached as findMatches } from "@spoolsync/core/planner";
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
@@ -8,10 +9,7 @@ import type { LoadState } from "./state";
 function pendingMatches(state: LoadState): number {
   if (state.results.size < 2) return 0;
   try {
-    return findMatches(
-      [...state.results.values()].flatMap((result) => result.spools),
-      loadMatchDecisions(),
-    ).suggestions.length;
+    return findMatches(allSpools(state.results.values()), loadMatchDecisions()).suggestions.length;
   } catch {
     return 0;
   }

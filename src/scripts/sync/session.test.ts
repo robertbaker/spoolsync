@@ -2,6 +2,7 @@ import { expect, mock, test } from "bun:test";
 
 import type { CommonSpool, LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { makeSpool } from "@spoolsync/core/core/testing";
+import { findMatchesCached } from "@spoolsync/core/planner";
 
 import { SyncSession } from "./session";
 
@@ -42,6 +43,25 @@ test("sync recomputation preserves choices when a group gains a created member",
   expect(state.resolutionFor(after).values.name).toBe("Chosen name");
   expect(state.resolutionFor(after).createIn).toEqual(["tigertag"]);
   expect(saveResolutions).toHaveBeenCalledTimes(2);
+});
+
+test("a recomputation shares its match with read-only callers and refreshes on new records", () => {
+  const first = makeSpool("spoolman", "1");
+  const second = makeSpool("spoolio", "a");
+  const loaded = new Map<SourceId, LoadResult>([
+    ["spoolman", snapshot("spoolman", [first])],
+    ["spoolio", snapshot("spoolio", [second])],
+  ]);
+  const { state } = session(loaded);
+  state.recompute();
+  const match = state.match;
+  expect(findMatchesCached([second, first], { confirmed: [], rejected: [] })).toBe(match);
+  state.recompute();
+  expect(state.match).toBe(match);
+  loaded.set("spoolio", snapshot("spoolio", [makeSpool("spoolio", "b")]));
+  state.recompute();
+  expect(state.match).not.toBe(match);
+  expect(state.match.groups.some((group) => group.members.spoolio?.sourceId === "b")).toBe(true);
 });
 
 test("match decisions persist and remove pending groups after recomputation", () => {

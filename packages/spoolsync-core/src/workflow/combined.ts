@@ -1,5 +1,5 @@
 import { csvText } from "../adapters/shared/tabular";
-import { SOURCE_LABELS, type CommonSpool, type LoadResult } from "../core/model";
+import { allSpools, SOURCE_LABELS, type CommonSpool, type LoadResult } from "../core/model";
 
 const COLUMNS = [
   "service",
@@ -67,6 +67,6 @@ export function combinedInventoryCsv(results: readonly LoadResult[]): {
   csv: string;
   rows: number;
 } {
-  const spools = results.flatMap((result) => result.spools);
+  const spools = allSpools(results);
   return { csv: csvText(spools.map(row), COLUMNS), rows: spools.length };
 }

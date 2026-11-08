@@ -1,11 +1,7 @@
-import {
-  FIELD_LABELS,
-  type PlannedChange,
-  type PlannedCreate,
-  type PlannedUpdate,
-} from "../../core/compare";
+import type { PlannedChange, PlannedCreate, PlannedUpdate } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import { FilamentCatalog } from "./filament-catalog";
 import { applyFilamentChanges } from "./filament-update";
 import { SPOOLMAN_SPOOL_EXTRAS } from "./map";
@@ -28,8 +24,7 @@ export async function applyToSpoolman(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("spoolman", changes);
-  const log: ApplyLogEntry[] = [];
-  if (!changes.length) return log;
+  if (!changes.length) return [];
 
   await client.ensureExtraFields("spool", SPOOLMAN_SPOOL_EXTRAS);
   const [vendors, filaments, spools] = await Promise.all([
@@ -76,7 +71,7 @@ export async function applyToSpoolman(
       }
       freshSpools.set(id, updated);
     }
-    const fields = change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase());
+    const fields = changedFieldNames(change);
     const linked = Object.keys(change.links).length ? "linked IDs" : "";
     return `Updated spool #${id}: ${[...fields, linked].filter(Boolean).join(", ")}${filamentNote}`;
   }
@@ -90,21 +85,13 @@ export async function applyToSpoolman(
     return `Created spool #${created.id}${label ? ` (${label})` : ""}`;
   }
 
-  let done = 0;
-  for (const change of changes) {
-    try {
-      const message =
-        change.kind === "update" ? await applyUpdate(change) : await applyCreate(change);
-      log.push({ groupId: change.groupId, ok: true, message });
-    } catch (error) {
-      const what = change.kind === "update" ? `spool #${change.spool.sourceId}` : "new spool";
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${what}: ${(error as Error).message}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+  return applyEachChange(
+    changes,
+    {
+      write: (change) => (change.kind === "update" ? applyUpdate(change) : applyCreate(change)),
+      subject: (change) =>
+        change.kind === "update" ? `spool #${change.spool.sourceId}` : "new spool",
+    },
+    onProgress,
+  );
 }

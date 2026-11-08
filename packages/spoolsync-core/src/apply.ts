@@ -19,34 +19,19 @@ import {
   TigertagCloud,
   type TigertagSession,
 } from "./adapters/tigertag/cloud";
+import { ApplyReloadError, type ApplyServiceName } from "./core/apply-error";
 import type { PlannedChange } from "./core/compare";
 import type { LoadResult, ApplyLogEntry } from "./core/model";
 
-type ApplyService = "Spoolman" | "TigerTag" | "FilamentDB" | "Filament DB" | "Filadex" | "Bambuddy";
+export { ApplyReloadError };
 
 export interface ApplyAndReloadResult {
   log: ApplyLogEntry[];
   inventory: LoadResult;
 }
 
-/** Writes have already been attempted; callers must retain the log even if refresh fails. */
-export class ApplyReloadError extends Error {
-  constructor(
-    readonly service: ApplyService,
-    readonly log: ApplyLogEntry[],
-    cause: unknown,
-  ) {
-    const succeeded = log.filter((entry) => entry.ok).length;
-    super(
-      `${service} apply finished (${succeeded} succeeded, ${log.length - succeeded} failed), but inventory refresh failed: ${cause instanceof Error ? cause.message : String(cause)}. Reload the inventory before retrying writes.`,
-      { cause },
-    );
-    this.name = "ApplyReloadError";
-  }
-}
-
 async function reloadAfterApply(
-  service: ApplyService,
+  service: ApplyServiceName,
   log: ApplyLogEntry[],
   reload: () => Promise<LoadResult>,
 ): Promise<ApplyAndReloadResult> {

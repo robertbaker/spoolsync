@@ -1,6 +1,6 @@
 import {
+  allSpools,
   SOURCE_LABELS,
-  type CommonSpool,
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
@@ -39,8 +39,6 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
   let opener: HTMLElement | null = null;
   const weighMemory: WeighInMemory = new Map();
 
-  const allSpools = (): CommonSpool[] => [...results.values()].flatMap((result) => result.spools);
-
   const hooks: DrawerHooks = {
     insights,
     onChange,
@@ -51,7 +49,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
   function render(): void {
     if (!dialog || !currentKey) return;
     const detail = findSpoolDetail(
-      allSpools(),
+      allSpools(results.values()),
       currentKey,
       loadMatchDecisions(),
       insights.duplicates,
@@ -163,7 +161,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
   }
 
   function open(key: string): boolean {
-    if (!allSpools().some((spool) => spoolKey(spool) === key)) return false;
+    if (!allSpools(results.values()).some((spool) => spoolKey(spool) === key)) return false;
     dialog ??= build();
     if (!dialog.open) {
       const active = document.activeElement;

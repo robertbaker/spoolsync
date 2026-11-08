@@ -2,7 +2,7 @@ import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 
 import { navLinks } from "~/config/navigation";
 import { WORKFLOW_STEPS } from "~/config/site";
-import { readLoadResult } from "~/lib/browser/storage/inventories";
+import { hasLoadResult, readLoadResult } from "~/lib/browser/storage/inventories";
 import { t } from "~/lib/i18n";
 import { backupFilename, createBackup } from "~/lib/saved-data";
 import { SIDEBAR_TOGGLE_EVENT } from "~/lib/sidebar";
@@ -268,7 +268,7 @@ function actionItems(): PaletteItem[] {
       aliases: ["report", "print inventory", "summary", "export report"],
       run: () => void clickVisible("#open-inventory-report"),
     });
-  if (isLoadPath(location.pathname) && SOURCE_IDS.some((source) => readLoadResult(source)))
+  if (isLoadPath(location.pathname) && SOURCE_IDS.some((source) => hasLoadResult(source)))
     add({
       id: "action:weigh-in",
       title: "Weigh in a spool",

@@ -1,4 +1,10 @@
-import { SOURCE_LABELS, type CommonSpool, type SourceId } from "../model";
+import {
+  NATIVE_CROSS_ID,
+  SOURCE_IDS,
+  SOURCE_LABELS,
+  type CommonSpool,
+  type SourceId,
+} from "../model";
 import type { Groups } from "./groups";
 import { recordKey, SOURCE_INDEX } from "./keys";
 import type { RecordKey } from "./types";
@@ -10,39 +16,13 @@ const IDENTITY_COLLATOR = new Intl.Collator();
 function identityKeys(spool: CommonSpool): string[] {
   const native = `${spool.source}:${spool.sourceId}`;
   const keys: string[] = [native];
-  const add = (key: string) => {
+  for (const source of SOURCE_IDS) {
+    const id = spool.crossIds[NATIVE_CROSS_ID[source]];
+    // A numeric id of zero is an id; an empty string is not.
+    if (typeof id !== "number" && !id) continue;
+    const key = `${source}:${id}`;
     if (key !== native && !keys.includes(key)) keys.push(key);
-  };
-  const {
-    spoolmanId,
-    spoolstockShortId,
-    spoolioId,
-    tigertagUid,
-    threeDfpId,
-    bambuddyId,
-    filameterId,
-    filadexId,
-    filamentdbSerial,
-    filamentDbAppId,
-    spoolmasterId,
-    spoolhoarderId,
-    spoolappId,
-    spoolkeepId,
-  } = spool.crossIds;
-  if (spoolmanId !== undefined) add(`spoolman:${spoolmanId}`);
-  if (spoolstockShortId) add(`spoolstock:${spoolstockShortId}`);
-  if (spoolioId) add(`spoolio:${spoolioId}`);
-  if (tigertagUid) add(`tigertag:${tigertagUid}`);
-  if (threeDfpId) add(`threeDfp:${threeDfpId}`);
-  if (bambuddyId !== undefined) add(`bambuddy:${bambuddyId}`);
-  if (filameterId) add(`filameter:${filameterId}`);
-  if (filadexId) add(`filadex:${filadexId}`);
-  if (filamentdbSerial) add(`filamentdb:${filamentdbSerial}`);
-  if (filamentDbAppId) add(`filamentDbApp:${filamentDbAppId}`);
-  if (spoolmasterId) add(`spoolmaster:${spoolmasterId}`);
-  if (spoolhoarderId) add(`spoolhoarder:${spoolhoarderId}`);
-  if (spoolappId) add(`spoolapp:${spoolappId}`);
-  if (spoolkeepId) add(`spoolkeep:${spoolkeepId}`);
+  }
   return keys;
 }
 

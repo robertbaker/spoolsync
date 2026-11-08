@@ -1,6 +1,7 @@
-import { FIELD_LABELS, type PlannedChange } from "../../core/compare";
+import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { FilamentDbClient } from "./client";
 import { createRecord, updateRecord } from "./records";
 
@@ -17,8 +18,7 @@ export async function applyToFilamentDb(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("filamentdb", changes);
-  const log: ApplyLogEntry[] = [];
-  if (!changes.length) return log;
+  if (!changes.length) return [];
   const fresh = new Map<string, Record<string, unknown>>();
   for (const spool of await client.listSpools())
     if (
@@ -28,39 +28,27 @@ export async function applyToFilamentDb(
     )
       fresh.set((spool as { serial: string }).serial, spool as Record<string, unknown>);
 
-  let done = 0;
-  for (const change of changes) {
-    const notes: string[] = [];
-    const warn = (note: string) => {
-      notes.push(note);
-    };
-    try {
-      let message: string;
-      if (change.kind === "update") {
-        const record = fresh.get(change.spool.sourceId);
-        if (!record)
-          throw new Error(
-            `Spool ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
-          );
-        updateRecord(record, change, warn);
+  return applyEachChange(
+    changes,
+    {
+      async write(change, note) {
+        if (change.kind === "update") {
+          const record = fresh.get(change.spool.sourceId);
+          if (!record)
+            throw new Error(
+              `Spool ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
+            );
+          updateRecord(record, change, note);
+          await client.saveSpool(record);
+          return `Updated spool ${change.spool.sourceId}: ${changedFieldNames(change).join(", ")}`;
+        }
+        const record = createRecord(change.values, "FilamentDB", note);
         await client.saveSpool(record);
-        message = `Updated spool ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
-      } else {
-        const record = createRecord(change.values, "FilamentDB", warn);
-        await client.saveSpool(record);
-        message = `Created spool ${record["serial"]}`;
-      }
-      if (notes.length) message += ` (${notes.join(" ")})`;
-      log.push({ groupId: change.groupId, ok: true, message });
-    } catch (error) {
-      const what = change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool";
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${what}: ${(error as Error).message}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+        return `Created spool ${record["serial"]}`;
+      },
+      subject: (change) =>
+        change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool",
+    },
+    onProgress,
+  );
 }

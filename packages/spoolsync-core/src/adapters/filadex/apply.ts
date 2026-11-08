@@ -1,6 +1,7 @@
-import { FIELD_LABELS, type PlannedChange } from "../../core/compare";
+import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { FiladexClient } from "./client";
 import { createRecord, updateRecord } from "./records";
 
@@ -72,8 +73,7 @@ export async function applyToFiladex(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("filadex", changes);
-  const log: ApplyLogEntry[] = [];
-  if (!changes.length) return log;
+  if (!changes.length) return [];
   const fresh = new Map<string, Record<string, unknown>>();
   const names = new Set<string>();
   for (const entry of await client.listFilaments()) {
@@ -82,48 +82,36 @@ export async function applyToFiladex(
     names.add(String(record["name"] ?? "").toLowerCase());
   }
 
-  let done = 0;
-  for (const change of changes) {
-    const notes: string[] = [];
-    const warn = (note: string) => {
-      notes.push(note);
-    };
-    try {
-      let message: string;
-      if (change.kind === "update") {
-        const current = fresh.get(change.spool.sourceId);
-        if (!current)
-          throw new Error(
-            `Filament ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
+  return applyEachChange(
+    changes,
+    {
+      async write(change, note) {
+        if (change.kind === "update") {
+          const current = fresh.get(change.spool.sourceId);
+          if (!current)
+            throw new Error(
+              `Filament ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
+            );
+          const next = { ...current };
+          updateRecord(next, change, note);
+          const moved = new Set(
+            WRITABLE.filter((key) => String(next[key] ?? "") !== String(current[key] ?? "")),
           );
-        const next = { ...current };
-        updateRecord(next, change, warn);
-        const moved = new Set(
-          WRITABLE.filter((key) => String(next[key] ?? "") !== String(current[key] ?? "")),
-        );
-        if (moved.size) await client.updateFilament(change.spool.sourceId, payload(next, moved));
-        message = `Updated filament ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
-      } else {
-        const record = createRecord(change.values, change.groupId, names, warn);
+          if (moved.size) await client.updateFilament(change.spool.sourceId, payload(next, moved));
+          return `Updated filament ${change.spool.sourceId}: ${changedFieldNames(change).join(", ")}`;
+        }
+        const record = createRecord(change.values, change.groupId, names, note);
         // Explicit so the vendor and material are registered in the user's Filadex catalog.
         const created = (await client.createFilament({
           ...payload(record),
           saveManufacturer: true,
           saveMaterial: true,
         })) as { id?: unknown };
-        message = `Created filament${created?.id != null ? ` ${created.id}` : ""} (${record["name"]})`;
-      }
-      if (notes.length) message += ` (${notes.join(" ")})`;
-      log.push({ groupId: change.groupId, ok: true, message });
-    } catch (error) {
-      const what = change.kind === "update" ? `filament ${change.spool.sourceId}` : "new filament";
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${what}: ${(error as Error).message}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+        return `Created filament${created?.id != null ? ` ${created.id}` : ""} (${record["name"]})`;
+      },
+      subject: (change) =>
+        change.kind === "update" ? `filament ${change.spool.sourceId}` : "new filament",
+    },
+    onProgress,
+  );
 }

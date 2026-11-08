@@ -93,6 +93,24 @@ export interface CrossIds {
   spoolkeepId?: string;
 }
 
+/** The cross-id field that holds each service's own id for a spool. */
+export const NATIVE_CROSS_ID = {
+  spoolman: "spoolmanId",
+  spoolstock: "spoolstockShortId",
+  spoolio: "spoolioId",
+  tigertag: "tigertagUid",
+  threeDfp: "threeDfpId",
+  bambuddy: "bambuddyId",
+  filameter: "filameterId",
+  filadex: "filadexId",
+  filamentdb: "filamentdbSerial",
+  filamentDbApp: "filamentDbAppId",
+  spoolmaster: "spoolmasterId",
+  spoolhoarder: "spoolhoarderId",
+  spoolapp: "spoolappId",
+  spoolkeep: "spoolkeepId",
+} as const satisfies Record<SourceId, keyof CrossIds>;
+
 export interface CommonSpool {
   source: SourceId;
   /** The id in the source system, as a string. */
@@ -186,3 +204,7 @@ export interface ApplyLogEntry {
   ok: boolean;
   message: string;
 }
+
+/** Every spool record of these loaded inventories, in the order given. */
+export const allSpools = (results: Iterable<LoadResult>): CommonSpool[] =>
+  [...results].flatMap((result) => result.spools);

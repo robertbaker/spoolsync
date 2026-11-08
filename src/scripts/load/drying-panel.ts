@@ -4,7 +4,12 @@ import {
   type CatalogDrying,
   type DryingEntry,
 } from "@spoolsync/core/core/drying";
-import type { CommonSpool, LoadResult, SourceId } from "@spoolsync/core/core/model";
+import {
+  allSpools,
+  type CommonSpool,
+  type LoadResult,
+  type SourceId,
+} from "@spoolsync/core/core/model";
 import { spoolKey } from "@spoolsync/core/workflow";
 
 import { DISPLAY_CHANGED, formatWeight } from "~/lib/units";
@@ -47,10 +52,10 @@ export function wireDryingPanel(
   let includeLow = false;
 
   const entries = () =>
-    spoolsToDry(
-      [...results.values()].flatMap((result) => result.spools),
-      { includeLow, catalogFor: (spool) => catalogFor(spool) },
-    );
+    spoolsToDry(allSpools(results.values()), {
+      includeLow,
+      catalogFor: (spool) => catalogFor(spool),
+    });
 
   function build(list: DryingEntry[]): void {
     const toggle = h("input", {

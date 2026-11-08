@@ -1,5 +1,5 @@
 import { strictValuesEqual } from "@spoolsync/core/core/compare";
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import {
   NO_REFERENCE,
   ReferenceCatalog,
@@ -217,7 +217,7 @@ export class ReferenceController {
   }
 
   private spools() {
-    return [...this.results.values()].flatMap((loaded) => loaded.spools);
+    return allSpools(this.results.values());
   }
 
   private analyze(): void {

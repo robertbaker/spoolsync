@@ -1,4 +1,4 @@
-import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import { allSpools, SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import { spoolKey, summarizeInventory } from "@spoolsync/core/workflow";
 
 import {
@@ -37,7 +37,7 @@ import { createInventoryTable } from "./load/inventory-table";
 import { wireLazyLabelPrinting } from "./load/label-lazy";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
-import { wireReferencePanel } from "./load/reference-view";
+import { wireLazyReferencePanel } from "./load/reference-lazy";
 import { wireReorderPanel } from "./load/reorder-panel";
 import { wireInventoryReport } from "./load/report-panel";
 import { wireSinceVisit } from "./load/since-visit-panel";
@@ -96,13 +96,16 @@ const tableTools = toolsRoot
   ? wireTableTools(toolsRoot, renderTable, () => state.results.size > 0)
   : null;
 const referenceRoot = document.getElementById("reference-panel");
-const reference = referenceRoot ? wireReferencePanel(referenceRoot, state.results) : null;
+// A spool's selected reference can supply its drying settings, so that list redraws on arrival.
+const reference = referenceRoot
+  ? wireLazyReferencePanel(referenceRoot, state.results, () => drying?.update())
+  : null;
 const dryingRoot = document.getElementById("drying-panel");
 const drying = dryingRoot
   ? wireDryingPanel(
       dryingRoot,
       state.results,
-      (spool) => reference?.controller.selectedFor(spoolKey(spool))?.reference ?? null,
+      (spool) => reference?.selectedFor(spoolKey(spool))?.reference ?? null,
     )
   : null;
 const inventoryReport = wireInventoryReport(state.results);
@@ -111,10 +114,7 @@ const sinceVisit = wireSinceVisit(state.results, insights);
 const filterBox = document.getElementById("spool-search-input") as HTMLInputElement | null;
 filterBox?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" || event.isComposing) return;
-  const scan = readScan(
-    filterBox.value,
-    [...state.results.values()].flatMap((result) => result.spools),
-  );
+  const scan = readScan(filterBox.value, allSpools(state.results.values()));
   if (scan.kind === "text") return;
   event.preventDefault();
   if (scan.kind === "spool") {
@@ -130,31 +130,37 @@ filterBox?.addEventListener("keydown", (event) => {
 // `dataChanged` is false when only how things are shown changed (weight unit, price symbol,
 // language): the reports and the cleanup suggestions are computed from the spools alone, so they
 // are kept and only redrawn. Anything that can change a spool takes the full path.
+const drawnInto = (root: HTMLElement | null, render: (root: HTMLElement) => void) =>
+  root ? { update: () => render(root) } : null;
+const pageViews: ReadonlyArray<{ update(dataChanged: boolean): void } | null> = [
+  // First: the table and the panels below read these reports.
+  { update: (dataChanged) => dataChanged && insights.refresh() },
+  { update: () => renderTable() },
+  drawer,
+  views,
+  reorder,
+  cleanup,
+  // After the cleanup panel, whose suggestions are one input to the score.
+  health,
+  tableTools,
+  reference,
+  drying,
+  inventoryReport,
+  sinceVisit,
+  drawnInto(insightsRoot, (root) => renderInsights(root, insights, state.results)),
+  { update: () => renderFileHistory(state) },
+  drawnInto(loadedStats, (root) => renderLoadedStats(root, state.results)),
+  drawnInto(loadedChart, (root) => renderLoadedChart(root, state.results)),
+  drawnInto(loadedTrend, (root) => renderTrendChart(root, state.results.size > 0)),
+  drawnInto(loadedCost, (root) => renderCostChart(root, state.results)),
+  labels,
+  { update: () => panels.refresh() },
+  actionBar,
+];
 const draw = (dataChanged: boolean) => {
   // The locale listener below outlives a page that was torn down (and test DOMs without this page).
   if (!document.getElementById("loaded-table")) return;
-  if (dataChanged) insights.refresh();
-  renderTable();
-  drawer.update();
-  views?.update();
-  reorder?.update();
-  cleanup?.update(dataChanged);
-  // After the cleanup panel, whose suggestions are one input to the score.
-  health?.update();
-  tableTools?.update();
-  reference?.update();
-  drying?.update();
-  inventoryReport.update();
-  sinceVisit.update();
-  if (insightsRoot) renderInsights(insightsRoot, insights, state.results);
-  renderFileHistory(state);
-  if (loadedStats) renderLoadedStats(loadedStats, state.results);
-  if (loadedChart) renderLoadedChart(loadedChart, state.results);
-  if (loadedTrend) renderTrendChart(loadedTrend, state.results.size > 0);
-  if (loadedCost) renderCostChart(loadedCost, state.results);
-  labels.update();
-  panels.refresh();
-  actionBar.update();
+  for (const view of pageViews) view?.update(dataChanged);
   if (unloadAll) unloadAll.hidden = state.results.size === 0;
   if (downloadCombined) downloadCombined.hidden = state.results.size === 0;
   const thresholdWrap = document.getElementById("low-threshold-wrap");
@@ -165,7 +171,17 @@ const draw = (dataChanged: boolean) => {
 };
 const render = () => draw(true);
 const renderPresentation = () => draw(false);
-const { store, setStatus } = createLoadStatusView(state, render);
+// Storing a file and comparing it with the previous one happen in one task; draw once, after both.
+let renderQueued = false;
+const scheduleRender = () => {
+  if (renderQueued) return;
+  renderQueued = true;
+  queueMicrotask(() => {
+    renderQueued = false;
+    render();
+  });
+};
+const { store, setStatus } = createLoadStatusView(state, scheduleRender);
 // Services loaded from this page are remembered so the next visit lists them first. Sample data
 // uses the plain `store` and is deliberately left out.
 const context = {
@@ -182,7 +198,7 @@ const context = {
   },
   fileLoaded(result: LoadResult) {
     insights.fileLoaded(result);
-    render();
+    scheduleRender();
   },
 };
 // Choosing a filter only redraws the table; the panels and focus stay where they are.

@@ -6,7 +6,12 @@ export {
   saveSpoolmanConnection,
   clearSpoolmanConnection,
 } from "./storage/spoolman";
-export { saveLoadResult, readLoadResult, clearLoadResult } from "./storage/inventories";
+export {
+  saveLoadResult,
+  readLoadResult,
+  hasLoadResult,
+  clearLoadResult,
+} from "./storage/inventories";
 export {
   loadMatchDecisions,
   saveMatchDecisions,

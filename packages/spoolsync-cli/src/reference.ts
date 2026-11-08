@@ -1,5 +1,5 @@
 import { formatValue, type RecordEdits } from "@spoolsync/core/core/compare";
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import {
   REFERENCE_FIELDS,
   ReferenceCatalog,
@@ -149,7 +149,7 @@ export function runReference(
   loaded: ReadonlyMap<SourceId, LoadResult>,
   options: Pick<Options, "reference">,
 ): ReferenceOutcome {
-  const spools = [...loaded.values()].flatMap((result) => result.spools);
+  const spools = allSpools(loaded.values());
   const catalog = new ReferenceCatalog(loadedFile.parsed.filaments);
   // Overwrites are analysed so a report can show them, but only fills ever reach the plan.
   const analysis = analyzeReference(spools, catalog, {

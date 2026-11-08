@@ -6,10 +6,8 @@ import { recordFile } from "~/lib/browser/storage";
 
 import { byId, h, notice } from "../dom";
 import { importReportView } from "./import-report-view";
-import { plural, warningsNotice } from "./presentation";
+import { MAX_INVENTORY_FILE_BYTES, plural, warningsNotice } from "./presentation";
 import type { LoadContext } from "./state";
-
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 /**
  * Wires a file picker and drop zone to a parser. Parsers load on first use, so the page does not
@@ -72,7 +70,7 @@ export async function readInventoryFile(
   const message = byId(`${source}-message`);
   const current = state.nextRevision(source);
   message.replaceChildren();
-  if (file.size > MAX_FILE_BYTES) {
+  if (file.size > MAX_INVENTORY_FILE_BYTES) {
     message.replaceChildren(
       notice(
         "error",

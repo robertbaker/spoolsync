@@ -26,6 +26,11 @@ export function readLoadResult(source: SourceId): LoadResult | null {
   }
 }
 
+/** Whether an inventory is stored for this source, without parsing it. */
+export function hasLoadResult(source: SourceId): boolean {
+  return Boolean(read(session, LOAD_KEY_PREFIX + source));
+}
+
 export function clearLoadResult(source: SourceId): void {
   write(session, LOAD_KEY_PREFIX + source, null);
 }

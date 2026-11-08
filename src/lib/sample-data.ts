@@ -1,11 +1,11 @@
-import type { LoadResult } from "@spoolsync/core/core/model";
+import { allSpools, type LoadResult } from "@spoolsync/core/core/model";
 import { loadInventoryFile } from "@spoolsync/core/workflow";
 
 import {
   clearLoadResult,
   clearResolutions,
   loadMatchDecisions,
-  readLoadResult,
+  hasLoadResult,
   saveLoadResult,
   saveMatchDecisions,
 } from "./browser/storage";
@@ -122,7 +122,7 @@ export async function sampleInventories(): Promise<LoadResult[]> {
 
 /** Whether every loaded spool came from the sample data, so the page can say so. */
 export function isSampleInventory(results: Iterable<LoadResult>): boolean {
-  const spools = [...results].flatMap((result) => result.spools);
+  const spools = allSpools(results);
   return spools.length > 0 && spools.every((spool) => spool.sourceId.startsWith("sample-"));
 }
 
@@ -137,13 +137,13 @@ export function sampleLink(origin: string): string {
  * whether sample data was stored.
  */
 export async function applySampleParam(
-  sources: readonly Parameters<typeof readLoadResult>[0][],
+  sources: readonly Parameters<typeof hasLoadResult>[0][],
 ): Promise<boolean> {
   const url = new URL(location.href);
   if (url.searchParams.get("sample") !== "1") return false;
   url.searchParams.delete("sample");
   history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  if (sources.some((source) => readLoadResult(source))) return false;
+  if (sources.some((source) => hasLoadResult(source))) return false;
   const results = await sampleInventories();
   return results.every((result) => saveLoadResult(result));
 }

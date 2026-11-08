@@ -1,3 +1,6 @@
+/** The largest inventory file the page will read. */
+export const MAX_INVENTORY_FILE_BYTES = 20 * 1024 * 1024;
+
 import type { LoadResult } from "@spoolsync/core/core/model";
 
 import { h, notice } from "../dom";

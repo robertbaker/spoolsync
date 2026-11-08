@@ -1,6 +1,6 @@
 import { recordEditsFromAccepted } from "@spoolsync/core/core/cleanup";
 import type { MatchSuggestion } from "@spoolsync/core/core/match";
-import { SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
+import { allSpools, SOURCE_IDS, SOURCE_LABELS } from "@spoolsync/core/core/model";
 import { mergeRecordEdits, referenceEditsFromAccepted } from "@spoolsync/core/core/reference";
 
 import {
@@ -53,7 +53,7 @@ const state = new SyncSession(
   loadBulkEdits(),
 );
 // Cleanups accepted on the Load page; any that no longer match the loaded values are left out.
-const allLoadedSpools = () => [...loaded.values()].flatMap((result) => result.spools);
+const allLoadedSpools = () => allSpools(loaded.values());
 let cleanupEdits = recordEditsFromAccepted(loadAcceptedCleanups(), allLoadedSpools()).edits;
 // Reference data accepted on the Load page, checked the same way. Applied after cleanups: the
 // person picked these values from a catalog they chose.

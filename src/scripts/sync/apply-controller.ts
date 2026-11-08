@@ -1,4 +1,5 @@
-import { ApplyReloadError, type ApplyAndReloadResult } from "@spoolsync/core/apply";
+import type { ApplyAndReloadResult } from "@spoolsync/core/apply";
+import { ApplyReloadError } from "@spoolsync/core/core/apply-error";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
 import {
   isWritableSource,

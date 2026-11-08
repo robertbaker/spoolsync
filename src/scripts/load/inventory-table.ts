@@ -1,4 +1,5 @@
 import {
+  allSpools,
   SOURCE_LABELS,
   type CommonSpool,
   type LoadResult,
@@ -232,7 +233,7 @@ export function createInventoryTable(
   function draw(): void {
     renderChips();
     windowStatus.textContent = "";
-    const all = [...results.values()].flatMap((result) => result.spools);
+    const all = allSpools(results.values());
     visible = [];
     const container = byId("loaded-table");
     const counts = [...results.values()].map(

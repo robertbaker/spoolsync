@@ -12,7 +12,7 @@ import {
   type CleanupWarning,
 } from "@spoolsync/core/core/cleanup";
 import { strictValuesEqual } from "@spoolsync/core/core/compare";
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import { duplicatesAfterCleanup, type DuplicateGroup } from "@spoolsync/core/workflow";
 
 const MAX_UNDO = 50;
@@ -93,7 +93,7 @@ export class CleanupController {
       ? [...acceptedFrom(this.result.proposals, this.accepted), ...this.held]
       : [...this.stored, ...this.held];
     this.restored = true;
-    const spools = [...this.results.values()].flatMap((loaded) => loaded.spools);
+    const spools = allSpools(this.results.values());
     this.result = spools.length
       ? proposeCleanup(spools, { enabled: this.settings.enabled, today: this.today() })
       : EMPTY;

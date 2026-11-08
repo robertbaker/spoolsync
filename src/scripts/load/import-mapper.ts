@@ -23,8 +23,8 @@ import {
 import { h, showToast } from "../dom";
 import { download } from "../sync/presentation";
 import { renderImportReport } from "./import-report-view";
+import { MAX_INVENTORY_FILE_BYTES } from "./presentation";
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const BUTTON =
   "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 const PRIMARY =
@@ -74,7 +74,7 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
   const { dryRunConversion } = await import("~/lib/import-mapper/report");
   let table: SourceTable;
   try {
-    if (file.size > MAX_FILE_BYTES) throw new Error("The file is larger than 20 MB.");
+    if (file.size > MAX_INVENTORY_FILE_BYTES) throw new Error("The file is larger than 20 MB.");
     table = parseSourceTable(await file.text());
   } catch (error) {
     showToast(

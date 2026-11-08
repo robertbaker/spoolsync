@@ -219,12 +219,12 @@ const sameItems = <T>(a: readonly T[], b: readonly T[]): boolean =>
   a.length === b.length && a.every((item, index) => item === b[index]);
 
 /**
- * `findMatches` for read-only callers (charts, counts, drawers) that ask repeatedly with the same
- * inventory. The last answer is reused while the records (by identity; matching sorts them, so
- * order does not matter, and duplicate records throw before anything is cached) and the saved
- * decisions (by content) are unchanged, so records must be replaced rather than edited in place
- * between calls. The returned result is shared: do not mutate it. Callers that keep or change their
- * match (the Sync session) should use `findMatches`.
+ * `findMatches` for callers that only read the match (the Sync session, charts, counts, drawers)
+ * and ask repeatedly with the same inventory. The last answer is reused while the records (by
+ * identity; matching sorts them, so order does not matter, and duplicate records throw before
+ * anything is cached) and the saved decisions (by content) are unchanged, so records must be
+ * replaced rather than edited in place between calls. The returned result is shared: do not mutate
+ * it. A caller that needs its own match to change should use `findMatches`.
  */
 export function findMatchesCached(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {
   if (

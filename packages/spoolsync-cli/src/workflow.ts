@@ -1,5 +1,5 @@
 import { ApplyReloadError } from "@spoolsync/core/apply";
-import { isWritableSource, type ApplyLogEntry } from "@spoolsync/core/core/model";
+import { allSpools, isWritableSource, type ApplyLogEntry } from "@spoolsync/core/core/model";
 import { diffSnapshots, snapshotInventory, type InventorySnapshot } from "@spoolsync/core/workflow";
 
 import type { Options } from "./args";
@@ -22,7 +22,7 @@ export async function runWorkflow(
   if (options.restoreRollback)
     return snapshotInventory(await runRestore(options, dependencies, output));
   const { loaded, services } = await loadInputs(options, dependencies);
-  const loadedSpools = [...loaded.values()].flatMap((result) => result.spools);
+  const loadedSpools = allSpools(loaded.values());
   // `--cleanup-report` on its own lists proposals for what is loaded and plans nothing.
   const cleanupOnly = options.cleanupReport && !options.cleanup;
   // The same for `--reference-report` without `--reference`. The reference file is read once here.

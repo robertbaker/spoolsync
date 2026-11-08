@@ -5,7 +5,7 @@ import { SOURCE_IDS, type CommonSpool } from "../model";
 import { makeSpool } from "../testing";
 import { Groups } from "./groups";
 import { pairKey, recordKey } from "./keys";
-import { defaultMatchingPolicy, SUGGEST_THRESHOLD } from "./similarity";
+import { defaultMatchingPolicy, similarityUpperBound, SUGGEST_THRESHOLD } from "./similarity";
 import { suggestMatches } from "./suggestions";
 import type { MatchSuggestion, RecordKey } from "./types";
 
@@ -191,6 +191,31 @@ test("new similarity scoring matches the previous implementation exactly", () =>
   for (const a of spools)
     for (const b of spools)
       expect(defaultMatchingPolicy.similarity(a, b)).toEqual(oracleSimilarity(a, b));
+});
+
+test("the upper bound is never below the real score", () => {
+  const spools = inventory(2, 60);
+  for (const a of spools)
+    for (const b of spools)
+      expect(similarityUpperBound(a, b)).toBeGreaterThanOrEqual(oracleSimilarity(a, b).score);
+});
+
+test("a pair that differs in brand and material is bounded below the threshold", () => {
+  const a = makeSpool("spoolman", "1", { vendor: "Prusament", material: "PLA" });
+  const b = makeSpool("spoolio", "x", { vendor: "Polymaker", material: "PETG" });
+  expect(similarityUpperBound(a, b)).toBeLessThan(SUGGEST_THRESHOLD);
+});
+
+test("scoring stays exact when more colors are loaded than any shared cache holds", () => {
+  const spools = Array.from({ length: 1200 }, (_, index) =>
+    makeSpool("spoolman", `c${index}`, {
+      colors: [(index * 13_001).toString(16).padStart(6, "0").toUpperCase()],
+    }),
+  );
+  for (let index = 1; index < spools.length; index++) {
+    const [a, b] = [spools[index - 1]!, spools[index]!];
+    expect(defaultMatchingPolicy.similarity(a, b)).toEqual(oracleSimilarity(a, b));
+  }
 });
 
 test("suggestMatches returns exactly the previous suggestions on randomised inventories", () => {

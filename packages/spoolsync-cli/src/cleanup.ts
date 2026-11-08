@@ -8,7 +8,7 @@ import {
   type CleanupSummary,
 } from "@spoolsync/core/core/cleanup";
 import { formatValue, type RecordEdits } from "@spoolsync/core/core/compare";
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import { duplicatesAfterCleanup } from "@spoolsync/core/workflow";
 
 import type { Options } from "./options";
@@ -79,7 +79,7 @@ export function runCleanup(
 ): CleanupOutcome {
   const results = [...loaded.values()];
   const result = proposeCleanup(
-    results.flatMap((loadedResult) => loadedResult.spools),
+    allSpools(results),
     options.cleanupRules ? { enabled: options.cleanupRules } : {},
   );
   const applied = options.cleanup

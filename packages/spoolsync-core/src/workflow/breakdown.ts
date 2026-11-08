@@ -1,6 +1,6 @@
 import { colorFamily } from "../core/color";
 import type { MatchDecisions } from "../core/match";
-import { SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
+import { allSpools, SOURCE_IDS, type CommonSpool, type LoadResult } from "../core/model";
 import { findMatchesCached as findMatches } from "../planner";
 
 /** Same ordering as `localeCompare` with defaults, without per-call setup. */
@@ -65,7 +65,7 @@ export function remainingBy(
   decisions: MatchDecisions,
   limit = 6,
 ): MaterialBreakdown {
-  const spools = results.flatMap((result) => result.spools);
+  const spools = allSpools(results);
   const { groups } = findMatches(spools, decisions);
   const totals = new Map<string, MaterialShare>();
   let duplicatesRemoved = 0;
@@ -126,10 +126,7 @@ export function uniqueSpools(
   results: readonly LoadResult[],
   decisions: MatchDecisions,
 ): UniqueSpool[] {
-  const { groups } = findMatches(
-    results.flatMap((result) => result.spools),
-    decisions,
-  );
+  const { groups } = findMatches(allSpools(results), decisions);
   return groups.map((group) => {
     const { members, representative: spool } = groupMembersAndRepresentative(group.members);
     return { spool, members };

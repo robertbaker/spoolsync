@@ -1,9 +1,12 @@
-import { deltaE2000 } from "../color";
+import { deltaE2000Lab, hexToLab } from "../color";
 import type { CommonSpool } from "../model";
 import type { MatchingPolicy } from "./types";
 
 /** Score at which two unlinked spools are suggested as the same one. */
 export const SUGGEST_THRESHOLD = 45;
+
+/** The most a colour comparison can add, which is what the upper bound assumes for it. */
+const MAX_COLOR_POINTS = 20;
 
 const normalize = (value: string | null): string =>
   (value ?? "")
@@ -16,6 +19,8 @@ interface NormalizedSpool {
   vendor: string;
   material: string;
   name: string;
+  /** First colour in CIELAB; held per spool so large palettes never miss a shared cache. */
+  lab: ReturnType<typeof hexToLab> | null;
 }
 
 const normalizedCache = new WeakMap<CommonSpool, NormalizedSpool>();
@@ -28,6 +33,7 @@ function getNormalized(spool: CommonSpool): NormalizedSpool {
       vendor: normalize(spool.vendor),
       material: normalize(spool.material),
       name: normalize(spool.name),
+      lab: spool.colors[0] ? hexToLab(spool.colors[0]) : null,
     };
     normalizedCache.set(spool, norm);
   }
@@ -36,13 +42,28 @@ function getNormalized(spool: CommonSpool): NormalizedSpool {
 
 /**
  * Scores a pair; when `reasons` is given, also records why in the same order as always. Passing
- * `null` skips building the reason text, which keeps the many-pairs comparison allocation-free.
+ * `null` skips building the reason text, which keeps the many-pairs comparison allocation-free. The
+ * three parts run left to right, and that order is the order of the reasons.
  */
 function evaluate(a: CommonSpool, b: CommonSpool, reasons: string[] | null): number {
-  let score = 0;
   const na = getNormalized(a);
   const nb = getNormalized(b);
+  return (
+    identityScore(a, b, na, nb, reasons) +
+    colorScore(a, b, na, nb, reasons) +
+    stockScore(a, b, reasons)
+  );
+}
 
+/** Barcode, brand, material and name. */
+function identityScore(
+  a: CommonSpool,
+  b: CommonSpool,
+  na: NormalizedSpool,
+  nb: NormalizedSpool,
+  reasons: string[] | null,
+): number {
+  let score = 0;
   if (a.upc && b.upc) {
     if (na.upc === nb.upc) {
       score += 50;
@@ -55,22 +76,37 @@ function evaluate(a: CommonSpool, b: CommonSpool, reasons: string[] | null): num
   score += textScore(na.vendor, nb.vendor, "brand", 15, -30, reasons);
   score += textScore(na.material, nb.material, "material", 15, -30, reasons);
   score += textScore(na.name, nb.name, "name", 15, 0, reasons);
+  return score;
+}
 
-  const ca = a.colors[0];
-  const cb = b.colors[0];
-  if (ca && cb) {
-    const distance = ca === cb ? 0 : deltaE2000(ca, cb);
-    if (distance < 3) {
-      score += 20;
-      reasons?.push("same color");
-    } else if (distance < 10) {
-      score += 10;
-      reasons?.push("similar color");
-    } else if (distance > 25) {
-      score -= 30;
-      reasons?.push("different color");
-    }
+/** The first colour of each spool. By far the slowest part of a score. */
+function colorScore(
+  a: CommonSpool,
+  b: CommonSpool,
+  na: NormalizedSpool,
+  nb: NormalizedSpool,
+  reasons: string[] | null,
+): number {
+  if (!na.lab || !nb.lab) return 0;
+  const distance = a.colors[0] === b.colors[0] ? 0 : deltaE2000Lab(na.lab, nb.lab);
+  if (distance < 3) {
+    reasons?.push("same color");
+    return MAX_COLOR_POINTS;
   }
+  if (distance < 10) {
+    reasons?.push("similar color");
+    return 10;
+  }
+  if (distance > 25) {
+    reasons?.push("different color");
+    return -30;
+  }
+  return 0;
+}
+
+/** Spool size, remaining weight and purchase date. */
+function stockScore(a: CommonSpool, b: CommonSpool, reasons: string[] | null): number {
+  let score = 0;
   if (
     a.initialWeight !== null &&
     b.initialWeight !== null &&
@@ -124,23 +160,18 @@ export function similarity(a: CommonSpool, b: CommonSpool): { score: number; rea
 export const similarityScore = (a: CommonSpool, b: CommonSpool): number => evaluate(a, b, null);
 
 /**
- * The most `similarity` could score for this pair: every rule that can add points is assumed to
- * fire, and none that subtract. Never below the real score, so a pair whose bound cannot beat the
- * best so far (or the threshold) can be skipped without changing any result.
+ * The most `similarity` could score for this pair: the real score, except that the colours are
+ * assumed to match. Never below the real score, so a pair whose bound cannot beat the best so far
+ * (or the threshold) can be skipped, without its colour distance and without changing any result.
  */
 export function similarityUpperBound(a: CommonSpool, b: CommonSpool): number {
   const na = getNormalized(a);
   const nb = getNormalized(b);
-  let bound = 0;
-  if (a.upc && b.upc) bound += 50;
-  if (na.vendor && nb.vendor) bound += 15;
-  if (na.material && nb.material) bound += 15;
-  if (na.name && nb.name) bound += 15;
-  if (a.colors[0] && b.colors[0]) bound += 20;
-  if (a.initialWeight !== null && b.initialWeight !== null) bound += 10;
-  if (a.remainingWeight !== null && b.remainingWeight !== null) bound += 10;
-  if (a.purchasedOn && b.purchasedOn) bound += 10;
-  return bound;
+  return (
+    identityScore(a, b, na, nb, null) +
+    stockScore(a, b, null) +
+    (na.lab && nb.lab ? MAX_COLOR_POINTS : 0)
+  );
 }
 
 export const defaultMatchingPolicy: MatchingPolicy = {

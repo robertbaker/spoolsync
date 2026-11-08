@@ -1,6 +1,7 @@
-import { FIELD_LABELS, type PlannedChange } from "../../core/compare";
+import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { BambuddyWriteClient } from "./client";
 import { numericId } from "./map";
 import { createPayload, updatePayload, type BambuddyWritePlan } from "./payload";
@@ -32,66 +33,62 @@ export async function applyToBambuddy(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("bambuddy", changes);
-  const log: ApplyLogEntry[] = [];
-  if (!changes.length) return log;
+  if (!changes.length) return [];
   const fresh = new Map<number, BambuddySpool>();
   for (const spool of await client.listSpools()) fresh.set(Number(spool.id), spool);
 
-  let done = 0;
-  for (const change of changes) {
-    let saved = false;
-    let created = false;
-    try {
-      let message: string;
-      if (change.kind === "update") {
-        const id = change.spool.crossIds.bambuddyId;
-        if (id === undefined || numericId(change.spool.sourceId) !== id)
-          throw new Error(
-            "this record came from a CSV file and has no Bambuddy ID. Load the inventory from the Bambuddy API before applying.",
-          );
-        const current = fresh.get(id);
-        if (!current)
-          throw new Error(
-            `Spool ${id} no longer exists. Reload the inventory before applying this change.`,
-          );
-        const label = `Bambuddy spool ${id}`;
-        const plan = updatePayload(change.spool, change.changes, label, current);
-        const payload = moved(plan.payload, current);
-        const wasArchived = Boolean(current["archived_at"]);
-        if (Object.keys(payload).length) {
-          await client.updateSpool(id, payload);
-          saved = true;
+  // What the change being written has already done, for its failure message.
+  let saved = false;
+  let created = false;
+  return applyEachChange(
+    changes,
+    {
+      async write(change, note) {
+        saved = false;
+        created = false;
+        if (change.kind === "update") {
+          const id = change.spool.crossIds.bambuddyId;
+          if (id === undefined || numericId(change.spool.sourceId) !== id)
+            throw new Error(
+              "this record came from a CSV file and has no Bambuddy ID. Load the inventory from the Bambuddy API before applying.",
+            );
+          const current = fresh.get(id);
+          if (!current)
+            throw new Error(
+              `Spool ${id} no longer exists. Reload the inventory before applying this change.`,
+            );
+          const label = `Bambuddy spool ${id}`;
+          const plan = updatePayload(change.spool, change.changes, label, current);
+          const payload = moved(plan.payload, current);
+          const wasArchived = Boolean(current["archived_at"]);
+          if (Object.keys(payload).length) {
+            await client.updateSpool(id, payload);
+            saved = true;
+          }
+          await setArchived(client, id, wasArchived, plan);
+          plan.notes.forEach(note);
+          return `Updated spool ${id}: ${changedFieldNames(change).join(", ")}`;
         }
-        await setArchived(client, id, wasArchived, plan);
-        message = `Updated spool ${id}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}`;
-        if (plan.notes.length) message += ` (${plan.notes.join(" ")})`;
-      } else {
         const label = `Bambuddy ${change.values.name ?? change.groupId}`;
         const plan = createPayload(change.values, label);
         const spool = await client.createSpool(plan.payload);
         created = true;
         const id = Number(spool.id);
         await setArchived(client, id, false, plan);
-        message = `Created spool ${id} (${spoolName(spool, String(change.values.name ?? change.groupId))})`;
-        if (plan.notes.length) message += ` (${plan.notes.join(" ")})`;
-      }
-      log.push({ groupId: change.groupId, ok: true, message });
-    } catch (error) {
-      const what = change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool";
-      const partial = created
-        ? " The spool was created without its archived state; archive it in Bambuddy."
-        : saved
-          ? " Its other fields were saved."
-          : "";
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${what}: ${(error as Error).message}${partial}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+        plan.notes.forEach(note);
+        return `Created spool ${id} (${spoolName(spool, String(change.values.name ?? change.groupId))})`;
+      },
+      subject: (change) =>
+        change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool",
+      partialWrite: () =>
+        created
+          ? " The spool was created without its archived state; archive it in Bambuddy."
+          : saved
+            ? " Its other fields were saved."
+            : "",
+    },
+    onProgress,
+  );
 }
 
 async function setArchived(

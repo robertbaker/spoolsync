@@ -1,5 +1,5 @@
-import { BambuddyClient } from "@spoolsync/core/adapters/bambuddy";
-import { FilamentDbClient } from "@spoolsync/core/adapters/filamentdb";
+import { normalizeBambuddyUrl } from "@spoolsync/core/adapters/bambuddy/client";
+import { normalizeFilamentDbUrl } from "@spoolsync/core/adapters/filamentdb/client";
 import type { PlannedChange } from "@spoolsync/core/core/compare";
 import type { SourceId, LoadResult, WritableSourceId } from "@spoolsync/core/core/model";
 import { snapshotMatchesTarget } from "@spoolsync/core/core/target";
@@ -121,7 +121,7 @@ export function sourceActions(
       apply.disabled =
         changes.length === 0 ||
         !connection ||
-        !snapshotMatchesTarget(loaded.get("bambuddy")!, new BambuddyClient(connection).baseUrl);
+        !snapshotMatchesTarget(loaded.get("bambuddy")!, normalizeBambuddyUrl(connection.baseUrl));
       buttons.unshift(apply);
     }
     if (source === "filamentdb" && loaded.get("filamentdb")!.origin === "api") {
@@ -134,7 +134,10 @@ export function sourceActions(
       apply.disabled =
         changes.length === 0 ||
         !connection ||
-        !snapshotMatchesTarget(loaded.get("filamentdb")!, new FilamentDbClient(connection).baseUrl);
+        !snapshotMatchesTarget(
+          loaded.get("filamentdb")!,
+          normalizeFilamentDbUrl(connection.baseUrl),
+        );
       buttons.unshift(apply);
     }
     action = h("div", { class: "flex flex-wrap gap-2" }, ...buttons);

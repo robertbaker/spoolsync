@@ -12,10 +12,9 @@ import { h } from "../dom";
 import { readInventoryFile } from "./file-source";
 import { isMappableFile, openColumnMapper } from "./import-mapper";
 import { importReportView } from "./import-report-view";
-import { plural } from "./presentation";
+import { MAX_INVENTORY_FILE_BYTES, plural } from "./presentation";
 import type { LoadContext } from "./state";
 
-const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_FILES = 12;
 
 type Outcome = "success" | "error" | "warning";
@@ -129,7 +128,7 @@ export function wireSmartDrop(context: LoadContext): void {
     for (const file of files.slice(0, MAX_FILES)) {
       const row = line("warning", `${file.name}: checking…`);
       list.append(row);
-      if (file.size > MAX_FILE_BYTES) {
+      if (file.size > MAX_INVENTORY_FILE_BYTES) {
         row.replaceWith(line("error", `${file.name} is larger than 20 MB; check the file.`));
         continue;
       }

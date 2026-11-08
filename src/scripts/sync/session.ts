@@ -15,9 +15,9 @@ import type {
   SpoolGroup,
 } from "@spoolsync/core/core/match";
 import {
+  allSpools,
   SOURCE_IDS,
   WRITABLE_SOURCE_IDS,
-  type CommonSpool,
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
@@ -25,7 +25,7 @@ import {
   decideMatch,
   decideMatches,
   ensureResolution,
-  findMatches,
+  findMatchesCached,
   reconcileBulkEdits,
   reconcileResolutions,
 } from "@spoolsync/core/planner";
@@ -102,25 +102,12 @@ export class SyncSession {
     this.persistence.saveBulkEdits?.(this.edits);
   }
 
-  /** What `match` was computed from, so a redraw that changed neither skips the matcher. */
-  private matched: { spools: CommonSpool[]; decisions: MatchDecisions } | null = null;
-
   recompute(): void {
-    const spools = [...this.loaded.values()].flatMap((result) => result.spools);
-    const previous = this.matched;
-    // Matching depends only on the records and the answers (both replaced, never edited, when they
-    // change: a reload or apply brings new records, a decision a new answers object). Plan-only
-    // changes such as bulk picks, bulk edits, resets and most undo steps leave both alone, and the
-    // match is by far the slowest part of a redraw.
-    const unchanged =
-      previous !== null &&
-      previous.decisions === this.decisions &&
-      previous.spools.length === spools.length &&
-      previous.spools.every((spool, index) => spool === spools[index]);
-    if (!unchanged) {
-      this.match = findMatches(spools, this.decisions);
-      this.matched = { spools, decisions: this.decisions };
-    }
+    const spools = allSpools(this.loaded.values());
+    // The match is by far the slowest part of a redraw and depends only on the records and the
+    // answers, so plan-only changes reuse it. The result is shared with the page's chart, which
+    // would otherwise match again after every answer, so it must not be edited.
+    this.match = findMatchesCached(spools, this.decisions);
     // Keep choices when a group gains a member after a match or remote creation.
     this.resolutions = reconcileResolutions(this.match.groups, this.resolutions);
     this.edits = reconcileBulkEdits(this.match.groups, this.edits);

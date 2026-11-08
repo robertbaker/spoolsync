@@ -1,6 +1,7 @@
 import type { SpoolGroup } from "../match";
 import { recordKey } from "../matching/keys";
 import {
+  NATIVE_CROSS_ID,
   WRITABLE_SOURCE_IDS,
   type CommonSpool,
   type ComparableField,
@@ -13,23 +14,6 @@ import { defaultResolution, mergedValues, presentSources } from "./groups";
 import { strictValuesEqual, type RecordEdits } from "./record-edits";
 import type { FieldValue, FieldChange, GroupResolution, PlannedChange } from "./types";
 import { valuesEqual } from "./values";
-
-const NATIVE_KEYS: Record<SourceId, keyof CrossIds> = {
-  spoolman: "spoolmanId",
-  spoolstock: "spoolstockShortId",
-  spoolio: "spoolioId",
-  tigertag: "tigertagUid",
-  threeDfp: "threeDfpId",
-  bambuddy: "bambuddyId",
-  filameter: "filameterId",
-  filadex: "filadexId",
-  filamentdb: "filamentdbSerial",
-  filamentDbApp: "filamentDbAppId",
-  spoolmaster: "spoolmasterId",
-  spoolhoarder: "spoolhoarderId",
-  spoolapp: "spoolappId",
-  spoolkeep: "spoolkeepId",
-};
 
 const cloneFieldValue = (v: FieldValue): FieldValue => (Array.isArray(v) ? [...v] : v);
 
@@ -65,7 +49,7 @@ function groupLinks(group: SpoolGroup): CrossIds {
     const id =
       source === "spoolman" || source === "bambuddy" ? Number(member.sourceId) : member.sourceId;
     if (typeof id === "number" && !Number.isFinite(id)) continue;
-    (links as Record<string, unknown>)[NATIVE_KEYS[source]] = id;
+    (links as Record<string, unknown>)[NATIVE_CROSS_ID[source]] = id;
   }
   return links;
 }

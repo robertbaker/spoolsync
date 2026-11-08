@@ -1,11 +1,5 @@
-import { BambuddyClient } from "@spoolsync/core/adapters/bambuddy";
-import { FilamentDbClient } from "@spoolsync/core/adapters/filamentdb";
-import {
-  applyAndReloadBambuddy,
-  applyAndReloadFilamentDb,
-  applyAndReloadSpoolman,
-  applyAndReloadTigertag,
-} from "@spoolsync/core/apply";
+import { normalizeBambuddyUrl } from "@spoolsync/core/adapters/bambuddy/client";
+import { normalizeFilamentDbUrl } from "@spoolsync/core/adapters/filamentdb/client";
 
 import {
   loadBambuddyConnection,
@@ -19,6 +13,9 @@ import type { ApplyService } from "./apply-controller";
 
 const serverChanged = "Connection changed. Fetch this server's inventory again before applying.";
 
+/** The write code for every service loads when something is applied, not with the Sync page. */
+const writes = () => import("@spoolsync/core/apply");
+
 /** Composition root for browser credentials and remote adapter implementations. */
 export function createApplyServices() {
   return {
@@ -30,7 +27,8 @@ export function createApplyServices() {
           connection && {
             identity: connection.baseUrl,
             description: `Spoolman at ${connection.baseUrl}`,
-            apply: (changes, progress) => applyAndReloadSpoolman(connection, changes, progress),
+            apply: async (changes, progress) =>
+              (await writes()).applyAndReloadSpoolman(connection, changes, progress),
           }
         );
       },
@@ -41,9 +39,10 @@ export function createApplyServices() {
         const connection = loadFilamentDbConnection();
         return (
           connection && {
-            identity: new FilamentDbClient(connection).baseUrl,
+            identity: normalizeFilamentDbUrl(connection.baseUrl),
             description: `FilamentDB at ${connection.baseUrl}`,
-            apply: (changes, progress) => applyAndReloadFilamentDb(connection, changes, progress),
+            apply: async (changes, progress) =>
+              (await writes()).applyAndReloadFilamentDb(connection, changes, progress),
           }
         );
       },
@@ -54,9 +53,10 @@ export function createApplyServices() {
         const connection = loadBambuddyConnection();
         return (
           connection && {
-            identity: new BambuddyClient(connection).baseUrl,
+            identity: normalizeBambuddyUrl(connection.baseUrl),
             description: `Bambuddy at ${connection.baseUrl}`,
-            apply: (changes, progress) => applyAndReloadBambuddy(connection, changes, progress),
+            apply: async (changes, progress) =>
+              (await writes()).applyAndReloadBambuddy(connection, changes, progress),
           }
         );
       },
@@ -69,8 +69,8 @@ export function createApplyServices() {
           session && {
             identity: session.uid,
             description: `the TigerTag inventory of ${session.email}`,
-            apply: (changes, progress) =>
-              applyAndReloadTigertag(
+            apply: async (changes, progress) =>
+              (await writes()).applyAndReloadTigertag(
                 session,
                 changes,
                 (fresh) => saveTigertagSession(fresh, session.remember),

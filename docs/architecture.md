@@ -28,7 +28,10 @@ implementation and owns per-source request revisions, restored inventories, pers
 unloading. File and remote sources share those revisions so an older request cannot replace a
 newer inventory or resurrect one the user unloaded. `wireRemoteSource` shares the async request
 lifecycle; API bindings retain service-specific credentials, lazy adapter imports, notices, and
-button-enabling rules. The inventory table module owns rendering and search.
+button-enabling rules. The inventory table module owns rendering and search. `load.ts` redraws
+through one ordered `pageViews` list, and storing a file and comparing it with the previous one
+coalesce into one redraw. `load/reference-lazy.ts` fetches the Reference data panel's code when the
+first spool is loaded rather than with the page.
 
 `sync.ts` wires a `SyncSession` and separate summary, suggestion, group, filter/bulk-control, and
 apply/export views. `SyncSession` receives a `SyncPersistence` implementation and owns matching,
@@ -54,9 +57,11 @@ copy live in download presentation metadata, while source action controls retain
 enable/disable and connection checks.
 `ApplyController` depends on `ApplyService` and `ApplyTarget` interfaces; its constructor receives
 inventory persistence and confirmation callbacks. `createApplyServices` supplies the concrete
-browser adapters and resolves current credentials for each write attempt. Keep service-specific
-connection and token handling there, and keep the controller's target checks, progress, logs,
-and inventory refresh handling shared across services.
+browser adapters and resolves current credentials for each write attempt; it imports
+`@spoolsync/core/apply` only when a write runs, so the Sync page does not download every service's
+write code, and `ApplyReloadError` lives in `core/apply-error.ts` so the controller can recognise it
+without that code. Keep service-specific connection and token handling there, and keep the
+controller's target checks, progress, logs, and inventory refresh handling shared across services.
 
 ## Supported tools registry
 
@@ -95,8 +100,9 @@ package READMEs: `<!-- services:start -->...<!-- services:end -->` holds the cap
 Run `bun run docs:services` after editing the registry; `bun run docs:services:check` fails when a region
 is stale. A unit test compares the registry with `SOURCE_IDS` and the adapter capabilities.
 
-When adding an adapter: add its id to `SOURCE_IDS`, its entry to `SERVICES` and `SERVICE_WEB`, its logo
-credit if it ships one, then run `docs:services`. Verify the read/write and API claims against the
+When adding an adapter: add its id to `SOURCE_IDS`, its entry to `SERVICES` and `SERVICE_WEB`, its
+cross-id field to `CrossIds` and `NATIVE_CROSS_ID` (`core/model.ts`, which identity linking, plan links
+and the drawer labels all read), its logo credit if it ships one, then run `docs:services`. Verify the read/write and API claims against the
 adapter (`loadX`, `exportX`, client/apply modules) so the registry stays accurate.
 
 ## Inventory workflow and navigation
@@ -317,7 +323,8 @@ outside that set, re-subset the font from the full Inter release.
 ## Adapter modules
 
 Adapter entry points preserve their public imports while delegating to modules with narrower
-responsibilities:
+responsibilities. API writes run through `shared/apply-loop.ts`, which writes each change on its own
+and logs it; each adapter supplies how to write a change and the wording of its log lines:
 
 - TigerTag separates its schema, common-model mapping and twin grouping, file loading, record
   mutation, and file export. Cloud authentication, Firestore value encoding, the HTTP client, and
@@ -487,6 +494,10 @@ match choices, and service credentials. Shared invalidation clears API snapshots
 when credentials change, while retaining file snapshots. Failed snapshot persistence removes stale
 data; unavailable browser storage remains safe to access.
 
+`lib/saved-data.ts` is the public entry for the saved-settings features. Under `lib/saved-data/`,
+`groups.ts` lists and forgets what is stored, `portable.ts` holds the rules for what may move between
+browsers, and `settings-transfer.ts` and `backup.ts` are the two file formats built on those rules.
+
 ## Website content and styles
 
 CLI page sections live under `src/components/cli/`, with static reference data separate from the
@@ -630,7 +641,7 @@ or its name button for keyboard users, dispatches `spoolsync:open-spool` on `doc
 `{ key }` (a `spoolKey`); anything else, such as a command palette, can dispatch the same event.
 The drawer is a native modal `<dialog>` docked right, so focus is trapped, Esc closes it, and focus
 returns to the row's name button (found again by `data-open-spool`, since the table is redrawn).
-`findSpoolDetail` uses the Sync page's matching (`findMatches`, honouring saved answers) to collect
+`findSpoolDetail` uses the Sync page's matching (`findMatchesCached`, honouring saved answers) to collect
 every loaded record of the spool, then `detailRows` lays out each field by service and flags rows where
 the services disagree. Weights go through `formatWeight` and prices through `formatMoney`, and the
 drawer redraws on `DISPLAY_CHANGED`. History is what is actually stored: the weight change since the

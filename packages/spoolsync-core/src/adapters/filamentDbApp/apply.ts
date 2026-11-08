@@ -1,6 +1,7 @@
-import { FIELD_LABELS, type PlannedChange } from "../../core/compare";
+import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { FilamentDbAppClient } from "./client";
 import { parseFilamentDbApp } from "./load";
 import { changePatches } from "./records";
@@ -25,8 +26,7 @@ export async function applyToFilamentDbApp(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("filamentDbApp", changes);
-  const log: ApplyLogEntry[] = [];
-  if (!changes.length) return log;
+  if (!changes.length) return [];
   const needsLocations = changes.some((change) =>
     change.kind === "create"
       ? change.values.location !== null
@@ -40,18 +40,18 @@ export async function applyToFilamentDbApp(
     throw new Error(message);
   };
 
-  let done = 0;
-  for (const change of changes) {
-    try {
-      let message: string;
-      if (change.kind === "create") {
-        const target = findSpoolTarget(filaments, change.values);
-        await client.createSpool(
-          target.id,
-          newSpoolFields(change.values, target.tare, locations, fail),
-        );
-        message = `Added a spool to filament ${target.id} (${change.values.name ?? change.groupId})`;
-      } else {
+  return applyEachChange(
+    changes,
+    {
+      async write(change) {
+        if (change.kind === "create") {
+          const target = findSpoolTarget(filaments, change.values);
+          await client.createSpool(
+            target.id,
+            newSpoolFields(change.values, target.tare, locations, fail),
+          );
+          return `Added a spool to filament ${target.id} (${change.values.name ?? change.groupId})`;
+        }
         const raw = change.spool.raw as { filamentId?: unknown; legacyRoll?: unknown } | null;
         const filamentId = raw?.filamentId;
         const legacyRoll = raw?.legacyRoll === true;
@@ -68,17 +68,11 @@ export async function applyToFilamentDbApp(
           await client.updateFilament(filamentId, patches.filament);
         if (Object.keys(patches.spool).length)
           await client.updateSpool(filamentId, change.spool.sourceId, patches.spool);
-        message = `Updated spool ${change.spool.sourceId}: ${change.changes.map((c) => FIELD_LABELS[c.field].toLowerCase()).join(", ")}${shared ? " (filament fields are shared by all its spools)" : ""}`;
-      }
-      log.push({ groupId: change.groupId, ok: true, message });
-    } catch (error) {
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool"}: ${(error as Error).message}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+        return `Updated spool ${change.spool.sourceId}: ${changedFieldNames(change).join(", ")}${shared ? " (filament fields are shared by all its spools)" : ""}`;
+      },
+      subject: (change) =>
+        change.kind === "update" ? `spool ${change.spool.sourceId}` : "new spool",
+    },
+    onProgress,
+  );
 }

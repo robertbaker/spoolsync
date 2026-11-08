@@ -1,6 +1,7 @@
 import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
+import { applyEachChange } from "../shared/apply-loop";
 import type { TigertagInventoryClient } from "./inventory-client";
 import { recordsToSpools } from "./map";
 import { createdRecord, updatedRecords } from "./records";
@@ -47,46 +48,35 @@ export async function applyToTigertagCloud(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("tigertag", changes);
-  const log: ApplyLogEntry[] = [];
-  let done = 0;
-  for (const change of changes) {
-    try {
-      if (change.kind === "update") {
-        const { records: originals } = change.spool.raw as TigertagRaw;
-        const updated = updatedRecords(change);
-        for (const [index, record] of updated.entries()) {
-          const original = originals[index]!;
-          const fields = changedFields(original, record);
-          if (!Object.keys(fields).length) continue;
-          await cloud.writeDocument(String(original["__docId"] ?? original.uid), {
-            ...fields,
-            last_update: Date.now(),
-          });
+  return applyEachChange(
+    changes,
+    {
+      async write(change) {
+        if (change.kind === "update") {
+          const { records: originals } = change.spool.raw as TigertagRaw;
+          const updated = updatedRecords(change);
+          for (const [index, record] of updated.entries()) {
+            const original = originals[index]!;
+            const fields = changedFields(original, record);
+            if (!Object.keys(fields).length) continue;
+            await cloud.writeDocument(String(original["__docId"] ?? original.uid), {
+              ...fields,
+              last_update: Date.now(),
+            });
+          }
+          const twin = updated.length > 1 ? " (both chips)" : "";
+          return `Updated ${change.spool.name ?? change.spool.sourceId}${twin}`;
         }
-        const twin = updated.length > 1 ? " (both chips)" : "";
-        log.push({
-          groupId: change.groupId,
-          ok: true,
-          message: `Updated ${change.spool.name ?? change.spool.sourceId}${twin}`,
-        });
-      } else {
         const record = createdRecord(change);
         await cloud.writeDocument(
           record.uid,
           { ...record, last_update: Date.now() },
           { create: true },
         );
-        log.push({ groupId: change.groupId, ok: true, message: `Created ${record.uid}` });
-      }
-    } catch (error) {
-      const what = change.kind === "update" ? change.spool.sourceId : "a new spool";
-      log.push({
-        groupId: change.groupId,
-        ok: false,
-        message: `Failed on ${what}: ${(error as Error).message}`,
-      });
-    }
-    onProgress?.(++done, changes.length);
-  }
-  return log;
+        return `Created ${record.uid}`;
+      },
+      subject: (change) => (change.kind === "update" ? change.spool.sourceId : "a new spool"),
+    },
+    onProgress,
+  );
 }

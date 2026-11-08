@@ -1,7 +1,7 @@
-import { SOURCE_IDS } from "@spoolsync/core/core/model";
+import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
 
 import { WORKFLOW_STEPS, type WorkflowStepId } from "~/config/site";
-import { readLoadResult } from "~/lib/browser/storage/inventories";
+import { hasLoadResult } from "~/lib/browser/storage/inventories";
 import { LOCALE_CHANGED, t, type MessageKey } from "~/lib/i18n";
 
 import { INVENTORIES_CHANGED_EVENT } from "./load/state";
@@ -16,7 +16,7 @@ export interface StepView {
 }
 
 /** Number of services with a loaded inventory in this tab. */
-export function countLoaded(read: typeof readLoadResult = readLoadResult): number {
+export function countLoaded(read: (source: SourceId) => unknown = hasLoadResult): number {
   let loaded = 0;
   for (const source of SOURCE_IDS) {
     try {

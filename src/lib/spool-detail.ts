@@ -1,12 +1,13 @@
 import { editReachesGroup } from "@spoolsync/core/core/compare";
 import { pairKey, type MatchDecisions } from "@spoolsync/core/core/match";
 import {
+  NATIVE_CROSS_ID,
   SOURCE_IDS,
   SOURCE_LABELS,
   type CommonSpool,
   type CrossIds,
 } from "@spoolsync/core/core/model";
-import { findMatches } from "@spoolsync/core/planner";
+import { findMatchesCached } from "@spoolsync/core/planner";
 import { spoolKey, type DuplicateGroup, type WeightChange } from "@spoolsync/core/workflow";
 
 import type { StockHistory, StockPoint } from "./browser/storage/stock-history";
@@ -57,22 +58,13 @@ export interface SpoolDetail {
   canStageWeight: boolean;
 }
 
-export const CROSS_ID_LABELS: Record<keyof CrossIds, string> = {
-  spoolmanId: "Spoolman",
-  spoolstockShortId: "Spoolstock",
-  spoolioId: "Spoolio",
-  tigertagUid: "TigerTag",
+/** The service each cross-id belongs to; 3DFilamentProfiles is shortened to fit the drawer. */
+export const CROSS_ID_LABELS = {
+  ...Object.fromEntries(
+    SOURCE_IDS.map((source) => [NATIVE_CROSS_ID[source], SOURCE_LABELS[source]]),
+  ),
   threeDfpId: "3DFP",
-  bambuddyId: "Bambuddy",
-  filameterId: "FilaMeter",
-  filadexId: "Filadex",
-  filamentdbSerial: "FilamentDB",
-  filamentDbAppId: "Filament DB",
-  spoolmasterId: "SpoolMaster",
-  spoolhoarderId: "Spool Hoarder",
-  spoolappId: "Spool",
-  spoolkeepId: "SpoolKeep",
-};
+} as Record<keyof CrossIds, string>;
 
 /** Where `spools` are the records of every loaded service, finds the spool and what surrounds it. */
 export function findSpoolDetail(
@@ -85,7 +77,7 @@ export function findSpoolDetail(
   const spool = byKey.get(key);
   if (!spool) return null;
 
-  const { groups, suggestions } = findMatches([...spools], decisions);
+  const { groups, suggestions } = findMatchesCached([...spools], decisions);
   const group = groups.find((candidate) =>
     SOURCE_IDS.some((source) => {
       const member = candidate.members[source];
