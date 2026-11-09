@@ -8,7 +8,7 @@ import {
   loadFilamentDbConnection,
   saveFilamentDbConnection,
   loadTigertagSession,
-  saveTigertagSession,
+  saveRefreshedTigertagSession,
 } from "~/lib/browser/storage";
 
 import { CONNECTION_CHANGED } from "../connections/events";
@@ -189,7 +189,9 @@ function wireTigertag(context: LoadContext): void {
           const { loadTigertagCloud, TigertagCloud } =
             await import("@spoolsync/core/adapters/tigertag/cloud");
           return loadTigertagCloud(
-            new TigertagCloud(session, (fresh) => saveTigertagSession(fresh, session.remember)),
+            new TigertagCloud(session, (fresh) =>
+              saveRefreshedTigertagSession(fresh, session.remember),
+            ),
           );
         },
         success: (result) => success(result, "TigerTag"),

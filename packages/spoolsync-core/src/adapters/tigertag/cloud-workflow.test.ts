@@ -3,6 +3,61 @@ import { expect, test } from "bun:test";
 import type { PlannedUpdate } from "../../core/compare";
 import { applyToTigertagCloud, loadTigertagCloud, type TigertagInventoryClient } from "./cloud";
 
+const twinChange = (spool: PlannedUpdate["spool"]): PlannedUpdate => ({
+  kind: "update",
+  source: "tigertag",
+  groupId: "twin",
+  spool: {
+    ...spool,
+    raw: {
+      records: [
+        { uid: "chip_a", __docId: "doc-a", color_name: "Before" },
+        { uid: "chip_b", __docId: "doc-b", color_name: "Before" },
+      ],
+    },
+  },
+  changes: [{ field: "name", from: "Before", to: "After" }],
+  links: {},
+});
+
+async function twinSpool(writeDocument: TigertagInventoryClient["writeDocument"]) {
+  const client: TigertagInventoryClient = {
+    uid: "test-account",
+    async listInventory() {
+      return [{ uid: "chip_a", __docId: "doc-a", color_name: "Before" }];
+    },
+    writeDocument,
+  };
+  return { client, spool: (await loadTigertagCloud(client)).spools[0]! };
+}
+
+test("a twin writes the chip it loads from last, so a failure can be finished later", async () => {
+  const written: string[] = [];
+  const { client, spool } = await twinSpool(async (id) => {
+    written.push(id);
+  });
+  const log = await applyToTigertagCloud(client, [twinChange(spool)]);
+  expect(log[0]!.ok).toBe(true);
+  expect(written).toEqual(["doc-b", "doc-a"]);
+});
+
+test("a twin that fails on its first chip is reported as half saved", async () => {
+  const { client, spool } = await twinSpool(async (id) => {
+    if (id === "doc-a") throw new Error("server error");
+  });
+  const log = await applyToTigertagCloud(client, [twinChange(spool)]);
+  expect(log[0]!.ok).toBe(false);
+  expect(log[0]!.message).toContain("One chip was saved; sync again to finish the other.");
+});
+
+test("a failure before any chip is saved does not claim one was", async () => {
+  const { client, spool } = await twinSpool(async () => {
+    throw new Error("server error");
+  });
+  const log = await applyToTigertagCloud(client, [twinChange(spool)]);
+  expect(log[0]!.message).not.toContain("One chip was saved");
+});
+
 test("cloud workflows accept an inventory port without transport or authentication", async () => {
   const writes: Array<{ id: string; fields: Record<string, unknown> }> = [];
   const client: TigertagInventoryClient = {

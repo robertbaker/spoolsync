@@ -28,6 +28,7 @@ import {
   findMatchesCached,
   reconcileBulkEdits,
   reconcileResolutions,
+  withResolutionBasis,
 } from "@spoolsync/core/planner";
 
 const MAX_UNDO = 50;
@@ -95,7 +96,7 @@ export class SyncSession {
       createIn: [...current.createIn],
     };
     edit(draft);
-    this.resolutions.set(group.id, draft);
+    this.resolutions.set(group.id, withResolutionBasis(group, draft));
   }
   persist() {
     this.persistence.saveResolutions(this.resolutions);

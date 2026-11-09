@@ -19,7 +19,12 @@ export {
   saveResolutions,
   clearResolutions,
 } from "./storage/choices";
-export { loadTigertagSession, saveTigertagSession, clearTigertagSession } from "./storage/tigertag";
+export {
+  loadTigertagSession,
+  saveTigertagSession,
+  saveRefreshedTigertagSession,
+  clearTigertagSession,
+} from "./storage/tigertag";
 export {
   loadBambuddyConnection,
   saveBambuddyConnection,

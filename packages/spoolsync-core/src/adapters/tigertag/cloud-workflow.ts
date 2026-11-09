@@ -48,14 +48,19 @@ export async function applyToTigertagCloud(
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("tigertag", changes);
+  // Whether the change being written has already saved one chip of a twin, for its failure message.
+  let savedChip = false;
   return applyEachChange(
     changes,
     {
       async write(change) {
+        savedChip = false;
         if (change.kind === "update") {
           const { records: originals } = change.spool.raw as TigertagRaw;
           const updated = updatedRecords(change);
-          for (const [index, record] of updated.entries()) {
+          // A twin loads from its first chip, so that one goes last: if a write fails, the next load
+          // still shows the difference and a second sync finishes the job.
+          for (const [index, record] of updated.entries().toArray().reverse()) {
             const original = originals[index]!;
             const fields = changedFields(original, record);
             if (!Object.keys(fields).length) continue;
@@ -63,6 +68,7 @@ export async function applyToTigertagCloud(
               ...fields,
               last_update: Date.now(),
             });
+            savedChip = true;
           }
           const twin = updated.length > 1 ? " (both chips)" : "";
           return `Updated ${change.spool.name ?? change.spool.sourceId}${twin}`;
@@ -76,6 +82,7 @@ export async function applyToTigertagCloud(
         return `Created ${record.uid}`;
       },
       subject: (change) => (change.kind === "update" ? change.spool.sourceId : "a new spool"),
+      partialWrite: () => (savedChip ? " One chip was saved; sync again to finish the other." : ""),
     },
     onProgress,
   );

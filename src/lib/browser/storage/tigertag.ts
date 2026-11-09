@@ -34,6 +34,14 @@ export function saveTigertagSession(value: TigertagSession, remember: boolean): 
   write(remember ? session : local, TIGERTAG_SESSION_KEY, null);
 }
 
+/**
+ * Saves tokens a refresh returned, unless the person signed out or changed account while it ran. A
+ * late refresh must not bring back a session that has ended or replace the current account's.
+ */
+export function saveRefreshedTigertagSession(value: TigertagSession, remember: boolean): void {
+  if (loadTigertagSession()?.uid === value.uid) saveTigertagSession(value, remember);
+}
+
 export function clearTigertagSession(): void {
   invalidateApiInventory("tigertag");
   write(local, TIGERTAG_SESSION_KEY, null);

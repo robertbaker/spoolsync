@@ -19,7 +19,7 @@ import { help } from "./help";
 import { OUTPUT_FORMATS, type OutputFormat } from "./json-report";
 import type { Options } from "./options";
 import { closestOption } from "./suggest";
-import { validateOptions } from "./validate-options";
+import { dropUnusableDefaults, validateOptions } from "./validate-options";
 
 const sourceFlags: Record<string, SourceId> = {
   "--spoolman": "spoolman",
@@ -117,7 +117,14 @@ const SINGLETON_FLAGS: string[] = [
 ];
 
 export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
-  const args = expandConfig(argv, undefined, settings);
+  const fromFiles = new Set<string>();
+  const args = expandConfig(argv, undefined, {
+    ...settings,
+    trace(entry) {
+      settings?.trace?.(entry);
+      if (entry.layer !== "command line") fromFiles.add(entry.option.slice(2).split("=")[0]!);
+    },
+  });
   const inputs = new Map<SourceId, string>();
   const empty: WritableSourceId[] = [];
   const resolves: Array<[ComparableField, SourceId]> = [];
@@ -355,6 +362,7 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(exportCsv ? { exportCsv } : {}),
     json,
   };
+  dropUnusableDefaults(options, fromFiles);
   validateOptions(options);
   return options;
 }

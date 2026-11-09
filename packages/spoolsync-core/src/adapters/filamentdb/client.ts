@@ -1,4 +1,5 @@
 import { fetchWithHeaderTimeout, type FetchLike } from "../shared/fetch";
+import { localNetworkInit } from "../shared/local-network";
 
 export interface FilamentDbConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:3000`. */
@@ -56,6 +57,7 @@ export class FilamentDbClient {
             ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
           },
           ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          ...localNetworkInit(this.baseUrl),
         },
         this.timeoutMs,
       );

@@ -8,6 +8,90 @@ import { pairArg } from "./decisions";
 import type { Options } from "./options";
 import { SOURCE_KEYS } from "./user-config";
 
+function isLoaded(options: Options, source: SourceId): boolean {
+  return (
+    options.inputs.has(source) ||
+    options.empty.includes(source as WritableSourceId) ||
+    (source === "spoolman" && !!options.spoolmanUrl) ||
+    (source === "filamentdb" && !!options.filamentdbUrl) ||
+    (source === "filamentDbApp" && !!options.filamentDbUrl) ||
+    (source === "bambuddy" && !!options.bambuddyUrl) ||
+    (source === "filadex" && !!options.filadexUrl)
+  );
+}
+
+function inventoryCount(options: Options): number {
+  return (
+    options.inputs.size +
+    options.empty.length +
+    (options.spoolmanUrl ? 1 : 0) +
+    (options.filamentdbUrl ? 1 : 0) +
+    (options.filamentDbUrl ? 1 : 0) +
+    (options.bambuddyUrl ? 1 : 0) +
+    (options.filadexUrl ? 1 : 0)
+  );
+}
+
+/**
+ * Removes defaults from a settings or `--config` file that this run has no use for. They were never
+ * asked for here, so a saved `--low-threshold` must not stop a comparison the way typing it would.
+ * Anything on the command line stays, and `validateOptions` still judges it.
+ */
+export function dropUnusableDefaults(options: Options, fromFiles: ReadonlySet<string>): void {
+  if (options.saveConfig) return;
+  const saved = (key: string) => fromFiles.has(key);
+  const countsLow = options.summary || options.reorder;
+  const restoring = options.restoreRollback !== undefined;
+
+  if (saved("low-threshold") && !countsLow) delete options.lowThreshold;
+  if (!options.apply) {
+    if (saved("rollback-dir")) delete options.rollbackDir;
+    if (saved("no-rollback")) options.noRollback = false;
+  }
+  if (restoring) {
+    for (const source of options.inputs.keys())
+      if (saved(SOURCE_KEYS[source])) options.inputs.delete(source);
+    if (saved("empty")) options.empty = [];
+    if (saved("export-csv")) delete options.exportCsv;
+  }
+
+  const tooFew = inventoryCount(options) < 2;
+  if (saved("cleanup") && (restoring || countsLow || tooFew)) options.cleanup = false;
+  if (saved("cleanup-report") && (restoring || countsLow)) options.cleanupReport = false;
+  if (saved("reference") && (restoring || countsLow || tooFew)) delete options.reference;
+  if (saved("reference-report") && (restoring || countsLow)) delete options.referenceReport;
+  if (!options.cleanup && !options.cleanupReport) delete options.cleanupRules;
+  if (saved("fail-on-mismatch") && !options.reference && !options.referenceReport)
+    options.failOnMismatch = false;
+
+  const reportOnly =
+    countsLow ||
+    (options.cleanupReport && !options.cleanup) ||
+    (options.referenceReport !== undefined && options.reference === undefined);
+  const plansNothing = restoring || reportOnly || tooFew;
+  const canExport = [...options.inputs.keys(), ...options.empty].some((source) =>
+    WRITABLE_SOURCE_IDS.includes(source as WritableSourceId),
+  );
+  if (saved("output-dir") && (plansNothing || !canExport)) delete options.outputDir;
+  if (saved("create-in"))
+    options.createIn = plansNothing
+      ? []
+      : options.createIn.filter((source) => isLoaded(options, source));
+  if (saved("resolve"))
+    options.resolves = plansNothing
+      ? []
+      : options.resolves.filter(([, source]) => isLoaded(options, source));
+  for (const key of ["confirm", "reject"] as const)
+    if (saved(key))
+      options[key] = plansNothing
+        ? []
+        : options[key].filter((pair) =>
+            pairArg(pair)
+              .split("|")
+              .every((record) => isLoaded(options, record.split(":")[0] as SourceId)),
+          );
+}
+
 export function validateOptions(options: Options): void {
   const {
     inputs,
@@ -97,14 +181,7 @@ export function validateOptions(options: Options): void {
       (source === "filadex" && filadexUrl)
     )
       throw new Error(`Use either --empty ${source} or a file/API input for ${source}, not both.`);
-  const inventories =
-    inputs.size +
-    empty.length +
-    (spoolmanUrl ? 1 : 0) +
-    (filamentdbUrl ? 1 : 0) +
-    (filamentDbUrl ? 1 : 0) +
-    (bambuddyUrl ? 1 : 0) +
-    (filadexUrl ? 1 : 0);
+  const inventories = inventoryCount(options);
   if (quiet && !watch)
     throw new Error(
       "--quiet only applies with --watch, where it hides runs that print the same thing.",
@@ -217,19 +294,11 @@ export function validateOptions(options: Options): void {
     throw new Error(
       "--output-dir requires a writable file input or --empty target. Use --apply to write to a directly loaded inventory.",
     );
-  const isLoaded = (source: SourceId) =>
-    inputs.has(source) ||
-    empty.includes(source as WritableSourceId) ||
-    (source === "spoolman" && !!spoolmanUrl) ||
-    (source === "filamentdb" && !!filamentdbUrl) ||
-    (source === "filamentDbApp" && !!filamentDbUrl) ||
-    (source === "bambuddy" && !!bambuddyUrl) ||
-    (source === "filadex" && !!filadexUrl);
   for (const source of createIn)
-    if (!isLoaded(source))
+    if (!isLoaded(options, source))
       throw new Error(`--create-in ${source} requires --${SOURCE_KEYS[source]} input`);
   for (const [field, source] of resolves)
-    if (!isLoaded(source))
+    if (!isLoaded(options, source))
       throw new Error(`--resolve ${field}=${source} requires --${SOURCE_KEYS[source]} input`);
   const confirmed = confirm.map(pairArg);
   const rejected = new Set(reject.map(pairArg));
@@ -238,7 +307,7 @@ export function validateOptions(options: Options): void {
   for (const pair of [...confirmed, ...rejected])
     for (const record of pair.split("|")) {
       const source = record.split(":")[0] as SourceId;
-      if (!isLoaded(source))
+      if (!isLoaded(options, source))
         throw new Error("Match decision requires a loaded " + source + " inventory.");
     }
 }

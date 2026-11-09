@@ -1,3 +1,7 @@
+import { LOOPBACK_HOSTS } from "../shared/local-network";
+
+export { needsLocalNetworkFlag } from "../shared/local-network";
+
 export interface SpoolmanConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:7912`. */
   baseUrl: string;
@@ -44,8 +48,6 @@ export function normalizeBaseUrl(input: string): URL {
   return url;
 }
 
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-
 /**
  * Whether a hostname is on this machine or the home network: loopback, private IPv4 ranges,
  * link-local, unique-local IPv6, and `.local` / `.localhost` names.
@@ -66,21 +68,4 @@ export function isLocalHostname(hostname: string): boolean {
     );
   }
   return /^\[f[cd][0-9a-f]{2}:/.test(host) || host.startsWith("[fe80:");
-}
-
-/**
- * Whether a request from this page to `url` needs Chrome's Local Network Access exemption: an https
- * page calling plain http. Flagging it `targetAddressSpace: "local"` lets Chromium allow it (after
- * the user grants the permission prompt) instead of blocking it as mixed content. Loopback is
- * already trusted, and https targets are not mixed content.
- *
- * @see https://developer.chrome.com/blog/local-network-access
- */
-export function needsLocalNetworkFlag(url: URL, pageProtocol: string | undefined): boolean {
-  return (
-    pageProtocol === "https:" &&
-    url.protocol === "http:" &&
-    !LOOPBACK_HOSTS.has(url.hostname) &&
-    !url.hostname.startsWith("127.")
-  );
 }

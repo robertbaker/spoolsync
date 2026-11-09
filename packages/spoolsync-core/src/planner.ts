@@ -5,6 +5,8 @@ import {
   type BulkEdit,
   compareGroup,
   defaultResolution,
+  SOURCE_FIELDS,
+  valuesEqual,
   type GroupResolution,
   type PlannedChange,
   type RecordEdits,
@@ -28,16 +30,74 @@ import {
   type WritableSourceId,
 } from "./core/model";
 
+type HeldValues = NonNullable<GroupResolution["seen"]>[ComparableField];
+
+/** What each member that stores `field` holds for it now. */
+function heldValues(group: SpoolGroup, field: ComparableField): HeldValues {
+  const held: NonNullable<HeldValues> = {};
+  for (const [source, member] of Object.entries(group.members) as Array<[SourceId, CommonSpool]>)
+    if (SOURCE_FIELDS[source].has(field)) held[source] = structuredClone(member[field]);
+  return held;
+}
+
+/** Notes what the services hold for each newly chosen field, for `reconcileResolutions` to check. */
+export function withResolutionBasis(
+  group: SpoolGroup,
+  resolution: GroupResolution,
+): GroupResolution {
+  const seen: NonNullable<GroupResolution["seen"]> = {};
+  for (const key in resolution.values) {
+    const field = key as ComparableField;
+    seen[field] = resolution.seen?.[field] ?? heldValues(group, field);
+  }
+  return { ...resolution, seen };
+}
+
 export function ensureResolution(
   resolutions: Map<string, GroupResolution>,
   group: SpoolGroup,
 ): GroupResolution {
   let resolution = resolutions.get(group.id);
   if (!resolution) {
-    resolution = defaultResolution(group);
+    resolution = withResolutionBasis(group, defaultResolution(group));
     resolutions.set(group.id, resolution);
   }
   return resolution;
+}
+
+/**
+ * Drops chosen values the services have moved on from. A service that now holds the chosen value is
+ * a finished write, not a change; any other new value means the choice was made against old data,
+ * so the field goes back to its default instead of overwriting what the service holds now.
+ */
+function withoutStaleValues(group: SpoolGroup, resolution: GroupResolution): GroupResolution {
+  const values = structuredClone(resolution.values);
+  const seen: NonNullable<GroupResolution["seen"]> = {};
+  let fills: GroupResolution["values"] | undefined;
+  for (const key in values) {
+    const field = key as ComparableField;
+    const chosen = values[field]!;
+    const moved = (Object.entries(resolution.seen?.[field] ?? {}) as Array<[SourceId, never]>).some(
+      ([source, before]) => {
+        const member = group.members[source];
+        return (
+          member !== undefined &&
+          !valuesEqual(field, member[field], before) &&
+          !valuesEqual(field, member[field], chosen)
+        );
+      },
+    );
+    if (moved) {
+      fills ??= defaultResolution(group).values;
+      if (!(field in fills)) {
+        delete values[field];
+        continue;
+      }
+      values[field] = fills[field]!;
+    }
+    seen[field] = heldValues(group, field);
+  }
+  return { ...resolution, values, seen };
 }
 
 /**
@@ -94,7 +154,10 @@ export function reconcileBulkEdits(
   return next;
 }
 
-/** Keeps prior choices when a group grows after a spool is added or a match is confirmed. */
+/**
+ * Keeps prior choices when a group grows after a spool is added or a match is confirmed, except
+ * those the services' data has since overtaken.
+ */
 export function reconcileResolutions(
   groups: SpoolGroup[],
   previous: ReadonlyMap<string, GroupResolution>,
@@ -104,8 +167,7 @@ export function reconcileResolutions(
     const kept = previous.get(group.id);
     if (kept) {
       next.set(group.id, {
-        ...kept,
-        values: structuredClone(kept.values),
+        ...withoutStaleValues(group, kept),
         createIn: kept.createIn.filter(
           (source) => WRITABLE_SOURCE_IDS.includes(source) && !group.members[source],
         ),
@@ -119,20 +181,23 @@ export function reconcileResolutions(
     }
     if (contributors.length) {
       const merged = defaultResolution(group);
+      const seen: NonNullable<GroupResolution["seen"]> = {};
       for (const field of COMPARABLE_FIELDS) {
         const choices = contributors.filter((resolution) => field in resolution.values);
         if (!choices.length) continue;
         const value = choices[0]!.values[field];
         if (
           choices.every((choice) => JSON.stringify(choice.values[field]) === JSON.stringify(value))
-        )
+        ) {
           merged.values[field] = structuredClone(value);
-        else delete merged.values[field];
+          seen[field] = Object.assign({}, ...choices.map((choice) => choice.seen?.[field]));
+        } else delete merged.values[field];
       }
+      merged.seen = seen;
       merged.createIn = [
         ...new Set(contributors.flatMap((resolution) => resolution.createIn)),
       ].filter((source) => WRITABLE_SOURCE_IDS.includes(source) && !group.members[source]);
-      next.set(group.id, merged);
+      next.set(group.id, withoutStaleValues(group, merged));
     }
   }
   return next;

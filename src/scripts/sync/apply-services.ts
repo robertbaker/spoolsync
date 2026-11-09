@@ -6,7 +6,7 @@ import {
   loadFilamentDbConnection,
   loadSpoolmanConnection,
   loadTigertagSession,
-  saveTigertagSession,
+  saveRefreshedTigertagSession,
 } from "~/lib/browser/storage";
 
 import type { ApplyService } from "./apply-controller";
@@ -73,7 +73,7 @@ export function createApplyServices() {
               (await writes()).applyAndReloadTigertag(
                 session,
                 changes,
-                (fresh) => saveTigertagSession(fresh, session.remember),
+                (fresh) => saveRefreshedTigertagSession(fresh, session.remember),
                 progress,
               ),
           }

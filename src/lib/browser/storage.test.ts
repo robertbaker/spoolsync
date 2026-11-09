@@ -1,9 +1,12 @@
 import { beforeEach, expect, test } from "bun:test";
 
 import {
+  clearTigertagSession,
   loadResolutions,
+  loadTigertagSession,
   readLoadResult,
   saveLoadResult,
+  saveRefreshedTigertagSession,
   saveResolutions,
   saveSpoolmanConnection,
   saveTigertagSession,
@@ -89,6 +92,27 @@ test("token refresh keeps a snapshot while changing TigerTag accounts clears it"
   expect(readLoadResult("tigertag")?.connectionId).toBe("one");
   saveTigertagSession({ ...session, uid: "two" }, false);
   expect(readLoadResult("tigertag")).toBeNull();
+});
+
+test("a late token refresh cannot undo a sign-out or replace another account", () => {
+  const session = {
+    uid: "one",
+    email: "test@example.com",
+    idToken: "first",
+    refreshToken: "first",
+    expiresAt: 1,
+  };
+  saveTigertagSession(session, false);
+  saveRefreshedTigertagSession({ ...session, idToken: "refreshed" }, false);
+  expect(loadTigertagSession()?.idToken).toBe("refreshed");
+
+  saveTigertagSession({ ...session, uid: "two", idToken: "other" }, false);
+  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false);
+  expect(loadTigertagSession()).toMatchObject({ uid: "two", idToken: "other" });
+
+  clearTigertagSession();
+  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false);
+  expect(loadTigertagSession()).toBeNull();
 });
 
 test("changing API credentials invalidates matching state and API snapshots but retains file data", () => {

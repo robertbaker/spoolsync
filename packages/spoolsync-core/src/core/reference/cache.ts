@@ -1,5 +1,18 @@
 import { normalizeBarcode, normalizeHex } from "../cleanup/numbers";
 import { contentId } from "./normalize";
+import {
+  BED_RANGE,
+  DENSITY_RANGE,
+  DIAMETER_RANGE,
+  DRYING_HOURS_RANGE,
+  DRYING_TEMP_RANGE,
+  EMPTY_SPOOL_RANGE,
+  inRange,
+  NOZZLE_RANGE,
+  PRICE_RANGE,
+  WEIGHT_RANGE,
+  type Range,
+} from "./ranges";
 import type { ReferenceBuyLink, ReferenceFilament } from "./types";
 
 export const DEFAULT_TTL_HOURS = 24;
@@ -74,6 +87,12 @@ const str = (value: unknown, max = 300): string | null =>
 const num = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) ? value : null;
 
+/** A stored number within the limits a freshly read record has to meet. */
+const ranged = (value: unknown, range: Range): number | null => {
+  const parsed = num(value);
+  return parsed !== null && inRange(parsed, range) ? parsed : null;
+};
+
 function httpsUrl(value: unknown): string | null {
   const text = str(value, 2000);
   if (!text) return null;
@@ -134,21 +153,21 @@ export function sanitizeFilament(raw: unknown): ReferenceFilament | null {
     colorName: str(raw["colorName"]),
     colorHex: colorHexes[0] ?? null,
     colorHexes,
-    diameter: num(raw["diameter"]),
-    density: num(raw["density"]),
-    nozzleTempMin: num(raw["nozzleTempMin"]),
-    nozzleTempMax: num(raw["nozzleTempMax"]),
-    bedTempMin: num(raw["bedTempMin"]),
-    bedTempMax: num(raw["bedTempMax"]),
-    initialWeight: num(raw["initialWeight"]),
-    emptySpoolWeight: num(raw["emptySpoolWeight"]),
-    price: num(raw["price"]),
+    diameter: ranged(raw["diameter"], DIAMETER_RANGE),
+    density: ranged(raw["density"], DENSITY_RANGE),
+    nozzleTempMin: ranged(raw["nozzleTempMin"], NOZZLE_RANGE),
+    nozzleTempMax: ranged(raw["nozzleTempMax"], NOZZLE_RANGE),
+    bedTempMin: ranged(raw["bedTempMin"], BED_RANGE),
+    bedTempMax: ranged(raw["bedTempMax"], BED_RANGE),
+    initialWeight: ranged(raw["initialWeight"], WEIGHT_RANGE),
+    emptySpoolWeight: ranged(raw["emptySpoolWeight"], EMPTY_SPOOL_RANGE),
+    price: ranged(raw["price"], PRICE_RANGE),
     barcode,
     url: httpsUrl(raw["url"]),
     sourceUrl: httpsUrl(raw["sourceUrl"]),
     imageUrl: httpsUrl(raw["imageUrl"]),
-    dryingTemp: num(raw["dryingTemp"]),
-    dryingHours: num(raw["dryingHours"]),
+    dryingTemp: ranged(raw["dryingTemp"], DRYING_TEMP_RANGE),
+    dryingHours: ranged(raw["dryingHours"], DRYING_HOURS_RANGE),
     buyLinks: sanitizeBuyLinks(raw["buyLinks"]),
     attribution: str(raw["attribution"], 500) ?? "",
     license: str(raw["license"], 500),

@@ -266,6 +266,13 @@ document and imports one back, accepting only allow-listed keys whose values pas
 validators the pages use; credentials are never exported and a planted credential key is skipped
 and reported. `spoolsync --show-config` traces each option to the layer that supplied it.
 
+A chosen value records what each service held when it was chosen (`GroupResolution.seen`, in
+`planner.ts`). On each recompute a service that now holds the chosen value counts as a finished
+write; any other new value means the choice was made against old data, so the field returns to its
+default and is not written over what the service holds now. `--config` and settings-file options a
+run cannot use are dropped first (`dropUnusableDefaults`), so only options typed for that run can
+fail the checks in `validate-options.ts`.
+
 The Sync page keeps an undo and redo history (`SyncSession.checkpoint`, `undo`, `redo`) of changes
 to the plan and of answers to possible matches: each value pick, "add to" checkbox, bulk action,
 reset, confirm, reject, bulk answer, and answer reset takes a deep snapshot of both the resolutions
@@ -330,6 +337,8 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   mutation, and file export. Cloud authentication, Firestore value encoding, the HTTP client, and
   inventory workflows are separate modules. The workflows depend on the read or write operations
   of `TigertagInventoryClient`, so they can run without an HTTP client or authentication state.
+  A twin loads from its first chip, so that chip is written last and a failed write shows up again
+  on the next load. Refreshed tokens are saved only while the same account is still signed in.
 - 3DFilamentProfiles separates record mapping and validation, file loading, plan application, and
   CSV/JSON row serialization. Both output formats are derived from the same changed records.
   Record mutation and link writing share nested-property updates; CSV loss detection is independent

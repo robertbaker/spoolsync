@@ -293,9 +293,10 @@ describe("TigertagCloud", () => {
     const log = await applyToTigertagCloud(cloud, plan.get("tigertag")!);
     expect(log.every((entry) => entry.ok)).toBe(true);
     const [a, b, created] = writes;
+    // The chip the twin loads from is written last.
     for (const [write, docId] of [
-      [a, "docA"],
-      [b, "docB"],
+      [a, "docB"],
+      [b, "docA"],
     ] as const) {
       expect(write).toMatchObject({
         docId,

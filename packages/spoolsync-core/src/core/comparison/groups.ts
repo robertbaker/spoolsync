@@ -110,22 +110,24 @@ export function mergedValues(
       out[field] = Array.isArray(val) ? [...val] : val;
       continue;
     }
+    // A service that stores the field wins over one that does not: Spoolman has one temperature, so
+    // its "range" is that value twice and must not replace a real range from another service.
     let found: FieldValue | undefined;
+    let fallback: FieldValue | undefined;
     for (const source of sources) {
       const member = group.members[source]!;
-      if (
-        field === "archived" &&
-        (!SOURCE_FIELDS[source].has("archived") || member.unavailable?.includes("archived"))
-      ) {
-        continue;
-      }
+      const stored = SOURCE_FIELDS[source].has(field) && !member.unavailable?.includes(field);
+      if (field === "archived" && !stored) continue;
       const edited = recordEdits.get(recordKey(member))?.[field];
       const value = edited !== undefined ? edited : member[field];
-      if (!isBlank(value)) {
+      if (isBlank(value)) continue;
+      if (stored) {
         found = value;
         break;
       }
+      fallback ??= value;
     }
+    found ??= fallback;
     if (found !== undefined) {
       out[field] = Array.isArray(found) ? [...found] : found;
     } else {

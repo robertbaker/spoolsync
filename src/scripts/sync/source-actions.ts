@@ -41,7 +41,7 @@ export function sourceActions(
     if (fromFile) {
       action = downloadJson;
       note =
-        "Loaded from a file, so changes are saved as a download: every spool in Spoolman's API format, which other tools (and spoolio.net) can read.";
+        "Loaded from a file, so changes are saved as a download: every spool in Spoolman's API format, which other tools (and spoolio.net) can read. Spoolman and Spoolman-NG cannot import this file; to write changes to Spoolman, load it from its server.";
     } else {
       const apply = button(
         `Apply ${changes.length} change${changes.length === 1 ? "" : "s"} to Spoolman`,

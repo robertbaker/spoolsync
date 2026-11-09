@@ -19,6 +19,30 @@ const cloneFieldValue = (v: FieldValue): FieldValue => (Array.isArray(v) ? [...v
 
 const BULK_EDIT_FIELDS = ["location", "comment", "remainingWeight"] as const;
 
+/**
+ * Chosen values with accepted cleanups applied. A value taken from a record whose field was cleaned
+ * goes out in its cleaned form, to every service, whether it was chosen or filled automatically.
+ */
+function cleanedValues(
+  group: SpoolGroup,
+  values: GroupResolution["values"],
+  recordEdits: RecordEdits,
+): GroupResolution["values"] {
+  const cleaned = { ...values };
+  for (const key in values) {
+    const field = key as ComparableField;
+    for (const source of presentSources(group)) {
+      const member = group.members[source]!;
+      const edited = recordEdits.get(recordKey(member))?.[field];
+      if (edited !== undefined && strictValuesEqual(member[field], values[field]!)) {
+        cleaned[field] = edited;
+        break;
+      }
+    }
+  }
+  return cleaned;
+}
+
 function groupLinks(group: SpoolGroup): CrossIds {
   const links: CrossIds = {};
   const claims = new Map<keyof CrossIds, Set<string | number>>();
@@ -111,7 +135,8 @@ export function buildPlan(
   };
 
   for (const group of groups) {
-    const resolution = resolutions.get(group.id) ?? defaultResolution(group);
+    const stored = resolutions.get(group.id) ?? defaultResolution(group);
+    const resolution = { ...stored, values: cleanedValues(group, stored.values, recordEdits) };
     const links = groupLinks(group);
     const edit = edits.get(group.id);
     for (const source of WRITABLE_SOURCE_IDS) {
@@ -128,7 +153,9 @@ export function buildPlan(
       if (own) {
         for (const key in own) {
           const to = own[key as ComparableField];
-          if (to === undefined || targets.has(key as ComparableField)) continue;
+          if (to === undefined) continue;
+          const resolved = targets.get(key as ComparableField);
+          if (resolved !== undefined && !strictValuesEqual(resolved, to)) continue;
           targets.set(key as ComparableField, to);
           ownFields.add(key as ComparableField);
         }

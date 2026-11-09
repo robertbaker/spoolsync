@@ -54,6 +54,7 @@ export const SERVICES = {
     readFormats: ["json", "csv"],
     writeFormats: ["json"],
     apiClients: ["browser", "cli"],
+    writeNote: "the JSON file is for other tools; Spoolman itself cannot import it",
     cliFlag: "--spoolman",
     cliApiFlag: "--spoolman-url",
     tagline: "Self-hosted spool database with a REST API, used by Klipper setups.",

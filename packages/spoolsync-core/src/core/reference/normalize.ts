@@ -11,6 +11,18 @@ import {
 import { cleanInline } from "../cleanup/text";
 import { sanitizeBuyLinks } from "./cache";
 import { fieldKey, readPath, type ReferenceKey, type ReferenceMapping } from "./mapping";
+import {
+  BED_RANGE,
+  DENSITY_RANGE,
+  DIAMETER_RANGE,
+  DRYING_HOURS_RANGE,
+  DRYING_TEMP_RANGE,
+  EMPTY_SPOOL_RANGE,
+  inRange,
+  NOZZLE_RANGE,
+  PRICE_RANGE,
+  WEIGHT_RANGE,
+} from "./ranges";
 import type { ReferenceFilament } from "./types";
 
 export interface RecordContext {
@@ -26,15 +38,6 @@ export interface NormalizedRecord {
   warnings: string[];
 }
 
-const NOZZLE_RANGE: readonly [number, number] = [100, 500];
-const BED_RANGE: readonly [number, number] = [0, 200];
-const DIAMETER_RANGE: readonly [number, number] = [0.5, 10];
-const DENSITY_RANGE: readonly [number, number] = [0.5, 5];
-const WEIGHT_RANGE: readonly [number, number] = [1, 20_000];
-const EMPTY_SPOOL_RANGE: readonly [number, number] = [1, 3_000];
-const DRYING_TEMP_RANGE: readonly [number, number] = [30, 120];
-const DRYING_HOURS_RANGE: readonly [number, number] = [0.5, 48];
-const MAX_PRICE = 100_000;
 const MAX_TEXT = 200;
 
 /** A scalar from a record, as text. Numbers are kept; objects, lists and booleans are not values. */
@@ -95,10 +98,6 @@ function hexFromRgb(value: string): string | null {
 function colorFromCell(value: string | number | null, strict: boolean): string | null {
   if (typeof value !== "string") return null;
   return hexFromCell(value, strict) ?? hexFromRgb(value);
-}
-
-function inRange(value: number, [low, high]: readonly [number, number]): boolean {
-  return Number.isFinite(value) && value >= low && value <= high;
 }
 
 function numberCell(value: string | number | null): number | null {
@@ -164,8 +163,9 @@ function weight(
   else {
     const parsed = parseWeight(value);
     if (!parsed) return reject();
-    grams = parsed.grams;
-    if (parsed.unit !== null) return inRange(grams, range) ? grams : reject();
+    if (parsed.unit !== null) return inRange(parsed.grams, range) ? parsed.grams : reject();
+    // The exact number, because `parsed.grams` is rounded for grams and this may yet be kilograms.
+    grams = numberCell(value) ?? parsed.grams;
   }
   if (mapping.weightUnit === "kg" || (mapping.weightUnit === "auto" && grams > 0 && grams <= 10))
     grams *= 1000;
@@ -363,7 +363,7 @@ export function normalizeReferenceRecord(
   let price: number | null = null;
   if (priceRaw !== null) {
     const parsed = typeof priceRaw === "number" ? priceRaw : parsePrice(priceRaw)?.amount;
-    if (parsed !== undefined && parsed !== null && parsed >= 0 && parsed <= MAX_PRICE)
+    if (parsed !== undefined && parsed !== null && inRange(parsed, PRICE_RANGE))
       price = Math.round(parsed * 100) / 100;
     else warnings.push(`Price ${JSON.stringify(priceRaw)} was not usable.`);
   }

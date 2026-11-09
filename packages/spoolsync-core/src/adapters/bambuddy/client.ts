@@ -1,3 +1,4 @@
+import { localNetworkInit } from "../shared/local-network";
 import { numericId, recordsFrom } from "./map";
 import type { BambuddyConnection, BambuddySpool, BambuddySpoolPayload } from "./types";
 
@@ -74,6 +75,7 @@ export class BambuddyClient implements BambuddyWriteClient {
       `${this.baseUrl}/api/v1/inventory/spools?include_archived=true`,
       {
         headers: { "X-API-Key": this.connection.apiKey },
+        ...localNetworkInit(this.baseUrl),
       },
     );
     if (!response.ok)
@@ -91,6 +93,7 @@ export class BambuddyClient implements BambuddyWriteClient {
   async usesSpoolman(): Promise<boolean> {
     const response = await this.fetchImpl(`${this.baseUrl}/api/v1/spoolman/inventory/spools`, {
       headers: { "X-API-Key": this.connection.apiKey },
+      ...localNetworkInit(this.baseUrl),
     });
     if (response.status >= 500) return true;
     if (!response.ok) return false;
@@ -109,6 +112,7 @@ export class BambuddyClient implements BambuddyWriteClient {
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...localNetworkInit(this.baseUrl),
     });
     if (!response.ok) {
       const detail = await errorDetail(response);

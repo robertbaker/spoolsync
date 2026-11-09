@@ -22,6 +22,11 @@ export interface GroupResolution {
   values: Partial<Record<ComparableField, FieldValue>>;
   /** Loaded services that lack this spool and should get it. */
   createIn: WritableSourceId[];
+  /**
+   * What each service held for a chosen field when it was last checked, so a value chosen against
+   * older data is not written over something that has changed since.
+   */
+  seen?: Partial<Record<ComparableField, Partial<Record<SourceId, FieldValue>>>>;
 }
 
 export type SpoolValues = { [K in ComparableField]: CommonSpool[K] };
