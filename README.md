@@ -127,7 +127,7 @@ For standalone Linux installs, update your `.env` file and restart the service
   - **Bambuddy** does not store diameter, density, bed temperatures, barcode, purchase date, or archived status. Its CSV importer only creates new spools and cannot transfer empty spool weights.
   - **FilaMeter** does not store diameter, density, temperatures, barcode, empty spool weight, purchase date, or archived status.
   - **Filadex** does not store density, bed temperatures, empty spool weight, notes, or archived status. It keeps weights in kg plus a remaining percentage, and one color per spool.
-  - **FilamentDB** does not store price, location, or purchase date, and keeps one color per spool.
+  - **FilamentDB** does not store price, location, purchase date, or archived status, and keeps one color per spool.
     Unsupported fields for a given service are automatically skipped during comparison.
 - TigerTag byte-only records cannot distinguish an absent secondary color from black (`#000000`), though an explicit
   `online_color_list` preserves black secondary colors.

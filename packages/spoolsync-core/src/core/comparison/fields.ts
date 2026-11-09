@@ -112,7 +112,8 @@ const BASE_SOURCE_FIELDS: Record<SourceId, ReadonlySet<ComparableField>> = {
     "comment",
     "archived",
   ),
-  filamentdb: without("location", "price", "purchasedOn"),
+  // FilamentDB's only similar flag, `deleted`, puts a spool in its recycle bin.
+  filamentdb: without("location", "price", "purchasedOn", "archived"),
   // Filament DB has no barcode field and keeps one bed temperature, not a range.
   filamentDbApp: without("upc", "bedTempMax"),
   spoolmaster: without("density", "upc", "emptySpoolWeight", "archived"),

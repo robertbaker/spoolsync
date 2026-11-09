@@ -36,6 +36,21 @@ function setup(spools: SpoolmanSpool[]) {
 }
 
 describe("applyToSpoolman", () => {
+  test("a new initial weight alone leaves the remaining weight where it was", async () => {
+    const { server, client } = setup([spool(51)]);
+    const result = await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "weight",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: {},
+        changes: [{ field: "initialWeight", from: 1000, to: 750 }],
+      },
+    ]);
+    expect(result[0]!.ok).toBe(true);
+    expect(server.spools.get(51)).toMatchObject({ initial_weight: 750, remaining_weight: 640 });
+  });
   test("filament reuse searches all matching identities for compatible metadata", async () => {
     const original = { ...filament, comment: "Keep these notes" };
     const compatible = { ...original, id: 20, material: "PETG" };

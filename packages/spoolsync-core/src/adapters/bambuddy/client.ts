@@ -7,6 +7,8 @@ export type BambuddyFetch = (input: string, init?: RequestInit) => Promise<Respo
 export interface BambuddyInventoryClient {
   readonly baseUrl: string;
   listSpools(): Promise<BambuddySpool[]>;
+  /** True when the server keeps its inventory in Spoolman and its own spool table is out of date. */
+  usesSpoolman(): Promise<boolean>;
 }
 
 /** Remote operations required by the write workflow, without transport or credential details. */
@@ -79,6 +81,20 @@ export class BambuddyClient implements BambuddyWriteClient {
         `Bambuddy returned HTTP ${response.status}. Check the address, API key, and API permissions.`,
       );
     return recordsFrom(await response.json());
+  }
+
+  /**
+   * Bambuddy answers this route with 400 unless Spoolman is switched on, and it needs only the
+   * scope the spool list needs. A server error means it is on but Spoolman could not be reached;
+   * anything else (an older server without the route, a refused key) counts as the built-in table.
+   */
+  async usesSpoolman(): Promise<boolean> {
+    const response = await this.fetchImpl(`${this.baseUrl}/api/v1/spoolman/inventory/spools`, {
+      headers: { "X-API-Key": this.connection.apiKey },
+    });
+    if (response.status >= 500) return true;
+    if (!response.ok) return false;
+    return Array.isArray(await response.json().catch(() => null));
   }
 
   private async write(

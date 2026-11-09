@@ -251,6 +251,10 @@ test("Bambuddy API fetch loads inventory from the configured server", async ({ p
   await page.route("http://bambuddy.test:8000/**", async (route) => {
     const request = route.request();
     expect(request.headers()["x-api-key"]).toBe("test-key");
+    if (new URL(request.url()).pathname === "/api/v1/spoolman/inventory/spools") {
+      await route.fulfill({ status: 400, headers: { "access-control-allow-origin": "*" } });
+      return;
+    }
     expect(new URL(request.url()).pathname).toBe("/api/v1/inventory/spools");
     expect(new URL(request.url()).searchParams.get("include_archived")).toBe("true");
     await route.fulfill({

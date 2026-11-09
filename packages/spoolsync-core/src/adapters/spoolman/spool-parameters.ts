@@ -51,6 +51,13 @@ export function buildSpoolPatch(
     }
   }
 
+  // Spoolman stores the used weight and derives what is left, so a new initial weight alone would
+  // move it. Spoolman applies `initial_weight` first, so this is measured against the new value.
+  if (typeof patch.initial_weight === "number" && !("remaining_weight" in patch)) {
+    const remaining = current.remaining_weight ?? change.spool.remainingWeight;
+    if (remaining !== null && remaining !== undefined) patch.remaining_weight = remaining;
+  }
+
   const purchased = change.changes.find((c) => c.field === "purchasedOn");
   // Replacing a Spoolstock-style lot number must not lose the link it carried.
   const lostLink =

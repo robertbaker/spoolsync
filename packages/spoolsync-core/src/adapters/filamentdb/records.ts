@@ -80,9 +80,6 @@ export function updateRecord(
         if (to == null) delete record["notes"];
         else record["notes"] = toText(to);
         break;
-      case "archived":
-        record["deleted"] = Boolean(to);
-        break;
       default:
         break;
     }
@@ -108,6 +105,7 @@ export function createRecord(
   const initial = v.initialWeight ?? v.remainingWeight ?? 0;
   const finish = writeFinish(v.finish);
   if (v.finish !== null && !finish) warn(unsupportedFinish(label, v.finish));
+  if (v.archived) warn(`${label}: FilamentDB has no archived state, so this spool is active.`);
   if (v.material === null) warn(`${label}: no material, so the type defaults to PLA.`);
   if (v.diameter === null) warn(`${label}: no diameter, so it defaults to 1.75 mm.`);
   if (v.density === null) warn(`${label}: no density, so it defaults to 1.24 g/cm3.`);
@@ -131,7 +129,6 @@ export function createRecord(
     ...(finish ? { finish } : {}),
     ...(v.td !== null ? { transmissionDistance: v.td } : {}),
     ...(v.comment ? { notes: v.comment } : {}),
-    ...(v.archived ? { deleted: true } : {}),
     createdAt: now,
     lastUpdated: now,
   };

@@ -1,12 +1,14 @@
 import type { PlannedChange } from "../../core/compare";
 import { toNumber, toText } from "../../core/normalize";
-import { parseTemp, tempText, round2 } from "./map";
+import { bedPart, parseTemp, printTempText, round2, tempText } from "./map";
 import type { FiladexRecord } from "./types";
 
 export type Warn = (message: string) => void;
 const hash = (hex: string | undefined) => (hex ? `#${hex}` : "");
 export const text = (value: unknown) => (value == null ? "" : String(value));
 const COLOR_WARNING = "only the primary color is exported; Filadex stores one color.";
+/** Filadex keeps kilograms as an unbounded decimal, so whole grams and fractions survive. */
+const roundKg = (kg: number) => Math.round(kg * 1e6) / 1e6;
 
 /** Filadex keeps the remainder as a percentage of the total, so both weights are written together. */
 function setWeights(
@@ -39,7 +41,7 @@ function setWeights(
     throw new Error(
       `${label}: remaining weight cannot exceed initial weight. Resolve the weights before exporting.`,
     );
-  record["totalWeight"] = String(round2(total / 1000));
+  record["totalWeight"] = String(roundKg(total / 1000));
   record["remainingPercentage"] = String(
     round2(remaining === null ? 100 : (remaining / total) * 100),
   );
@@ -53,6 +55,7 @@ export function updateRecord(
 ): void {
   const label = `Filadex ${change.spool.sourceId}`;
   let { min, max } = parseTemp(record["printTemp"]);
+  const bed = bedPart(record["printTemp"]);
   let weights: { initial: number | null; remaining: number | null } | undefined;
   for (const { field: name, to } of change.changes) {
     switch (name) {
@@ -74,11 +77,11 @@ export function updateRecord(
         break;
       case "nozzleTempMin":
         min = toNumber(to);
-        record["printTemp"] = tempText(min, max);
+        record["printTemp"] = printTempText(min, max, bed);
         break;
       case "nozzleTempMax":
         max = toNumber(to);
-        record["printTemp"] = tempText(min, max);
+        record["printTemp"] = printTempText(min, max, bed);
         break;
       case "upc":
         record["barcode"] = toText(to) ?? "";

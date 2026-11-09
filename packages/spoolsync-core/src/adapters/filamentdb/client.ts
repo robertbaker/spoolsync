@@ -43,12 +43,11 @@ export class FilamentDbClient {
     this.fetchImpl = connection.fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
-  private async request(method: "GET" | "POST", body?: unknown): Promise<unknown> {
-    let response: Response;
+  private async send(path: string, method: "GET" | "POST", body?: unknown): Promise<Response> {
     try {
-      response = await fetchWithHeaderTimeout(
+      return await fetchWithHeaderTimeout(
         this.fetchImpl,
-        `${this.baseUrl}/api/spools`,
+        `${this.baseUrl}${path}`,
         {
           method,
           headers: {
@@ -65,6 +64,10 @@ export class FilamentDbClient {
         `Could not reach FilamentDB at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+  }
+
+  private async request(method: "GET" | "POST", body?: unknown): Promise<unknown> {
+    const response = await this.send("/api/spools", method, body);
     if (response.status === 401 || response.status === 403)
       throw new Error("FilamentDB refused the request. Check the session token.");
     if (!response.ok)
@@ -76,7 +79,24 @@ export class FilamentDbClient {
     }
   }
 
+  /**
+   * With user management on, FilamentDB answers a missing or expired token with 200 and only the
+   * public spools. Private ones would look deleted and be planned as new, so that list is refused.
+   */
+  private async assertSignedIn(): Promise<void> {
+    const config = await this.send("/api/config/auth", "GET");
+    const settings = config.ok ? ((await config.json().catch(() => null)) as unknown) : null;
+    if ((settings as { enabled?: unknown } | null)?.enabled !== true) return;
+    if (!this.token)
+      throw new Error(
+        "FilamentDB has user management on and hides private spools without a session token. Add the token and try again.",
+      );
+    if ((await this.send("/api/auth/me", "GET")).status === 401)
+      throw new Error("FilamentDB refused the session token, so private spools would be hidden.");
+  }
+
   async listSpools(): Promise<unknown[]> {
+    await this.assertSignedIn();
     const data = await this.request("GET");
     if (!Array.isArray(data)) throw new Error("FilamentDB returned an unexpected spool list.");
     return data;

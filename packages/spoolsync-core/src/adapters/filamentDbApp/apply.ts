@@ -4,7 +4,7 @@ import { validateTargetChanges } from "../../core/plan";
 import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { FilamentDbAppClient } from "./client";
 import { parseFilamentDbApp } from "./load";
-import { changePatches } from "./records";
+import { changePatches, remainingToWrite } from "./records";
 import { findSpoolTarget, newSpoolFields } from "./target";
 
 /** Operations required by the write workflow, without HTTP client internals. */
@@ -66,8 +66,12 @@ export async function applyToFilamentDbApp(
         const shared = Object.keys(patches.filament).some((key) => key !== "totalWeight");
         if (Object.keys(patches.filament).length)
           await client.updateFilament(filamentId, patches.filament);
-        if (Object.keys(patches.spool).length)
-          await client.updateSpool(filamentId, change.spool.sourceId, patches.spool);
+        // Sent after the filament, because the server converts this with the new empty weight.
+        const remainingWeight = legacyRoll ? undefined : remainingToWrite(change, patches);
+        const spoolPatch =
+          remainingWeight === undefined ? patches.spool : { ...patches.spool, remainingWeight };
+        if (Object.keys(spoolPatch).length)
+          await client.updateSpool(filamentId, change.spool.sourceId, spoolPatch);
         return `Updated spool ${change.spool.sourceId}: ${changedFieldNames(change).join(", ")}${shared ? " (filament fields are shared by all its spools)" : ""}`;
       },
       subject: (change) =>

@@ -195,6 +195,32 @@ test("API writes send only spool fields and resolve locations by name", async ()
   ]);
 });
 
+test("a new empty-spool weight leaves the spool's remaining weight where it was", async () => {
+  const { change } = await planUpdate([["emptySpoolWeight", 200, 250]]);
+  const sent: unknown[] = [];
+  const log = await applyToFilamentDbApp(
+    {
+      snapshot: async () => snapshot,
+      createSpool: async () => {},
+      locationIds: async () => new Map(),
+      updateFilament: async (_id, patch) => {
+        sent.push(["filament", patch]);
+      },
+      updateSpool: async (_filamentId, _spoolId, patch) => {
+        sent.push(["spool", patch]);
+      },
+    },
+    [change],
+  );
+  expect(log).toEqual([expect.objectContaining({ ok: true })]);
+  const { remainingWeight } = (change as Extract<PlannedChange, { kind: "update" }>).spool;
+  expect(remainingWeight).not.toBeNull();
+  expect(sent).toEqual([
+    ["filament", { spoolWeight: 250 }],
+    ["spool", { remainingWeight }],
+  ]);
+});
+
 function createChange(values: Record<string, unknown>): PlannedChange {
   return {
     kind: "create",

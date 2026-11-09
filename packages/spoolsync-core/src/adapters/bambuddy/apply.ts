@@ -2,6 +2,7 @@ import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
 import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
+import { assertBuiltInInventory } from "./api";
 import type { BambuddyWriteClient } from "./client";
 import { numericId } from "./map";
 import { createPayload, updatePayload, type BambuddyWritePlan } from "./payload";
@@ -34,6 +35,7 @@ export async function applyToBambuddy(
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("bambuddy", changes);
   if (!changes.length) return [];
+  await assertBuiltInInventory(client);
   const fresh = new Map<number, BambuddySpool>();
   for (const spool of await client.listSpools()) fresh.set(Number(spool.id), spool);
 
@@ -60,6 +62,10 @@ export async function applyToBambuddy(
           const label = `Bambuddy spool ${id}`;
           const plan = updatePayload(change.spool, change.changes, label, current);
           const payload = moved(plan.payload, current);
+          // Bambuddy locks the weight on any `weight_used` write unless told otherwise, which would
+          // silently stop AMS weight sync for this spool.
+          if ("weight_used" in payload)
+            payload["weight_locked"] = Boolean(current["weight_locked"]);
           const wasArchived = Boolean(current["archived_at"]);
           if (Object.keys(payload).length) {
             await client.updateSpool(id, payload);

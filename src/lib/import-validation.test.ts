@@ -11,6 +11,7 @@ test("Bambuddy API imports include archived spools so they are not mistaken for 
   globalThis.fetch = Object.assign(
     async (input: string | URL | Request) => {
       const url = new URL(String(input));
+      if (url.pathname.includes("/spoolman/")) return new Response(null, { status: 400 });
       expect(url.searchParams.get("include_archived")).toBe("true");
       return new Response(
         JSON.stringify([{ id: 1, material: "PLA", archived_at: "2026-01-01T00:00:00Z" }]),

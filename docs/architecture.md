@@ -348,8 +348,12 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   Spool parameter builders and shared link extras keep API writes and file exports aligned.
   `filament-update.ts` handles shared-filament copying/reuse and unique-filament changes;
   the apply module retains write ordering, progress, logs, and completed-write counts.
+  Spoolman stores the used weight and derives what is left, so a change to the initial weight alone
+  also sends the current remaining weight.
 - Spoolio separates schemas, material-preserving notes, common-model mapping, file loading,
   record mutation, and export assembly. The material-note rules are shared by reads and writes.
+  A Spoolstock link in `batchNumber` is not a lot number; when a real lot number needs that field,
+  the link moves to a `[Spoolstock link: id]` tag at the start of the notes, beside the material tag.
 - Bambuddy separates common record validation and mapping, file loading, CSV export, and its HTTP
   client. API and file inventories use the same assembly function for spools and price warnings.
   `loadBambuddyInventory` accepts a `BambuddyInventoryClient`; `loadBambuddyApi` composes the default
@@ -358,13 +362,19 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   PATCH only the fields that moved against a fresh listing, and the archived flag goes through the
   archive/restore endpoints. Records whose ID is a CSV row number carry no `bambuddyId` and are never
   written. Writing needs an API key with the Manage inventory (`can_manage_inventory`) scope; the CSV
-  path still only creates spools and warns about fields the importer lacks.
+  path still only creates spools and warns about fields the importer lacks. A `weight_used` write
+  also sends the spool's current `weight_locked`, because Bambuddy otherwise locks the weight and
+  stops AMS sync. Loads and writes are refused when Spoolman holds the inventory, since Bambuddy's
+  own spool table is then out of date (`usesSpoolman`).
 - Filadex separates file loading, common-model mapping, record mutation, export assembly, and API
   loading. File exports and API writes use the same record mutation functions. API writes accept
-  the narrow `FiladexWriteClient` interface.
+  the narrow `FiladexWriteClient` interface. `printTemp` can end in a bed temperature
+  (`215°C / Bed 60°C`), which is not read as a nozzle value and is kept on writes.
 - FilamentDB separates file loading, common-model mapping, record mutation, export assembly, and
   API loading. File exports and API writes share the record functions; writes accept only the
-  list/save operations of `FilamentDbWriteClient`.
+  list/save operations of `FilamentDbWriteClient`. `deleted` is FilamentDB's recycle bin, so it is
+  read but never written and `archived` is not compared. With user management on, a missing or
+  expired token gets a 200 with only public spools, so the client checks sign-in before listing.
 - Filament DB (`filamentDbApp`, hyiger/filament-db, not the FilamentDB above) embeds spools in
   filaments, so `map.ts` turns each spool into one record, resolving variant inheritance and
   subtracting the empty-spool weight; `load.ts` reads a snapshot or filament list and drops trashed

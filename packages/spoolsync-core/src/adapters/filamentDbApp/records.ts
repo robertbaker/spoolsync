@@ -190,6 +190,19 @@ export function changePatches(
 }
 
 /**
+ * The remaining weight a spool has to be written with. Filament DB stores the scale weight, so a
+ * new empty-spool weight would otherwise move what is left. `undefined` leaves the spool's weight
+ * alone.
+ */
+export function remainingToWrite(
+  change: Extract<PlannedChange, { kind: "update" }>,
+  patches: Patches,
+): number | null | undefined {
+  if (patches.spool.remainingWeight !== undefined) return patches.spool.remainingWeight;
+  return patches.filament.spoolWeight !== undefined ? change.spool.remainingWeight : undefined;
+}
+
+/**
  * A legacy roll has no spool record: its remaining weight is the filament's own `totalWeight` (the
  * scale weight, so the empty spool is added back), and any other spool field has no place to go.
  */

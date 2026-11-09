@@ -1,8 +1,7 @@
 import type { PlannedChange } from "../../core/compare";
-import { spoolstockLotNr } from "../../core/normalize";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
 import { MATERIAL_TYPES, materialNote } from "./material-notes";
-import { newFilament, setField } from "./records";
+import { newFilament, setField, setSpoolstockLink } from "./records";
 import { SpoolioFilamentSchema, type SpoolioLoadResult } from "./schema";
 
 export interface SpoolioExportResult {
@@ -62,8 +61,7 @@ export function exportSpoolioJson(
     const links = change.kind === "create" ? { ...change.groupIds, ...change.links } : change.links;
     if (links.spoolmanId !== undefined && target["spoolmanId"] == null)
       target["spoolmanId"] = links.spoolmanId;
-    if (links.spoolstockShortId && !target["batchNumber"])
-      target["batchNumber"] = spoolstockLotNr(links.spoolstockShortId);
+    if (links.spoolstockShortId) setSpoolstockLink(target, links.spoolstockShortId);
   }
 
   const file = { ...loaded.file, exportedAt: new Date(runtime.now()).toISOString(), filaments };

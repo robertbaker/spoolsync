@@ -89,8 +89,11 @@ test("file imports preserve valid data, ignore superseded reads, and respect unl
     expect(readLoadResult("spoolio")).toBeNull();
     expect(status.textContent).toContain("Not loaded");
 
+    const spoolmanOff = (input: unknown) =>
+      String(input).includes("/spoolman/") ? new Response(null, { status: 400 }) : null;
     globalThis.fetch = Object.assign(
-      async () =>
+      async (input: string | URL | Request) =>
+        spoolmanOff(input) ??
         new Response(JSON.stringify([{ id: 7, material: "PLA", cost_per_kg: 20 }]), {
           headers: { "Content-Type": "application/json" },
         }),
@@ -114,10 +117,13 @@ test("file imports preserve valid data, ignore superseded reads, and respect unl
     for (const outcome of ["replace", "unload", "error"] as const) {
       let finish!: (response: Response) => void;
       globalThis.fetch = Object.assign(
-        () =>
-          new Promise<Response>((resolve) => {
+        (input: string | URL | Request) => {
+          const probe = spoolmanOff(input);
+          if (probe) return Promise.resolve(probe);
+          return new Promise<Response>((resolve) => {
             finish = resolve;
-          }),
+          });
+        },
         { preconnect: originalFetch.preconnect },
       );
       await settle(() => !apiButton.disabled);

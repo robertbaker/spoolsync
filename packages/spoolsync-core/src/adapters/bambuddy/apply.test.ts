@@ -50,6 +50,9 @@ function fakeClient(failures: Record<string, string> = {}) {
     async listSpools() {
       return structuredClone(records);
     },
+    async usesSpoolman() {
+      return false;
+    },
     async createSpool(payload: BambuddySpoolPayload) {
       calls.push(["create", payload]);
       fail("create");
@@ -95,6 +98,21 @@ const create = (
   groupIds: {},
 });
 
+test("Bambuddy weight writes keep the spool's weight lock as it was", async () => {
+  const { client, calls } = fakeClient();
+  await applyToBambuddy(client, [update(4, [{ field: "remainingWeight", from: 800, to: 500 }])]);
+  expect(calls[0]).toEqual(["update", 4, { weight_used: 500, weight_locked: false }]);
+});
+
+test("Bambuddy writes are refused while its inventory lives in Spoolman", async () => {
+  const { client, calls } = fakeClient();
+  client.usesSpoolman = async () => true;
+  await expect(
+    applyToBambuddy(client, [update(4, [{ field: "remainingWeight", from: 800, to: 500 }])]),
+  ).rejects.toThrow("Connect SpoolSync to Spoolman");
+  expect(calls).toEqual([]);
+});
+
 test("Bambuddy maps subtype to finish and material_number to lotNr", () => {
   const [spool] = loaded().spools;
   expect(spool).toMatchObject({
@@ -125,6 +143,7 @@ test("Bambuddy updates send only the moved fields and leave Bambuddy-only fields
       4,
       {
         weight_used: 350,
+        weight_locked: false,
         subtype: "Silk",
         material_number: null,
         storage_location: "Shelf B",
@@ -158,7 +177,9 @@ test("Bambuddy keeps the spool price when the label weight changes", async () =>
       { field: "remainingWeight", from: 800, to: 400 },
     ]),
   ]);
-  expect(calls).toEqual([["update", 4, { label_weight: 500, weight_used: 100, cost_per_kg: 40 }]]);
+  expect(calls).toEqual([
+    ["update", 4, { label_weight: 500, weight_used: 100, weight_locked: false, cost_per_kg: 40 }],
+  ]);
 });
 
 test("Bambuddy updates skip values the server already has", async () => {

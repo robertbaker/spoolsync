@@ -1,7 +1,12 @@
 import type { PlannedChange } from "../../core/compare";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
 import { idOf, isLegacyRoll, legacySpoolId } from "./map";
-import { changePatches, patchSnapshotFilament, patchSnapshotSpool } from "./records";
+import {
+  changePatches,
+  patchSnapshotFilament,
+  patchSnapshotSpool,
+  remainingToWrite,
+} from "./records";
 import { findSpoolTarget, newSpoolFields } from "./target";
 import type { FilamentDbAppLoadResult } from "./types";
 
@@ -106,12 +111,7 @@ export function exportFilamentDbApp(
       (filament) => idOf(filament["_id"]) === filamentOf.get(spool),
     );
     if (host) patchSnapshotFilament(host, patches.filament);
-    const remainingWeight =
-      patches.spool.remainingWeight !== undefined
-        ? patches.spool.remainingWeight
-        : patches.filament.spoolWeight !== undefined
-          ? change.spool.remainingWeight
-          : undefined;
+    const remainingWeight = remainingToWrite(change, patches);
     patchSnapshotSpool(
       spool,
       remainingWeight !== undefined ? { ...patches.spool, remainingWeight } : patches.spool,

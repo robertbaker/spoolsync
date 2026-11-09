@@ -8,12 +8,13 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
-import { MATERIAL_TYPES, materialNote, notesText } from "./material-notes";
+import { MATERIAL_TYPES, materialNote, notesText, spoolstockLinkNote } from "./material-notes";
 import type { SpoolioFilament } from "./schema";
 
 export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {
   const originalMaterial = materialNote(filament.notes);
-  const shortId = shortIdFromLotNr(filament.batchNumber);
+  const batchLink = shortIdFromLotNr(filament.batchNumber);
+  const shortId = batchLink ?? spoolstockLinkNote(filament.notes);
   return {
     source: "spoolio",
     sourceId: filament.id,
@@ -43,7 +44,7 @@ export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {
     location: null,
     price: toNumber(filament.price),
     purchasedOn: toDate(filament.purchaseDate),
-    lotNr: toText(filament.batchNumber),
+    lotNr: batchLink ? null : toText(filament.batchNumber),
     finish: toText(filament.finish),
     td: null,
     comment: notesText(filament.notes),

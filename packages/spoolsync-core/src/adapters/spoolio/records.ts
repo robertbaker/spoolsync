@@ -1,10 +1,20 @@
 import type { SpoolValues } from "../../core/compare";
 import type { ComparableField } from "../../core/model";
+import { shortIdFromLotNr, spoolstockLotNr } from "../../core/normalize";
 import type { AdapterRuntime } from "../shared/runtime";
 import { MATERIAL_TYPES, materialNote, setNotes } from "./material-notes";
 
 const hash = (hex: string) => `#${hex}`;
 const zeroIfNull = (value: number | null) => value ?? 0;
+const batchLink = (target: Record<string, unknown>) =>
+  typeof target["batchNumber"] === "string" ? shortIdFromLotNr(target["batchNumber"]) : undefined;
+
+/** Stores a Spoolstock link in `batchNumber`, or beside the lot number when one is already there. */
+export function setSpoolstockLink(target: Record<string, unknown>, shortId: string): void {
+  if (!target["batchNumber"]) target["batchNumber"] = spoolstockLotNr(shortId);
+  else if (!batchLink(target))
+    setNotes(target, target["notes"], materialNote(target["notes"]), shortId);
+}
 
 /** Writes one common field into a Spoolio filament. Fields Spoolio does not store are ignored. */
 export function setField(
@@ -63,9 +73,13 @@ export function setField(
     case "purchasedOn":
       target["purchaseDate"] = value ?? "";
       break;
-    case "lotNr":
+    case "lotNr": {
+      const link = batchLink(target);
+      if (link && value == null) break;
+      if (link) setNotes(target, target["notes"], materialNote(target["notes"]), link);
       target["batchNumber"] = value ?? "";
       break;
+    }
     case "finish":
       // "Standard" is Spoolio's own "no particular finish". `abrasive` is never touched.
       target["finish"] = value ?? "Standard";

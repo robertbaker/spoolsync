@@ -2,12 +2,16 @@ import type { CommonSpool } from "../../core/model";
 import { toDate, toNumber, toText, uniqueHexes } from "../../core/normalize";
 import type { FiladexRecord } from "./types";
 
+/** Filadex's catalog autofill appends the bed: `215°C / Bed 60°C`, or only `Bed 60°C`. */
+const BED_PART = /\bbed\b.*$/i;
+
 /** `"200-220"`, `"210°C"` and `"215"` are all seen in the wild. */
 export function parseTemp(value: unknown): {
   min: number | null;
   max: number | null;
 } {
-  const numbers = (toText(value) ?? "").match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const nozzle = (toText(value) ?? "").replace(BED_PART, "");
+  const numbers = nozzle.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   if (!numbers.length) return { min: null, max: null };
   return { min: Math.min(...numbers), max: Math.max(...numbers) };
 }
@@ -15,6 +19,15 @@ export function parseTemp(value: unknown): {
 export function tempText(min: number | null, max: number | null): string {
   if (min === null && max === null) return "";
   return min === null || max === null || min === max ? String(min ?? max) : `${min}-${max}`;
+}
+
+export const bedPart = (value: unknown): string | null =>
+  BED_PART.exec(toText(value) ?? "")?.[0] ?? null;
+
+/** The nozzle range as `tempText` writes it, keeping a bed part the record already had. */
+export function printTempText(min: number | null, max: number | null, bed: string | null): string {
+  const nozzle = tempText(min, max);
+  return nozzle && bed ? `${nozzle} / ${bed}` : nozzle || bed || "";
 }
 
 export const round2 = (value: number) => Math.round(value * 100) / 100;

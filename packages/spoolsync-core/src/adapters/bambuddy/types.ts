@@ -14,4 +14,4 @@ export type BambuddyLoadResult = LoadResult & {
 };
 
 /** Body of `POST /api/v1/inventory/spools` and `PATCH /api/v1/inventory/spools/{id}`. */
-export type BambuddySpoolPayload = Record<string, string | number | null>;
+export type BambuddySpoolPayload = Record<string, string | number | boolean | null>;

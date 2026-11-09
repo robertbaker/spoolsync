@@ -94,6 +94,17 @@ export function createFakeSpoolman(
       if (unknown) return json({ message: `Unknown extra field ${unknown}` }, 400);
       const current = spools.get(Number(id))!;
       const { filament_id, ...rest } = body;
+      // Spoolman keeps the used weight, so a new initial weight alone moves what is left.
+      if (
+        typeof rest.initial_weight === "number" &&
+        rest.remaining_weight === undefined &&
+        current.initial_weight != null &&
+        current.remaining_weight != null
+      )
+        rest.remaining_weight = Math.max(
+          rest.initial_weight - (current.initial_weight - current.remaining_weight),
+          0,
+        );
       const updated = {
         ...current,
         ...rest,
