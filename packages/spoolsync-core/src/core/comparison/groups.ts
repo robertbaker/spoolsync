@@ -1,5 +1,6 @@
 import { recordKey } from "../matching/keys";
 import type { SpoolGroup } from "../matching/types";
+import { isBroaderMaterial } from "../material";
 import { SOURCE_IDS, COMPARABLE_FIELDS, type ComparableField, type SourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
 import type { RecordEdits } from "./record-edits";
@@ -84,10 +85,38 @@ function compareMembers(group: SpoolGroup, sources: SourceId[]): FieldComparison
       if (clusters) byCluster.set(clusters[index]!, created);
     });
     if (participants < 2 || options.length === 0) continue;
-    if (options.length > 1) comparisons.push({ field, kind: "conflict", options, blank });
+    const richer = field === "material" ? richestOption(options) : undefined;
+    if (richer) {
+      // Materials that only differ in how specific they are are not a disagreement: the specific
+      // one is offered as a fill-in (first option, so the default resolution takes it) and the
+      // services holding a broader type get it. A specific value is never replaced by a base type.
+      comparisons.push({
+        field,
+        kind: "fill",
+        options: [richer, ...options.filter((option) => option !== richer)],
+        blank,
+      });
+    } else if (options.length > 1) comparisons.push({ field, kind: "conflict", options, blank });
     else if (blank.length) comparisons.push({ field, kind: "fill", options, blank });
   }
   return comparisons;
+}
+
+/**
+ * The one option every other option is a broader form of (PLA-Glow for PLA and PLA-Glow), or
+ * undefined when the options disagree: PLA, PLA-Glow and PLA-Silk have no single richest value.
+ */
+function richestOption(options: FieldOption[]): FieldOption | undefined {
+  if (options.length < 2) return undefined;
+  return options.find((candidate) =>
+    options.every(
+      (other) =>
+        other === candidate ||
+        (typeof other.value === "string" &&
+          typeof candidate.value === "string" &&
+          isBroaderMaterial(other.value, candidate.value)),
+    ),
+  );
 }
 
 /**
@@ -147,6 +176,7 @@ export function mergedValues(
       fallback ??= value;
     }
     found ??= fallback;
+    if (field === "material" && typeof found === "string") found = richestMaterial(group, found);
     if (found !== undefined) {
       out[field] = Array.isArray(found) ? [...found] : found;
     } else {
@@ -154,4 +184,14 @@ export function mergedValues(
     }
   }
   return out as SpoolValues;
+}
+
+/** The most specific material any record holds, when `found` is only a broader form of it. */
+function richestMaterial(group: SpoolGroup, found: string): string {
+  let best = found;
+  for (const source of presentSources(group)) {
+    const material = group.members[source]!.material;
+    if (typeof material === "string" && isBroaderMaterial(best, material)) best = material;
+  }
+  return best;
 }

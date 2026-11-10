@@ -134,6 +134,7 @@ For standalone Linux installs, update your `.env` file and restart the service
   in it get ranges. A file shaped like the API output that has no ranged filament looks the same as
   upstream Spoolman, so a range is written as a single temperature and the export warns about it.
   Temperatures within 0.5 degrees compare as equal, since Spoolman rounds them.
+- Finish words compare as a set, so "Silk, Matt" equals "Matte, Silk". A material that is only the base type of another (PLA against PLA-Glow, HSPLA or PLA-Ultra-Matte) is not a conflict: the more specific one is offered as a fill-in for the service holding the base type, and a specific material is never replaced by a base type. PETG against PLA, PA6 against PA12, or PLA against PLA-CF stay conflicts.
 - FilaMeter and FilamentDB require a material, and FilaMeter a filament name: if a change empties one,
   the old value is kept with a warning, and a new FilaMeter filament without a name is called "Imported Filament".
 - FilaMeter has no unknown weight. A new spool with no known weight is written as a full 1000 g spool

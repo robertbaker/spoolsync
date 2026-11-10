@@ -134,7 +134,7 @@ or imported-settings file (the error names the file, so delete that key from it)
 
 Keep a plan up to date while you edit an export. `--watch` re-runs whenever an input file changes,
 reports errors (a run that fails is printed as "Watch run failed" and the exit code becomes 1, even if a later run succeeds) and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
-also works where a signal cannot be sent, such as a Windows process started by another program). It only watches files, and it refuses `--apply`
+also works where a signal cannot be sent, such as a Windows process started by another program). A run still going 5 seconds after you stop (including the first one) is given up on and the exit code is the last failure or 1. It only watches files, and it refuses `--apply`
 so a service is never written on every save:
 
 ```sh

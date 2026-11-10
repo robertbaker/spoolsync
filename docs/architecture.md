@@ -88,6 +88,7 @@ adapter's load path (replace the `null` default), write it in every write path (
 create/update, reading `PlannedUpdate.changes` and `PlannedCreate.values`), add the field name to that
 service's entry in `ENABLED_EXTRA_FIELDS`, and add round-trip tests. The planner, conflict view, pair
 review, cleanup, CLI `--resolve`, completion and help already handle the field generically.
+`finish` compares order- and alias-insensitively through `core/finish.ts` (adapters re-export it from `adapters/shared/finish.ts`), and `material` differences where one value is the base type of the other (`core/material.ts`) become a fill of the more specific value instead of a conflict.
 
 `src/lib/services.ts` adds the web-only half, again keyed by `SourceId`: icon, the "where do I find the
 export" instructions, and card summaries. It builds `SERVICE_VIEWS`, the derived records used by the home
@@ -324,7 +325,7 @@ returns each run's snapshot, and `runWatch` hands the last successful one to the
 
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
-run, and the exit code is the last failing run's: a failed run keeps its code even if a later run succeeds. A run that is pending when the signal aborts is not started, and one still in flight is waited for at most a grace period (5 s, `abortGraceMs`), after which the watch exits with the last failing code, or 1 when none, instead of hanging. A run that throws is reported as "Watch run failed"
+run, and the exit code is the last failing run's: a failed run keeps its code even if a later run succeeds. A run that is pending when the signal aborts is not started, and one still in flight (the first run included) is waited for at most a grace period (5 s, `abortGraceMs`), after which the watch exits with the last failing code, or 1 when none, instead of hanging (the CLI then exits at once so a stuck run cannot hold the process open). A run that throws is reported as "Watch run failed"
 and makes the exit code 1 instead of ending the process. It refuses `--apply` and `--*-url` so a
 service is never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
 completion tests run the real shells there instead of skipping.

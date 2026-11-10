@@ -1,3 +1,4 @@
+import { finishKey } from "../finish";
 import type { ComparableField, SourceId } from "../model";
 import type { FieldValue } from "./types";
 
@@ -73,6 +74,8 @@ export function valuesEqual(
   if (typeof a === "string" && typeof b === "string")
     return (
       normalizeText(a) === normalizeText(b) ||
+      // Finish words compare as a set in the common spelling: "Silk, Matt" is "Matte, Silk".
+      (field === "finish" && finishKey(a) === finishKey(b)) ||
       ((target === undefined || target === "spoolman") &&
         LIMITED_FIELDS.has(field) &&
         (cutToLimit(a, b) || cutToLimit(b, a)))

@@ -167,8 +167,9 @@ try {
       } else if (options.watch) {
         const stop = new AbortController();
         // SIGBREAK is Ctrl+Break on Windows; typing q ends a watch where no signal can reach it.
-        for (const signal of ["SIGINT", "SIGTERM", "SIGBREAK"] as const)
-          process.once(signal, () => stop.abort());
+        const onSignal = () => stop.abort();
+        const signals = ["SIGINT", "SIGTERM", "SIGBREAK"] as const;
+        for (const signal of signals) process.once(signal, onSignal);
         const detach = stopOnQuit(process.stdin, () => stop.abort());
         const watchedFiles = [
           ...new Set([
@@ -177,8 +178,9 @@ try {
             ...(options.referenceReport ? [options.referenceReport] : []),
           ]),
         ];
+        let abandoned = false;
         try {
-          await runWatch({
+          ({ abandoned } = await runWatch({
             files: watchedFiles,
             output,
             signal: stop.signal,
@@ -191,10 +193,13 @@ try {
                 return undefined;
               }
             },
-          });
+          }));
         } finally {
           detach();
+          for (const signal of signals) process.off(signal, onSignal);
         }
+        // A run that never finished may hold sockets or timers open; its exit code is already set.
+        if (abandoned) process.exit();
       } else await runWorkflow(options, defaultDependencies, output);
     }
   }

@@ -232,6 +232,78 @@ test("a run that finishes within the grace period keeps its own exit code", asyn
   expect(h.lines.some((line) => line.includes("did not finish"))).toBe(false);
 });
 
+test("a hung first run is abandoned after the grace period when stopped", async () => {
+  const h = harness();
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: () => new Promise<void>(() => {}),
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 30 },
+  });
+  await wait(20);
+  h.stop.abort();
+  const result = await done;
+  expect(result.abandoned).toBe(true);
+  expect(h.exitCode()).toBe(1);
+  expect(h.lines.some((line) => line.includes("did not finish"))).toBe(true);
+  // Watching never started, so there is nothing to close and no "Watching" line.
+  expect(h.handlers.size).toBe(0);
+  expect(h.lines.some((line) => line.includes("Watching"))).toBe(false);
+});
+
+test("a first run that finishes within the grace period keeps its own exit code", async () => {
+  const h = harness();
+  let release: (() => void) | undefined;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (output) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      output.setExitCode(4);
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 500 },
+  });
+  await wait(20);
+  h.stop.abort();
+  await wait(20);
+  release!();
+  const result = await done;
+  expect(result.abandoned).toBe(false);
+  expect(h.exitCode()).toBe(4);
+  expect(h.handlers.size).toBe(0);
+});
+
+test("a signal already aborted before the first run hangs is still honoured", async () => {
+  const h = harness();
+  h.stop.abort();
+  const result = await runWatch({
+    files: ["/d/a.json"],
+    run: () => new Promise<void>(() => {}),
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 20 },
+  });
+  expect(result.abandoned).toBe(true);
+  expect(h.exitCode()).toBe(1);
+});
+
+test("a first run that throws still rejects", async () => {
+  const h = harness();
+  await expect(
+    runWatch({
+      files: ["/d/a.json"],
+      run: async () => {
+        throw new Error("first boom");
+      },
+      output: h.output,
+      signal: h.stop.signal,
+      dependencies: h.dependencies,
+    }),
+  ).rejects.toThrow("first boom");
+});
+
 test("quiet mode prints a run only when its output differs from the previous run", async () => {
   const h = harness();
   const logged: string[] = [];

@@ -32,6 +32,11 @@ export const defaultWatchDependencies: WatchDependencies = {
   now: () => new Date(),
 };
 
+export interface WatchResult {
+  /** True when a run was still in flight after the grace period and was given up on. */
+  abandoned: boolean;
+}
+
 export interface WatchRequest {
   files: readonly string[];
   /**
@@ -91,7 +96,7 @@ export function stopOnQuit(input: QuitInput, onStop: () => void): () => void {
  * machine-readable results on stdout stay clean. A failing run's exit code is kept even if a later
  * run succeeds.
  */
-export async function runWatch(request: WatchRequest): Promise<void> {
+export async function runWatch(request: WatchRequest): Promise<WatchResult> {
   const {
     files,
     run,
@@ -217,7 +222,57 @@ export async function runWatch(request: WatchRequest): Promise<void> {
     }, dependencies.debounceMs);
   }
 
-  await execute();
+  const graceMs = dependencies.abortGraceMs ?? DEFAULT_ABORT_GRACE_MS;
+  // Resolves true when the run did not settle within the grace period. Never keeps the process alive.
+  async function outlasts(pending: Promise<unknown>): Promise<boolean> {
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    const interrupted = await Promise.race([
+      pending.then(
+        () => false,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) => {
+        graceTimer = setTimeout(() => resolve(true), graceMs);
+        graceTimer.unref?.();
+      }),
+    ]);
+    clearTimeout(graceTimer);
+    return interrupted;
+  }
+  function abandon(): WatchResult {
+    output.error(
+      `The run in progress did not finish within ${graceMs / 1000} seconds of stopping; giving up on it.`,
+    );
+    // A run that never finished has no code of its own: keep an earlier failure, else report one.
+    output.setExitCode(failureCode || 1);
+    return { abandoned: true };
+  }
+
+  // The first run obeys the stop signal like any other: a hang before watching starts must not trap
+  // Ctrl+C. A failure of the first run still rejects, as it did when it was awaited directly.
+  const first = execute();
+  first.catch(() => {});
+  const cleanup = new AbortController();
+  const stoppedFirst = new Promise<"stopped">((resolve) => {
+    if (signal.aborted) resolve("stopped");
+    else
+      signal.addEventListener("abort", () => resolve("stopped"), {
+        once: true,
+        signal: cleanup.signal,
+      });
+  });
+  try {
+    const outcome = await Promise.race([first.then(() => "done" as const), stoppedFirst]);
+    if (outcome === "stopped") {
+      if (await outlasts(first)) return abandon();
+      await first;
+      output.setExitCode(failureCode);
+      return { abandoned: false };
+    }
+  } finally {
+    cleanup.abort();
+  }
+
   output.error(
     `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C (or type q and press Enter) to stop.`,
   );
@@ -235,25 +290,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   if (!signal.aborted) await once(signal, "abort");
   clearTimeout(timer);
   for (const watcher of watchers) watcher.close();
-  if (running) {
-    const graceMs = dependencies.abortGraceMs ?? DEFAULT_ABORT_GRACE_MS;
-    let graceTimer: ReturnType<typeof setTimeout> | undefined;
-    const interrupted = await Promise.race([
-      running.then(() => false),
-      new Promise<boolean>((resolve) => {
-        graceTimer = setTimeout(() => resolve(true), graceMs);
-        graceTimer.unref?.();
-      }),
-    ]);
-    clearTimeout(graceTimer);
-    if (interrupted) {
-      output.error(
-        `The run in progress did not finish within ${graceMs / 1000} seconds of stopping; giving up on it.`,
-      );
-      // A run that never finished has no code of its own: keep an earlier failure, else report one.
-      output.setExitCode(failureCode || 1);
-      return;
-    }
-  }
+  if (running && (await outlasts(running))) return abandon();
   output.setExitCode(failureCode);
+  return { abandoned: false };
 }

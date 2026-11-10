@@ -2,11 +2,7 @@ import { toText } from "../../core/normalize";
 
 // Spoolio canonicalizes these types on restore. Keep the richer material in its supported notes
 // field, so both the user and a later sync can recover it without relying on unknown JSON keys.
-export const MATERIAL_TYPES: Record<string, string> = {
-  "PLA-Glow": "PLA",
-  "PETG+": "PETG",
-  "PA6-CF": "PA-CF",
-};
+export { MATERIAL_TYPES } from "../../core/material";
 // `batchNumber` normally carries the Spoolstock link; a real lot number moves the link here.
 const NOTE_TAGS =
   /^(?:\[Original material: (PLA-Glow|PETG\+|PA6-CF)\]\n?)?(?:\[Spoolstock link: ([^\]\n]+)\]\n?)?/;
