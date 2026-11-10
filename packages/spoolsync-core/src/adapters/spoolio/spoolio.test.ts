@@ -225,6 +225,16 @@ describe("finish and lot number", () => {
     expect(loadSpoolioJson(standard).spools[0]!.finish).toBeNull();
   });
 
+  test("reads finish words in the common spelling and order, Basic as no finish", () => {
+    const finish = (value: string) =>
+      loadSpoolioJson(`{"version":1,"filaments":[{"id":"a","finish":"${value}"}]}`).spools[0]!
+        .finish;
+    expect(finish("Silk, Matt")).toBe("Matte, Silk");
+    expect(finish("glow")).toBe("Glow In the Dark");
+    expect(finish("Basic")).toBeNull();
+    expect(finish("Special Edition")).toBe("Special Edition");
+  });
+
   test("writes finish and lot number and keeps abrasive", () => {
     const loaded = loadSpoolioJson(source);
     const output = update(loaded, [

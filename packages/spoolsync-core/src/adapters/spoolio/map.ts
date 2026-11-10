@@ -8,12 +8,13 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
+import { commonFinish } from "../shared/finish";
 import { MATERIAL_TYPES, materialNote, notesText, spoolstockLinkNote } from "./material-notes";
 import type { SpoolioFilament } from "./schema";
 
 function spoolioFinish(value: unknown): string | null {
-  const finish = toText(value);
-  return finish?.toLowerCase() === "standard" ? null : finish;
+  // "Standard" (and "Basic") is no finish; other words are read in the common spelling and order.
+  return commonFinish(toText(value));
 }
 
 export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {

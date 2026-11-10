@@ -2,7 +2,14 @@ import type { PlannedChange, PlannedCreate, PlannedUpdate } from "../../core/com
 import { shortIdFromLotNr, spoolstockLotNr, toText } from "../../core/normalize";
 import type { AdapterRuntime } from "../shared/runtime";
 import { field } from "../shared/tabular";
-import { rowMaterial } from "./vocabulary";
+import { NOTE_KEYS, rowColumns, setNoteTags, tagLines } from "./note-tags";
+import {
+  materialTags,
+  rowMaterial,
+  storedFinish,
+  withMaterialFinish,
+  type RowMaterial,
+} from "./vocabulary";
 
 const fields: Record<string, string> = {
   vendor: "brand",
@@ -50,17 +57,46 @@ function setProperty(row: Record<string, unknown>, key: string, value: unknown):
 }
 
 /**
- * New notes text with the existing `Lot:` line kept where it was (first line, last line or between
- * the user's lines), rather than always moved to the top.
+ * New notes text with the existing `Lot:` line (and the material tag lines in `kept`) left where
+ * they were (first line, last line or between the user's lines), rather than always moved to the
+ * top.
  */
-function notesWithLot(existing: string | null, comment: unknown): string {
+function notesWithLot(existing: string | null, comment: unknown, kept: readonly string[]): string {
   const lines = (existing ?? "").split(/\r?\n/);
-  const index = lines.findIndex((line) => /^Lot:\s*\S/i.test(line));
   const body = toText(comment);
   const text = body ? body.split(/\r?\n/) : [];
-  if (index === -1) return text.join("\n");
-  text.splice(Math.min(index, text.length), 0, lines[index]!.trim());
+  const keep = lines.flatMap((line, index) =>
+    /^Lot:\s*\S/i.test(line) || kept.includes(line) ? [{ index, line: line.trim() }] : [],
+  );
+  // Only the first Lot line is kept, as before; later ones are the user's text.
+  const lot = keep.findIndex((entry) => /^Lot:/i.test(entry.line));
+  const wanted = keep.filter((entry, i) => !/^Lot:/i.test(entry.line) || i === lot);
+  for (const entry of wanted) text.splice(Math.min(entry.index, text.length), 0, entry.line);
   return text.join("\n");
+}
+
+/** Writes the notes text to the row's notes column, and to the other names it also carries. */
+function setNotesText(row: Record<string, unknown>, notes: string): void {
+  const key = NOTE_KEYS.find((name) => Object.hasOwn(row, name)) ?? "notes";
+  row[key] = notes;
+  for (const alias of NOTE_KEYS) if (alias !== key && Object.hasOwn(row, alias)) row[alias] = notes;
+}
+
+const ADDED_NOTE = " The full value is kept in the notes.";
+
+/** What the two columns could not hold of the common material and finish, for the apply log. */
+function columnWarnings(label: string, rebuilt: RowMaterial, kept: boolean): string[] {
+  const warnings: string[] = [];
+  const note = kept ? ADDED_NOTE : "";
+  if (rebuilt.droppedLine)
+    warnings.push(
+      `3DFilamentProfiles ${label}: the material type holds one value, so the finish ${rebuilt.materialType} was stored and the product line ${rebuilt.droppedLine} was not.${note}`,
+    );
+  if (rebuilt.droppedFinish)
+    warnings.push(
+      `3DFilamentProfiles ${label}: the material type holds one finish, so ${rebuilt.materialType === "Basic" ? "no finish" : rebuilt.materialType} was stored and ${rebuilt.droppedFinish.join(", ")} was not.${note}`,
+    );
+  return warnings;
 }
 
 export function updateRecord(
@@ -73,6 +109,7 @@ export function updateRecord(
   // Real rows stamp updated_at on every edit; only rows that already carry the key get it.
   if (runtime && Object.hasOwn(row, "updated_at")) row["updated_at"] = isoUtc(runtime);
   const changed = new Map(change.changes.map((item) => [item.field, item.to]));
+  const before = rowColumns(row);
   for (const item of change.changes) {
     // `material` and `material_type` are rebuilt together below.
     if (item.field === "material" || item.field === "finish") continue;
@@ -105,7 +142,11 @@ export function updateRecord(
         );
     }
     if (item.field === "comment") {
-      row[fieldName] = notesWithLot(toText(field(row, "notes", "comment", "description")), value);
+      row[fieldName] = notesWithLot(
+        toText(field(row, "notes", "comment", "description")),
+        value,
+        tagLines(before.notes, before.applied),
+      );
       for (const alias of ["comment", "description"])
         if (Object.hasOwn(row, alias)) row[alias] = row[fieldName];
     } else if (format === "csv") row[fieldName] = value;
@@ -117,23 +158,35 @@ export function updateRecord(
     } else row[fieldName] = value;
   }
   if (changed.has("material") || changed.has("finish")) {
-    const rebuilt = rowMaterial(
-      {
-        ...(changed.has("material") ? { material: changed.get("material") as string | null } : {}),
-        ...(changed.has("finish") ? { finish: changed.get("finish") as string | null } : {}),
-      },
-      { materialType: toText(row["material_type"]) },
-    );
+    const label = change.spool.sourceId;
+    const newFinish = changed.has("finish") ? (changed.get("finish") as string | null) : undefined;
+    let material = changed.has("material") ? (changed.get("material") as string | null) : undefined;
+    // A finish change alone keeps a compound the notes restore (such as the product line).
+    if (material === undefined && newFinish !== undefined && before.applied.includes("material"))
+      material = withMaterialFinish(before.material ?? "", storedFinish(newFinish));
+    const values = { ...(material !== undefined ? { material } : {}), finish: newFinish };
+    const rebuilt = rowMaterial(values, { materialType: before.type });
     if (rebuilt.material !== undefined) {
       row["material"] = rebuilt.material;
       for (const alias of aliases["material"] ?? [])
         if (Object.hasOwn(row, alias)) row[alias] = rebuilt.material;
     }
     row["material_type"] = rebuilt.materialType;
-    if (rebuilt.droppedLine)
-      warnings.push(
-        `3DFilamentProfiles ${change.spool.sourceId}: the material type holds one value, so the finish ${rebuilt.materialType} was stored and the product line ${rebuilt.droppedLine} was not.`,
-      );
+    // The notes keep what the columns cannot, so the spool reloads as the same material and finish.
+    const columnMaterial = toText(row["material"]);
+    const tags = materialTags(
+      { material, finish: newFinish ?? (changed.has("finish") ? null : before.finish) },
+      rebuilt,
+      columnMaterial,
+    );
+    const managed = [
+      ...(changed.has("material") || material !== undefined ? (["material"] as const) : []),
+      ...(changed.has("finish") ? (["finish"] as const) : []),
+    ];
+    const current = toText(field(row, ...NOTE_KEYS));
+    const notes = setNoteTags(current, tags, managed);
+    if (notes !== (current ?? "")) setNotesText(row, notes);
+    warnings.push(...columnWarnings(label, rebuilt, Boolean(tags.material || tags.finish)));
   }
 }
 
@@ -151,8 +204,6 @@ function base62Code(uuid: string): string {
   }
   return code;
 }
-
-const NOTE_KEYS = ["notes", "comment", "description"] as const;
 
 /** Picks a short code that no existing row uses, so a new spool never overwrites another by ID. */
 function uniqueShortCode(runtime: AdapterRuntime, taken: ReadonlySet<string>): string {
@@ -186,10 +237,14 @@ export function createRecord(
     { material: change.values.material, finish: change.values.finish },
     { materialType: null },
   );
-  if (created.droppedLine)
-    warnings.push(
-      `3DFilamentProfiles ${change.values.name ?? change.groupId}: the material type holds one value, so the finish ${created.materialType} was stored and the product line ${created.droppedLine} was not.`,
-    );
+  const tags = materialTags(change.values, created, created.material ?? "PLA");
+  warnings.push(
+    ...columnWarnings(
+      change.values.name ?? change.groupId,
+      created,
+      Boolean(tags.material || tags.finish),
+    ),
+  );
   const row: Record<string, unknown> = {
     short_code: shortCode,
     spool_url: `https://spooldb.com/s/${shortCode}`,

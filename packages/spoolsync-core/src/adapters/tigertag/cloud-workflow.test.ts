@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 
 import type { PlannedUpdate } from "../../core/compare";
+import { makeSpool } from "../../core/testing";
 import { applyToTigertagCloud, loadTigertagCloud, type TigertagInventoryClient } from "./cloud";
 
 const twinChange = (spool: PlannedUpdate["spool"]): PlannedUpdate => ({
@@ -87,4 +88,44 @@ test("cloud workflows accept an inventory port without transport or authenticati
   expect(writes[0]!.fields.color_name).toBe("After");
   expect(writes[0]!.fields).not.toHaveProperty("__docId");
   expect(loaded.spools[0]!.name).toBe("Before");
+});
+
+test("cloud writes report the same aspect warnings as the .ttag export", async () => {
+  const client: TigertagInventoryClient = {
+    uid: "test-account",
+    async listInventory() {
+      return [{ uid: "CLOUD_one", __docId: "document-one", color_name: "Before" }];
+    },
+    async writeDocument() {},
+  };
+  const loaded = await loadTigertagCloud(client);
+  const update = (to: string): PlannedUpdate => ({
+    kind: "update",
+    source: "tigertag",
+    groupId: "one",
+    spool: loaded.spools[0]!,
+    changes: [{ field: "finish", from: null, to }],
+    links: {},
+  });
+  const apply = async (to: string) => (await applyToTigertagCloud(client, [update(to)]))[0]!;
+  const odd = await apply("Plaid, Matte");
+  const many = await apply("Matte, Silk, Glitter");
+  const fine = await apply("Matte, Silk");
+  expect(odd.ok).toBe(true);
+  expect(odd.message).toContain("finish Plaid has no TigerTag aspect, so it was not exported.");
+  expect(many.message).toContain(
+    "only two aspects fit in a record; 1 finish word(s) were left out.",
+  );
+  expect(fine.message).not.toContain("aspect");
+  const created = await applyToTigertagCloud(client, [
+    {
+      kind: "create",
+      source: "tigertag",
+      groupId: "new",
+      groupIds: {},
+      links: {},
+      values: { ...makeSpool("spoolman", "1", { name: "New", finish: "Plaid" }) },
+    },
+  ]);
+  expect(created[0]!.message).toContain("Plaid has no TigerTag aspect");
 });

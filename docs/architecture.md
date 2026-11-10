@@ -174,7 +174,7 @@ tried and only parsers that read at least one spool count. Several matches are s
 nothing is guessed. `smart-drop.ts` loads the chosen source through the same `readInventoryFile`
 path as each service's own picker, so request revisions and persistence are shared. `readInventoryFile`
 returns the inventory it stored (or `null` when the file was rejected or superseded), and the drop
-zone reports that result rather than whatever the source held before.
+zone reports that result rather than whatever the source held before. When several file reads overlap, the newest-started read wins: an older one that finishes later is discarded, and a failed or superseded read leaves a notice that matches what is actually loaded.
 
 Services are native `<details>` panels (`SourcePanel.astro`) that open when they report a message.
 `source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar (and the count of unanswered possible matches)
@@ -324,7 +324,7 @@ returns each run's snapshot, and `runWatch` hands the last successful one to the
 
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
-run, and the exit code is the last failing run's: a failed run keeps its code even if a later run succeeds. A run that is pending when the signal aborts is not started. A run that throws is reported as "Watch run failed"
+run, and the exit code is the last failing run's: a failed run keeps its code even if a later run succeeds. A run that is pending when the signal aborts is not started, and one still in flight is waited for at most a grace period (5 s, `abortGraceMs`), after which the watch exits with the last failing code, or 1 when none, instead of hanging. A run that throws is reported as "Watch run failed"
 and makes the exit code 1 instead of ending the process. It refuses `--apply` and `--*-url` so a
 service is never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
 completion tests run the real shells there instead of skipping.
@@ -439,7 +439,7 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   is covered by CORS (`/api/auth/*` sends no CORS headers). A 401 means the token was
   refused; any other non-2xx answer or a network failure stops the load with "Could not verify the
   FilamentDB sign-in", rather than skipping the guard. After a valid token the upstream handler scans every spool even
-  when nothing changed, so the probe is not free on a large library. FilamentDB rejects a spool without a type, so an emptied
+  when nothing changed, so the probe is not free on a large library. A client remembers a passed check for 60 seconds (injectable clock), so an apply and its reload share one client and probe once, while a token that expired during a long run is caught by the next read. A failed check is never remembered. FilamentDB rejects a spool without a type, so an emptied
   material keeps the old value with a warning.
 - Filament DB (`filamentDbApp`, hyiger/filament-db, not the FilamentDB above) embeds spools in
   filaments, so `map.ts` turns each spool into one record, resolving variant inheritance and

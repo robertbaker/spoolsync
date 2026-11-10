@@ -27,6 +27,28 @@ const sameTemps = (a: FilamentTemps, b: FilamentTemps) =>
   a.bedTempMin === b.bedTempMin &&
   a.bedTempMax === b.bedTempMax;
 
+/**
+ * A single incoming temperature (min equals max) is what a server without ranges would have stored,
+ * so it matches a candidate range with that midpoint. Incoming ranges still match exactly.
+ */
+const compatibleTemps = (candidate: FilamentTemps, incoming: FilamentTemps) => {
+  const axis = (
+    cMin: number | null,
+    cMax: number | null,
+    iMin: number | null,
+    iMax: number | null,
+  ) =>
+    iMin !== null && iMin === iMax ? middle(cMin, cMax) === iMin : cMin === iMin && cMax === iMax;
+  return (
+    axis(
+      candidate.nozzleTempMin,
+      candidate.nozzleTempMax,
+      incoming.nozzleTempMin,
+      incoming.nozzleTempMax,
+    ) && axis(candidate.bedTempMin, candidate.bedTempMax, incoming.bedTempMin, incoming.bedTempMax)
+  );
+};
+
 /** Per-apply catalog: resolves vendors and reuses only compatible filament definitions. */
 export class FilamentCatalog {
   private readonly vendorsByName: Map<string, SpoolmanVendor>;
@@ -140,14 +162,19 @@ export class FilamentCatalog {
       bedTemp: middle(values.bedTempMin, values.bedTempMax),
     };
     const key = identityKey(identity);
-    const existing = Array.from(this.filamentsByIdentity.get(key)?.values() ?? []).find(
-      (candidate) =>
-        (!template || metadataKey(candidate) === metadataKey(template)) &&
-        (!this.ranges || sameTemps(filamentTemps(candidate), values)) &&
-        (!!values.initialWeight || candidate.weight == null) &&
-        (values.price !== null || candidate.price == null) &&
-        (values.emptySpoolWeight !== null || candidate.spool_weight == null),
+    const candidates = Array.from(this.filamentsByIdentity.get(key)?.values() ?? []).toSorted(
+      (a, b) => a.id - b.id,
     );
+    // An exact temperature match wins over a single-value midpoint match; ties go to the lowest id.
+    const usable = (candidate: SpoolmanFilament) =>
+      (!template || metadataKey(candidate) === metadataKey(template)) &&
+      (!!values.initialWeight || candidate.weight == null) &&
+      (values.price !== null || candidate.price == null) &&
+      (values.emptySpoolWeight !== null || candidate.spool_weight == null);
+    const existing = !this.ranges
+      ? candidates.find(usable)
+      : (candidates.find((c) => usable(c) && sameTemps(filamentTemps(c), values)) ??
+        candidates.find((c) => usable(c) && compatibleTemps(filamentTemps(c), values)));
     if (existing) return existing;
     const created = await this.client.createFilament({
       name: values.name,

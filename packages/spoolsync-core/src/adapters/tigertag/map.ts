@@ -6,6 +6,7 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
+import { commonFinish } from "../shared/finish";
 import { aspectLabel, brandName, diameterFromId, materialLabel } from "./reference";
 import { FILAMENT_TYPE, type TtagRecord, type TigertagRaw } from "./schema";
 
@@ -63,7 +64,7 @@ function temperature(
   );
 }
 
-/** Aspect labels (finish), e.g. "Matte" or "Matte, Silk". */
+/** Aspect labels (finish) in the common spelling and order, e.g. "Matte" or "Matte, Silk". */
 function finishOf(record: TtagRecord): string | null {
   const catalog = objectOf(catalogOf(record)["filament"]);
   const labels = (["id_aspect1", "id_aspect2"] as const).flatMap((idKey, index) => {
@@ -72,7 +73,7 @@ function finishOf(record: TtagRecord): string | null {
     // An aspect id this app does not know: use the catalogue's own label for that slot.
     return [toText(catalog[index ? "aspect2" : "aspect1"])].filter((text) => text !== null);
   });
-  return labels.length ? labels.join(", ") : null;
+  return commonFinish(labels);
 }
 
 export function tigertagToCommon(records: TtagRecord[]): CommonSpool {

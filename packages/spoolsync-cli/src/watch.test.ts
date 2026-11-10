@@ -162,6 +162,76 @@ test("stopping waits for a run in progress and reports its exit code", async () 
   expect(h.exitCode()).toBe(1);
 });
 
+test("a hung run is abandoned after the grace period with a non-zero exit code", async () => {
+  const h = harness();
+  let runs = 0;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async () => {
+      if (++runs === 2) await new Promise<void>(() => {});
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 40 },
+  });
+  await wait(20);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await done;
+  expect(h.exitCode()).toBe(1);
+  expect(h.lines.some((line) => line.includes("did not finish"))).toBe(true);
+  expect(h.closed).toEqual([abs("/d")]);
+});
+
+test("a hung run keeps an earlier failure code when it is abandoned", async () => {
+  const h = harness();
+  let runs = 0;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (output) => {
+      if (++runs === 1) return output.setExitCode(3);
+      await new Promise<void>(() => {});
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 20 },
+  });
+  await wait(20);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await done;
+  expect(h.exitCode()).toBe(3);
+});
+
+test("a run that finishes within the grace period keeps its own exit code", async () => {
+  const h = harness();
+  let release: (() => void) | undefined;
+  let runs = 0;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (output) => {
+      if (++runs === 2) {
+        await new Promise<void>((resolve) => (release = resolve));
+        output.setExitCode(2);
+      }
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: { ...h.dependencies, abortGraceMs: 500 },
+  });
+  await wait(20);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await wait(20);
+  release!();
+  await done;
+  expect(h.exitCode()).toBe(2);
+  expect(h.lines.some((line) => line.includes("did not finish"))).toBe(false);
+});
+
 test("quiet mode prints a run only when its output differs from the previous run", async () => {
   const h = harness();
   const logged: string[] = [];

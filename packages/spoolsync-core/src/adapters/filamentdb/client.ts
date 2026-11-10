@@ -9,9 +9,18 @@ export interface FilamentDbConnection {
   timeoutMs?: number | undefined;
   /** Replaces `fetch`; used by tests. */
   fetchImpl?: FetchLike | undefined;
+  /** Replaces the clock (milliseconds) that dates a sign-in check; used by tests. */
+  now?: (() => number) | undefined;
+  /** How long a successful sign-in check is trusted before the next read repeats it. */
+  reverifyMs?: number | undefined;
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+/**
+ * A passed sign-in check is trusted this long, so an apply and its reload probe once, yet a token
+ * that expired meanwhile is caught before a long run of writes.
+ */
+const DEFAULT_REVERIFY_MS = 60_000;
 
 /** Accepts a bare host, strips a trailing `/api` and slashes, and refuses credentials in the URL. */
 export function normalizeFilamentDbUrl(input: string): string {
@@ -62,12 +71,18 @@ export class FilamentDbClient {
   private readonly token: string | undefined;
   private readonly timeoutMs: number;
   private readonly fetchImpl: FetchLike;
+  private readonly now: () => number;
+  private readonly reverifyMs: number;
+  /** When the sign-in last passed (this client's own lifetime only); a failure never sets it. */
+  private verifiedAt: number | undefined;
 
   constructor(connection: FilamentDbConnection) {
     this.baseUrl = normalizeFilamentDbUrl(connection.baseUrl);
     this.token = connection.token?.trim() || undefined;
     this.timeoutMs = connection.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchImpl = connection.fetchImpl ?? ((input, init) => fetch(input, init));
+    this.now = connection.now ?? Date.now;
+    this.reverifyMs = connection.reverifyMs ?? DEFAULT_REVERIFY_MS;
   }
 
   private async send(path: string, method: "GET" | "POST", body?: unknown): Promise<Response> {
@@ -122,6 +137,13 @@ export class FilamentDbClient {
    * public spools. Private ones would look deleted and be planned as new, so that list is refused.
    */
   private async assertSignedIn(): Promise<void> {
+    if (this.verifiedAt !== undefined && this.now() - this.verifiedAt < this.reverifyMs) return;
+    this.verifiedAt = undefined;
+    await this.verifySignIn();
+    this.verifiedAt = this.now();
+  }
+
+  private async verifySignIn(): Promise<void> {
     const config = await this.send("/api/config/auth", "GET");
     const settings = config.ok ? ((await config.json().catch(() => null)) as unknown) : null;
     if ((settings as { enabled?: unknown } | null)?.enabled !== true) return;

@@ -147,3 +147,41 @@ test("a failed request keeps the upstream error text", async () => {
   });
   await expect(client.saveSpool({ serial: "A1" })).rejects.toThrow(/400.*: Invalid serial/);
 });
+
+test("one client probes the sign-in once for an apply and its reload", async () => {
+  const { client, paths } = clientFor(true, true, "good");
+  await client.listSpools();
+  await client.listSpools();
+  expect(paths.filter((path) => path === "/api/sync")).toHaveLength(1);
+  expect(paths.filter((path) => path === "/api/config/auth")).toHaveLength(1);
+});
+
+test("a verified sign-in is checked again after the interval so an expired token is caught", async () => {
+  let clock = 1_000;
+  let valid = true;
+  const paths: string[] = [];
+  const client = new FilamentDbClient({
+    baseUrl: "http://filamentdb.test",
+    token: "t",
+    now: () => clock,
+    reverifyMs: 60_000,
+    fetchImpl: async (input) => {
+      const path = new URL(String(input)).pathname;
+      paths.push(path);
+      if (path === "/api/config/auth") return json({ enabled: true });
+      if (path === "/api/sync") return json({}, valid ? 200 : 401);
+      return json([]);
+    },
+  });
+  await client.listSpools();
+  clock += 59_000;
+  await client.listSpools();
+  expect(paths.filter((path) => path === "/api/sync")).toHaveLength(1);
+  clock += 2_000;
+  valid = false;
+  await expect(client.listSpools()).rejects.toThrow(/refused the session token/);
+  expect(paths.filter((path) => path === "/api/sync")).toHaveLength(2);
+  // A failed check is not remembered.
+  await expect(client.listSpools()).rejects.toThrow(/refused the session token/);
+  expect(paths.filter((path) => path === "/api/sync")).toHaveLength(3);
+});

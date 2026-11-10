@@ -295,6 +295,87 @@ describe("API writes", () => {
     }
   });
 
+  describe("single incoming temperature on Spoolman-NG", () => {
+    const ranged: SpoolmanFilament = {
+      ...base,
+      settings_extruder_temp: 205,
+      settings_extruder_temp_min: 190,
+      settings_extruder_temp_max: 220,
+      settings_bed_temp: 60,
+      settings_bed_temp_min: 50,
+      settings_bed_temp_max: 70,
+    };
+    let groups = 0;
+    const create = (temps: Record<string, number>) =>
+      ({
+        kind: "create",
+        source: "spoolman",
+        groupId: `t${groups++}`,
+        links: {},
+        values: makeSpool("spoolstock", "t", {
+          vendor: "Prusament",
+          material: "PLA",
+          name: "Galaxy Black",
+          colors: ["1A1A1A"],
+          ...temps,
+        }),
+      }) as never;
+    const posts = (server: ReturnType<typeof connect>["server"]) =>
+      server.requests.filter((r) => r.method === "POST" && r.path === "/filament");
+    const single = { nozzleTempMin: 205, nozzleTempMax: 205, bedTempMin: 60, bedTempMax: 60 };
+
+    test("matches a range filament whose midpoint equals it, without editing it", async () => {
+      const { server, client } = connect([ranged], []);
+      const log = await applyToSpoolman(client, [create(single), create(single)]);
+      expect(log.every((entry) => entry.ok)).toBe(true);
+      expect(posts(server)).toEqual([]);
+      expect(server.requests.some((r) => r.method === "PATCH" && r.path.includes("filament"))).toBe(
+        false,
+      );
+      expect(server.filaments.size).toBe(1);
+      expect(server.spools.size).toBe(2);
+      expect(server.filaments.get(10)!.settings_extruder_temp_min).toBe(190);
+      expect(JSON.stringify(log)).not.toContain("midpoint");
+    });
+
+    test("does not match a range with a different midpoint; two spools share the created one", async () => {
+      const { server, client } = connect([ranged], []);
+      await applyToSpoolman(client, [
+        create({ ...single, nozzleTempMin: 210, nozzleTempMax: 210 }),
+        create({ ...single, nozzleTempMin: 210, nozzleTempMax: 210 }),
+      ]);
+      expect(posts(server)).toHaveLength(1);
+      expect(server.filaments.size).toBe(2);
+      expect(server.spools.size).toBe(2);
+    });
+
+    test("an incoming range still needs the exact range", async () => {
+      const { server, client } = connect([ranged], []);
+      await applyToSpoolman(client, [
+        create({ nozzleTempMin: 195, nozzleTempMax: 215, bedTempMin: 50, bedTempMax: 70 }),
+      ]);
+      expect(posts(server)).toHaveLength(1);
+      await applyToSpoolman(client, [
+        create({ nozzleTempMin: 190, nozzleTempMax: 220, bedTempMin: 50, bedTempMax: 70 }),
+      ]);
+      expect(posts(server)).toHaveLength(1);
+    });
+
+    test("an exact match is preferred over a midpoint match", async () => {
+      const exact: SpoolmanFilament = {
+        ...ranged,
+        id: 11,
+        settings_extruder_temp_min: 205,
+        settings_extruder_temp_max: 205,
+        settings_bed_temp_min: 60,
+        settings_bed_temp_max: 60,
+      };
+      const { server, client } = connect([ranged, exact], []);
+      await applyToSpoolman(client, [create(single)]);
+      expect([...server.spools.values()][0]!.filament.id).toBe(11);
+    });
+  });
+
   test("a diameter change patches the spool override, not the filament", async () => {
     const raw = spool(base, { diameter: 1.72 });
     const { server, client } = connect([base], [raw]);

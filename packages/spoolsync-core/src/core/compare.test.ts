@@ -46,6 +46,40 @@ describe("valuesEqual", () => {
 });
 
 describe("compareGroup", () => {
+  test("a chain of temperatures within tolerance gives the same options in any member order", () => {
+    const sources = ["spoolstock", "spoolio", "tigertag"] as const;
+    const temps = [215, 215.5, 216];
+    // Which service holds which temperature varies; the clusters must not.
+    const partitionFor = (order: number[]) => {
+      const members: SpoolGroup["members"] = {};
+      sources.forEach((source, index) => {
+        members[source] = makeSpool(source, `id-${index}`, {
+          nozzleTempMin: temps[order[index]!]!,
+        });
+      });
+      const group: SpoolGroup = { id: `chain-${order.join("")}`, members, status: "linked" };
+      const comparison = compareGroup(group).find((entry) => entry.field === "nozzleTempMin");
+      expect(comparison?.kind).toBe("conflict");
+      // Each option as the sorted temperatures its services hold.
+      return comparison!.options
+        .map((option) =>
+          option.sources.map((source) => temps[order[sources.indexOf(source as never)]!]!).sort(),
+        )
+        .sort((x, y) => x[0]! - y[0]!);
+    };
+    // 215 and 215.5 are one cluster; 216 is more than half a degree from 215, so it starts another.
+    const expected = [[215, 215.5], [216]];
+    for (const order of [
+      [0, 1, 2],
+      [0, 2, 1],
+      [1, 0, 2],
+      [1, 2, 0],
+      [2, 0, 1],
+      [2, 1, 0],
+    ])
+      expect(partitionFor(order)).toEqual(expected);
+  });
+
   test("comparison choices and default resolutions do not share inventory color arrays", () => {
     const donor = makeSpool("spoolman", "1", { colors: ["000000"] });
     const blank = makeSpool("spoolio", "a", { crossIds: { spoolmanId: 1 }, colors: [] });

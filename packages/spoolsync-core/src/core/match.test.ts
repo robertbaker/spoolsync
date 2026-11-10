@@ -221,6 +221,22 @@ describe("pair decisions", () => {
     expect(rejected.suggestions).toEqual([]);
   });
 
+  test("legacy pair keys with a | inside an ID are recovered at the source boundary", () => {
+    expect(canonicalPairKey("spoolman:a|b|spoolstock:abc")).toBe(
+      pairKey("spoolman:a|b", "spoolstock:abc"),
+    );
+    expect(canonicalPairKey("spoolman:1|spoolstock:x|y")).toBe(
+      pairKey("spoolman:1", "spoolstock:x|y"),
+    );
+    // Both halves hold a source-looking text after a |: ambiguous, so left as it was.
+    const ambiguous = "spoolman:a|spoolio:b|spoolstock:c";
+    expect(canonicalPairKey(ambiguous)).toBe(ambiguous);
+    expect(canonicalPairKey("a|b|c")).toBe("a|b|c");
+    expect(
+      canonicalDecisions({ confirmed: ["spoolman:a|b|spoolstock:abc"], rejected: [] }).confirmed,
+    ).toEqual([pairKey("spoolman:a|b", "spoolstock:abc")]);
+  });
+
   test("pair keys saved before % was escaped still match and are re-keyed", () => {
     const legacy = "spoolman:50%|spoolstock:abc";
     expect(canonicalPairKey(legacy)).toBe(pairKey("spoolman:50%", "spoolstock:abc"));

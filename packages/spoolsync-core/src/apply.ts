@@ -71,8 +71,9 @@ export async function applyAndReloadFilamentDb(
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const log = await applyToFilamentDb(new FilamentDbClient(connection), changes, onProgress);
-  return reloadAfterApply("FilamentDB", log, () => loadFilamentDb(connection));
+  const client = new FilamentDbClient(connection);
+  const log = await applyToFilamentDb(client, changes, onProgress);
+  return reloadAfterApply("FilamentDB", log, () => loadFilamentDb(connection, client));
 }
 
 /** Applies spool-level changes to Filament DB and fetches a fresh snapshot. */

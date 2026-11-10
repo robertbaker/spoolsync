@@ -119,8 +119,13 @@ describe("finish and filament notes", () => {
   test("joins filament features into the finish", () => {
     expect(load({ "filament.features": '["Metallic","Silk"]' }).finish).toBe("Metallic, Silk");
     expect(load({ "filament.features": '["Multicolor ", "Matte"]' }).finish).toBe(
-      "Multicolor, Matte",
+      "Matte, Multicolor",
     );
+    // Spellings and order are the common ones, so other services' words compare equal.
+    expect(load({ "filament.features": '["UV Glow","Matt","Gradient/Multicolor"]' }).finish).toBe(
+      "Glow In the Dark, Gradient/Multicolor, Matte",
+    );
+    expect(load({ "filament.features": '["Silk","Matte"]' }).finish).toBe("Matte, Silk");
     expect(load({ "filament.features": "[]" }).finish).toBeNull();
     expect(load({ "filament.features": "Matte" }).finish).toBe("Matte");
     // product_family is a product line ("Ender PLA"), not a finish.

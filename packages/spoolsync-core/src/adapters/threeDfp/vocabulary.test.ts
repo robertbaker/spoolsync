@@ -148,6 +148,76 @@ describe("3DFilamentProfiles material and finish vocabulary", () => {
   });
 });
 
+describe("3DFilamentProfiles compound materials that two columns cannot hold", () => {
+  const compound = (extra: Record<string, unknown> = {}) =>
+    exported(extra, [
+      { field: "material", from: "PLA", to: "PLA-Ultra-Matte" },
+      { field: "finish", from: null, to: "Matte" },
+    ]);
+
+  test("the full compound is kept in the notes, reloads the same, and the loss is reported", () => {
+    const { row: written, warnings } = compound();
+    expect(written).toMatchObject({
+      material: "PLA",
+      material_type: "Matte",
+      notes: "Material: PLA-Ultra-Matte",
+    });
+    expect(warnings.join(" ")).toContain(
+      "product line Ultra was not. The full value is kept in the notes.",
+    );
+    const reloaded = loadThreeDfpFile(JSON.stringify([written])).spools[0]!;
+    expect(reloaded).toMatchObject({ material: "PLA-Ultra-Matte", finish: "Matte", comment: null });
+  });
+
+  test("a compound whose finish is only in the material is kept too", () => {
+    const { row: written } = exported({}, [{ field: "material", from: "PLA", to: "PLA-Matte" }]);
+    expect(written).toMatchObject({ material: "PLA", material_type: "Matte" });
+    const reloaded = loadThreeDfpFile(JSON.stringify([written])).spools[0]!;
+    expect(reloaded).toMatchObject({ material: "PLA-Matte", finish: "Matte" });
+  });
+
+  test("finish words beyond the one the column holds are kept and reported", () => {
+    const { row: written, warnings } = exported({}, [
+      { field: "finish", from: null, to: "Multicolor, Silk" },
+    ]);
+    expect(written).toMatchObject({ material_type: "Silk", notes: "Finish: Multicolor, Silk" });
+    expect(warnings.join(" ")).toContain(
+      "Multicolor was not. The full value is kept in the notes.",
+    );
+    expect(loadThreeDfpFile(JSON.stringify([written])).spools[0]).toMatchObject({
+      finish: "Multicolor, Silk",
+      comment: null,
+    });
+  });
+
+  test("tags that no longer match the columns are the user's own text", () => {
+    const loaded = load({ notes: "Material: PLA-Ultra-Matte", material_type: "Basic" }).spools[0]!;
+    expect(loaded).toMatchObject({ material: "PLA", comment: "Material: PLA-Ultra-Matte" });
+  });
+
+  test("a notes edit keeps the tags, and a finish edit keeps the product line", () => {
+    const { row: written } = compound({ notes: "Lot: L1\nDry box" });
+    const edited = exported(written, [{ field: "comment", from: "Dry box", to: "Wet" }]);
+    expect(edited.row["notes"]).toBe("Lot: L1\nWet\nMaterial: PLA-Ultra-Matte");
+    const refinished = exported(written, [{ field: "finish", from: "Matte", to: "Silk" }]);
+    expect(refinished.row).toMatchObject({ material: "PLA", material_type: "Silk" });
+    expect(refinished.row["notes"]).toContain("Material: PLA-Ultra-Silk");
+    const cleared = exported(written, [{ field: "finish", from: "Matte", to: null }]);
+    expect(cleared.row).toMatchObject({ material: "PLA", material_type: "Ultra" });
+    expect(cleared.row["notes"]).not.toContain("Material:");
+  });
+
+  test("columns that already say it need no tag", () => {
+    const { row: written } = exported({}, [{ field: "material", from: "PLA", to: "HSPETG" }]);
+    expect(written["notes"]).toBe("");
+  });
+
+  test("other services' spellings reach the same finish", () => {
+    expect(commonMaterialAndFinish("PLA", "Matt").finish).toBe("Matte");
+    expect(commonMaterialAndFinish("PLA", "Glow").finish).toBe("Glow In the Dark");
+  });
+});
+
 describe("3DFilamentProfiles price and notes", () => {
   test("a price of 0 is unset", () => {
     expect(load({ spool_purchase_price: 0 }).spools[0]!.price).toBeNull();

@@ -244,6 +244,24 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
   }
 }
 
+/**
+ * What a finish loses when written as aspects: words TigerTag has no aspect for, and words beyond
+ * the two aspect slots. Shared by the .ttag export and the cloud write, so both report the same.
+ */
+export function aspectWarnings(finish: string): string[] {
+  const labels = finishLabels(finish);
+  const unknown = labels.filter((word) => aspectId(word) === null);
+  const mapped = new Set(labels.flatMap((word) => aspectId(word) ?? []));
+  const warnings: string[] = [];
+  if (unknown.length)
+    warnings.push(`finish ${unknown.join(", ")} has no TigerTag aspect, so it was not exported.`);
+  if (mapped.size > 2)
+    warnings.push(
+      `only two aspects fit in a record; ${mapped.size - 2} finish word(s) were left out.`,
+    );
+  return warnings;
+}
+
 /** A chipless filament record, as `tools/tigertag/spoolman-to-ttag.ts` builds it. */
 function newRecord(values: SpoolValues, runtime: AdapterRuntime): TtagRecord {
   const record: Record<string, unknown> = {

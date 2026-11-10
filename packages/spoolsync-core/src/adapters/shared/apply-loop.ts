@@ -28,19 +28,24 @@ export async function applyEachChange(
   const log: ApplyLogEntry[] = [];
   let done = 0;
   for (const change of changes) {
+    // Repeated notes are kept once, joined with "; ", and a failed change still reports its notes.
     const notes: string[] = [];
+    const note = (text: string) => {
+      if (!notes.includes(text)) notes.push(text);
+    };
     try {
-      const message = await writer.write(change, (text) => notes.push(text));
+      const message = await writer.write(change, note);
       log.push({
         groupId: change.groupId,
         ok: true,
-        message: notes.length ? `${message} (${notes.join(" ")})` : message,
+        message: notes.length ? `${message} (${notes.join("; ")})` : message,
       });
     } catch (error) {
+      const noted = notes.length ? ` (${notes.join("; ")})` : "";
       log.push({
         groupId: change.groupId,
         ok: false,
-        message: `Failed on ${writer.subject(change)}: ${(error as Error).message}${writer.partialWrite?.() ?? ""}`,
+        message: `Failed on ${writer.subject(change)}: ${(error as Error).message}${noted}${writer.partialWrite?.() ?? ""}`,
       });
     }
     onProgress?.(++done, changes.length);

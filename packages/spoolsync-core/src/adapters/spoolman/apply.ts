@@ -148,29 +148,13 @@ export async function applyToSpoolman(
   return applyEachChange(
     changes,
     {
-      write: async (change, outerNote) => {
+      write: async (change, note) => {
         written = [];
-        // Notes are joined here (the shared loop only space-separates them), de-duplicated, and
-        // kept on the failure message so a failed change still says what it had noticed.
-        const notes: string[] = [];
-        const note = (text: string) => {
-          if (!notes.includes(text)) notes.push(text);
-        };
         if (infoNote) {
           note(infoNote);
           infoNote = undefined;
         }
-        let message: string;
-        try {
-          message = await (change.kind === "update"
-            ? applyUpdate(change, note)
-            : applyCreate(change, note));
-        } catch (error) {
-          if (!notes.length) throw error;
-          throw new Error(`${(error as Error).message} (${notes.join("; ")})`, { cause: error });
-        }
-        if (notes.length) outerNote(notes.join("; "));
-        return message;
+        return change.kind === "update" ? applyUpdate(change, note) : applyCreate(change, note);
       },
       subject: (change) =>
         change.kind === "update" ? `spool #${change.spool.sourceId}` : "new spool",

@@ -1,3 +1,4 @@
+import { finishWord, finishWords } from "../shared/finish";
 import brands from "./reference-data/id_brand.json" with { type: "json" };
 import materials from "./reference-data/id_material.json" with { type: "json" };
 
@@ -122,13 +123,11 @@ export function aspectLabel(id: unknown): string | null | undefined {
 
 /** The aspect id for a finish label, or null when TigerTag has no such aspect. */
 export function aspectId(label: string): number | null {
-  return aspectByKey.get(key(label)) ?? null;
+  const word = finishWord(label);
+  return aspectByKey.get(key(label)) ?? (word ? aspectByKey.get(key(word)) : undefined) ?? null;
 }
 
 /** Splits a finish such as "Matte, Silk" into its labels (at most two fit in a record). */
 export function finishLabels(finish: string | null | undefined): string[] {
-  return (finish ?? "")
-    .split(/[,/]/)
-    .map((label) => label.trim())
-    .filter(Boolean);
+  return finishWords(finish, { slash: true, keepOrder: true });
 }

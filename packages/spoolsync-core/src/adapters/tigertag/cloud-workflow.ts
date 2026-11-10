@@ -6,7 +6,7 @@ import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
 import { structuralEqual } from "./firestore";
 import type { TigertagInventoryClient } from "./inventory-client";
 import { recordsToSpools } from "./map";
-import { createdRecord, updatedRecords } from "./records";
+import { aspectWarnings, createdRecord, updatedRecords } from "./records";
 import type { TigertagLoadResult, TigertagRaw } from "./schema";
 
 export async function loadTigertagCloud(
@@ -57,8 +57,14 @@ export async function applyToTigertagCloud(
   return applyEachChange(
     changes,
     {
-      async write(change) {
+      async write(change, note) {
         savedChip = false;
+        // The same aspect warnings as the .ttag export, shown on the log line of the change.
+        const finish =
+          change.kind === "create"
+            ? change.values.finish
+            : change.changes.find((item) => item.field === "finish")?.to;
+        if (typeof finish === "string") for (const text of aspectWarnings(finish)) note(text);
         if (change.kind === "update") {
           const { records: originals } = change.spool.raw as TigertagRaw;
           const updated = updatedRecords(change);

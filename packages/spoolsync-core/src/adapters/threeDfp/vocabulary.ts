@@ -1,4 +1,5 @@
 import { toText } from "../../core/normalize";
+import { commonFinish, finishWord, finishWords } from "../shared/finish";
 
 /**
  * 3DFilamentProfiles splits what Spoolstock and the common model call the material across two
@@ -8,39 +9,15 @@ import { toText } from "../../core/normalize";
  * rebuilt from the common values and the two stay comparable with other services.
  */
 
-/** True finish words, as the common finish spells them, with the spellings read as the same word. */
-const FINISH_WORDS: Array<[word: string, aliases: string[]]> = [
-  ["Matte", ["Matt"]],
-  ["Silk", []],
-  ["Glossy", ["Gloss"]],
-  ["Satin", []],
-  ["Glitter", []],
-  ["Metallic", ["Metal"]],
-  ["Marble", []],
-  ["Wood", []],
-  ["Translucent", []],
-  ["Transparent", ["Clear"]],
-  ["Glow In the Dark", ["Glow"]],
-  ["Carbon Fiber", ["Carbon Fibre"]],
-  ["Rainbow", []],
-  ["Neon", []],
-  ["Pearl", []],
-];
 const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, " ").trim();
-const finishByKey = new Map(
-  FINISH_WORDS.flatMap(([word, aliases]) =>
-    [word, ...aliases].map((label) => [normalize(label), word] as const),
-  ),
-);
-
 /** The product lines 3DFP names; "Basic" is the plain line and adds nothing to the material. */
 const BASIC = "Basic";
 const HIGH_SPEED = "High Speed";
 const KNOWN_LINES = [HIGH_SPEED, "Ultra"];
 const lineByKey = new Map(KNOWN_LINES.map((line) => [normalize(line), line] as const));
 
-export const finishWord = (text: string | null | undefined): string | undefined =>
-  finishByKey.get(normalize(text ?? ""));
+const same = (a: string | null | undefined, b: string | null | undefined) =>
+  normalize(a ?? "") === normalize(b ?? "");
 
 const isBasic = (text: string | null | undefined) =>
   ["basic", "standard"].includes(normalize(text ?? ""));
@@ -65,14 +42,14 @@ export function commonMaterialAndFinish(
   return { material: withLine(material, lineByKey.get(normalize(type)) ?? type), finish: null };
 }
 
-interface ParsedMaterial {
+export interface ParsedMaterial {
   base: string;
   line?: string;
   finish?: string;
 }
 
 /** Splits a common material such as `HSPETG-Matte` or `PLA-Ultra-Matte` into its parts. */
-function parseMaterial(material: string): ParsedMaterial {
+export function parseMaterial(material: string): ParsedMaterial {
   let rest = material.trim();
   let line: string | undefined;
   const highSpeed = /^HS(?=[A-Z])/.exec(rest);
@@ -94,12 +71,18 @@ function parseMaterial(material: string): ParsedMaterial {
   return { base: [base, ...unknown].join("-"), line, finish };
 }
 
+/** The finish word that fits `material_type`: the first one this vocabulary knows. */
+export const storedFinish = (text: string | null | undefined): string | undefined =>
+  finishWords(text, { slash: true }).find((word) => finishWord(word) !== undefined);
+
 export interface RowMaterial {
   /** The `material` column; undefined to leave it as it is. */
   material: string | null | undefined;
   materialType: string;
   /** Set when a product line was dropped because a finish already fills the single `material_type`. */
   droppedLine?: string;
+  /** Finish words the single `material_type` could not hold next to the one it stores. */
+  droppedFinish?: string[];
 }
 
 /**
@@ -122,16 +105,78 @@ export function rowMaterial(
       : parsed?.line;
   const finishText =
     values.finish === undefined ? (finishWord(currentType) ?? "") : (values.finish ?? "");
-  const finish =
-    finishText
-      .split(/[,/]/)
-      .map((word) => finishWord(word))
-      .find((word) => word !== undefined) ??
-    // "PLA-Matte" without a finish of its own says the finish in the material.
-    (finishText ? undefined : parsed?.finish);
+  // "PLA-Matte" without a finish of its own says the finish in the material.
+  const finish = storedFinish(finishText) ?? (finishText ? undefined : parsed?.finish);
+  const droppedFinish = finishWords(finishText, { slash: true }).filter((word) => word !== finish);
   return {
     material: values.material === undefined ? undefined : (parsed?.base ?? values.material),
     materialType: finish ?? line ?? BASIC,
     ...(finish && line ? { droppedLine: line } : {}),
+    ...(droppedFinish.length ? { droppedFinish } : {}),
+  };
+}
+
+/** Rebuilds a compound material with another finish (or none), keeping the base and product line. */
+export function withMaterialFinish(material: string, finish: string | undefined): string {
+  const parsed = parseMaterial(material);
+  const line = parsed.line;
+  let compound = parsed.base;
+  if (line) compound = withLine(compound, line);
+  return finish ? `${compound}-${finish}` : compound;
+}
+
+/**
+ * What the single `material_type` column and the base `material` cannot hold, kept as lines in the
+ * notes so a spool reloads as the same compound material and the same finish words.
+ */
+export interface MaterialTags {
+  material?: string;
+  finish?: string;
+}
+
+/** The common material and finish of a row, with the notes tags that restore what its columns lose. */
+export function taggedMaterialAndFinish(
+  material: string | null,
+  materialType: string | null,
+  tags: MaterialTags,
+): { material: string | null; finish: string | null; applied: Array<keyof MaterialTags> } {
+  const columns = commonMaterialAndFinish(material, materialType);
+  const applied: Array<keyof MaterialTags> = [];
+  let finish = columns.finish;
+  // Only words the single column would hold as the row's own finish; anything else is stale.
+  if (tags.finish && same(storedFinish(tags.finish), columns.finish ?? undefined)) {
+    finish = commonFinish(tags.finish, { slash: true }) ?? columns.finish;
+    applied.push("finish");
+  }
+  let common = columns.material;
+  if (tags.material && material) {
+    // Valid only when writing the tagged compound would give back exactly these columns.
+    const rebuilt = rowMaterial({ material: tags.material, finish }, { materialType: null });
+    const back = commonMaterialAndFinish(rebuilt.material ?? null, rebuilt.materialType);
+    if (
+      same(rebuilt.material, material) &&
+      same(back.material, columns.material) &&
+      same(back.finish, columns.finish)
+    ) {
+      common = tags.material;
+      applied.push("material");
+    }
+  }
+  return { material: common, finish, applied };
+}
+
+/** The notes tags a row needs so that `material` and `finish` reload unchanged from its columns. */
+export function materialTags(
+  values: { material?: string | null; finish?: string | null },
+  rebuilt: RowMaterial,
+  columnMaterial: string | null,
+): MaterialTags {
+  const loaded = commonMaterialAndFinish(rebuilt.material ?? columnMaterial, rebuilt.materialType);
+  const finish = commonFinish(values.finish, { slash: true });
+  return {
+    ...(values.material && !same(loaded.material, values.material)
+      ? { material: values.material }
+      : {}),
+    ...(finish && !same(finish, loaded.finish) ? { finish } : {}),
   };
 }

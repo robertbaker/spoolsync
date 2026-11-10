@@ -148,7 +148,7 @@ For standalone Linux installs, update your `.env` file and restart the service
   with a message instead of letting one win.
 - FilamentDB's sign-in check is a sync request (the only route that answers 401 before touching the disk
   and works across origins); after a valid token the server scans every spool, so
-  it can be slow on a large library. If it cannot be verified (any answer other than success or a
+  it can be slow on a large library. A passed check is reused for a minute, so applying and reloading probe once. If it cannot be verified (any answer other than success or a
   refused token), the load stops with "Could not verify the FilamentDB sign-in".
 - TigerTag cloud writes are conditional on the chip being unchanged since it was loaded; a chip edited
   or removed elsewhere fails with a message to reload instead of being overwritten (a new chip that

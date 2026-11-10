@@ -23,6 +23,7 @@ test("each change is logged in order, with notes, and a failure does not stop th
         if (change.groupId === "group-3") {
           note("First.");
           note("Second.");
+          note("First.");
         }
         return `Wrote ${change.groupId}`;
       },
@@ -33,7 +34,7 @@ test("each change is logged in order, with notes, and a failure does not stop th
   expect(log).toEqual([
     { groupId: "group-1", ok: true, message: "Wrote group-1" },
     { groupId: "group-2", ok: false, message: "Failed on spool group-2: server said no" },
-    { groupId: "group-3", ok: true, message: "Wrote group-3 (First. Second.)" },
+    { groupId: "group-3", ok: true, message: "Wrote group-3 (First.; Second.)" },
   ]);
   expect(progress).toEqual([
     [1, 3],
@@ -42,16 +43,18 @@ test("each change is logged in order, with notes, and a failure does not stop th
   ]);
 });
 
-test("a failure reports what was already written and drops notes", async () => {
+test("a failure reports what was already written and keeps notes", async () => {
   const log = await applyEachChange([update("1")], {
     async write(_change, note) {
-      note("Not shown.");
+      note("Noticed.");
       throw new Error("archive failed");
     },
     subject: () => "spool 1",
     partialWrite: () => " Its other fields were saved.",
   });
-  expect(log[0]!.message).toBe("Failed on spool 1: archive failed Its other fields were saved.");
+  expect(log[0]!.message).toBe(
+    "Failed on spool 1: archive failed (Noticed.) Its other fields were saved.",
+  );
 });
 
 test("changed field names use the lower-case field labels", () => {

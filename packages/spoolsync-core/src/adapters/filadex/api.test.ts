@@ -199,3 +199,37 @@ test("Filadex login surfaces the server's reason for a 403", async () => {
     "Filadex login answered 403: PASSWORD_CHANGE_REQUIRED.",
   );
 });
+
+test("FilamentDB apply and reload share one client and probe the sign-in once", async () => {
+  const store = new Map<string, Record<string, unknown>>([
+    ["s1", { serial: "s1", brand: "A", type: "PLA", weightTotal: 1000, weightRemaining: 900 }],
+  ]);
+  const paths: string[] = [];
+  const { baseUrl, fetchImpl } = serve(async (request) => {
+    const path = new URL(request.url).pathname;
+    paths.push(`${request.method} ${path}`);
+    if (path === "/api/config/auth") return Response.json({ enabled: true });
+    if (path === "/api/sync") return Response.json({});
+    if (request.method === "POST") {
+      const spool = (await request.json()) as Record<string, unknown>;
+      store.set(String(spool["serial"]), spool);
+      return Response.json(spool);
+    }
+    return Response.json([...store.values()]);
+  });
+  const connection = { baseUrl, token: "tok", fetchImpl };
+  const loaded = await loadFilamentDb(connection);
+  paths.length = 0;
+  const update = {
+    kind: "update",
+    source: "filamentdb",
+    groupId: "g1",
+    spool: loaded.spools[0]!,
+    links: {},
+    changes: [{ field: "remainingWeight", from: 900, to: 400 }],
+  } as unknown as PlannedChange;
+  const result = await applyAndReloadFilamentDb(connection, [update]);
+  expect(result.log.map((entry) => entry.ok)).toEqual([true]);
+  expect(paths.filter((path) => path === "POST /api/sync")).toHaveLength(1);
+  expect(paths.filter((path) => path === "GET /api/spools")).toHaveLength(2);
+});

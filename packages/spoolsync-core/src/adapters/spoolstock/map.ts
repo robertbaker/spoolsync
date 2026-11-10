@@ -8,6 +8,7 @@ import {
   toText,
   uniqueHexes,
 } from "../../core/normalize";
+import { commonFinish } from "../shared/finish";
 import type { SpoolstockRecord } from "./csv";
 
 /** Spoolstock stores colours as a JSON array of `#RRGGBB` strings, occasionally comma-separated. */
@@ -40,15 +41,9 @@ function finish(value: string | undefined): string | null {
   } else {
     labels = trimmed.split(",");
   }
-  let text = "";
-  for (let i = 0; i < labels.length; i++) {
-    const label = labels[i];
-    if (typeof label === "string") {
-      const item = label.trim();
-      if (item) text = text ? `${text}, ${item}` : item;
-    }
-  }
-  return text || null;
+  // Words in the common spelling and order, so "UV Glow" or "Silk, Matte" compare as other services
+  // spell them; the labels the table does not know (Multicolor, Gradient) are kept as written.
+  return commonFinish(labels);
 }
 
 /** The spool's own notes first, then the filament's notes under a heading so they stay distinct. */

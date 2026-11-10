@@ -9,7 +9,7 @@ import {
   uniqueHexes,
 } from "../../core/normalize";
 import { field } from "../shared/tabular";
-import { commonMaterialAndFinish } from "./vocabulary";
+import { rowColumns, stripNoteTags } from "./note-tags";
 
 export const JSON_NUMERIC_FIELDS = [
   "remaining_grams",
@@ -53,17 +53,15 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
   const remaining = toNumber(
     field(record, "remaining_grams", "remaining_weight", "remaining", "weight_remaining"),
   );
-  const note = toText(field(record, "notes", "comment", "description"));
+  const { notes, material, finish, applied } = rowColumns(record);
+  // Notes lines that restore the compound material and finish are not the user's own text.
+  const note = notes === null ? null : toText(stripNoteTags(notes, applied));
   const lotNr = /^Lot:\s*(.+)$/im.exec(note ?? "")?.[1]?.trim() ?? null;
   const nozzleTemp = toPositiveNumber(
     field(record, "spool_preferred_nozzle_temp") ?? properties.preferred_nozzle_temp,
   );
   const bedTemp = toPositiveNumber(
     field(record, "spool_preferred_bed_temp") ?? properties.preferred_bed_temp,
-  );
-  const { material, finish } = commonMaterialAndFinish(
-    toText(field(record, "material", "type", "filament_type")),
-    toText(field(record, "material_type")),
   );
   return {
     source: "threeDfp",

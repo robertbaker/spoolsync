@@ -1,7 +1,7 @@
 import type { PlannedChange } from "../../core/compare";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
-import { createdRecord, updatedRecords, utf8Slice } from "./records";
-import { aspectId, diameterFromId, diameterId, finishLabels } from "./reference";
+import { aspectWarnings, createdRecord, updatedRecords, utf8Slice } from "./records";
+import { diameterFromId, diameterId } from "./reference";
 import type { TigertagLoadResult, TigertagRaw, TtagRecord } from "./schema";
 
 /** Drops SpoolSync's own bookkeeping keys (`__docId`) before a record leaves the app. */
@@ -61,19 +61,8 @@ export function exportTtag(
       warnings.push(
         `TigerTag ${label}: the remaining weight is unknown and records cannot store that, so it was exported as the full spool weight.`,
       );
-    if (typeof values.finish === "string") {
-      const labels = finishLabels(values.finish);
-      const unknown = labels.filter((word) => aspectId(word) === null);
-      const mapped = [...new Set(labels.flatMap((word) => aspectId(word) ?? []))];
-      if (unknown.length)
-        warnings.push(
-          `TigerTag ${label}: finish ${unknown.join(", ")} has no TigerTag aspect, so it was not exported.`,
-        );
-      if (mapped.length > 2)
-        warnings.push(
-          `TigerTag ${label}: only two aspects fit in a record; ${mapped.length - 2} finish word(s) were left out.`,
-        );
-    }
+    if (typeof values.finish === "string")
+      warnings.push(...aspectWarnings(values.finish).map((text) => `TigerTag ${label}: ${text}`));
     if (change.kind === "update") {
       const linked = change.spool.raw as TigertagRaw;
       const edited = ["material", "name", "finish", "colors"].filter((field) => field in values);

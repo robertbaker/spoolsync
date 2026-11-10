@@ -16,7 +16,11 @@ export interface WatchDependencies {
   /** Quiet time after the last change before running again, so one save is one run. */
   debounceMs: number;
   now(): Date;
+  /** How long to wait for a run still in flight after the stop signal before giving up on it. */
+  abortGraceMs?: number;
 }
+
+const DEFAULT_ABORT_GRACE_MS = 5000;
 
 export const defaultWatchDependencies: WatchDependencies = {
   // Watching the directory, not the file, survives editors that save by replacing the file.
@@ -231,6 +235,25 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   if (!signal.aborted) await once(signal, "abort");
   clearTimeout(timer);
   for (const watcher of watchers) watcher.close();
-  await running;
+  if (running) {
+    const graceMs = dependencies.abortGraceMs ?? DEFAULT_ABORT_GRACE_MS;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    const interrupted = await Promise.race([
+      running.then(() => false),
+      new Promise<boolean>((resolve) => {
+        graceTimer = setTimeout(() => resolve(true), graceMs);
+        graceTimer.unref?.();
+      }),
+    ]);
+    clearTimeout(graceTimer);
+    if (interrupted) {
+      output.error(
+        `The run in progress did not finish within ${graceMs / 1000} seconds of stopping; giving up on it.`,
+      );
+      // A run that never finished has no code of its own: keep an earlier failure, else report one.
+      output.setExitCode(failureCode || 1);
+      return;
+    }
+  }
   output.setExitCode(failureCode);
 }

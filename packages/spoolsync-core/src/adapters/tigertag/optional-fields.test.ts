@@ -78,7 +78,7 @@ describe("finish (aspect) and TD", () => {
       td: null,
     });
     // An id outside the table falls back to the catalogue label.
-    expect(load(record({ id_aspect1: 999, catalogProduct })).spools[0]!.finish).toBe("Basic");
+    expect(load(record({ id_aspect1: 999, catalogProduct })).spools[0]!.finish).toBeNull();
     expect(load(record({ id_aspect1: 999 })).spools[0]!.finish).toBeNull();
   });
 
@@ -91,7 +91,7 @@ describe("finish (aspect) and TD", () => {
     expect(file).toMatchObject({ id_aspect1: 247, id_aspect2: 91, TD: 3.5 });
     expect(output.warnings).toEqual([]);
     expect(loadTtag(output.json).spools[0]).toMatchObject({
-      finish: "Matte, Glow In the Dark",
+      finish: "Glow In the Dark, Matte",
       td: 3.5,
     });
 
