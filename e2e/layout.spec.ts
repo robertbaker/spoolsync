@@ -70,6 +70,8 @@ for (const viewport of VIEWPORTS) {
     test("/load with open service panels and loaded inventories fits", async ({ page }) => {
       await page.goto("/load?sample=1");
       await expect(page.locator("#load-bar-summary")).toContainText("services loaded");
+      // Keep the pointer off the sidebar: on a tablet a hovered rail expands over the tiles.
+      await page.mouse.move(viewport.width - 5, 5);
       // One service shows at a time, so check each in turn.
       for (const tile of await page.locator("[data-tile]").all()) {
         await tile.click();

@@ -13,6 +13,8 @@ export default defineConfig({
     ? [["html", { open: "never" }], ["dot"]]
     : [["line"], ["html", { open: "never" }]],
   timeout: 60000,
+  // Fail a hung suite fast instead of waiting on the job timeout (healthy CI run: ~2 min).
+  globalTimeout: process.env.CI ? 5 * 60_000 : undefined,
   expect: { timeout: 10000 },
   use: {
     baseURL,

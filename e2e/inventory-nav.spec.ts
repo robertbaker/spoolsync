@@ -119,6 +119,8 @@ test.describe("Sidebar navigation", () => {
 
     test("the rail is collapsed and expands while focused", async ({ page }) => {
       await page.goto("/");
+      // Headless Linux starts the pointer at (0,0), over the sidebar, which would expand the rail.
+      await page.mouse.move(800, 400);
       const sidebar = page.locator("#app-sidebar");
       const narrow = (await sidebar.boundingBox())?.width ?? 0;
       expect(narrow).toBeLessThan(100);
