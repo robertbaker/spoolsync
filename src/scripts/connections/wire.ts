@@ -15,12 +15,10 @@ import {
 } from "~/lib/browser/storage";
 
 import { wireCorsHelp } from "./cors";
-import { CONNECTION_CHANGED } from "./events";
+import { announceConnectionChange } from "./events";
 import { wirePasswordToggle } from "./presentation";
 import { wireSpoolmanConnection } from "./spoolman";
 import { wireTigertagConnection } from "./tigertag";
-
-const notify = () => document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
 
 /** Wires whichever connection forms and help blocks exist on the current page. */
 export function wireSpoolmanForm(): void {
@@ -32,12 +30,12 @@ export function wireSpoolmanForm(): void {
     normalizeBaseUrl,
     clearSpoolmanConnection: () => {
       clearSpoolmanConnection();
-      notify();
+      announceConnectionChange("spoolman");
     },
     loadSpoolmanConnection,
     saveSpoolmanConnection: (connection) => {
       saveSpoolmanConnection(connection);
-      notify();
+      announceConnectionChange("spoolman");
     },
   });
 }
@@ -48,12 +46,12 @@ export function wireTigertagForm(): void {
     signIn,
     clearTigertagSession: () => {
       clearTigertagSession();
-      notify();
+      announceConnectionChange("tigertag");
     },
     loadTigertagSession,
     saveTigertagSession: (session, remember) => {
       saveTigertagSession(session, remember);
-      notify();
+      announceConnectionChange("tigertag");
     },
   });
 }

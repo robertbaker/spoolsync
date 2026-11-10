@@ -36,3 +36,30 @@ export function splitPairKey(pair: string): [RecordKey, RecordKey] | undefined {
   const unescape = (part: string) => part.replaceAll("%7C", "|").replaceAll("%25", "%");
   return [unescape(parts[0]), unescape(parts[1])];
 }
+
+/**
+ * The current {@link pairKey} form of a stored pair key. Keys saved before `%` and `|` were escaped
+ * hold the raw IDs; a `%` that is not part of an escape marks such a key, which is re-keyed. (A
+ * legacy ID that literally contained "%25" or "%7C", or a `|`, cannot be told apart and stays as it
+ * was.) Text that is not a pair key is returned unchanged.
+ */
+export function canonicalPairKey(pair: string): string {
+  if (/%(?!25|7C)/.test(pair)) {
+    const parts = pair.split("|");
+    if (parts.length === 2 && parts[0] && parts[1]) return pairKey(parts[0], parts[1]);
+    return pair;
+  }
+  const records = splitPairKey(pair);
+  return records ? pairKey(records[0], records[1]) : pair;
+}
+
+/** Saved decisions with every pair key in its current form, without duplicates. */
+export function canonicalDecisions(decisions: {
+  confirmed: readonly string[];
+  rejected: readonly string[];
+}): { confirmed: string[]; rejected: string[] } {
+  return {
+    confirmed: [...new Set(decisions.confirmed.map(canonicalPairKey))],
+    rejected: [...new Set(decisions.rejected.map(canonicalPairKey))],
+  };
+}

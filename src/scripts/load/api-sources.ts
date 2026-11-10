@@ -9,23 +9,15 @@ import {
   loadFilamentDbConnection,
   saveFilamentDbConnection,
   clearFilamentDbConnection,
-  loadFilamentDbAppConnection,
-  saveFilamentDbAppConnection,
-  clearFilamentDbAppConnection,
   loadTigertagSession,
   saveRefreshedTigertagSession,
 } from "~/lib/browser/storage";
 
-import { CONNECTION_CHANGED } from "../connections/events";
+import { announceConnectionChange, CONNECTION_CHANGED } from "../connections/events";
 import { byId, h, notice } from "../dom";
 import { plural, warningsNotice } from "./presentation";
 import { wireRemoteSource } from "./remote-source";
 import type { LoadContext } from "./state";
-
-/** Tells the page a saved connection changed, so data fetched with the old one is dropped. */
-const announceConnectionChange = (): void => {
-  document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
-};
 
 function success(result: LoadResult, from: string, includeWarnings = true): HTMLElement[] {
   const warnings = includeWarnings ? warningsNotice(result) : null;
@@ -114,7 +106,7 @@ function wireBambuddy(context: LoadContext): void {
     message.replaceChildren(
       notice("info", "Connection cleared", h("p", {}, "The address and API key were forgotten.")),
     );
-    announceConnectionChange();
+    announceConnectionChange("bambuddy");
   });
   wireRemoteSource(context, {
     source: "bambuddy",
@@ -139,7 +131,7 @@ function wireBambuddy(context: LoadContext): void {
           const before = loadBambuddyConnection();
           saveBambuddyConnection(connection);
           if (before?.baseUrl !== connection.baseUrl || before?.apiKey !== connection.apiKey)
-            announceConnectionChange();
+            announceConnectionChange("bambuddy");
           return success(result, "Bambuddy.");
         },
       };
@@ -169,7 +161,7 @@ function wireFilamentDb(context: LoadContext): void {
     byId("filamentdb-message").replaceChildren(
       notice("info", "Connection cleared", h("p", {}, "The address and token were forgotten.")),
     );
-    announceConnectionChange();
+    announceConnectionChange("filamentdb");
   });
   wireRemoteSource(context, {
     source: "filamentdb",
@@ -192,62 +184,8 @@ function wireFilamentDb(context: LoadContext): void {
           const before = loadFilamentDbConnection();
           saveFilamentDbConnection(connection);
           if (before?.baseUrl !== connection.baseUrl || before?.token !== connection.token)
-            announceConnectionChange();
+            announceConnectionChange("filamentdb");
           return success(result, "FilamentDB.");
-        },
-      };
-    },
-  });
-}
-
-function wireFilamentDbApp(context: LoadContext): void {
-  const url = byId<HTMLInputElement>("filamentDbApp-url");
-  const key = byId<HTMLInputElement>("filamentDbApp-key");
-  const button = byId<HTMLButtonElement>("filamentDbApp-fetch");
-  const message = byId("filamentDbApp-message");
-  const previous = loadFilamentDbAppConnection();
-  if (previous) {
-    url.value = previous.baseUrl;
-    key.value = previous.token ?? "";
-  }
-  const updateEnabled = () => {
-    button.disabled = !url.value.trim();
-  };
-  updateEnabled();
-  url.addEventListener("input", updateEnabled);
-  document.getElementById("filamentDbApp-forget")?.addEventListener("click", () => {
-    clearFilamentDbAppConnection();
-    url.value = "";
-    key.value = "";
-    updateEnabled();
-    message.replaceChildren(
-      notice("info", "Connection cleared", h("p", {}, "The address and key were forgotten.")),
-    );
-    announceConnectionChange();
-  });
-  wireRemoteSource(context, {
-    source: "filamentDbApp",
-    button,
-    message,
-    finish: updateEnabled,
-    prepare() {
-      const value = key.value.trim();
-      const connection = {
-        baseUrl: url.value.trim(),
-        ...(value ? { token: value } : {}),
-      };
-      return {
-        loading: notice("info", "Fetching Filament DB spools…"),
-        async load() {
-          const { loadFilamentDbApp } = await import("@spoolsync/core/adapters/filamentDbApp");
-          return loadFilamentDbApp(connection);
-        },
-        success(result) {
-          const before = loadFilamentDbAppConnection();
-          saveFilamentDbAppConnection(connection);
-          if (before?.baseUrl !== connection.baseUrl || before?.token !== connection.token)
-            announceConnectionChange();
-          return success(result, "Filament DB.");
         },
       };
     },
@@ -305,6 +243,5 @@ export function wireApiSources(context: LoadContext): void {
   wireSpoolman(context);
   wireBambuddy(context);
   wireFilamentDb(context);
-  wireFilamentDbApp(context);
   wireTigertag(context);
 }

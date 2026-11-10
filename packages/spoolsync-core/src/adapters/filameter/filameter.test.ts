@@ -91,6 +91,30 @@ test("FilaMeter create omits a null price", () => {
   expect("price" in added).toBe(false);
 });
 
+test("FilaMeter warns when a new spool has no material and defaults to PLA", () => {
+  const loaded = loadFilameterFile(docs);
+  const create = {
+    kind: "create",
+    source: "filameter",
+    groupId: "g",
+    links: {},
+    groupIds: {},
+    values: {
+      vendor: null,
+      material: null,
+      name: "N",
+      colors: [],
+      initialWeight: 1000,
+      remainingWeight: 1000,
+      location: null,
+      comment: null,
+      price: null,
+    },
+  } as never;
+  const out = exportFilameter(loaded, [create], { now: () => 0, randomUUID: () => "m" });
+  expect(out.warnings.join(" ")).toContain("requires a material");
+});
+
 test("FilaMeter never writes a null total weight: unknown weights become a full 1000 g spool with a warning", () => {
   const loaded = loadFilameterFile(docs);
   const create = {
@@ -111,6 +135,7 @@ test("FilaMeter never writes a null total weight: unknown weights become a full 
     links: {},
     groupIds: {},
   } as never;
+  const docsUsed = (JSON.parse(docs).regular[0] as { used_weight: number }).used_weight;
   const out = exportFilameter(
     loaded,
     [
@@ -127,15 +152,20 @@ test("FilaMeter never writes a null total weight: unknown weights become a full 
   );
   for (const text of [out.json, out.csv]) {
     const reloaded = loadFilameterFile(text).spools;
-    for (const spool of [reloaded[0]!, reloaded.at(-1)!])
-      expect(spool).toMatchObject({ initialWeight: 1000, remainingWeight: 1000 });
+    // Created spool: full 1000 g. Updated spool: weight left as it was.
+    expect(reloaded.at(-1)).toMatchObject({ initialWeight: 1000, remainingWeight: 1000 });
+    expect(reloaded[0]).toMatchObject({ initialWeight: 1000 });
   }
   expect(out.json).not.toContain('"total_weight": null');
   // Limitation: FilaMeter's strict schema has no place for a placeholder marker, so the reload is a
   // measured 1000 g. The warning must say so, once per unknown-weight spool.
   const warned = out.warnings.filter((text) => text.includes("full 1000 g spool"));
-  expect(warned).toHaveLength(2);
+  expect(warned).toHaveLength(1);
   for (const text of warned) expect(text).toContain("read back as a measured 1000 g");
+  expect(out.warnings.some((text) => text.includes("existing weight was left unchanged"))).toBe(
+    true,
+  );
+  expect(JSON.parse(out.json).regular[0].used_weight).toBe(docsUsed);
 });
 
 test("FilaMeter keeps its required material and filament name when they are emptied", () => {

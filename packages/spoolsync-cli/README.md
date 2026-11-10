@@ -127,13 +127,13 @@ spoolsync --config spoolsync.json
 ```
 
 Tokens and passwords are rejected in config files (they tend to be committed); use the
-`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables. For the same
+`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, `FILAMENT_DB_API_KEY`, `BAMBUDDY_API_KEY`, and `FILADEX_PASSWORD` environment variables. For the same
 reason a service URL with credentials in it (`http://user:pass@host`, or `?token=...`, `?api_key=...`
 and similar) is rejected, on the command line too. `"apply"` is rejected in any config, saved-settings
-or imported-settings file: writing to a service is turned on only by `--apply` on the command line.
+or imported-settings file (the error names the file, so delete that key from it): writing to a service is turned on only by `--apply` on the command line.
 
 Keep a plan up to date while you edit an export. `--watch` re-runs whenever an input file changes,
-reports errors (a run that fails is printed as "Watch run failed" and the exit code becomes 1) and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
+reports errors (a run that fails is printed as "Watch run failed" and the exit code becomes 1, even if a later run succeeds) and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
 also works where a signal cannot be sent, such as a Windows process started by another program). It only watches files, and it refuses `--apply`
 so a service is never written on every save:
 

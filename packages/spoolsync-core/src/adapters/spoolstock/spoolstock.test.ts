@@ -91,6 +91,11 @@ describe("loadSpoolstockCsv", () => {
     });
   });
 
+  test("reads a price of 0 as not set", () => {
+    const { spools } = loadSpoolstockCsv("short_id,size,price\nabc,1000,0\ndef,1000,5\n");
+    expect(spools.map((spool) => spool.price)).toEqual([null, 5]);
+  });
+
   test("keeps the first row when a short_id repeats", () => {
     const lines = csv.trimEnd().split("\n");
     const duplicated = `${[...lines, lines.at(-1)].join("\n")}\n`;

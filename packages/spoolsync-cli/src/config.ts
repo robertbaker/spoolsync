@@ -10,6 +10,17 @@ import {
 import { closestOption } from "./suggest";
 import { urlCredential } from "./url-credentials";
 
+/** Environment variables that carry credentials; named in the messages that refuse them in files. */
+export const CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  "SPOOLMAN_TOKEN",
+  "FILAMENTDB_TOKEN",
+  "FILAMENT_DB_API_KEY",
+  "BAMBUDDY_API_KEY",
+  "FILADEX_PASSWORD",
+] as const;
+
+const credentialVariableList = `${CREDENTIAL_ENVIRONMENT_VARIABLES.slice(0, -1).join(", ")}, or ${CREDENTIAL_ENVIRONMENT_VARIABLES.at(-1)}`;
+
 /** Config keys are the long option names without dashes. Source keys hold file paths. */
 const SOURCE_KEYS = [
   "spoolman",
@@ -139,13 +150,13 @@ function optionsFromFile(
     if (/token|password|secret|api-?key/i.test(key))
       fail(
         configFile,
-        `"${key}" looks like a secret. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
+        `"${key}" looks like a secret. Keep tokens and passwords out of config files; set ${credentialVariableList} in the environment instead.`,
       );
     // A shared, imported or saved file must never switch writes on.
     if (key === "apply")
       fail(
         configFile,
-        '"apply" cannot be saved as a default setting. Writing to a service is turned on only by passing --apply on the command line.',
+        `"apply" cannot be saved as a default setting. Delete the "apply" key from ${configFile}; writing to a service is turned on only by passing --apply on the command line.`,
       );
     if (!ALLOWED_KEYS.includes(key)) {
       const suggestion = closestOption(
@@ -200,7 +211,7 @@ function optionsFromFile(
         if (credential)
           fail(
             configFile,
-            `"${key}" contains credentials in the URL (${credential}). Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
+            `"${key}" contains credentials in the URL (${credential}). Keep tokens and passwords out of config files; set ${credentialVariableList} in the environment instead.`,
           );
       }
       expanded.push(`--${key}=${PATH_KEYS.has(key) ? resolvePath(value as string) : value}`);

@@ -48,7 +48,7 @@ export function exportThreeDfp(
           `3DFilamentProfiles spool ${change.spool.sourceId} is missing. Reload the inventory and try again.`,
         );
       row = existing;
-      updateRecord(row, change, loaded.format, warnings);
+      updateRecord(row, change, loaded.format, warnings, runtime);
       updated++;
     } else {
       row = createRecord(change, loaded.format, warnings, runtime, takenShortCodes);

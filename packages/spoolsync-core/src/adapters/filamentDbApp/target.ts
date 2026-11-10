@@ -64,7 +64,10 @@ export function newSpoolFields(
 ): Bag {
   const body: Bag = {};
   const remaining = values.remainingWeight ?? values.initialWeight;
-  if (remaining !== null) body["totalWeight"] = remaining + (tare ?? values.emptySpoolWeight ?? 0);
+  // Filament DB stores the weight verbatim and adds the filament's own empty-spool weight back only
+  // when reading, so a tare the filament lacks must not be added here or remaining would reload high.
+  if (remaining !== null) body["totalWeight"] = remaining + (tare ?? 0);
+  for (const note of newSpoolDrops(values, tare)) warn(note);
   if (values.purchasedOn) body["purchaseDate"] = values.purchasedOn;
   if (values.archived) body["retired"] = true;
   const label = withinTextLimit(values.comment || null, "label", warn);
@@ -79,5 +82,36 @@ export function newSpoolFields(
         `Location "${values.location}" does not exist in Filament DB. Create it there first.`,
       );
   }
+  if (Object.keys(body).length === 0)
+    throw new Error(
+      "Filament DB needs at least a weight, label, lot number, purchase date or location to add a spool, and this one has none.",
+    );
   return body;
+}
+
+/** Messages for new-spool values that are filament-level (or unpreservable) and so are not sent. */
+export function newSpoolDrops(values: SpoolValues, tare: number | null): string[] {
+  const notes: string[] = [];
+  const shared = [
+    values.price !== null && "price",
+    values.density !== null && "density",
+    values.diameter !== null && "diameter",
+    (values.nozzleTempMin !== null ||
+      values.nozzleTempMax !== null ||
+      values.bedTempMin !== null ||
+      values.bedTempMax !== null) &&
+      "temperatures",
+    values.td !== null && "TD",
+  ].filter((name): name is string => typeof name === "string");
+  if (shared.length)
+    notes.push(
+      `Filament DB keeps ${shared.join(", ")} on the filament, not the spool, so ${shared.length === 1 ? "it was" : "they were"} not sent for the new spool.`,
+    );
+  if (values.emptySpoolWeight !== null && values.emptySpoolWeight !== tare)
+    notes.push(
+      tare === null
+        ? `The filament has no empty-spool weight in Filament DB, so the spool's ${values.emptySpoolWeight} g empty weight could not be kept; the weight was written without it.`
+        : `The filament's empty-spool weight in Filament DB is ${tare} g, not ${values.emptySpoolWeight} g; the remaining weight was converted with ${tare} g.`,
+    );
+  return notes;
 }

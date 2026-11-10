@@ -63,8 +63,9 @@ export function wireFileSource(source: SourceId, { state, store, fileLoaded }: L
 
 /**
  * Reads one file into a source's inventory, reporting the outcome in that source's panel. Returns
- * the stored inventory, or null when the file was rejected, unreadable or superseded. A file that
- * is not stored never takes a revision, so it cannot cancel a server load that is in flight.
+ * the stored inventory, or null when the file was rejected, unreadable or superseded. The newest-
+ * started read wins; a file that is not stored never takes a revision, so it cannot cancel a server
+ * load that is in flight.
  */
 export async function readInventoryFile(
   source: SourceId,
@@ -84,6 +85,7 @@ export async function readInventoryFile(
     );
     return null;
   }
+  const ticket = state.startFileRead(source);
   let result: LoadResult;
   try {
     result = await loadInventoryFile(
@@ -98,7 +100,20 @@ export async function readInventoryFile(
       loadedAt: new Date().toISOString(),
     };
   }
-  if (!state.isCurrent(source, started)) return null;
+  // A newer-started read owns the panel (and its message); a server load, unload or other file
+  // that took the source meanwhile has already reported its own outcome there.
+  if (!state.isLatestFileRead(source, ticket) || !state.isCurrent(source, started)) {
+    if (state.isLatestFileRead(source, ticket) && message.childElementCount === 0) {
+      message.replaceChildren(
+        notice(
+          "info",
+          `${file.name} was not loaded`,
+          h("p", { class: "mt-1" }, `${SOURCE_LABELS[source]} changed while the file was read.`),
+        ),
+      );
+    }
+    return null;
+  }
   if (!result.spools.length && result.warnings.length) {
     message.replaceChildren(
       notice(

@@ -1,6 +1,8 @@
 import type { PlannedChange } from "../../core/compare";
 import { csvText } from "../shared/tabular";
+import { sanitizeCsvCell } from "./csv";
 import { changePatches, withinTextLimit } from "./records";
+import { newSpoolDrops } from "./target";
 import type { FilamentDbAppLoadResult } from "./types";
 
 /**
@@ -64,14 +66,17 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
       const label = withinTextLimit(v.comment || null, "label", problem);
       const lot = withinTextLimit(v.lotNr || null, "lot number", problem);
       const remaining = v.remainingWeight ?? v.initialWeight;
+      // The importer stores totalWeight as given; only the filament's own tare is added on reading.
+      const tare = twin?.emptySpoolWeight ?? null;
+      for (const note of newSpoolDrops(v, tare)) problem(note);
       rows.push({
-        filament: twinRow ? (twinRow["filament"] ?? "") : (v.name ?? ""),
-        vendor: twinRow ? importVendor(twinRow) : (v.vendor ?? ""),
-        label: label ?? "",
-        lotNumber: lot ?? "",
-        totalWeight: remaining === null ? "" : remaining + (v.emptySpoolWeight ?? 0),
+        filament: twinRow ? (twinRow["filament"] ?? "") : sanitizeCsvCell(v.name ?? ""),
+        vendor: twinRow ? importVendor(twinRow) : sanitizeCsvCell(v.vendor ?? ""),
+        label: sanitizeCsvCell(label ?? ""),
+        lotNumber: sanitizeCsvCell(lot ?? ""),
+        totalWeight: remaining === null ? "" : remaining + (tare ?? 0),
         purchaseDate: v.purchasedOn ?? "",
-        location: v.location ?? "",
+        location: sanitizeCsvCell(v.location ?? ""),
       });
       created++;
       continue;
@@ -104,18 +109,18 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
       wroteSpoolField = true;
     }
     if (spool.label !== undefined) {
-      row["label"] = spool.label;
+      row["label"] = sanitizeCsvCell(spool.label);
       wroteSpoolField = true;
     }
     if (spool.lotNumber !== undefined) {
-      row["lotNumber"] = spool.lotNumber ?? "";
+      row["lotNumber"] = sanitizeCsvCell(spool.lotNumber ?? "");
       wroteSpoolField = true;
     }
     if (spool.retired !== undefined)
       problem("The spool CSV importer ignores the retired flag, so it was not written.");
     for (const { field, to } of change.changes)
       if (field === "location") {
-        row["location"] = typeof to === "string" ? to : "";
+        row["location"] = typeof to === "string" ? sanitizeCsvCell(to) : "";
         wroteSpoolField = true;
       }
     if (!wroteSpoolField) continue;

@@ -576,11 +576,11 @@ without requiring personal files from `ref/`.
 4. Export with the target's load result, or apply through a supported remote adapter. Review
    warnings when an output format cannot preserve a field. Refresh remote inventories after writes.
 
-Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, FilamentDB, Bambuddy, and Filament DB
-(hyiger/filament-db) writes; the CLI's direct API connections add Filadex. Filadex needs a cookie
-login and sends no CORS headers, so it is CLI-only. Filament DB answers a page only when the server
-lists the page's origin in `ALLOWED_ORIGINS` (scheme, host and port); otherwise the browser blocks
-the reply and its guard answers writes with 403, and the client says so. Other writes use exported files.
+Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, FilamentDB, and Bambuddy
+writes; the CLI's direct API connections add Filadex and Filament DB (hyiger/filament-db). Filadex needs
+a cookie login and sends no CORS headers, so it is CLI-only. Filament DB's guard rejects any
+cross-origin browser request (it sends no CORS headers either), so it is CLI-only too. Other writes use
+exported files.
 See the [service table and limitations](../README.md) for format-specific behavior.
 
 Export serialization does not itself write files. The CLI stages exports before remote writes

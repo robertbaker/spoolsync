@@ -255,28 +255,7 @@ const spoolman = serviceView("spoolman");
                 </p>
               </div>
             )}
-            {source.id === "filamentDbApp" && (
-              <div class="mb-3">
-                <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                  <div>
-                    <label class="field-label" for="filamentDbApp-url">Filament DB server address</label>
-                    <input id="filamentDbApp-url" type="url" placeholder="http://filament-db.local:3456" autocomplete="off" spellcheck="false" class="field-input mt-1" />
-                  </div>
-                  <div>
-                    <label class="field-label" for="filamentDbApp-key">Filament DB API key</label>
-                    <input id="filamentDbApp-key" type="password" placeholder="Only with FILAMENTDB_API_KEY" autocomplete="off" spellcheck="false" class="field-input mt-1" />
-                  </div>
-                  <div class="flex gap-2">
-                    <Button type="button" color="primary" id="filamentDbApp-fetch" aria-describedby="filamentDbApp-hint">Fetch spools</Button>
-                    <Button type="button" variant="outline" id="filamentDbApp-forget">Forget</Button>
-                  </div>
-                </div>
-                <p id="filamentDbApp-hint" class="field-hint">
-                  Add this page's address to the server's ALLOWED_ORIGINS first (for example {Astro.url.origin}), or the browser blocks the request. The key is only needed when FILAMENTDB_API_KEY is set. Kept for this tab only and cleared when it closes.
-                </p>
-              </div>
-            )}
-            <p class="mb-4 text-sm text-muted-foreground">{source.cloud ?`Or use a file: ${source.how}` : source.how}</p>
+            <p class="mb-4 text-sm text-muted-foreground">{source.cloud ? `Or use a file: ${source.how}` : source.how}</p>
             {(source.id === "tigertag" || source.id === "spoolio") && (
               <Button type="button" variant="outline" class="mb-3" id={`${source.id}-empty`}>Start empty {source.label} inventory</Button>
             )}

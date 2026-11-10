@@ -70,8 +70,14 @@ export class FilamentDbClient {
 
   private async request(method: "GET" | "POST", body?: unknown): Promise<unknown> {
     const response = await this.send("/api/spools", method, body);
-    if (response.status === 401 || response.status === 403)
+    if (response.status === 401)
       throw new Error("FilamentDB refused the request. Check the session token.");
+    // Upstream answers 403 "Permission denied" when the signed-in user may not change a spool, such
+    // as one another owner created; the token itself is fine.
+    if (response.status === 403)
+      throw new Error(
+        "FilamentDB denied permission for this request. The signed-in user may not edit this spool (for example one owned by another user).",
+      );
     if (!response.ok)
       throw new Error(`FilamentDB answered ${response.status} ${response.statusText}.`);
     try {

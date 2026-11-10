@@ -11,6 +11,11 @@ import {
 import { MATERIAL_TYPES, materialNote, notesText, spoolstockLinkNote } from "./material-notes";
 import type { SpoolioFilament } from "./schema";
 
+function spoolioFinish(value: unknown): string | null {
+  const finish = toText(value);
+  return finish?.toLowerCase() === "standard" ? null : finish;
+}
+
 export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {
   const originalMaterial = materialNote(filament.notes);
   const batchLink = shortIdFromLotNr(filament.batchNumber);
@@ -42,10 +47,12 @@ export function spoolioToCommon(filament: SpoolioFilament): CommonSpool {
     remainingWeight: toNumber(filament.weightRemaining),
     emptySpoolWeight: toNonNegativeNumber(filament.spoolWeight),
     location: null,
-    price: toNumber(filament.price),
+    // Spoolio stores 0 for "not set"; real exports carry 0 for unpriced rows.
+    price: toPositiveNumber(filament.price),
     purchasedOn: toDate(filament.purchaseDate),
     lotNr: batchLink ? null : toText(filament.batchNumber),
-    finish: toText(filament.finish),
+    // "Standard" is Spoolio's "no particular finish" (written back for null), not a real finish.
+    finish: spoolioFinish(filament.finish),
     td: null,
     comment: notesText(filament.notes),
     archived: false,

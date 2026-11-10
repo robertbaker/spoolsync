@@ -2,14 +2,23 @@ import type { PlannedChange, PlannedCreate, PlannedUpdate } from "../../core/com
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
 import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
+import { SpoolmanError } from "./connection";
 import { FilamentCatalog } from "./filament-catalog";
 import { applyFilamentChanges } from "./filament-update";
 import { SPOOLMAN_SPOOL_EXTRAS } from "./map";
 import { isSpoolmanNg } from "./schema";
-import { buildSpoolPatch, createSpoolParameters } from "./spool-parameters";
+import { buildSpoolPatch, createSpoolParameters, settleRemainingWeight } from "./spool-parameters";
 import type { SpoolmanWriteClient } from "./write-client";
 export { defaultDensity } from "./filament-policy";
 export type { ApplyLogEntry } from "../../core/model";
+
+/** Whether a failed `/info` only means this server (or test double) has none to read. */
+function isMissingInfo(error: unknown): boolean {
+  if ((error as { name?: string } | null)?.name === "AbortError") return false;
+  if (!(error instanceof SpoolmanError)) return true;
+  if (error.kind === "parse") return true;
+  return error.kind === "http" && [404, 405, 501].includes(error.status ?? 0);
+}
 
 /**
  * Writes planned changes to Spoolman. Each change is applied on its own and logged, so one failure
@@ -64,8 +73,10 @@ export async function applyToSpoolman(
   // Older servers or test doubles without a usable /info simply stay on the key-based detection.
   try {
     if (isSpoolmanNg(await client.info())) catalog.markRanges();
-  } catch {
-    /* fall back to detecting ranges from the filaments themselves */
+  } catch (error) {
+    // Cancellation and auth/connection failures are real; only a server without a usable `/info`
+    // falls back to detecting ranges from the filaments themselves.
+    if (!isMissingInfo(error)) throw error;
   }
   const spoolsByFilament = new Map<number, number>();
   for (const spool of spools)
@@ -81,7 +92,7 @@ export async function applyToSpoolman(
       );
     const patch = buildSpoolPatch(change, current, note);
     const shared = (spoolsByFilament.get(current.filament.id) ?? 1) > 1;
-    const filamentNote = await applyFilamentChanges(
+    const { note: filamentNote, movedTo } = await applyFilamentChanges(
       change,
       current,
       patch,
@@ -90,6 +101,7 @@ export async function applyToSpoolman(
       catalog,
       note,
     );
+    settleRemainingWeight(patch, current, (movedTo ?? current.filament).weight, note);
 
     if (Object.keys(patch).length) {
       const updated = await client.updateSpool(id, patch);
@@ -126,9 +138,25 @@ export async function applyToSpoolman(
   return applyEachChange(
     changes,
     {
-      write: (change, note) => {
+      write: async (change, outerNote) => {
         written = [];
-        return change.kind === "update" ? applyUpdate(change, note) : applyCreate(change, note);
+        // Notes are joined here (the shared loop only space-separates them), de-duplicated, and
+        // kept on the failure message so a failed change still says what it had noticed.
+        const notes: string[] = [];
+        const note = (text: string) => {
+          if (!notes.includes(text)) notes.push(text);
+        };
+        let message: string;
+        try {
+          message = await (change.kind === "update"
+            ? applyUpdate(change, note)
+            : applyCreate(change, note));
+        } catch (error) {
+          if (!notes.length) throw error;
+          throw new Error(`${(error as Error).message} (${notes.join("; ")})`, { cause: error });
+        }
+        if (notes.length) outerNote(notes.join("; "));
+        return message;
       },
       subject: (change) =>
         change.kind === "update" ? `spool #${change.spool.sourceId}` : "new spool",

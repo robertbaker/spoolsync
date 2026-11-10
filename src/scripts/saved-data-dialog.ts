@@ -9,15 +9,10 @@ import {
 } from "~/lib/saved-data";
 
 import { backupSection } from "./backup-section";
-import { CONNECTION_CHANGED } from "./connections/events";
+import { announceConnectionChange } from "./connections/events";
 import { displaySettingsSection } from "./display-settings";
 import { h } from "./dom";
 import { download } from "./sync/presentation";
-
-/** Forgetting credentials (or the session token kept with loaded inventories) changes connections. */
-const announceConnectionChange = (): void => {
-  document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
-};
 
 let dialog: HTMLDialogElement | undefined;
 let changed = false;

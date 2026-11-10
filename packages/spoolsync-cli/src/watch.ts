@@ -84,7 +84,8 @@ export function stopOnQuit(input: QuitInput, onStop: () => void): () => void {
  * Runs once, then again whenever one of the files changes, until the signal aborts. Changes that
  * arrive while a run is in progress cause exactly one more run afterwards. Each run after the first
  * is told the previous snapshot so it can print what changed. Status lines go to stderr so
- * machine-readable results on stdout stay clean. The exit code is that of the last run.
+ * machine-readable results on stdout stay clean. A failing run's exit code is kept even if a later
+ * run succeeds.
  */
 export async function runWatch(request: WatchRequest): Promise<void> {
   const {
@@ -104,7 +105,9 @@ export async function runWatch(request: WatchRequest): Promise<void> {
     targets.set(directory, names);
   }
 
+  // The code of the current run, and the last failing code any run produced (kept for the exit).
   let exitCode = 0;
+  let failureCode = 0;
   type Entry = { channel: "log" | "warn" | "error"; values: unknown[] };
   let entries: Entry[] = [];
   let lastSignature: string | undefined;
@@ -133,44 +136,80 @@ export async function runWatch(request: WatchRequest): Promise<void> {
       if (!quiet && header) output.error(header);
       exitCode = 0;
       entries = [];
-      lastSnapshot = (await run(runOutput, lastSnapshot)) ?? lastSnapshot;
-      if (quiet) {
-        const signature = JSON.stringify(entries);
-        if (signature !== lastSignature) {
-          if (header) output.error(header);
-          for (const entry of entries) output[entry.channel](...entry.values);
-        }
-        lastSignature = JSON.stringify(
-          entries
-            .filter(
-              (entry) =>
-                !(
-                  entry.channel === "log" &&
-                  typeof entry.values[0] === "string" &&
-                  entry.values[0].startsWith("Changes since the last run:")
-                ),
-            )
-            .map((entry) => {
-              if (
-                entry.channel === "log" &&
-                entry.values.length === 1 &&
-                typeof entry.values[0] === "string" &&
-                entry.values[0].startsWith("{") &&
-                entry.values[0].includes('"changesSinceLastRun"')
-              ) {
-                try {
-                  const parsed = JSON.parse(entry.values[0]) as Record<string, unknown>;
-                  delete parsed["changesSinceLastRun"];
-                  return { ...entry, values: [JSON.stringify(parsed, null, 2)] };
-                } catch {
-                  return entry;
-                }
-              }
-              return entry;
-            }),
-        );
+      try {
+        lastSnapshot = (await run(runOutput, lastSnapshot)) ?? lastSnapshot;
+      } catch (error) {
+        // Output held back by quiet mode is not lost with a failed run.
+        flush(header);
+        throw error;
+      } finally {
+        if (exitCode !== 0) failureCode = exitCode;
       }
+      flush(header);
     } while (again);
+  }
+
+  function flush(header: string): void {
+    if (!quiet) return;
+    const signature = JSON.stringify(entries);
+    if (signature !== lastSignature) {
+      if (header) output.error(header);
+      for (const entry of entries) output[entry.channel](...entry.values);
+    }
+    lastSignature = JSON.stringify(
+      entries
+        .filter(
+          (entry) =>
+            !(
+              entry.channel === "log" &&
+              typeof entry.values[0] === "string" &&
+              entry.values[0].startsWith("Changes since the last run:")
+            ),
+        )
+        .map((entry) => {
+          if (
+            entry.channel === "log" &&
+            entry.values.length === 1 &&
+            typeof entry.values[0] === "string" &&
+            entry.values[0].startsWith("{") &&
+            entry.values[0].includes('"changesSinceLastRun"')
+          ) {
+            try {
+              const parsed = JSON.parse(entry.values[0]) as Record<string, unknown>;
+              delete parsed["changesSinceLastRun"];
+              return { ...entry, values: [JSON.stringify(parsed, null, 2)] };
+            } catch {
+              return entry;
+            }
+          }
+          return entry;
+        }),
+    );
+  }
+
+  function schedule(): void {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (running) again = true;
+      else {
+        // A failed run is reported, never an unhandled rejection or a throw from `await running`.
+        running = execute()
+          .catch((error: unknown) => {
+            failureCode = 1;
+            output.error(
+              `Watch run failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          })
+          .finally(() => {
+            running = undefined;
+            // Changes that arrived while the run was failing still get their run.
+            if (again || changed.size) {
+              again = false;
+              if (!signal.aborted) schedule();
+            }
+          });
+      }
+    }, dependencies.debounceMs);
   }
 
   await execute();
@@ -184,21 +223,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
         filename === null ? [...names.values()] : [names.get(filename)].filter(Boolean);
       if (!matched.length) return;
       for (const file of matched) changed.add(file as string);
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (running) again = true;
-        else {
-          // A failed run is reported, never an unhandled rejection or a throw from `await running`.
-          running = execute()
-            .catch((error: unknown) => {
-              exitCode = 1;
-              output.error(
-                `Watch run failed: ${error instanceof Error ? error.message : String(error)}`,
-              );
-            })
-            .finally(() => (running = undefined));
-        }
-      }, dependencies.debounceMs);
+      schedule();
     }),
   );
 
@@ -206,5 +231,5 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   clearTimeout(timer);
   for (const watcher of watchers) watcher.close();
   await running;
-  output.setExitCode(exitCode);
+  output.setExitCode(failureCode);
 }

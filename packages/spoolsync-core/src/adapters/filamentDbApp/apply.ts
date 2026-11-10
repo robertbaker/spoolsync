@@ -26,10 +26,30 @@ function spoolStillExists(filaments: readonly Bag[], filamentId: string, change:
   if (!filament || filament["_deletedAt"] || filament["_purged"] === true) return false;
   if (rawOf(change)?.legacyRoll === true) return true;
   const spools = Array.isArray(filament["spools"]) ? (filament["spools"] as Bag[]) : [];
+  // The PUT URL carries the spool's ObjectId, so an instanceId alone cannot address it.
+  return spools.some((spool) => idOf(spool["_id"]) === change.spool.sourceId);
+}
+
+/** Whether the spool is only known by its instance id, which the API cannot update by. */
+function hasOnlyInstanceId(filaments: readonly Bag[], filamentId: string, change: UpdateChange) {
+  const filament = filaments.find((entry) => idOf(entry["_id"]) === filamentId);
+  const spools = Array.isArray(filament?.["spools"]) ? (filament["spools"] as Bag[]) : [];
   return spools.some(
-    (spool) =>
-      idOf(spool["_id"]) === change.spool.sourceId || spool["instanceId"] === change.spool.sourceId,
+    (spool) => !idOf(spool["_id"]) && spool["instanceId"] === change.spool.sourceId,
   );
+}
+
+/**
+ * Spools of a filament, other than those whose remaining weight this run rewrites, whose scale
+ * weight is stored and so would read differently once the filament's empty-spool weight changes.
+ */
+function shiftedSiblings(filaments: readonly Bag[], filamentId: string, rewritten: Set<string>) {
+  const filament = filaments.find((entry) => idOf(entry["_id"]) === filamentId);
+  const spools = Array.isArray(filament?.["spools"]) ? (filament["spools"] as Bag[]) : [];
+  return spools.filter((spool) => {
+    const id = idOf(spool["_id"]);
+    return typeof spool["totalWeight"] === "number" && !(id && rewritten.has(id));
+  }).length;
 }
 
 /**
@@ -99,6 +119,12 @@ export async function applyToFilamentDbApp(
       problem: () => {},
     });
   const conflicts = sharedConflicts(updates, (change) => ({ ...patchOf(change).filament }));
+  /** Spools whose remaining weight is re-sent after a new empty-spool weight, so they keep it. */
+  const rewritten = new Set(
+    updates
+      .filter((change) => patchOf(change).filament.spoolWeight !== undefined)
+      .map((change) => change.spool.sourceId),
+  );
   /** Filament fields already written this run, by filament, with the value sent. */
   const written = new Map<string, Map<string, string>>();
   let filamentWritten = false;
@@ -123,10 +149,15 @@ export async function applyToFilamentDbApp(
           throw new Error("The spool has no filament id. Reload the inventory and try again.");
         const conflict = conflicts.get(change);
         if (conflict) throw new Error(conflict);
-        if (!spoolStillExists(filaments, filamentId, change))
+        if (!spoolStillExists(filaments, filamentId, change)) {
+          if (hasOnlyInstanceId(filaments, filamentId, change))
+            throw new Error(
+              `Spool ${change.spool.sourceId} has no record id in Filament DB (only an instance id), so it cannot be updated through the API. Reload the inventory from a current snapshot.`,
+            );
           throw new Error(
             `Spool ${change.spool.sourceId} no longer exists. Reload the inventory before applying this change.`,
           );
+        }
         const patches = changePatches(change, {
           locationIdByName: locations,
           legacyRoll,
@@ -142,6 +173,13 @@ export async function applyToFilamentDbApp(
             ([key, value]) => legacyRoll || done.get(key) !== JSON.stringify(value),
           ),
         );
+        if (!legacyRoll && filamentPatch["spoolWeight"] !== undefined) {
+          const others = shiftedSiblings(filaments, filamentId, rewritten);
+          if (others)
+            note(
+              `Changing the empty-spool weight of filament ${filamentId} also changes the remaining weight shown for ${others} other spool${others === 1 ? "" : "s"} of it that this plan does not update, because Filament DB keeps their scale weight unchanged. Check them in Filament DB.`,
+            );
+        }
         if (Object.keys(filamentPatch).length) {
           await client.updateFilament(filamentId, filamentPatch);
           filamentWritten = true;

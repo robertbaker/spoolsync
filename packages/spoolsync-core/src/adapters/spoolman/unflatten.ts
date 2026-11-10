@@ -20,10 +20,13 @@ const NUMERIC = new Set([
 /** Spoolman's CSV export prefixes text that a spreadsheet would run as a formula with a quote. */
 const FORMULA_ESCAPE = /^'[=+\-@\t\r]/;
 
+function unescapeFormula(value: string, spreadsheetEscapes: boolean): string {
+  return spreadsheetEscapes && FORMULA_ESCAPE.test(value) ? value.slice(1) : value;
+}
+
 function coerce(key: string, value: unknown, spreadsheetEscapes: boolean): unknown {
   if (value === "" || value === undefined) return null;
-  if (spreadsheetEscapes && typeof value === "string" && FORMULA_ESCAPE.test(value))
-    value = value.slice(1);
+  if (typeof value === "string") value = unescapeFormula(value, spreadsheetEscapes);
   const dotIndex = key.lastIndexOf(".");
   const leaf = dotIndex === -1 ? key : key.slice(dotIndex + 1);
   if (
@@ -91,13 +94,14 @@ export function unflatten(
     if (extraAt >= 0) {
       const extraKey = parts.slice(extraAt + 1).join(".");
       if (raw !== null && raw !== undefined && raw !== "") {
-        if (extraKey) mergeColumn(node, extraKey, String(raw), key);
+        if (extraKey)
+          mergeColumn(node, extraKey, unescapeFormula(String(raw), spreadsheetEscapes), key);
         else {
           if (typeof raw !== "object" || Array.isArray(raw))
             throw new Error(`Spoolman extra fields must be a map at ${key}.`);
           for (const [name, value] of Object.entries(raw))
             if (value !== null && value !== undefined && value !== "")
-              mergeColumn(node, name, String(value), key);
+              mergeColumn(node, name, unescapeFormula(String(value), spreadsheetEscapes), key);
         }
       }
     } else {

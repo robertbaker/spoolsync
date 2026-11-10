@@ -178,7 +178,7 @@ export function buildPlan(
         const same =
           ownFields.has(field) && targets.get(field) === own?.[field]
             ? strictValuesEqual(member[field], to)
-            : valuesEqual(field, member[field], to);
+            : valuesEqual(field, member[field], to, source);
         if (!same)
           changes.push({
             field,

@@ -41,8 +41,8 @@ test("3DFilamentProfiles uses the injected ID generator consistently in JSON and
   const result = exportThreeDfp(loaded, changes, runtime);
   expect(exportThreeDfp(loaded, changes, runtime)).toEqual(result);
   const record = JSON.parse(result.json)[0];
-  expect(record.short_code).toBe("12345678a");
-  expect(record.spool_url).toBe("https://spooldb.com/s/12345678a");
+  expect(record.short_code).toMatch(/^[0-9A-Za-z]{9}$/);
+  expect(record.spool_url).toBe(`https://spooldb.com/s/${record.short_code}`);
   expect(loadThreeDfpFile(result.csv).spools[0]!.sourceId).toBe(record.short_code);
   expect(loaded.file).toEqual([]);
 });

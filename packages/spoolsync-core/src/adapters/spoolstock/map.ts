@@ -91,7 +91,8 @@ export function spoolstockToCommon(record: SpoolstockRecord): CommonSpool {
     remainingWeight: toNumber(record.remaining_weight),
     emptySpoolWeight: toPositiveNumber(record["empty_spool.weight"]),
     location: toText(record.inventory_location),
-    price: toNumber(record.price),
+    // Spoolstock exports 0 for an unpriced spool.
+    price: toPositiveNumber(record.price),
     purchasedOn: toDate(record.purchased_on),
     lotNr: null,
     finish: finish(record["filament.features"]),

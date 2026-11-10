@@ -26,7 +26,6 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:tigertag-session",
       "spoolsync:bambuddy-connection",
       "spoolsync:filamentdb-connection",
-      "spoolsync:filament-db-connection",
     ],
     storage: "local",
   },
@@ -215,13 +214,7 @@ export function forgetGroup(id: string): number {
         removed++;
       }
     }
-    for (const source of [
-      "spoolman",
-      "tigertag",
-      "bambuddy",
-      "filamentdb",
-      "filamentDbApp",
-    ] as const)
+    for (const source of ["spoolman", "tigertag", "bambuddy", "filamentdb"] as const)
       invalidateApiInventory(source);
   }
   if (id === "reference-cache") void forgetCatalogRecords();

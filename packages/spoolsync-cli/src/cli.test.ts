@@ -396,7 +396,8 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
   } finally {
     stopWatching(child);
   }
-  expect(await child.exited).toBe(0);
+  // The broken save failed a run; recovering afterwards does not hide that from the exit code.
+  expect(await child.exited).toBe(1);
 });
 
 test("--watch --quiet stays silent when a save does not change the result", async () => {

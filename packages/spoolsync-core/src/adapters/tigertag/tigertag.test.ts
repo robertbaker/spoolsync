@@ -241,3 +241,31 @@ test("replacing or clearing a barcode removes stale aliases; black secondary col
     colors: ["FF0000", "000000"],
   });
 });
+
+describe("BOM and chip weights", () => {
+  test("a file with a UTF-8 byte order mark loads like one without", () => {
+    expect(loadTtag(`﻿${text}`).spools).toHaveLength(loadTtag(text).spools.length);
+  });
+
+  test("remaining weight is written in whole grams, and unknown means the full spool", () => {
+    const loaded = loadTtag(text);
+    const twin = loaded.spools.find((s) => s.sourceId === "04A1B2C3D4E5F6")!;
+    const spoolman = makeSpool("spoolman", "51", {
+      crossIds: { spoolmanId: 51, tigertagUid: "04A1B2C3D4E5F6" },
+      vendor: "Anycubic",
+      material: "PLA",
+      name: "Black",
+      colors: ["000000"],
+      remainingWeight: 800.6,
+    });
+    const { groups } = matchSpools([...loaded.spools, spoolman]);
+    const linked = groups.find((g) => g.members.tigertag === twin)!;
+    const plan = buildPlan(
+      groups,
+      new Map([[linked.id, { values: { remainingWeight: 800.6 }, createIn: [] }]]),
+    );
+    const file = JSON.parse(exportTtag(loaded, plan.get("tigertag")!).json);
+    const written = file.records.map((r: { weight_available?: number }) => r.weight_available);
+    expect(written).toContain(801);
+  });
+});

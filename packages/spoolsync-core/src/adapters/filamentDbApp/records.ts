@@ -24,6 +24,8 @@ export interface FilamentPatch {
   transmissionDistance?: number | null;
   /** The scale weight of a legacy single-roll filament, which has no spool record. */
   totalWeight?: number | null;
+  /** Cleared (null) with a range endpoint so the old single nozzle value cannot reappear. */
+  "temperatures.nozzle"?: number | null;
   "temperatures.nozzleRangeMin"?: number | null;
   "temperatures.nozzleRangeMax"?: number | null;
   "temperatures.bed"?: number | null;
@@ -151,9 +153,12 @@ export function changePatches(
       }
       case "nozzleTempMin":
         filament["temperatures.nozzleRangeMin"] = toNumber(to);
+        // The load reads nozzleRangeMin ?? nozzle, so a cleared endpoint must clear nozzle too.
+        if (toNumber(to) === null) filament["temperatures.nozzle"] = null;
         break;
       case "nozzleTempMax":
         filament["temperatures.nozzleRangeMax"] = toNumber(to);
+        if (toNumber(to) === null) filament["temperatures.nozzle"] = null;
         break;
       case "bedTempMin":
         filament["temperatures.bed"] = toNumber(to);

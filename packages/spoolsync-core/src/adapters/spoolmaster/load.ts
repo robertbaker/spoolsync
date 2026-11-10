@@ -1,7 +1,12 @@
 import type { LoadResult } from "../../core/model";
 import { readXlsx, type XlsxCell, type XlsxSheet } from "../shared/xlsx";
 import { ZipError } from "../shared/zip";
-import { normalizeHeader, spoolmasterToCommon, type SpoolmasterRow } from "./map";
+import {
+  normalizeHeader,
+  AMBIGUOUS_HEADERS,
+  spoolmasterToCommon,
+  type SpoolmasterRow,
+} from "./map";
 
 const REQUIRED_HEADERS = ["brand", "material"] as const;
 
@@ -15,15 +20,15 @@ function headerMap(row: readonly XlsxCell[]): Map<string, number> | null {
 }
 
 /**
- * Headers that collapse to the same name once units are dropped, such as "Remaining (g)" and
- * "Remaining (%)".
+ * Numeric columns the adapter reads that collapse to the same name once units are dropped, such as
+ * "Remaining (g)" and "Remaining (%)". Duplicates among unread columns are ignored (first wins).
  */
 function duplicateHeaders(row: readonly XlsxCell[]): string[] {
   const seen = new Map<string, string>();
   const duplicates: string[] = [];
   for (const cell of row) {
     const name = normalizeHeader(cell);
-    if (!name) continue;
+    if (!name || !AMBIGUOUS_HEADERS.has(name)) continue;
     const first = seen.get(name);
     if (first === undefined) seen.set(name, String(cell).trim());
     else duplicates.push(`${first} and ${String(cell).trim()}`);

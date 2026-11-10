@@ -59,6 +59,20 @@ export function isLegacyRoll(filament: FilamentDbAppFilament, isTemplate: boolea
   );
 }
 
+/**
+ * The spool export writes the stored filament name (a variant's is often "Parent - Red"), but
+ * SpoolSync names a spool by its color name. A variant's name that starts with its parent's name
+ * and a separator loses that prefix; anything else is kept whole. The JSON and CSV loads share this
+ * so one variant gets one name in both.
+ */
+export function spoolName(stored: string | null, parent: string | null): string | null {
+  if (!stored || !parent || !stored.toLowerCase().startsWith(parent.toLowerCase())) return stored;
+  // The prefix only counts when a separator follows it ("PLA+ Red" is not "PLA" + "+ Red").
+  const separator = /^[\s\-–—:|/·]+/.exec(stored.slice(parent.length));
+  if (!separator) return stored;
+  return stored.slice(parent.length + separator[0].length) || stored;
+}
+
 export function mapFilamentSpools(
   filament: FilamentDbAppFilament,
   parent: FilamentDbAppFilament | undefined,
@@ -68,7 +82,9 @@ export function mapFilamentSpools(
   if (!Array.isArray(filament["spools"])) return [];
   const vendor = toText(inherited(filament, parent, "vendor"));
   const material = toText(inherited(filament, parent, "type"));
-  const name = toText(filament["colorName"]) ?? toText(filament["name"]);
+  const name =
+    toText(filament["colorName"]) ??
+    spoolName(toText(filament["name"]), parent ? toText(parent["name"]) : null);
   const own = Array.isArray(filament["secondaryColors"]) ? filament["secondaryColors"] : [];
   const secondary =
     own.length === 0 && Array.isArray(parent?.["secondaryColors"])

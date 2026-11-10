@@ -20,6 +20,8 @@ export class LoadState {
   /** Server requests started at or before this revision used a connection that has since changed. */
   private readonly apiFloors = new Map<SourceId, number>();
 
+  private readonly fileReads = new Map<SourceId, number>();
+
   constructor(private readonly storage: InventoryStorage) {}
 
   restore(source: SourceId): void {
@@ -35,6 +37,17 @@ export class LoadState {
     const revision = (this.revisions.get(source) ?? 0) + 1;
     this.revisions.set(source, revision);
     return revision;
+  }
+
+  /** Numbers a file read as it starts, so the newest-started read of a source wins. */
+  startFileRead(source: SourceId): number {
+    const ticket = (this.fileReads.get(source) ?? 0) + 1;
+    this.fileReads.set(source, ticket);
+    return ticket;
+  }
+
+  isLatestFileRead(source: SourceId, ticket: number): boolean {
+    return this.fileReads.get(source) === ticket;
   }
 
   /**

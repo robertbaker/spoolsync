@@ -286,4 +286,76 @@ describe("SpoolMaster remaining percent and headers", () => {
       "duplicate column names (Remaining (g) and Remaining (%))",
     );
   });
+
+  test("ignores duplicate columns the adapter does not read (first wins)", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Internal", "Internal (2)"],
+          ["Prusa", "PLA", "a", "b"],
+        ],
+      },
+    ]);
+    const result = await loadSpoolmasterXlsx(bytes);
+    expect(result.spools).toHaveLength(1);
+  });
+
+  test("keeps the first of two Notes columns without refusing the file", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Notes", "Notes"],
+          ["Prusa", "PLA", "first", "second"],
+        ],
+      },
+    ]);
+    const result = await loadSpoolmasterXlsx(bytes);
+    expect(result.spools[0]!.comment).toBe("first");
+  });
+
+  test("still refuses read columns that differ only by unit", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Price (CHF)", "Price (EUR)"],
+          ["Prusa", "PLA", 20, 21],
+        ],
+      },
+    ]);
+    await expect(loadSpoolmasterXlsx(bytes)).rejects.toThrow("duplicate column names");
+  });
+
+  test("ignores the percent column when Remaining Weight is present", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Initial Weight (g)", "Remaining Weight (g)", "Remaining (%)"],
+          ["Prusa", "PLA", 1000, 250, 90],
+        ],
+      },
+    ]);
+    const result = await loadSpoolmasterXlsx(bytes);
+    expect(result.spools[0]!.remainingWeight).toBe(250);
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a percent column mixing fractions and points reads each by magnitude", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Initial Weight (g)", "Remaining (%)"],
+          ["Prusa", "PLA", 1000, 0.5],
+          ["Prusa", "PLA", 1000, 50],
+          ["Prusa", "PLA", 1000, 150],
+        ],
+      },
+    ]);
+    const result = await loadSpoolmasterXlsx(bytes);
+    expect(result.spools.map((s) => s.remainingWeight)).toEqual([500, 500, 1000]);
+  });
 });

@@ -57,6 +57,10 @@ export function exportTtag(
       );
     if (typeof values.comment === "string" && Array.from(values.comment).length > 500)
       warnings.push(`TigerTag ${label}: notes were shortened to the format's 500-character limit.`);
+    if ("remainingWeight" in values && values.remainingWeight === null)
+      warnings.push(
+        `TigerTag ${label}: the remaining weight is unknown and records cannot store that, so it was exported as the full spool weight.`,
+      );
     if (typeof values.finish === "string") {
       const labels = finishLabels(values.finish);
       const unknown = labels.slice(0, 2).filter((label) => aspectId(label) === null);

@@ -61,3 +61,39 @@ test("a failed file returns null even when an older inventory is loaded", async 
   expect(await readInventoryFile("spoolio", file("not json"), ctx)).toBeNull();
   expect(ctx.state.results.get("spoolio")).toBe(good!);
 });
+
+test("the newest-started read wins even when an older one finishes first", async () => {
+  const ctx = context();
+  const doc = (brand: string) => JSON.stringify({ version: 1, filaments: [{ id: "a", brand }] });
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  const older = file(doc("Older"));
+  const newer = {
+    name: "new.json",
+    size: 10,
+    text: async () => {
+      await gate;
+      return doc("Newer");
+    },
+  } as unknown as File;
+  const first = readInventoryFile("spoolio", older, ctx);
+  const second = readInventoryFile("spoolio", newer, ctx);
+  expect(await first).toBeNull();
+  release();
+  const winner = await second;
+  expect(winner?.spools).toHaveLength(1);
+  expect(JSON.stringify(winner)).toContain("Newer");
+  expect(ctx.state.results.get("spoolio")).toBe(winner!);
+});
+
+test("a read superseded by a server load leaves a message rather than a blank panel", async () => {
+  const ctx = context();
+  const pending = readInventoryFile(
+    "spoolio",
+    file(JSON.stringify({ version: 1, filaments: [{ id: "a", brand: "A" }] })),
+    ctx,
+  );
+  ctx.state.nextRevision("spoolio");
+  expect(await pending).toBeNull();
+  expect(document.getElementById("spoolio-message")?.textContent).toContain("was not loaded");
+});

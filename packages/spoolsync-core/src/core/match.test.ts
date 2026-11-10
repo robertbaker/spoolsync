@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { groupKey, matchSpools, pairKey, similarity, splitPairKey } from "./match";
+import {
+  canonicalDecisions,
+  canonicalPairKey,
+  groupKey,
+  matchSpools,
+  pairKey,
+  similarity,
+  splitPairKey,
+} from "./match";
 import { compareText } from "./matching/identity";
 import { makeSpool } from "./testing";
 
@@ -201,6 +209,30 @@ describe("pair decisions", () => {
     expect(result.problems).toEqual([]);
     const rejected = matchSpools([a, b], { confirmed: [], rejected: [key] });
     expect(rejected.suggestions).toEqual([]);
+  });
+
+  test("pair keys saved before % was escaped still match and are re-keyed", () => {
+    const legacy = "spoolman:50%|spoolstock:abc";
+    expect(canonicalPairKey(legacy)).toBe(pairKey("spoolman:50%", "spoolstock:abc"));
+    expect(canonicalPairKey(pairKey("spoolman:50%", "spoolstock:abc"))).toBe(
+      pairKey("spoolman:50%", "spoolstock:abc"),
+    );
+    expect(canonicalPairKey("not a pair")).toBe("not a pair");
+    expect(
+      canonicalDecisions({
+        confirmed: [legacy, pairKey("spoolman:50%", "spoolstock:abc")],
+        rejected: [],
+      }),
+    ).toEqual({
+      confirmed: [pairKey("spoolman:50%", "spoolstock:abc")],
+      rejected: [],
+    });
+    const a = makeSpool("spoolman", "50%", { crossIds: { spoolmanId: 50 } });
+    const b = makeSpool("spoolstock", "abc");
+    expect(matchSpools([a, b], { confirmed: [legacy], rejected: [] }).groups[0]?.status).toBe(
+      "linked",
+    );
+    expect(matchSpools([a, b], { confirmed: [], rejected: [legacy] }).suggestions).toEqual([]);
   });
 
   test("a malformed confirmed pair is reported, not silently dropped", () => {

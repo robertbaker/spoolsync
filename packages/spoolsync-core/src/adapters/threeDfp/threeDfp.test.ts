@@ -174,7 +174,8 @@ describe("3DFilamentProfiles created rows and links", () => {
         runtime(["abcdefab-1111-2222-3333-444444444444"]),
       ).json,
     )[0];
-    expect(row.short_code).toBe("abcdefab1");
+    expect(row.short_code).toMatch(/^[0-9A-Za-z]{9}$/);
+    expect(row.spool_url).toBe(`https://spooldb.com/s/${row.short_code}`);
     expect(row.updated_at).toBe("2026-11-09T12:00:00.123+00:00");
     expect(row).not.toHaveProperty("filament_id");
     expect(row.empty_spool_weight).toBeNull();
@@ -188,14 +189,45 @@ describe("3DFilamentProfiles created rows and links", () => {
   });
 
   test("a new short code never reuses an existing row's code", () => {
+    const first = JSON.parse(
+      exportThreeDfp(
+        loadThreeDfpFile("[]"),
+        createChanges({ vendor: "Synth" }),
+        runtime(["abcdefab-1111-2222-3333-444444444444"]),
+      ).json,
+    )[0].short_code as string;
     const row = JSON.parse(
       exportThreeDfp(
-        loadThreeDfpFile(JSON.stringify([{ short_code: "abcdefab1", brand: "Synth" }])),
+        loadThreeDfpFile(JSON.stringify([{ short_code: first, brand: "Synth" }])),
         createChanges({ vendor: "Synth" }),
         runtime(["abcdefab-1111-2222-3333-444444444444", "bbbbbbbb-2222-3333-4444-555555555555"]),
       ).json,
     )[1];
-    expect(row.short_code).toBe("bbbbbbbb2");
+    expect(row.short_code).toMatch(/^[0-9A-Za-z]{9}$/);
+    expect(row.short_code).not.toBe(first);
+  });
+
+  test("updates refresh updated_at on rows that carry it", () => {
+    const loaded = loadThreeDfpFile(
+      JSON.stringify([
+        { short_code: "AAA111", brand: "Synth", updated_at: "2020-01-01T00:00:00+00:00" },
+      ]),
+    );
+    const out = exportThreeDfp(
+      loaded,
+      [
+        {
+          kind: "update",
+          source: "threeDfp",
+          groupId: "g",
+          spool: loaded.spools[0]!,
+          links: {},
+          changes: [{ field: "vendor", from: "Synth", to: "Other" }],
+        },
+      ],
+      runtime([]),
+    );
+    expect(JSON.parse(out.json)[0].updated_at).toBe("2026-11-09T12:00:00.123+00:00");
   });
 
   test("updates write the Spoolstock link into the notes and keep other notes", () => {

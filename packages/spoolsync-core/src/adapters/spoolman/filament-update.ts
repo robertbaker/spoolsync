@@ -11,7 +11,12 @@ import {
   temperatureParams,
 } from "./filament-policy";
 import { limitText, type LimitWarn } from "./limits";
-import type { FilamentParameters, SpoolParameters, SpoolmanSpool } from "./schema";
+import type {
+  FilamentParameters,
+  SpoolParameters,
+  SpoolmanFilament,
+  SpoolmanSpool,
+} from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
 
 export async function applyFilamentChanges(
@@ -22,13 +27,14 @@ export async function applyFilamentChanges(
   client: Pick<SpoolmanWriteClient, "updateFilament">,
   catalog: FilamentCatalog,
   warn?: LimitWarn,
-): Promise<string> {
+): Promise<{ note: string; movedTo?: SpoolmanFilament }> {
   // A per-spool diameter override is patched on the spool, not on the filament.
   const filamentChanges = change.changes.filter(
     (c) =>
       FILAMENT_FIELDS.has(c.field) && !(c.field === "diameter" && hasDiameterOverride(current)),
   );
   let filamentNote = "";
+  let movedTo: SpoolmanFilament | undefined;
   if (filamentChanges.length) {
     const target = Object.fromEntries(
       filamentChanges.map((c) => [c.field, c.to]),
@@ -60,6 +66,7 @@ export async function applyFilamentChanges(
       );
       if (filament.id !== current.filament.id) {
         patch.filament_id = filament.id;
+        movedTo = filament;
         // Moving to a matching filament must not change values the spool previously inherited.
         if (!("price" in patch) && current.price == null && current.filament.price != null)
           patch.price = current.filament.price;
@@ -94,7 +101,7 @@ export async function applyFilamentChanges(
       if (["nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"].some((k) => k in target))
         Object.assign(
           filamentPatch,
-          temperatureParams(temps, catalog.hasRanges || hasTempRanges(current.filament)),
+          temperatureParams(temps, catalog.hasRanges || hasTempRanges(current.filament), warn),
         );
       if (target.diameter != null) filamentPatch.diameter = target.diameter;
       if (target.density != null) filamentPatch.density = target.density;
@@ -107,5 +114,5 @@ export async function applyFilamentChanges(
     }
   }
 
-  return filamentNote;
+  return { note: filamentNote, ...(movedTo ? { movedTo } : {}) };
 }

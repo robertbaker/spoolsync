@@ -50,7 +50,7 @@ describe("loadSpoolioJson", () => {
       bedTempMin: null,
       initialWeight: 250,
       remainingWeight: 250,
-      price: 0,
+      price: null,
       purchasedOn: "2026-09-30",
     });
   });
@@ -78,8 +78,9 @@ describe("exportSpoolioJson", () => {
       expect(written.price).toBe(0);
       expect(loadSpoolioJson(output.json).spools[0]).toMatchObject({
         remainingWeight: 0,
-        price: 0,
+        price: null,
       });
+      if (value === null) expect(output.warnings.join(" ")).toContain("unknown remaining weight");
     }
     const loaded = loadSpoolioJson(
       '{"version":1,"filaments":[{"id":"a","weightRemaining":100,"price":20}]}',
@@ -99,8 +100,9 @@ describe("exportSpoolioJson", () => {
     ]);
     expect(loadSpoolioJson(cleared.json).spools[0]).toMatchObject({
       remainingWeight: 0,
-      price: 0,
+      price: null,
     });
+    expect(cleared.warnings.join(" ")).toContain("unknown remaining weight");
   });
   test("preserves richer material names through Spoolio's canonical types and later note edits", () => {
     const loaded = loadSpoolioJson('{"version":1,"filaments":[]}');
@@ -124,7 +126,7 @@ describe("exportSpoolioJson", () => {
     expect(reloaded.spools[0]).toMatchObject({
       material: "PLA-Glow",
       comment: "Keep dry",
-      price: 0,
+      price: null,
     });
     const updated = exportSpoolioJson(reloaded, [
       {
@@ -218,6 +220,11 @@ describe("finish and lot number", () => {
     });
   });
 
+  test("reads Spoolio's default Standard finish as no finish", () => {
+    const standard = '{"version":1,"filaments":[{"id":"a","finish":"Standard"}]}';
+    expect(loadSpoolioJson(standard).spools[0]!.finish).toBeNull();
+  });
+
   test("writes finish and lot number and keeps abrasive", () => {
     const loaded = loadSpoolioJson(source);
     const output = update(loaded, [
@@ -253,7 +260,10 @@ describe("finish and lot number", () => {
       new Map([[plain[0]!.id, { values: {}, createIn: ["spoolio"] }]]),
     ).get("spoolio")!;
     const plainSpool = loadSpoolioJson(exportSpoolioJson(empty, plainChanges).json).spools[0]!;
-    expect(plainSpool.finish).toBe("Standard");
+    expect(plainSpool.finish).toBeNull();
+    expect(JSON.parse(exportSpoolioJson(empty, plainChanges).json).filaments[0].finish).toBe(
+      "Standard",
+    );
     expect(JSON.parse(exportSpoolioJson(empty, plainChanges).json).filaments[0].abrasive).toBe(
       false,
     );

@@ -1,10 +1,11 @@
+import { stripBom } from "../shared/text";
 import { recordsToSpools } from "./map";
 import { TtagFileSchema, type TigertagLoadResult, type TtagRecord } from "./schema";
 
 export function loadTtag(text: string): TigertagLoadResult {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripBom(text));
   } catch {
     throw new Error(
       "This file is not valid JSON. Export a .ttag from Tiger Studio Manager and try again.",

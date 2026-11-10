@@ -10,7 +10,7 @@ import type {
   GroupResolution,
   SpoolValues,
 } from "./types";
-import { isBlank, valuesEqual } from "./values";
+import { clusterByTolerance, hasTolerance, isBlank, valuesEqual } from "./values";
 
 export function presentSources(group: SpoolGroup): SourceId[] {
   const present: SourceId[] = [];
@@ -50,24 +50,39 @@ function compareMembers(group: SpoolGroup, sources: SourceId[]): FieldComparison
   for (const field of COMPARABLE_FIELDS) {
     const options: FieldOption[] = [];
     const blank: SourceId[] = [];
+    const present: Array<{ source: SourceId; value: FieldValue }> = [];
     let participants = 0;
     for (const source of sources) {
       const member = group.members[source]!;
       if (!SOURCE_FIELDS[source].has(field) || member.unavailable?.includes(field)) continue;
       participants++;
       const value = member[field];
-      if (isBlank(value)) {
-        blank.push(source);
-        continue;
-      }
-      const option = options.find((candidate) => valuesEqual(field, candidate.value, value));
-      if (option) option.sources.push(source);
-      else
-        options.push({
-          value: Array.isArray(value) ? [...value] : value,
-          sources: [source],
-        });
+      if (isBlank(value)) blank.push(source);
+      else present.push({ source, value });
     }
+    // Tolerant numbers are clustered in sorted order, so which options exist does not depend on
+    // which service is listed first; options still appear in service order.
+    const numeric =
+      hasTolerance(field) && present.every((entry) => typeof entry.value === "number");
+    const clusters = numeric
+      ? clusterByTolerance(
+          field,
+          present.map((entry) => entry.value as number),
+        )
+      : undefined;
+    const byCluster = new Map<number, FieldOption>();
+    present.forEach(({ source, value }, index) => {
+      const option = clusters
+        ? byCluster.get(clusters[index]!)
+        : options.find((candidate) => valuesEqual(field, candidate.value, value));
+      if (option) {
+        option.sources.push(source);
+        return;
+      }
+      const created = { value: Array.isArray(value) ? [...value] : value, sources: [source] };
+      options.push(created);
+      if (clusters) byCluster.set(clusters[index]!, created);
+    });
     if (participants < 2 || options.length === 0) continue;
     if (options.length > 1) comparisons.push({ field, kind: "conflict", options, blank });
     else if (blank.length) comparisons.push({ field, kind: "fill", options, blank });

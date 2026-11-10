@@ -126,3 +126,16 @@ test("an emptied material keeps FilamentDB's required type and warns", () => {
   expect(record["type"]).toBe("PLA");
   expect(warnings).toEqual([expect.stringContaining("requires a type")]);
 });
+
+test("a 403 on a spool write is a permission error, not a bad token", async () => {
+  const client = new FilamentDbClient({
+    baseUrl: "http://filamentdb.test",
+    fetchImpl: async () => json({ error: "Permission denied" }, 403),
+  });
+  const error = await client.saveSpool({ serial: "A1" }).then(
+    () => null,
+    (e: Error) => e,
+  );
+  expect(error?.message).toContain("denied permission");
+  expect(error?.message).not.toContain("session token");
+});

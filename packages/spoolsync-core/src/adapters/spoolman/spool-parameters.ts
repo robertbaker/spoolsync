@@ -28,10 +28,14 @@ export function buildSpoolPatch(
         patch.price = to as number | null;
         break;
       case "initialWeight":
-        patch.initial_weight = to as number | null;
+        // Spoolman cannot use an initial weight of 0 (it refuses it), so 0 means "none".
+        patch.initial_weight = (to as number | null) || null;
         break;
       case "remainingWeight":
-        patch.remaining_weight = to as number | null;
+        // Spoolman derives the remaining weight from the used weight, so it cannot be cleared.
+        if (to == null)
+          warn?.("remaining weight not cleared: Spoolman has no way to store an unknown one");
+        else patch.remaining_weight = to as number;
         break;
       case "emptySpoolWeight":
         patch.spool_weight = to as number | null;
@@ -61,24 +65,40 @@ export function buildSpoolPatch(
     if (remaining !== null && remaining !== undefined) patch.remaining_weight = remaining;
   }
 
-  // Spoolman reads `initial_weight` before `remaining_weight` in the body, and it refuses a remaining
-  // weight while the spool has no initial weight of its own, so state the one the filament implies.
-  if ("remaining_weight" in patch && !("initial_weight" in patch)) {
-    const inherited = current.filament.weight;
-    // Stating the inherited weight pins it on the spool, so a later filament weight change no longer
-    // reaches it; Spoolman gives no other way to set a remaining weight here.
-    if (current.initial_weight == null && inherited != null) patch.initial_weight = inherited;
-    else if (current.initial_weight == null) {
-      // Neither the spool nor its filament has a weight, so Spoolman would refuse the whole patch.
-      delete patch.remaining_weight;
-      warn?.("remaining weight not set: Spoolman needs an initial weight or a filament weight");
-    }
-  }
-  if ("initial_weight" in patch && "remaining_weight" in patch) {
-    const { remaining_weight, ...rest } = patch;
-    return withExtras({ ...rest, remaining_weight }, change, current, warn);
-  }
   return withExtras(patch, change, current, warn);
+}
+
+/**
+ * Makes a remaining weight in `patch` acceptable to Spoolman. Spoolman applies the body's fields in
+ * its own declaration order (`filament_id`, `initial_weight`, `remaining_weight`), not the JSON key
+ * order, and refuses a remaining weight while the spool has no initial weight of its own.
+ *
+ * `filamentWeight` is the weight of the filament the spool will have after the patch: the new one
+ * when `filament_id` is in the patch (Spoolman inherits its weight first), else the current one.
+ * Call this once the target filament is known.
+ */
+export function settleRemainingWeight(
+  patch: Partial<SpoolParameters>,
+  current: Pick<SpoolmanSpool, "initial_weight">,
+  filamentWeight: number | null | undefined,
+  warn?: LimitWarn,
+): void {
+  if (!("remaining_weight" in patch)) return;
+  const drop = () => {
+    delete patch.remaining_weight;
+    warn?.("remaining weight not set: Spoolman needs an initial weight or a filament weight");
+  };
+  if ("initial_weight" in patch) {
+    // An explicit initial weight is applied before the remaining weight; null clears it.
+    if (patch.initial_weight == null) drop();
+    return;
+  }
+  if (current.initial_weight != null) return;
+  if (filamentWeight == null) return drop();
+  // Moving to another filament inherits that filament's weight before the remaining weight is read.
+  // Otherwise stating the inherited weight pins it on the spool, so a later filament weight change
+  // no longer reaches it; Spoolman gives no other way to set a remaining weight here.
+  if (patch.filament_id === undefined) patch.initial_weight = filamentWeight;
 }
 
 function withExtras(
@@ -98,14 +118,15 @@ function withExtras(
     ...(lostLink && !change.links.spoolstockShortId ? { spoolstock_short_id: lostLink } : {}),
     ...(purchased ? { spoolstock_purchased_on: purchased.to as string | null } : {}),
   });
-  if (Object.keys(newExtras).length || purchased) {
-    // Spoolman merges `extra` per key and only an explicit null clears a value.
-    patch.extra = {
-      ...current.extra,
-      ...newExtras,
-      ...(purchased && purchased.to == null ? { spoolstock_purchased_on: null } : {}),
-    };
-  }
+  // Spoolman merges `extra` per key and validates every key it is sent, so only the keys that
+  // change are sent: an unrelated or unregistered extra must not be able to reject the patch.
+  const changed: Record<string, string | null> = {};
+  for (const [key, value] of Object.entries(newExtras))
+    if (current.extra?.[key] !== value) changed[key] = value;
+  // Only an explicit null clears a value (servers up to ~0.22 type extras as text and refuse null).
+  if (purchased && purchased.to == null && current.extra?.spoolstock_purchased_on != null)
+    changed.spoolstock_purchased_on = null;
+  if (Object.keys(changed).length) patch.extra = changed;
   if (change.links.spoolstockShortId && !current.lot_nr && !("lot_nr" in patch)) {
     patch.lot_nr = limitText("lot number", spoolstockLotNr(change.links.spoolstockShortId), warn);
   }
@@ -129,7 +150,8 @@ export function createSpoolParameters(
   const remainingDropped = values.remainingWeight != null && !hasInitial;
   const params: SpoolParameters = {
     filament_id: filament.id,
-    initial_weight: values.initialWeight,
+    // Spoolman refuses an initial weight of 0, so it is left unset (the filament's applies).
+    initial_weight: values.initialWeight || null,
     ...(remainingDropped ? {} : { remaining_weight: values.remainingWeight }),
     spool_weight: values.emptySpoolWeight,
     location: limitText("location", values.location, warn),

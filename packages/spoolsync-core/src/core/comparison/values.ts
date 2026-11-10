@@ -1,4 +1,4 @@
-import type { ComparableField } from "../model";
+import type { ComparableField, SourceId } from "../model";
 import type { FieldValue } from "./types";
 
 const TOLERANCE: Partial<Record<ComparableField, number>> = {
@@ -22,8 +22,43 @@ export function isBlank(value: FieldValue): boolean {
   return value === null || value === "" || (Array.isArray(value) && value.length === 0);
 }
 
-/** Equality as a person would judge it: case and spacing in text, sub-gram weight noise ignored. */
-export function valuesEqual(field: ComparableField, a: FieldValue, b: FieldValue): boolean {
+/** True when `field` compares numbers within a tolerance rather than exactly. */
+export const hasTolerance = (field: ComparableField): boolean => TOLERANCE[field] !== undefined;
+
+/**
+ * Splits numbers into runs where each value is within the field's tolerance of the run's lowest
+ * value. Walking the values in sorted order makes the result independent of the order they are
+ * given in (a chain such as 215, 215.5, 216 is not split differently by who is listed first).
+ * Returns each value's cluster index, in input order.
+ */
+export function clusterByTolerance(field: ComparableField, values: readonly number[]): number[] {
+  const tolerance = TOLERANCE[field] ?? 0;
+  const order = values.map((_, index) => index).toSorted((x, y) => values[x]! - values[y]!);
+  const cluster = Array.from<number>({ length: values.length });
+  let base = Number.NaN;
+  let current = -1;
+  for (const index of order) {
+    const value = values[index]!;
+    if (current < 0 || value - base > tolerance) {
+      current++;
+      base = value;
+    }
+    cluster[index] = current;
+  }
+  return cluster;
+}
+
+/**
+ * Equality as a person would judge it: case and spacing in text, sub-gram weight noise ignored.
+ * `target` is the service the value is being compared for; Spoolman's 64-character cut applies only
+ * to Spoolman. Without a target (comparing several services) the cut is allowed.
+ */
+export function valuesEqual(
+  field: ComparableField,
+  a: FieldValue,
+  b: FieldValue,
+  target?: SourceId,
+): boolean {
   if (a === b) return true;
   if (isBlank(a) || isBlank(b)) return isBlank(a) && isBlank(b);
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -38,7 +73,9 @@ export function valuesEqual(field: ComparableField, a: FieldValue, b: FieldValue
   if (typeof a === "string" && typeof b === "string")
     return (
       normalizeText(a) === normalizeText(b) ||
-      (LIMITED_FIELDS.has(field) && (cutToLimit(a, b) || cutToLimit(b, a)))
+      ((target === undefined || target === "spoolman") &&
+        LIMITED_FIELDS.has(field) &&
+        (cutToLimit(a, b) || cutToLimit(b, a)))
     );
   return false;
 }

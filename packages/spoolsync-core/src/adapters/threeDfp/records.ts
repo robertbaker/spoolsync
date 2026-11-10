@@ -53,7 +53,10 @@ export function updateRecord(
   change: PlannedUpdate,
   format: "csv" | "json",
   warnings: string[],
+  runtime?: AdapterRuntime,
 ): void {
+  // Real rows stamp updated_at on every edit; only rows that already carry the key get it.
+  if (runtime && Object.hasOwn(row, "updated_at")) row["updated_at"] = isoUtc(runtime);
   const changed = new Map(change.changes.map((item) => [item.field, item.to]));
   for (const item of change.changes) {
     const fieldName = fields[item.field];
@@ -100,12 +103,27 @@ export function updateRecord(
   }
 }
 
+const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const isoUtc = (runtime: AdapterRuntime) =>
+  new Date(runtime.now()).toISOString().replace("Z", "+00:00");
+
+/** Real short codes are 9 mixed-case base62 characters; derived from the injected UUID source. */
+function base62Code(uuid: string): string {
+  let n = BigInt(`0x${uuid.replaceAll("-", "").padEnd(32, "0").slice(0, 32)}`);
+  let code = "";
+  for (let i = 0; i < 9; i++) {
+    code += BASE62[Number(n % 62n)];
+    n /= 62n;
+  }
+  return code;
+}
+
 const NOTE_KEYS = ["notes", "comment", "description"] as const;
 
 /** Picks a short code that no existing row uses, so a new spool never overwrites another by ID. */
 function uniqueShortCode(runtime: AdapterRuntime, taken: ReadonlySet<string>): string {
   for (let attempt = 0; attempt < 100; attempt++) {
-    const code = runtime.randomUUID().replaceAll("-", "").slice(0, 9);
+    const code = base62Code(runtime.randomUUID());
     if (!taken.has(code)) return code;
   }
   throw new Error("Could not generate a unique 3DFilamentProfiles short code. Try again.");
@@ -143,7 +161,7 @@ export function createRecord(
     empty_spool_weight: change.values.emptySpoolWeight ?? (format === "csv" ? "" : null),
     location: change.values.location ?? "",
     // filament_id points at the shared 3DFilamentProfiles catalog, which SpoolSync cannot derive.
-    updated_at: new Date(runtime.now()).toISOString().replace("Z", "+00:00"),
+    updated_at: isoUtc(runtime),
     notes: [lot, change.values.comment ?? ""].filter(Boolean).join("\n"),
   };
   if (format === "csv")

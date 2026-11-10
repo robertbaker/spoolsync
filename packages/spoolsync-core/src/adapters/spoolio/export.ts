@@ -40,6 +40,7 @@ export function exportSpoolioJson(
   }
   let updated = 0;
   let created = 0;
+  const nullWeights: string[] = [];
 
   for (const change of changes) {
     if (change.source !== "spoolio") continue;
@@ -51,10 +52,14 @@ export function exportSpoolioJson(
           `Spoolio filament ${change.spool.sourceId} is missing. Reload the inventory and try again.`,
         );
       target = existing;
-      for (const { field, to } of change.changes) setField(target, field, to);
+      for (const { field, to } of change.changes) {
+        setField(target, field, to);
+        if (to == null && field === "remainingWeight") nullWeights.push(change.spool.sourceId);
+      }
       updated++;
     } else {
       target = newFilament(change.values, runtime);
+      if (change.values.remainingWeight == null) nullWeights.push(`new spool ${change.groupId}`);
       filaments.push(target);
       created++;
     }
@@ -80,6 +85,11 @@ export function exportSpoolioJson(
     created,
     total: byId.size + created,
     warnings: [
+      ...(nullWeights.length
+        ? [
+            `Spoolio cannot store an unknown remaining weight, so it was written as 0 g for ${nullWeights.join(", ")}.`,
+          ]
+        : []),
       ...(unrecognized
         ? [
             `${unrecognized} unrecognized filament record${unrecognized === 1 ? " was" : "s were"} preserved unchanged and could not be synced.`,

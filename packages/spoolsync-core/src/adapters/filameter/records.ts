@@ -32,10 +32,10 @@ export function updateDoc(
     const initial = initialWeight ? toNumber(initialWeight.to) : change.spool.initialWeight;
     const remaining = remainingWeight ? toNumber(remainingWeight.to) : change.spool.remainingWeight;
     if (initial === null && remaining === null) {
-      doc.total_weight = UNKNOWN_TOTAL;
-      doc.used_weight = 0;
-      if ("calc_weight" in doc) doc.calc_weight = UNKNOWN_TOTAL;
-      warnings.push(unknownWeightsWarning(`FilaMeter ${change.spool.sourceId}`));
+      // Unknown weights are not invented on an existing spool: the stored weight stays as it was.
+      warnings.push(
+        `FilaMeter ${change.spool.sourceId}: weights are unknown and FilaMeter cannot store that, so the existing weight was left unchanged.`,
+      );
     } else {
       const weights = exportWeights(initial, remaining, `FilaMeter ${change.spool.sourceId}`);
       doc.total_weight = weights.total;
@@ -93,6 +93,8 @@ export function createDoc(
       }
     : exportWeights(change.values.initialWeight, change.values.remainingWeight, label);
   warnings.push(...weights.warnings);
+  if (!change.values.material)
+    warnings.push(`${label}: FilaMeter requires a material, so it is set to "PLA".`);
   if (!change.values.name)
     warnings.push(
       `${label}: FilaMeter requires a filament name, so it is named "Imported Filament".`,
@@ -100,7 +102,7 @@ export function createDoc(
   const doc: FilameterDoc = {
     _id: runtime.randomUUID(),
     filament: change.values.name || "Imported Filament",
-    material: change.values.material ?? "PLA",
+    material: change.values.material || "PLA",
     brand: change.values.vendor ?? "",
     color: change.values.colors[0] ? `#${change.values.colors[0]}` : "",
     total_weight: weights.total,

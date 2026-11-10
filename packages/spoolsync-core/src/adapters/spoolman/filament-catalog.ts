@@ -11,13 +11,21 @@ import {
   middle,
   colorParams,
   existingHexes,
+  filamentTemps,
   hasTempRanges,
   integerTemperature,
   temperatureParams,
+  type FilamentTemps,
 } from "./filament-policy";
 import { limitText, type LimitWarn } from "./limits";
 import type { SpoolmanFilament, SpoolmanVendor } from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
+
+const sameTemps = (a: FilamentTemps, b: FilamentTemps) =>
+  a.nozzleTempMin === b.nozzleTempMin &&
+  a.nozzleTempMax === b.nozzleTempMax &&
+  a.bedTempMin === b.bedTempMin &&
+  a.bedTempMax === b.bedTempMax;
 
 /** Per-apply catalog: resolves vendors and reuses only compatible filament definitions. */
 export class FilamentCatalog {
@@ -135,12 +143,8 @@ export class FilamentCatalog {
     const existing = Array.from(this.filamentsByIdentity.get(key)?.values() ?? []).find(
       (candidate) =>
         (!template || metadataKey(candidate) === metadataKey(template)) &&
-        (!this.ranges ||
-          ((candidate.settings_extruder_temp_min || null) === values.nozzleTempMin &&
-            (candidate.settings_extruder_temp_max || null) === values.nozzleTempMax &&
-            (candidate.settings_bed_temp_min || null) === values.bedTempMin &&
-            (candidate.settings_bed_temp_max || null) === values.bedTempMax)) &&
-        (values.initialWeight !== null || candidate.weight == null) &&
+        (!this.ranges || sameTemps(filamentTemps(candidate), values)) &&
+        (!!values.initialWeight || candidate.weight == null) &&
         (values.price !== null || candidate.price == null) &&
         (values.emptySpoolWeight !== null || candidate.spool_weight == null),
     );
@@ -151,11 +155,12 @@ export class FilamentCatalog {
       material: values.material,
       density: values.density ?? defaultDensity(values.material),
       diameter: identity.diameter,
-      weight: values.initialWeight,
+      // Spoolman requires a filament weight above 0, so 0 is left unset.
+      weight: values.initialWeight || null,
       price: values.price,
       spool_weight: values.emptySpoolWeight,
       article_number: values.upc,
-      ...temperatureParams(values, this.ranges),
+      ...temperatureParams(values, this.ranges, warn),
       ...colorParams(values.colors, direction, existingHexes(template)),
       ...(template
         ? {

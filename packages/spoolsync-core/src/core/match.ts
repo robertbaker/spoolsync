@@ -7,6 +7,13 @@ export type {
   SimilarityResult,
   MatchingPolicy,
 } from "./matching/types";
-export { recordKey, groupKey, pairKey, splitPairKey } from "./matching/keys";
+export {
+  recordKey,
+  groupKey,
+  pairKey,
+  splitPairKey,
+  canonicalPairKey,
+  canonicalDecisions,
+} from "./matching/keys";
 export { similarity, SUGGEST_THRESHOLD } from "./matching/similarity";
 export { matchSpools } from "./matching/matcher";

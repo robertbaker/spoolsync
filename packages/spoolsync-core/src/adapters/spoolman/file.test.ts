@@ -271,3 +271,12 @@ describe("exportSpoolmanJson", () => {
     expect(loadSpoolmanFile(result.json).spools).toHaveLength(2);
   });
 });
+
+test("a spreadsheet formula quote is stripped from extra values too", () => {
+  const row = { "extra.note": "'-5", "extra.plain": "x", location: "'=SUM(1)" };
+  expect(unflatten(row, true)).toMatchObject({
+    extra: { note: "-5", plain: "x" },
+    location: "=SUM(1)",
+  });
+  expect(unflatten(row)).toMatchObject({ extra: { note: "'-5" } });
+});

@@ -21,7 +21,11 @@ import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
 import { confirmDialog } from "./confirm-dialog";
-import { CONNECTION_CHANGED } from "./connections/events";
+import {
+  announceConnectionChange,
+  changedConnectionSource,
+  CONNECTION_CHANGED,
+} from "./connections/events";
 import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
@@ -242,7 +246,7 @@ void Promise.all([
       loadSpoolmanConnection: storage.loadSpoolmanConnection,
       saveSpoolmanConnection: (connection) => {
         storage.saveSpoolmanConnection(connection);
-        document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
+        announceConnectionChange("spoolman");
       },
     },
   }),
@@ -250,8 +254,11 @@ void Promise.all([
 
 // Saving a different connection invalidates that service's fetched snapshot in storage; mirror it
 // here so the page never shows (or syncs) an inventory that came from the previous server or account.
-document.addEventListener(CONNECTION_CHANGED, () => {
+document.addEventListener(CONNECTION_CHANGED, (event) => {
+  // An event naming one service leaves other services' in-flight loads and snapshots alone.
+  const only = changedConnectionSource(event);
   for (const source of SOURCE_IDS) {
+    if (only && source !== only) continue;
     // Reject any in-flight server response that was started for the previous connection. In-flight
     // file loads are unaffected: they do not depend on a connection.
     if ((SERVICES[source].apiClients as readonly string[]).includes("browser"))
@@ -368,7 +375,6 @@ if (autoFetch) {
       ["tigertag", "tigertag-cloud"],
       ["bambuddy", "bambuddy-fetch"],
       ["filamentdb", "filamentdb-fetch"],
-      ["filamentDbApp", "filamentDbApp-fetch"],
     ];
     for (const [source, id] of fetchers) {
       const button = document.getElementById(id) as HTMLButtonElement | null;

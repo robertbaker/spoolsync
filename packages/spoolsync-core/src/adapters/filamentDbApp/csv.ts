@@ -7,6 +7,7 @@ import {
   toText,
 } from "../../core/normalize";
 import { field, parseTable } from "../shared/tabular";
+import { spoolName } from "./map";
 import type { FilamentDbAppLoadResult } from "./types";
 
 /** The spool CSV has no columns for these, so a CSV load leaves them out of comparison. */
@@ -23,21 +24,37 @@ const CSV_UNAVAILABLE: readonly ComparableField[] = [
 
 const text = (row: Record<string, unknown>, ...names: string[]) => toText(field(row, ...names));
 
+/** A text cell with the export's formula guard removed. */
+const plain = (row: Record<string, unknown>, ...names: string[]) => {
+  const value = text(row, ...names);
+  return value === null ? null : unsanitizeCsvCell(value);
+};
+
 /** A purchase date cell is `YYYY-MM-DD`; anything else is left out rather than guessed. */
 const date = (value: string | null) =>
   value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
 
+const FORMULA_TRIGGERS = ["=", "+", "-", "@", String.fromCharCode(9), String.fromCharCode(13)];
+
 /**
- * The spool export writes the stored filament name (a variant's is often "Parent - Red"), but
- * SpoolSync names a spool by its color name, as the JSON load does. A variant's name that starts
- * with its parent's name and a separator loses that prefix; anything else is kept whole.
+ * Undoes the `'` that Filament DB's CSV export puts before a cell starting with a formula character
+ * (`csvCell`/`unsanitizeCsvCell` upstream): one apostrophe, or one of a longer apostrophe run, is
+ * stripped only when a formula character follows. Other apostrophes are real.
  */
-function spoolName(stored: string | null, parent: string | null): string | null {
-  if (!stored || !parent || !stored.toLowerCase().startsWith(parent.toLowerCase())) return stored;
-  // The prefix only counts when a separator follows it ("PLA+ Red" is not "PLA" + "+ Red").
-  const separator = /^[\s\-–—:|/·]+/.exec(stored.slice(parent.length));
-  if (!separator) return stored;
-  return stored.slice(parent.length + separator[0].length) || stored;
+export function unsanitizeCsvCell(value: string): string {
+  let n = 0;
+  while (n < value.length && value[n] === "'") n++;
+  return n >= 1 && n < value.length && FORMULA_TRIGGERS.includes(value[n]!)
+    ? value.slice(1)
+    : value;
+}
+
+/** The export's guard for a cell the importer will unguard again, so the stored text survives. */
+export function sanitizeCsvCell(value: string): string {
+  if (value && FORMULA_TRIGGERS.includes(value[0]!)) return `'${value}`;
+  let n = 0;
+  while (n < value.length && value[n] === "'") n++;
+  return n >= 1 && n < value.length && FORMULA_TRIGGERS.includes(value[n]!) ? `'${value}` : value;
 }
 
 /**
@@ -68,9 +85,9 @@ export function loadFilamentDbAppCsv(csv: string): FilamentDbAppLoadResult {
       source: "filamentDbApp",
       sourceId: id,
       crossIds: { filamentDbAppId: id },
-      vendor: text(row, "vendor"),
+      vendor: plain(row, "vendor"),
       material: text(row, "type"),
-      name: spoolName(text(row, "filament"), text(row, "parent")),
+      name: spoolName(plain(row, "filament"), plain(row, "parent")),
       colors: color ? [color] : [],
       diameter: null,
       density: null,
@@ -82,13 +99,13 @@ export function loadFilamentDbAppCsv(csv: string): FilamentDbAppLoadResult {
       initialWeight: toPositiveNumber(field(row, "netFilamentWeight")),
       remainingWeight: gross === null ? null : Math.max(0, gross - (tare ?? 0)),
       emptySpoolWeight: tare,
-      location: text(row, "location"),
+      location: plain(row, "location"),
       price: null,
       purchasedOn: date(text(row, "purchaseDate")),
-      lotNr: text(row, "lotNumber"),
+      lotNr: plain(row, "lotNumber"),
       finish: null,
       td: null,
-      comment: text(row, "label"),
+      comment: plain(row, "label"),
       archived: toBoolean(field(row, "retired")),
       unavailable: CSV_UNAVAILABLE,
       raw: { filamentId, spool: row, legacyRoll: !spoolId },

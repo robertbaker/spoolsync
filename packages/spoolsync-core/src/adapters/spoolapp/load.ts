@@ -23,10 +23,12 @@ export function loadSpoolAppJson(text: string): LoadResult {
     const spool = SpoolAppSpoolSchema.safeParse(entry);
     if (spool.success) {
       const common = spoolAppToCommon(spool.data);
-      if (seen.has(common.sourceId))
+      if (seen.has(common.sourceId)) {
         warnings.push(
-          `Spool ${common.sourceId} appears more than once; each spool needs a unique ID.`,
+          `Spool ${common.sourceId} appears more than once; each spool needs a unique ID, so the later duplicate (entry ${index + 1}) was skipped.`,
         );
+        return;
+      }
       seen.add(common.sourceId);
       spools.push(common);
     } else

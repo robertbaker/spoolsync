@@ -217,7 +217,15 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
       break;
     }
     case "remainingWeight":
-      target["weight_available"] = Math.max(0, (value as number | null) ?? 0);
+      // Chip weights are whole grams. An unknown remaining weight is written as the full spool
+      // for both created and updated records (export.ts warns about it).
+      target["weight_available"] = Math.max(
+        0,
+        Math.round(
+          (value as number | null) ??
+            (typeof target["measure_gr"] === "number" ? target["measure_gr"] : 0),
+        ),
+      );
       break;
     case "emptySpoolWeight":
       if (value == null) delete target["container_weight"];

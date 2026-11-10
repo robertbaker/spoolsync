@@ -103,25 +103,23 @@ export function createFakeSpoolman(
       if (unknown) return json({ message: `Unknown extra field ${unknown}` }, 400);
       const current = spools.get(Number(id))!;
       const { filament_id, extra, ...rest } = body;
-      // Like Spoolman, walk the body in order: `remaining_weight` needs an initial weight that is
-      // already set or was listed (or inherited from a new filament) before it.
+      // Like Spoolman, apply the fields in their declaration order (filament_id, initial_weight,
+      // remaining_weight), whatever the JSON key order: `remaining_weight` needs an initial weight
+      // that is already set, was listed, or was inherited from a new filament.
       let initial: number | null | undefined = current.initial_weight;
-      for (const [key, value] of Object.entries(body)) {
-        if (key === "filament_id") {
-          const weight = filaments.get(value as number)!.weight;
-          if (initial == null && weight != null) {
-            initial = weight;
-            rest.initial_weight ??= weight;
-          }
-        } else if (key === "initial_weight") initial = value as number | null;
-        else if (key === "remaining_weight" && value != null && initial == null)
-          return json(
-            {
-              message: "remaining_weight can only be used if initial_weight is set.",
-            },
-            400,
-          );
+      if (filament_id !== undefined) {
+        const weight = filaments.get(filament_id)!.weight;
+        if (initial == null && weight != null) {
+          initial = weight;
+          if (!("initial_weight" in body)) rest.initial_weight = weight;
+        }
       }
+      if ("initial_weight" in body) initial = body.initial_weight as number | null;
+      if (body.remaining_weight != null && initial == null)
+        return json(
+          { message: "remaining_weight can only be used if initial_weight is set." },
+          400,
+        );
       // Spoolman keeps the used weight, so a new initial weight alone moves what is left.
       if (
         typeof rest.initial_weight === "number" &&

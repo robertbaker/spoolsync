@@ -1,7 +1,14 @@
 import type { CommonSpool, SourceId } from "../model";
 import { Groups } from "./groups";
 import { linkIdentityClaims } from "./identity";
-import { escapeGroupKeyPart, groupKey, recordKey, SOURCE_INDEX, splitPairKey } from "./keys";
+import {
+  canonicalPairKey,
+  escapeGroupKeyPart,
+  groupKey,
+  recordKey,
+  SOURCE_INDEX,
+  splitPairKey,
+} from "./keys";
 import { defaultMatchingPolicy } from "./similarity";
 import { suggestMatches } from "./suggestions";
 import type { RecordKey, MatchDecisions, MatchResult, SpoolGroup, MatchingPolicy } from "./types";
@@ -59,7 +66,8 @@ export function matchSpools(
   }
 
   // Fuzzy suggestions between groups that do not share a service.
-  const rejected = new Set(decisions.rejected);
+  // Keys saved before `%` and `|` were escaped still match.
+  const rejected = new Set(decisions.rejected.map(canonicalPairKey));
   const roots = () => {
     const members = new Map<RecordKey, CommonSpool[]>();
     for (const spool of spools) {

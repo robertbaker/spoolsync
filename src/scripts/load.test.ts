@@ -136,7 +136,11 @@ test("file imports preserve valid data, ignore superseded reads, and respect unl
         ],
       });
       apiInput.dispatchEvent(new Event("change"));
-      await settle(() => readLoadResult("bambuddy")?.spools[0]?.sourceId === "8");
+      await settle(
+        () =>
+          readLoadResult("bambuddy")?.spools[0]?.sourceId === "8" &&
+          apiMessage.textContent.includes("newer.json"),
+      );
       if (outcome === "unload") {
         document.getElementById("bambuddy-status")!.querySelector("button")!.click();
       }

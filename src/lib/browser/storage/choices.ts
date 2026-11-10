@@ -1,5 +1,5 @@
 import type { GroupResolution } from "@spoolsync/core/core/compare";
-import type { MatchDecisions } from "@spoolsync/core/core/match";
+import { canonicalDecisions, type MatchDecisions } from "@spoolsync/core/core/match";
 
 import { read, write, local, session } from "./access";
 
@@ -22,14 +22,15 @@ let lastDecisions: { raw: string | null; decisions: MatchDecisions } | null = nu
 function parseDecisions(raw: string | null): MatchDecisions {
   try {
     const parsed = JSON.parse(raw ?? "{}") as Partial<MatchDecisions>;
-    return {
+    // Decisions saved before `%` and `|` in record IDs were escaped are re-keyed on read.
+    return canonicalDecisions({
       confirmed: Array.isArray(parsed.confirmed)
         ? parsed.confirmed.filter((p) => typeof p === "string")
         : [],
       rejected: Array.isArray(parsed.rejected)
         ? parsed.rejected.filter((p) => typeof p === "string")
         : [],
-    };
+    });
   } catch {
     return { confirmed: [], rejected: [] };
   }

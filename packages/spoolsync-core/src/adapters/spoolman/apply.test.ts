@@ -5,9 +5,11 @@ import { matchSpools } from "../../core/match";
 import { makeSpool } from "../../core/testing";
 import { applyToSpoolman, defaultDensity } from "./apply";
 import { SpoolmanClient } from "./client";
+import { SpoolmanError } from "./connection";
 import { createFakeSpoolman } from "./fake-server";
 import { spoolmanToCommon } from "./map";
-import type { SpoolmanFilament, SpoolmanSpool } from "./schema";
+import type { SpoolmanFilament, SpoolmanSpool, SpoolParameters } from "./schema";
+import { settleRemainingWeight } from "./spool-parameters";
 
 const vendor = { id: 1, name: "Prusament" };
 const filament: SpoolmanFilament = {
@@ -687,5 +689,211 @@ describe("applyToSpoolman convergence and guards", () => {
     ]);
     expect(result[0]!.ok).toBe(true);
     expect(JSON.stringify(result[0])).toContain("remaining weight not set");
+  });
+
+  test("an extras patch sends only the keys that change, never unrelated existing ones", async () => {
+    const { server, client } = setup([
+      spool(51, {
+        extra: { legacy: JSON.stringify("old"), spoolstock_short_id: JSON.stringify("same") },
+      }),
+    ]);
+    server.fields.spool!.add("spoolsync_spoolio_id");
+    await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "e",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: { spoolioId: "abc", spoolstockShortId: "same" },
+        changes: [{ field: "purchasedOn", from: null, to: null }],
+      },
+    ]);
+    const patch = server.requests.find((r) => r.method === "PATCH")!.body as {
+      extra: Record<string, unknown>;
+    };
+    expect(patch.extra).toEqual({ spoolsync_spoolio_id: JSON.stringify("abc") });
+    expect(server.spools.get(51)!.extra!.legacy).toBe(JSON.stringify("old"));
+  });
+
+  test("clearing a purchase date that was never stored sends no extra at all", async () => {
+    const { server, client } = setup([spool(51, { extra: { legacy: JSON.stringify("old") } })]);
+    await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "e",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: {},
+        changes: [
+          { field: "purchasedOn", from: null, to: null },
+          { field: "location", from: null, to: "Shelf" },
+        ],
+      },
+    ]);
+    const patch = server.requests.find((r) => r.method === "PATCH")!.body as object;
+    expect(patch).not.toHaveProperty("extra");
+  });
+
+  test("a temperature range on a server without ranges says it became a midpoint", async () => {
+    const { client } = setup([]);
+    const log = await applyToSpoolman(client, [
+      {
+        kind: "create",
+        source: "spoolman",
+        groupId: "g",
+        values: makeSpool("spoolio", "n", { nozzleTempMin: 200, nozzleTempMax: 220 }),
+        links: {},
+        groupIds: {},
+      },
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    expect(log[0]!.message).toContain("midpoint");
+  });
+
+  test("a single-temperature Spoolman-NG filament matches instead of being duplicated", async () => {
+    const existing: SpoolmanFilament = {
+      ...filament,
+      id: 11,
+      settings_extruder_temp: 220,
+      settings_bed_temp: 60,
+    };
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [existing],
+      spools: [],
+      info: { version: "1.0.0", install_type: "docker" },
+    });
+    const client = new SpoolmanClient(
+      { baseUrl: "http://spoolman.test" },
+      server.fetchImpl,
+      "http:",
+    );
+    const log = await applyToSpoolman(client, [
+      {
+        kind: "create",
+        source: "spoolman",
+        groupId: "g",
+        values: makeSpool("spoolio", "n", {
+          vendor: vendor.name,
+          material: "PLA",
+          name: filament.name,
+          nozzleTempMin: 220,
+          nozzleTempMax: 220,
+          bedTempMin: 60,
+          bedTempMax: 60,
+        }),
+        links: {},
+        groupIds: {},
+      },
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    expect(server.requests.filter((r) => r.method === "POST" && r.path === "/filament")).toEqual(
+      [],
+    );
+  });
+
+  test("a remaining weight after a filament move keeps the spool's weight state valid", async () => {
+    const shared = { ...filament, weight: 1000 };
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [shared],
+      spools: [
+        spool(51, { filament: shared, initial_weight: undefined, remaining_weight: undefined }),
+        spool(52, { filament: shared }),
+      ],
+    });
+    const client = new SpoolmanClient(
+      { baseUrl: "http://spoolman.test" },
+      server.fetchImpl,
+      "http:",
+    );
+    const log = await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "m",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: {},
+        changes: [
+          { field: "name", from: "Galaxy Black", to: "Renamed" },
+          { field: "remainingWeight", from: null, to: 400 },
+        ],
+      },
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    const stored = server.spools.get(51)!;
+    expect(stored.filament.name).toBe("Renamed");
+    expect(stored.remaining_weight).toBe(400);
+  });
+
+  test("a remaining weight is kept when the new filament supplies the weight", () => {
+    const patch: Partial<SpoolParameters> = { filament_id: 20, remaining_weight: 300 };
+    const notes: string[] = [];
+    settleRemainingWeight(patch, { initial_weight: null }, 800, (text) => notes.push(text));
+    expect(patch).toEqual({ filament_id: 20, remaining_weight: 300 });
+    expect(notes).toEqual([]);
+    const none: Partial<SpoolParameters> = { filament_id: 20, remaining_weight: 300 };
+    settleRemainingWeight(none, { initial_weight: null }, null, (text) => notes.push(text));
+    expect(none).toEqual({ filament_id: 20 });
+    expect(notes).toHaveLength(1);
+    const pinned: Partial<SpoolParameters> = { remaining_weight: 300 };
+    settleRemainingWeight(pinned, { initial_weight: null }, 800);
+    expect(pinned.initial_weight).toBe(800);
+  });
+
+  test("notes are separated, and a failed change keeps them", async () => {
+    const { server, client } = setup([spool(51)]);
+    const long = "L".repeat(70);
+    const update = {
+      kind: "update" as const,
+      source: "spoolman" as const,
+      groupId: "n",
+      spool: spoolmanToCommon(server.spools.get(51)!),
+      links: {},
+      changes: [
+        { field: "location" as const, from: null, to: long },
+        { field: "lotNr" as const, from: null, to: long },
+      ],
+    };
+    const ok = await applyToSpoolman(client, [update]);
+    expect(ok[0]!.message).toContain("accepts; lot number was shortened");
+    const failing = Object.create(client, {
+      updateSpool: {
+        value: async () => {
+          throw new Error("boom");
+        },
+      },
+    });
+    const failed = await applyToSpoolman(failing, [update]);
+    expect(failed[0]!.ok).toBe(false);
+    expect(failed[0]!.message).toContain("boom (location was shortened");
+  });
+
+  test("an auth /info failure is not swallowed, a missing /info is", async () => {
+    const { client } = setup([]);
+    const denied = Object.create(client, {
+      info: {
+        value: async () => {
+          throw new SpoolmanError("auth", "Spoolman rejected the token", 401);
+        },
+      },
+    });
+    const create = {
+      kind: "create" as const,
+      source: "spoolman" as const,
+      groupId: "g",
+      values: makeSpool("spoolio", "n"),
+      links: {},
+      groupIds: {},
+    };
+    await expect(applyToSpoolman(denied, [create])).rejects.toThrow("rejected the token");
+    const missing = Object.create(client, {
+      info: {
+        value: async () => {
+          throw new SpoolmanError("http", "HTTP 404", 404);
+        },
+      },
+    });
+    expect((await applyToSpoolman(missing, [create]))[0]!.ok).toBe(true);
   });
 });

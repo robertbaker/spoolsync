@@ -401,9 +401,7 @@ describe("Spoolman-NG range detection and weights", () => {
     expect(entry!.ok).toBe(true);
     const body = server.requests.find((r) => r.method === "PATCH" && r.path === "/spool/51")!
       .body as Record<string, unknown>;
-    expect(Object.keys(body).indexOf("initial_weight")).toBeLessThan(
-      Object.keys(body).indexOf("remaining_weight"),
-    );
+    // Spoolman applies initial_weight before remaining_weight whatever the JSON key order.
     expect(body).toMatchObject({ initial_weight: 1000, remaining_weight: 400 });
   });
 
@@ -429,6 +427,44 @@ describe("Spoolman-NG range detection and weights", () => {
     const post = server.requests.find((r) => r.method === "POST" && r.path === "/spool")!
       .body as Record<string, unknown>;
     expect(post).not.toHaveProperty("remaining_weight");
+  });
+
+  test("a zero initial weight is left unset because Spoolman refuses it", async () => {
+    const { server, client } = connect([], []);
+    const values = makeSpool("spoolstock", "z", {
+      vendor: "Prusament",
+      material: "PLA",
+      initialWeight: 0,
+      remainingWeight: 300,
+    });
+    const [entry] = await applyToSpoolman(client, [
+      {
+        kind: "create",
+        source: "spoolman",
+        groupId: "z",
+        links: {},
+        values,
+      } as never,
+    ]);
+    expect(entry!.ok).toBe(true);
+    const filament = server.requests.find((r) => r.method === "POST" && r.path === "/filament")!
+      .body as Record<string, unknown>;
+    expect(filament.weight).toBeNull();
+    const post = server.requests.find((r) => r.method === "POST" && r.path === "/spool")!
+      .body as Record<string, unknown>;
+    expect(post.initial_weight).toBeNull();
+    expect(post).not.toHaveProperty("remaining_weight");
+  });
+
+  test("clearing the remaining weight is not sent, with a note", async () => {
+    const raw = spool(base, { initial_weight: 1000, remaining_weight: 640 });
+    const { server, client } = connect([base], [raw]);
+    const [entry] = await applyToSpoolman(client, [
+      update(raw, [{ field: "remainingWeight", to: null }]),
+    ]);
+    expect(entry!.message).toContain("remaining weight not cleared");
+    const patch = server.requests.find((r) => r.method === "PATCH" && r.path === "/spool/51");
+    expect(patch?.body ?? {}).not.toHaveProperty("remaining_weight");
   });
 
   test("a spool that fails after its filament was edited reports what was written", async () => {

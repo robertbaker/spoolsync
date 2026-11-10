@@ -89,3 +89,14 @@ test("a current failure preserves inventory and displays its error", async () =>
   expect(f.state.results.get("spoolman")).toBe(inventory);
   expect(f.store).not.toHaveBeenCalled();
 });
+
+test("a response dropped as stale replaces the loading notice", async () => {
+  const f = fixture();
+  expect(f.message.textContent).toContain("Cancel");
+  f.state.invalidateApi("spoolman");
+  f.resolve(inventory);
+  await flush();
+  expect(f.store).not.toHaveBeenCalled();
+  expect(f.message.textContent).not.toContain("Cancel");
+  expect(f.message.textContent).toContain("Nothing was loaded");
+});

@@ -120,13 +120,13 @@ describe("loadSpoolAppJson BOM and duplicates", () => {
     expect(loadSpoolAppJson(`﻿${backup([{ id: "A" }])}`).spools).toHaveLength(1);
   });
 
-  test("warns about a repeated ID and keeps both entries for the workflow to reject", () => {
+  test("warns about a repeated ID and skips the later duplicate", () => {
     const result = loadSpoolAppJson(
       backup([{ id: "A", brand: "First" }, { id: "A", brand: "Second" }, { id: "B" }]),
     );
-    expect(result.spools.map((spool) => spool.vendor)).toEqual(["First", "Second", null]);
+    expect(result.spools.map((spool) => spool.vendor)).toEqual(["First", null]);
     expect(result.warnings).toEqual([
-      "Spool A appears more than once; each spool needs a unique ID.",
+      "Spool A appears more than once; each spool needs a unique ID, so the later duplicate (entry 2) was skipped.",
     ]);
   });
 });

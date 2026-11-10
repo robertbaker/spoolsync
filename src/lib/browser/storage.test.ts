@@ -1,5 +1,7 @@
 import { beforeEach, expect, test } from "bun:test";
 
+import { pairKey } from "@spoolsync/core/core/match";
+
 import {
   clearTigertagSession,
   loadResolutions,
@@ -136,4 +138,15 @@ test("changing API credentials invalidates matching state and API snapshots but 
     save("third");
     expect(readLoadResult(source)?.loadedAt).toBe("file");
   }
+});
+
+test("match decisions saved before % and | were escaped in pair keys are read in the current form", () => {
+  localStorage.setItem(
+    "spoolsync:match-decisions",
+    JSON.stringify({ confirmed: ["spoolman:50%|spoolio:a"], rejected: ["spoolio:b|spoolman:50%"] }),
+  );
+  const key = pairKey("spoolman:50%", "spoolio:a");
+  expect(loadMatchDecisions().confirmed).toEqual([key]);
+  expect(loadMatchDecisions().rejected).toEqual([pairKey("spoolio:b", "spoolman:50%")]);
+  localStorage.clear();
 });

@@ -82,8 +82,8 @@ function withoutStaleValues(group: SpoolGroup, resolution: GroupResolution): Gro
         const member = group.members[source];
         return (
           member !== undefined &&
-          !valuesEqual(field, member[field], before) &&
-          !valuesEqual(field, member[field], chosen)
+          !valuesEqual(field, member[field], before, source) &&
+          !valuesEqual(field, member[field], chosen, source)
         );
       },
     );

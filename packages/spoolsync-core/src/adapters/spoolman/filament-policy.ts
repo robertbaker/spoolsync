@@ -125,6 +125,7 @@ export function hasTempRanges(filament: object): boolean {
 export function temperatureParams(
   temps: FilamentTemps,
   ranges: boolean,
+  warn?: (text: string) => void,
 ): Pick<
   FilamentParameters,
   | "settings_extruder_temp"
@@ -144,7 +145,13 @@ export function temperatureParams(
     settings_extruder_temp: middle(temps.nozzleTempMin, temps.nozzleTempMax),
     settings_bed_temp: middle(temps.bedTempMin, temps.bedTempMax),
   };
-  if (!ranges) return single;
+  if (!ranges) {
+    if (temps.nozzleTempMin !== temps.nozzleTempMax || temps.bedTempMin !== temps.bedTempMax)
+      warn?.(
+        "temperature range written as a single temperature (its midpoint): only Spoolman-NG stores ranges",
+      );
+    return single;
+  }
   return {
     ...single,
     settings_extruder_temp_min: temps.nozzleTempMin,

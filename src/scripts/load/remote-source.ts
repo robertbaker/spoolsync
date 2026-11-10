@@ -108,13 +108,22 @@ export function wireRemoteSource(
     request.loading.append(h("div", { class: "mt-3" }, cancel));
     message.replaceChildren(request.loading);
 
+    // A response dropped as stale must not leave the loading notice up; a newer owner of the panel
+    // has already replaced it, in which case its message is kept.
+    const dropStale = (): void => {
+      if (!message.contains(request.loading)) return;
+      message.replaceChildren(
+        notice("info", `${SOURCE_LABELS[source]} changed while loading. Nothing was loaded.`),
+      );
+    };
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
       timer = setTimeout(() => resolve(TIMED_OUT), options.timeoutMs ?? FETCH_TIMEOUT_MS);
     });
     try {
       const result = await Promise.race([request.load(abort.signal), timeout]);
-      if (!state.isCurrent(source, current, "api")) return;
+      if (!state.isCurrent(source, current, "api")) return dropStale();
       if (result === TIMED_OUT) {
         state.nextRevision(source);
         abort.abort();
@@ -138,7 +147,7 @@ export function wireRemoteSource(
       message.replaceChildren(...request.success(result));
       store(result);
     } catch (error) {
-      if (!state.isCurrent(source, current, "api")) return;
+      if (!state.isCurrent(source, current, "api")) return dropStale();
       message.replaceChildren(
         options.error
           ? options.error(error)

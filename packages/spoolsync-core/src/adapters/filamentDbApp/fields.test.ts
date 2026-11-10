@@ -343,3 +343,159 @@ test("a new spool with an over-long label omits it with a warning on API and CSV
   expect(file.csv).not.toContain(longText);
   expect(file.warnings.join(" ")).toContain("200 characters");
 });
+
+const newValues = (overrides: Record<string, unknown> = {}) => ({
+  vendor: "Acme",
+  material: "PETG",
+  name: "Teal",
+  colors: ["008080"],
+  initialWeight: 1000,
+  remainingWeight: 800,
+  emptySpoolWeight: 200,
+  location: null,
+  archived: false,
+  price: null,
+  density: null,
+  diameter: null,
+  nozzleTempMin: null,
+  nozzleTempMax: null,
+  bedTempMin: null,
+  bedTempMax: null,
+  td: null,
+  comment: null,
+  lotNr: null,
+  purchasedOn: null,
+  ...overrides,
+});
+
+const createOf = (overrides: Record<string, unknown> = {}) =>
+  ({
+    kind: "create",
+    source: "filamentDbApp",
+    groupId: "n",
+    links: {},
+    groupIds: {},
+    values: newValues(overrides),
+  }) as unknown as PlannedChange;
+
+/** A filament with no empty-spool weight of its own. */
+const bareSnapshot = () => {
+  const doc = snapshot();
+  (doc.collections.filaments as object[]).push({
+    _id: "bare",
+    name: "Bare Teal",
+    colorName: "Teal",
+    vendor: "Acme",
+    type: "PETG",
+    color: "#008080",
+    spools: [],
+  });
+  return doc;
+};
+
+test("a new spool on a filament without an empty-spool weight is written without a tare", async () => {
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp(
+    { ...client(calls), snapshot: async () => bareSnapshot() },
+    [createOf({ price: 25, density: 1.27, nozzleTempMin: 230 })],
+  );
+  expect(log[0]!.ok).toBe(true);
+  // 800 g left, no tare on the filament: reloading must read 800 g again.
+  expect(calls).toEqual([["create bare", { totalWeight: 800 }]]);
+  const message = log[0]!.message;
+  expect(message).toContain("no empty-spool weight");
+  expect(message).toContain("price, density, temperatures");
+});
+
+test("a new spool with nothing meaningful to store fails early with a clear message", async () => {
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp(
+    { ...client(calls), snapshot: async () => bareSnapshot() },
+    [createOf({ initialWeight: null, remainingWeight: null })],
+  );
+  expect(log[0]!.ok).toBe(false);
+  expect(log[0]!.message).toContain("at least a weight, label");
+  expect(calls).toEqual([]);
+});
+
+test("a new empty-spool weight warns about sibling spools the plan does not update", async () => {
+  const doc = snapshot();
+  doc.collections.filaments[1]!.spools.push({ _id: "s2", totalWeight: 400 } as never);
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(doc));
+  const s1 = loaded.spools.find((s) => s.sourceId === "s1")!;
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp({ ...client(calls), snapshot: async () => doc }, [
+    update(s1, [["emptySpoolWeight", 200, 250]]),
+  ]);
+  expect(log[0]!.ok).toBe(true);
+  expect(log[0]!.message).toContain("1 other spool");
+  expect(calls).toContainEqual(["filament var", { spoolWeight: 250 }]);
+});
+
+test("clearing a nozzle range endpoint also clears the single nozzle value over the API", async () => {
+  const doc = snapshot();
+  Object.assign(doc.collections.filaments[1]!, {
+    temperatures: { nozzle: 215, nozzleRangeMin: 205, nozzleRangeMax: 225 },
+  });
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(doc));
+  const s1 = loaded.spools.find((s) => s.sourceId === "s1")!;
+  const calls: Array<[string, unknown]> = [];
+  await applyToFilamentDbApp({ ...client(calls), snapshot: async () => doc }, [
+    update(s1, [["nozzleTempMin", 205, null]]),
+  ]);
+  expect(calls).toEqual([
+    ["filament var", { "temperatures.nozzleRangeMin": null, "temperatures.nozzle": null }],
+  ]);
+});
+
+test("the CSV load undoes the export's formula guard and shares one variant name with JSON", async () => {
+  const csv = [
+    "filament,vendor,type,totalWeight,spoolWeight,lotNumber,label,location,spoolId,filamentId,Parent",
+    "'=Odd - Red,'+Acme,PLA,700,200,'-L7,'@note,'=Shelf,s1,var,'=Odd",
+  ].join("\n");
+  const loaded = await loadInventoryFile("filamentDbApp", csv);
+  expect(loaded.spools[0]).toMatchObject({
+    vendor: "+Acme",
+    name: "Red",
+    lotNr: "-L7",
+    comment: "@note",
+    location: "=Shelf",
+  });
+  // An unchanged column goes back exactly as the export wrote it; a changed one is guarded again.
+  const file = exportFilamentDbAppCsv(loaded as never, [
+    update(loaded.spools[0]!, [["comment", "@note", "=new"]]),
+  ]);
+  const row = (await import("../shared/tabular")).parseRows(file.csv)[0]!;
+  expect(row).toMatchObject({ lotnumber: "'-L7", label: "'=new", location: "'=Shelf" });
+
+  // The same variant with no colorName reads as "Red" from JSON as from CSV.
+  const doc = snapshot();
+  delete (doc.collections.filaments[1] as Record<string, unknown>)["colorName"];
+  doc.collections.filaments[1]!.name = "Template - Red";
+  doc.collections.filaments[0]!.name = "Template";
+  const json = await loadInventoryFile("filamentDbApp", JSON.stringify(doc));
+  expect(json.spools.find((s) => s.sourceId === "s1")!.name).toBe("Red");
+});
+
+test("a spool known only by its instance id is not updated through the API", async () => {
+  const doc = snapshot();
+  doc.collections.filaments[1]!.spools = [{ instanceId: "abc123", totalWeight: 700 } as never];
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(doc));
+  const spool = loaded.spools.find((s) => s.sourceId === "abc123")!;
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp({ ...client(calls), snapshot: async () => doc }, [
+    update(spool, [["remainingWeight", 500, 400]]),
+  ]);
+  expect(log[0]!.ok).toBe(false);
+  expect(log[0]!.message).toContain("only an instance id");
+  expect(calls).toEqual([]);
+});
+
+test("a CSV create with no tare known writes the weight without one and warns", async () => {
+  const loaded = await load();
+  const file = exportFilamentDbAppCsv(loaded as never, [createOf({ price: 20, name: "Nothing" })]);
+  const row = (await import("../shared/tabular")).parseRows(file.csv)[0]!;
+  expect(row["totalweight"]).toBe("800");
+  expect(file.warnings.join(" ")).toContain("no empty-spool weight");
+  expect(file.warnings.join(" ")).toContain("price");
+});

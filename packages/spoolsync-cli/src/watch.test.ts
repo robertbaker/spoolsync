@@ -73,7 +73,7 @@ test("runs once, then again for each change to a watched file only", async () =>
   expect(h.closed).toEqual([abs("/data")]);
 });
 
-test("a change during a run causes exactly one more run, and the last run sets the exit code", async () => {
+test("a change during a run causes exactly one more run, and a failure keeps the exit code", async () => {
   const h = harness();
   let runs = 0;
   let release: (() => void) | undefined;
@@ -102,7 +102,8 @@ test("a change during a run causes exactly one more run, and the last run sets t
 
   h.stop.abort();
   await done;
-  expect(h.exitCode()).toBe(0);
+  // Run 3 succeeded, but run 2 failed: the process still exits non-zero.
+  expect(h.exitCode()).toBe(1);
 });
 
 test("stopping waits for a run in progress and reports its exit code", async () => {
@@ -257,6 +258,43 @@ test("a run that throws after a change is reported without an unhandled rejectio
   await wait(30);
   expect(runs).toBe(2);
   expect(h.lines.some((line) => line.includes("Watch run failed: boom"))).toBe(true);
+  h.stop.abort();
+  await done;
+  expect(h.exitCode()).toBe(1);
+});
+
+test("a throwing run still flushes held quiet output and re-runs pending changes", async () => {
+  const h = harness();
+  const logged: string[] = [];
+  h.output.log = (...values) => logged.push(values.join(" "));
+  let runs = 0;
+  let release: (() => void) | undefined;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    quiet: true,
+    run: async (output) => {
+      runs++;
+      if (runs === 2) {
+        output.log("held before throw");
+        await new Promise<void>((resolve) => (release = resolve));
+        throw new Error("boom");
+      }
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  expect(runs).toBe(2);
+  // Edited again while the second run is in progress, then it throws.
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  release!();
+  await wait(40);
+  expect(logged).toContain("held before throw");
+  expect(runs).toBe(3);
   h.stop.abort();
   await done;
   expect(h.exitCode()).toBe(1);

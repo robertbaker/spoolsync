@@ -24,6 +24,24 @@ export function normalizeHeader(header: XlsxCell): string {
     .trim();
 }
 
+/**
+ * Numeric columns whose unit suffix changes meaning ("Remaining (g)" vs "Remaining (%)", prices in
+ * two currencies). Two of these colliding is ambiguous, so the file is refused; any other duplicate
+ * column (Notes, Location, ...) is harmless and the first one wins.
+ */
+export const AMBIGUOUS_HEADERS: ReadonlySet<string> = new Set([
+  "initial weight",
+  "remaining weight",
+  "remaining",
+  "price",
+  "price / kg",
+  "diameter",
+  "extruder min",
+  "extruder max",
+  "bed min",
+  "bed max",
+]);
+
 function text(value: XlsxCell | undefined): string | null {
   if (typeof value === "number") return String(value);
   return toText(value);

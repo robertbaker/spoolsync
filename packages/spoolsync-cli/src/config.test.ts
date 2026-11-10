@@ -221,6 +221,12 @@ describe("config safety", () => {
   test("a config file can never turn writes on", () => {
     for (const apply of [true, false])
       expect(() => read({ apply })).toThrow("cannot be saved as a default setting");
+    expect(() => read({ apply: true })).toThrow('Delete the "apply" key from c.json');
+  });
+
+  test("the secret hint names every credential variable, including FILAMENT_DB_API_KEY", () => {
+    expect(() => read({ password: "x" })).toThrow("FILAMENT_DB_API_KEY");
+    expect(() => read({ "spoolman-url": "http://u:p@host" })).toThrow("FILAMENT_DB_API_KEY");
   });
 
   test("service URLs with credentials in the query string are refused", () => {
