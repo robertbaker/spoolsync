@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.5.0...spoolsync-cli-v0.6.0) (2026-11-10)
+
+### Features
+
+* **affiliates:** implement server-side redirection for affiliate links [skip-ci] ([f7b09f7](https://github.com/robertbaker/spoolsync/commit/f7b09f70b0e282b9b0624dd7bb4f457d9030f5e8))
+
+### Bug Fixes
+
+* **adapters:** align API writes and loads with upstream behavior ([ca4a6c4](https://github.com/robertbaker/spoolsync/commit/ca4a6c441bfa778290230b6a89a1798174d3fc1a))
+* **e2e:** park the pointer off the sidebar and tighten CI timeouts ([eae730b](https://github.com/robertbaker/spoolsync/commit/eae730b3a785b6caa370bc987a20e338f245acd9))
+* **sync:** close remaining review items ([71470ef](https://github.com/robertbaker/spoolsync/commit/71470ef3f36dfcc2f9a4b8225bb82f370c4f9ba5))
+* **sync:** improve API compatibility and sync robustness ([288b52f](https://github.com/robertbaker/spoolsync/commit/288b52fbac4e1991439e34e2e2c342040cf5a5c3))
+* **sync:** resolve review findings against upstream sources ([15ece53](https://github.com/robertbaker/spoolsync/commit/15ece53301884062832dc1a6d81f4c00ed0760dd))
+* **sync:** resolve second review round against upstream sources ([613d0ce](https://github.com/robertbaker/spoolsync/commit/613d0ce0ab83afab7cf72e442a8f888c526236d5))
+* **sync:** stop stale plans and unsafe values reaching services ([14ad61d](https://github.com/robertbaker/spoolsync/commit/14ad61d2b169ae82c193e990e4522d1ea2f8b345))
+* **sync:** stop watch hanging and ease finish/material conflicts ([1dc6228](https://github.com/robertbaker/spoolsync/commit/1dc62285ecb493d7228c3a44c528c7e53c25860f))
+
 ## [0.5.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.4.0...spoolsync-cli-v0.5.0) (2026-11-07)
 
 ### Features
