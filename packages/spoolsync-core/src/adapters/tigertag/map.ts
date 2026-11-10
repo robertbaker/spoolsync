@@ -34,7 +34,7 @@ function colors(record: TtagRecord): string[] {
   return fromBytes.length ? fromBytes : fromList;
 }
 
-function grams(record: TtagRecord): number | null {
+export function grams(record: TtagRecord): number | null {
   const measureGr = toPositiveNumber(record["measure_gr"]);
   if (measureGr !== null) return measureGr;
   const measure = toPositiveNumber(record["measure"]);

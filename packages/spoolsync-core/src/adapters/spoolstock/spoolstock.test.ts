@@ -143,3 +143,13 @@ describe("parseSpoolstockCsv without a short_id column", () => {
     expect(() => loadSpoolstockCsv("size,brand\n1000,Acme\n")).toThrow(/no short_id column/);
   });
 });
+
+describe("empty spool weight", () => {
+  test("a known zero tare is kept and a blank one is unset", () => {
+    const weight = (value: string) =>
+      loadSpoolstockCsv(`short_id,empty_spool.weight\nabc,${value}\n`).spools[0]!.emptySpoolWeight;
+    expect(weight("0")).toBe(0);
+    expect(weight("")).toBeNull();
+    expect(weight("160")).toBe(160);
+  });
+});

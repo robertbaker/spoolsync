@@ -25,6 +25,17 @@ export function normalizeHeader(header: XlsxCell): string {
 }
 
 /**
+ * The key a column is read under. Like `normalizeHeader`, except a bare "Remaining" whose unit is
+ * grams ("Remaining (g)") is a weight, not a percentage.
+ */
+export function columnKey(header: XlsxCell): string {
+  const name = normalizeHeader(header);
+  if (name === "remaining" && /\(\s*(g|gr|grams?)\s*\)/i.test(String(header)))
+    return "remaining weight";
+  return name;
+}
+
+/**
  * Numeric columns whose unit suffix changes meaning ("Remaining (g)" vs "Remaining (%)", prices in
  * two currencies). Two of these colliding is ambiguous, so the file is refused; any other duplicate
  * column (Notes, Location, ...) is harmless and the first one wins.

@@ -19,7 +19,8 @@ export function mapDoc(doc: FilameterDoc, index: number): CommonSpool {
   const id = toText(doc._id) ?? `row-${index + 1}`;
   const rawTotal = toNumber(doc.total_weight);
   const total = rawTotal !== null && rawTotal >= 0 ? rawTotal : null;
-  const used = toNumber(doc.used_weight);
+  const rawUsed = toNumber(doc.used_weight);
+  const used = rawUsed === null ? null : Math.max(0, rawUsed);
   return {
     source: "filameter",
     sourceId: id,

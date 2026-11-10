@@ -897,3 +897,189 @@ describe("applyToSpoolman convergence and guards", () => {
     expect((await applyToSpoolman(missing, [create]))[0]!.ok).toBe(true);
   });
 });
+
+describe("applyToSpoolman review regressions", () => {
+  const ngInfo = { version: "1.0.0", install_type: "docker" };
+  const clientFor = (server: ReturnType<typeof createFakeSpoolman>) =>
+    new SpoolmanClient({ baseUrl: "http://spoolman.test" }, server.fetchImpl, "http:");
+  const createOf = (overrides: Parameters<typeof makeSpool>[2]) => ({
+    kind: "create" as const,
+    source: "spoolman" as const,
+    groupId: "g",
+    values: makeSpool("spoolio", "n", overrides),
+    links: {},
+    groupIds: {},
+  });
+  const posts = (server: ReturnType<typeof createFakeSpoolman>, path: string) =>
+    server.requests.filter((r) => r.method === "POST" && r.path === path);
+
+  test("a range-only Spoolman-NG filament is reused, not duplicated", async () => {
+    const existing: SpoolmanFilament = {
+      ...filament,
+      id: 11,
+      settings_extruder_temp_min: 190,
+      settings_extruder_temp_max: 220,
+    };
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [existing],
+      info: ngInfo,
+    });
+    const log = await applyToSpoolman(clientFor(server), [
+      createOf({
+        vendor: vendor.name,
+        material: "PLA",
+        name: filament.name,
+        nozzleTempMin: 190,
+        nozzleTempMax: 220,
+      }),
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    expect(posts(server, "/filament")).toEqual([]);
+  });
+
+  test("later spools of one temperature move reuse the filament made for the first", async () => {
+    const shared = { ...filament, comment: "keep" };
+    const spools = [51, 52, 53, 54].map((id) => spool(id, { filament: shared }));
+    const server = createFakeSpoolman({ vendors: [vendor], filaments: [shared], spools });
+    const changes = [51, 52, 53].map((id) => ({
+      kind: "update" as const,
+      source: "spoolman" as const,
+      groupId: `t${id}`,
+      spool: spoolmanToCommon(server.spools.get(id)!),
+      links: {},
+      changes: [
+        { field: "nozzleTempMin" as const, from: null, to: 215 },
+        { field: "nozzleTempMax" as const, from: null, to: 215 },
+      ],
+    }));
+    const log = await applyToSpoolman(clientFor(server), changes);
+    expect(log.every((entry) => entry.ok)).toBe(true);
+    expect(posts(server, "/filament")).toHaveLength(1);
+    const moved = new Set([51, 52, 53].map((id) => server.spools.get(id)!.filament.id));
+    expect(moved.size).toBe(1);
+    expect(server.spools.get(54)!.filament.id).toBe(shared.id);
+  });
+
+  test("an initial weight of 0 does not block a remaining weight change", async () => {
+    const weighed = { ...filament, weight: 1000 };
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [weighed],
+      spools: [
+        spool(60, {
+          filament: weighed,
+          initial_weight: 0,
+          remaining_weight: 0,
+          used_weight: 0,
+        }),
+      ],
+    });
+    expect(spoolmanToCommon(server.spools.get(60)!).initialWeight).toBe(1000);
+    const log = await applyToSpoolman(clientFor(server), [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "z",
+        spool: spoolmanToCommon(server.spools.get(60)!),
+        links: {},
+        changes: [{ field: "remainingWeight", from: 1000, to: 400 }],
+      },
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    expect(server.spools.get(60)).toMatchObject({ initial_weight: 1000, remaining_weight: 400 });
+  });
+
+  test("settleRemainingWeight treats an initial weight of 0 as missing", () => {
+    const notes: string[] = [];
+    const none: Partial<SpoolParameters> = { remaining_weight: 300 };
+    settleRemainingWeight(none, { initial_weight: 0 }, null, (text) => notes.push(text));
+    expect(none).toEqual({});
+    expect(notes).toHaveLength(1);
+    const moved: Partial<SpoolParameters> = { filament_id: 20, remaining_weight: 300 };
+    settleRemainingWeight(moved, { initial_weight: 0 }, 800);
+    expect(moved.initial_weight).toBe(800);
+  });
+
+  test("a new spool with an unknown remaining weight omits it and says so", async () => {
+    const weighed = { ...filament, weight: 1000 };
+    const server = createFakeSpoolman({ vendors: [vendor], filaments: [weighed] });
+    const log = await applyToSpoolman(clientFor(server), [
+      createOf({
+        vendor: vendor.name,
+        material: "PLA",
+        name: filament.name,
+        initialWeight: 1000,
+        remainingWeight: null,
+      }),
+    ]);
+    expect(log[0]!.message).toContain("records a new spool as full");
+    expect(posts(server, "/spool")[0]!.body).not.toHaveProperty("remaining_weight");
+  });
+
+  test("shrinking the initial weight below the remaining weight is capped and noted", async () => {
+    const { server, client } = setup([spool(51)]);
+    const log = await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "w",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: {},
+        changes: [{ field: "initialWeight", from: 1000, to: 500 }],
+      },
+    ]);
+    expect(log[0]!.ok).toBe(true);
+    expect(log[0]!.message).toContain("lowered to 500");
+    expect(server.spools.get(51)).toMatchObject({ initial_weight: 500, remaining_weight: 500 });
+  });
+
+  test("only auth and cancellation stop an apply when /info fails", async () => {
+    const { client } = setup([]);
+    const withInfo = (error: Error) =>
+      Object.create(client, {
+        info: {
+          value: async () => {
+            throw error;
+          },
+        },
+      });
+    const create = createOf({});
+    const down = await applyToSpoolman(withInfo(new SpoolmanError("http", "HTTP 503", 503)), [
+      create,
+    ]);
+    expect(down[0]!.ok).toBe(true);
+    expect(down[0]!.message).toContain("/info was unavailable");
+    expect(
+      (await applyToSpoolman(withInfo(new SpoolmanError("timeout", "timed out")), [create]))[0]!.ok,
+    ).toBe(true);
+    await expect(
+      applyToSpoolman(withInfo(new SpoolmanError("http", "HTTP 403", 403)), [create]),
+    ).rejects.toThrow("403");
+    const abort = new Error("aborted");
+    abort.name = "AbortError";
+    await expect(applyToSpoolman(withInfo(abort), [create])).rejects.toThrow("aborted");
+  });
+
+  test("the fake server enforces upstream weight rules and derives used weight", async () => {
+    const server = createFakeSpoolman({ vendors: [vendor], filaments: [filament] });
+    const send = (method: string, path: string, body: object) =>
+      server.fetchImpl(`http://spoolman.test/api/v1${path}`, {
+        method,
+        body: JSON.stringify(body),
+      });
+    expect((await send("POST", "/filament", { name: "x", weight: 0 })).status).toBe(422);
+    const made = await (
+      await send("POST", "/spool", { filament_id: 10, initial_weight: 0, remaining_weight: 5 })
+    ).json();
+    expect(made.message).toContain("remaining_weight");
+    const ok = await (
+      await send("POST", "/spool", { filament_id: 10, initial_weight: 1000, remaining_weight: 250 })
+    ).json();
+    expect(ok.used_weight).toBe(750);
+    const zero = await (await send("PATCH", `/spool/${ok.id}`, { initial_weight: 0 })).json();
+    expect(zero.remaining_weight).toBe(0);
+    const stuck = await (await send("PATCH", `/spool/${ok.id}`, { remaining_weight: 300 })).json();
+    expect(stuck.remaining_weight).toBe(0);
+  });
+});

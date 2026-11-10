@@ -69,6 +69,13 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
       // The importer stores totalWeight as given; only the filament's own tare is added on reading.
       const tare = twin?.emptySpoolWeight ?? null;
       for (const note of newSpoolDrops(v, tare)) problem(note);
+      if (remaining === null && !label && !lot && !v.purchasedOn && !v.location) {
+        // The importer would add an empty spool for a row like this.
+        problem(
+          `Skipped a new spool (${v.name ?? change.groupId}): Filament DB needs at least a weight, label, lot number, purchase date or location to add a spool, and this one has none.`,
+        );
+        continue;
+      }
       rows.push({
         filament: twinRow ? (twinRow["filament"] ?? "") : sanitizeCsvCell(v.name ?? ""),
         vendor: twinRow ? importVendor(twinRow) : sanitizeCsvCell(v.vendor ?? ""),

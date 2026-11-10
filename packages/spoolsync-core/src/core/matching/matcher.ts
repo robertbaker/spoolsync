@@ -52,7 +52,7 @@ export function matchSpools(
   const groups = new Groups(spools);
   const problems = linkIdentityClaims(spools, byKey, groups);
 
-  for (const pair of decisions.confirmed) {
+  for (const pair of decisions.confirmed.map(canonicalPairKey)) {
     const records = splitPairKey(pair);
     if (!records) {
       problems.push(`Could not confirm "${pair}": it is not a valid pair of records.`);

@@ -324,7 +324,7 @@ returns each run's snapshot, and `runWatch` hands the last successful one to the
 
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
-run, and the exit code is that of the last run. A run that throws is reported as "Watch run failed"
+run, and the exit code is the last failing run's: a failed run keeps its code even if a later run succeeds. A run that is pending when the signal aborts is not started. A run that throws is reported as "Watch run failed"
 and makes the exit code 1 instead of ending the process. It refuses `--apply` and `--*-url` so a
 service is never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
 completion tests run the real shells there instead of skipping.
@@ -480,8 +480,9 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   assembly. The exporter retains backup metadata and non-filament documents while replacing only
   changed filament documents. FilaMeter requires a material and a filament name, so an emptied one
   keeps the old value with a warning, and a nameless create is named "Imported Filament". FilaMeter has
-  no unknown weight (its migration turns a null `total_weight` into 1000 g), so an unknown weight is
-  written as a full 1000 g spool with a warning. That 1000 g cannot be marked as a placeholder (the
+  no unknown weight (its migration turns a null `total_weight` into 1000 g), so an unknown weight on a create is
+  written as a full 1000 g spool with a warning (an existing spool's weight is left unchanged with a
+  warning). That 1000 g cannot be marked as a placeholder (the
   schema allows no extra field), so it reads back as a measured weight; known limitation: do not sync
   such a spool's weight to other services.
 - SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only file sources, each with load and
@@ -491,10 +492,12 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   CLI inputs choose bytes or text from `isBinarySource`. SpoolKeep expands its spool counts into
   individual spools (checking the total before expanding, so a huge count cannot exhaust memory),
   and Spool Hoarder detects its inventory or HueForge layout from the headers. SpoolMaster rejects a
-  sheet whose headers collapse to the same name (for example "Remaining (g)" and "Remaining (%)").
+  sheet whose numeric columns it reads (weights, remaining, price, price per kg, diameter,
+  temperatures) collapse to the same name (for example "Remaining (g)" and "Remaining (%)"); other
+  duplicate columns keep the first.
   Its remaining percentage is read as points when above 1 and as an Excel fraction from 0 to 1, which
   is reported as ambiguous because it could be a literal 0.5%. Spoolio, Spool and SpoolKeep JSON loads
-  (and file detection) strip a UTF-8 BOM, and Spoolio, 3DFilamentProfiles and Spool warn when an ID
+  (and file detection) strip a UTF-8 BOM (SpoolApp strips it too, and skips a later duplicate ID with a warning), and Spoolio, 3DFilamentProfiles and Spool warn when an ID
   appears twice. `toNumber` (`normalize.ts`) reads a decimal comma ("12,99"), thousands groups ("1,500",
   "1,234,567") and "1.234,56" / "1,234.56"; anything ambiguous ("0,500", "1,5000", "$12,99") stays
   unknown.

@@ -120,6 +120,7 @@ describe("exportTtag", () => {
       vendor: "Prusament",
       material: "PETG",
       name: "Galaxy Black Silk",
+      finish: "Silk",
       colors: ["1A1A1A", "FFFFFF"],
       initialWeight: 1000,
       remainingWeight: null,

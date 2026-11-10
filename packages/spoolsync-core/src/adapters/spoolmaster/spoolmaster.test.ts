@@ -328,6 +328,21 @@ describe("SpoolMaster remaining percent and headers", () => {
     await expect(loadSpoolmasterXlsx(bytes)).rejects.toThrow("duplicate column names");
   });
 
+  test("reads a lone Remaining (g) column as grams, not a percentage", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Initial Weight (g)", "Remaining (g)"],
+          ["Prusa", "PLA", 1000, 250],
+        ],
+      },
+    ]);
+    const result = await loadSpoolmasterXlsx(bytes);
+    expect(result.spools[0]!.remainingWeight).toBe(250);
+    expect(result.warnings).toEqual([]);
+  });
+
   test("ignores the percent column when Remaining Weight is present", async () => {
     const bytes = buildXlsx([
       {

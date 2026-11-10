@@ -67,54 +67,57 @@ export function diameterId(diameter: number | null): number {
 
 /**
  * Aspect ids (`id_aspect1` / `id_aspect2`, the finish or special look of a filament) the app
- * writes, with the label shown for each. 255 means no aspect. Ids outside this table are shown
- * through the label of a linked catalogue product when there is one.
+ * writes, as a two-way table against the common finish words (Spoolstock's vocabulary), so loading
+ * and writing are inverse. 255 means no aspect; 104 ("Basic") is TigerTag's plain filament and is
+ * read as no finish. Ids outside this table are shown through the label of a linked catalogue
+ * product when there is one.
  */
 export const NO_ASPECT = 255;
-const ASPECT_LABELS: Record<number, string> = {
-  104: "Basic",
-  145: "Rainbow",
-  24: "Tricolor",
-  252: "Bicolor",
-  91: "Glow",
-  123: "Wood",
-  232: "Marble",
-  238: "Carbon",
-  92: "Silk",
-  64: "Glitter",
-  226: "Metal",
-  216: "Neon",
-  21: "Clear",
-  67: "Translucent",
-  129: "Gloss",
-  247: "Matte",
-  134: "Satin",
-  126: "Pearl",
-  132: "Fiber",
-};
-const ASPECT_ALIASES: Record<string, number> = {
-  standard: 104,
-  matt: 247,
-  metallic: 226,
-  transparent: 67,
-  "glow in the dark": 91,
-  glossy: 129,
-  "carbon fiber": 238,
-  "carbon fibre": 238,
-  "tri color": 24,
-  "bi color": 252,
-  tricolour: 24,
-  bicolour: 252,
-};
-const aspectByKey = new Map<string, number>([
-  ...Object.entries(ASPECT_LABELS).map(([id, label]) => [key(label), Number(id)] as const),
-  ...Object.entries(ASPECT_ALIASES).map(([alias, id]) => [key(alias), id] as const),
-]);
+const BASIC_ASPECT = 104;
+interface AspectEntry {
+  id: number;
+  /** The common finish word, or null for the plain "Basic" aspect. */
+  finish: string | null;
+  /** TigerTag's own label and other spellings accepted when writing. */
+  aliases: string[];
+}
+const ASPECTS: AspectEntry[] = [
+  { id: BASIC_ASPECT, finish: null, aliases: ["Basic", "Standard"] },
+  { id: 145, finish: "Rainbow", aliases: [] },
+  { id: 24, finish: "Tricolor", aliases: ["Tri Color", "Tricolour"] },
+  { id: 252, finish: "Dual Color", aliases: ["Bicolor", "Bi Color", "Bicolour", "Dual Colour"] },
+  { id: 91, finish: "Glow In the Dark", aliases: ["Glow"] },
+  { id: 123, finish: "Wood", aliases: [] },
+  { id: 232, finish: "Marble", aliases: [] },
+  { id: 238, finish: "Carbon Fiber", aliases: ["Carbon", "Carbon Fibre"] },
+  { id: 92, finish: "Silk", aliases: [] },
+  { id: 64, finish: "Glitter", aliases: [] },
+  { id: 226, finish: "Metallic", aliases: ["Metal"] },
+  { id: 216, finish: "Neon", aliases: [] },
+  { id: 21, finish: "Transparent", aliases: ["Clear"] },
+  { id: 67, finish: "Translucent", aliases: [] },
+  { id: 129, finish: "Glossy", aliases: ["Gloss"] },
+  { id: 247, finish: "Matte", aliases: ["Matt"] },
+  { id: 134, finish: "Satin", aliases: [] },
+  { id: 126, finish: "Pearl", aliases: [] },
+  { id: 132, finish: "Fiber", aliases: [] },
+];
+const finishById = new Map(ASPECTS.map((entry) => [entry.id, entry.finish]));
+const aspectByKey = new Map<string, number>(
+  ASPECTS.flatMap((entry) =>
+    [...(entry.finish ? [entry.finish] : []), ...entry.aliases].map(
+      (label) => [key(label), entry.id] as const,
+    ),
+  ),
+);
 
-/** The label of an aspect id; null for 255 / absent, undefined for an id this table does not know. */
+/**
+ * The common finish word of an aspect id; null for 255 / absent, undefined for an id this table
+ * does not know.
+ */
 export function aspectLabel(id: unknown): string | null | undefined {
   if (typeof id !== "number" || id === NO_ASPECT) return null;
-  return ASPECT_LABELS[id];
+  return finishById.get(id);
 }
 
 /** The aspect id for a finish label, or null when TigerTag has no such aspect. */

@@ -152,6 +152,7 @@ test("explains refused and unreachable servers", () => {
 import type { PlannedChange } from "../../core/compare";
 import { applyToFilamentDbApp } from "./apply";
 import { exportFilamentDbApp } from "./export";
+import { exportFilamentDbAppCsv } from "./export-csv";
 
 async function planUpdate(
   fields: Array<[string, unknown, unknown]>,
@@ -576,4 +577,82 @@ test("a spool update that fails after the filament was saved says so", async () 
   const log = await applyToFilamentDbApp(client, [change]);
   expect(log[0]!.ok).toBe(false);
   expect(log[0]!.message).toContain("The filament fields were already saved");
+});
+
+test("a sibling ordered before the tare change is sent the new tare and its weight, once", async () => {
+  const sibling = await planFor("s2", [["remainingWeight", 0, 50]]);
+  const tare = await planFor("s1", [["emptySpoolWeight", 200, 250]]);
+  const { client, sent } = recordingClient();
+  const log = await applyToFilamentDbApp(client, [sibling, tare]);
+  expect(log.map((entry) => entry.ok)).toEqual([true, true]);
+  expect(log.map((entry) => entry.message).join(" ")).not.toContain("not update");
+  expect(sent).toEqual([
+    ["filament", "f2", { spoolWeight: 250 }],
+    ["spool", "s2", { remainingWeight: 50 }],
+    ["spool", "s1", { remainingWeight: 500 }],
+  ]);
+});
+
+test("a new spool is converted with the empty-spool weight the plan sets", async () => {
+  const tare = await planFor("s1", [["emptySpoolWeight", 200, 250]]);
+  const created: unknown[] = [];
+  const { client } = recordingClient({
+    createSpool: async (_id: string, body: unknown) => {
+      created.push(body);
+    },
+  });
+  await applyToFilamentDbApp(client, [createChange({ location: null }), tare]);
+  expect(created).toEqual([expect.objectContaining({ totalWeight: 1050 })]);
+});
+
+test("errors from Filament DB keep the upstream message, and 403 names the proxy", async () => {
+  const reply = (status: number, body: string) => async () => new Response(body, { status });
+  await expect(
+    new FilamentDbAppClient({
+      baseUrl: "http://x",
+      fetchImpl: reply(400, JSON.stringify({ error: "Invalid weight" })),
+    }).snapshot(),
+  ).rejects.toThrow(/400.*: Invalid weight/);
+  await expect(
+    new FilamentDbAppClient({
+      baseUrl: "http://x",
+      fetchImpl: reply(500, "x".repeat(2000)),
+    }).snapshot(),
+  ).rejects.toThrow(/^.{0,420}$/);
+  await expect(
+    new FilamentDbAppClient({ baseUrl: "http://x", fetchImpl: reply(403, "") }).snapshot(),
+  ).rejects.toThrow(/reverse proxy/);
+  await expect(
+    new FilamentDbAppClient({ baseUrl: "http://x", fetchImpl: reply(401, "") }).snapshot(),
+  ).rejects.toThrow(/FILAMENT_DB_API_KEY/);
+});
+
+test("an empty new spool is skipped with a warning instead of aborting the exports", async () => {
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(snapshot));
+  const empty = createChange({
+    remainingWeight: null,
+    initialWeight: null,
+    location: null,
+    purchasedOn: null,
+  });
+  const result = exportFilamentDbApp(loaded as never, [empty, createChange({ location: null })], {
+    now: () => 0,
+    randomUUID: () => "0123456789abcdef0123456789abcdef",
+  });
+  expect(result.created).toBe(1);
+  expect(result.warnings.join(" ")).toContain("Skipped a new spool");
+  const missing = createChange({ vendor: "Nobody" });
+  expect(
+    exportFilamentDbApp(loaded as never, [missing], { now: () => 0, randomUUID: () => "a" }),
+  ).toMatchObject({ created: 0 });
+  const csv = exportFilamentDbAppCsv(loaded as never, [empty]);
+  expect(csv.created).toBe(0);
+  expect(csv.csv.trim().split("\n")).toHaveLength(1);
+  expect(csv.warnings.join(" ")).toContain("Skipped a new spool");
+});
+
+test("clearing a variant's nozzle temperature warns that the template's value stays in effect", async () => {
+  const { loaded, change } = await planUpdate([["nozzleTempMin", 205, null]]);
+  const result = exportFilamentDbApp(loaded as never, [change]);
+  expect(result.warnings.join(" ")).toContain("inherited from the template");
 });

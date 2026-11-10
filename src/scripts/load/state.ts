@@ -20,7 +20,10 @@ export class LoadState {
   /** Server requests started at or before this revision used a connection that has since changed. */
   private readonly apiFloors = new Map<SourceId, number>();
 
+  /** Bumped by everything except a stored file, so a pending file read can tell it was displaced. */
+  private readonly foreignRevisions = new Map<SourceId, number>();
   private readonly fileReads = new Map<SourceId, number>();
+  private readonly storedFileReads = new Map<SourceId, number>();
 
   constructor(private readonly storage: InventoryStorage) {}
 
@@ -33,10 +36,20 @@ export class LoadState {
     return this.revisions.get(source) ?? 0;
   }
 
-  nextRevision(source: SourceId): number {
+  /**
+   * Starts a new request revision. A stored file read passes `byFile` so that other file reads in
+   * flight are not displaced by it; their own start order decides between them.
+   */
+  nextRevision(source: SourceId, byFile = false): number {
     const revision = (this.revisions.get(source) ?? 0) + 1;
     this.revisions.set(source, revision);
+    if (!byFile) this.foreignRevisions.set(source, (this.foreignRevisions.get(source) ?? 0) + 1);
     return revision;
+  }
+
+  /** Changes whenever something other than a stored file took the source (server load, unload). */
+  foreignRevision(source: SourceId): number {
+    return this.foreignRevisions.get(source) ?? 0;
   }
 
   /** Numbers a file read as it starts, so the newest-started read of a source wins. */
@@ -48,6 +61,23 @@ export class LoadState {
 
   isLatestFileRead(source: SourceId, ticket: number): boolean {
     return this.fileReads.get(source) === ticket;
+  }
+
+  /** Whether a read that started after this one has already stored its file. */
+  isFileReadSuperseded(source: SourceId, ticket: number): boolean {
+    return (this.storedFileReads.get(source) ?? 0) > ticket;
+  }
+
+  /**
+   * A file read that is about to store claims the source: false when a newer-started read already
+   * stored. A claim supersedes server loads in flight, but not other file reads, which keep their
+   * own start order.
+   */
+  claimFileStore(source: SourceId, ticket: number): boolean {
+    if (this.isFileReadSuperseded(source, ticket)) return false;
+    this.storedFileReads.set(source, ticket);
+    this.nextRevision(source, true);
+    return true;
   }
 
   /**

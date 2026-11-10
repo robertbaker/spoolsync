@@ -139,3 +139,11 @@ test("a 403 on a spool write is a permission error, not a bad token", async () =
   expect(error?.message).toContain("denied permission");
   expect(error?.message).not.toContain("session token");
 });
+
+test("a failed request keeps the upstream error text", async () => {
+  const client = new FilamentDbClient({
+    baseUrl: "http://filamentdb.test",
+    fetchImpl: async () => json({ error: "Invalid serial" }, 400),
+  });
+  await expect(client.saveSpool({ serial: "A1" })).rejects.toThrow(/400.*: Invalid serial/);
+});

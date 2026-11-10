@@ -119,10 +119,24 @@ export async function applyToFilamentDbApp(
       problem: () => {},
     });
   const conflicts = sharedConflicts(updates, (change) => ({ ...patchOf(change).filament }));
-  /** Spools whose remaining weight is re-sent after a new empty-spool weight, so they keep it. */
+  /** Empty-spool weight each filament is planned to get, by filament id (legacy rolls own theirs). */
+  const plannedTare = new Map<string, number | null>();
+  for (const change of updates) {
+    const raw = rawOf(change);
+    const tare = patchOf(change).filament.spoolWeight;
+    if (raw?.legacyRoll !== true && typeof raw?.filamentId === "string" && tare !== undefined)
+      plannedTare.set(raw.filamentId, tare);
+  }
+  /**
+   * Spools whose remaining weight is re-sent after a new empty-spool weight, so they keep it: every
+   * planned update of a filament whose weight changes, whichever spool carries the change.
+   */
   const rewritten = new Set(
     updates
-      .filter((change) => patchOf(change).filament.spoolWeight !== undefined)
+      .filter((change) => {
+        const filamentId = rawOf(change)?.filamentId;
+        return typeof filamentId === "string" && plannedTare.has(filamentId);
+      })
       .map((change) => change.spool.sourceId),
   );
   /** Filament fields already written this run, by filament, with the value sent. */
@@ -138,7 +152,13 @@ export async function applyToFilamentDbApp(
           const target = findSpoolTarget(filaments, change.values);
           await client.createSpool(
             target.id,
-            newSpoolFields(change.values, target.tare, locations, fail, note),
+            newSpoolFields(
+              change.values,
+              plannedTare.has(target.id) ? (plannedTare.get(target.id) ?? null) : target.tare,
+              locations,
+              fail,
+              note,
+            ),
           );
           return `Added a spool to filament ${target.id} (${change.values.name ?? change.groupId})`;
         }
@@ -164,6 +184,14 @@ export async function applyToFilamentDbApp(
           problem: fail,
           warn: note,
         });
+        // A sibling that is written before the spool carrying a new empty-spool weight must send that
+        // weight first, or its remaining weight would be converted with the old one and not resent.
+        if (
+          !legacyRoll &&
+          plannedTare.has(filamentId) &&
+          patches.filament.spoolWeight === undefined
+        )
+          patches.filament.spoolWeight = plannedTare.get(filamentId) ?? null;
         // A legacy roll's own weight is not shared with other spools.
         const shared = Object.keys(patches.filament).some((key) => key !== "totalWeight");
         // Fields another spool of this filament already wrote with the same value are not resent.

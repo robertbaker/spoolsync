@@ -152,14 +152,27 @@ export function changePatches(
         break;
       }
       case "nozzleTempMin":
-        filament["temperatures.nozzleRangeMin"] = toNumber(to);
+      case "nozzleTempMax": {
+        const key = field === "nozzleTempMin" ? "nozzleRangeMin" : "nozzleRangeMax";
+        const value = toNumber(to);
+        filament[`temperatures.${key}`] = value;
         // The load reads nozzleRangeMin ?? nozzle, so a cleared endpoint must clear nozzle too.
-        if (toNumber(to) === null) filament["temperatures.nozzle"] = null;
+        if (value === null) {
+          filament["temperatures.nozzle"] = null;
+          // Filament DB resolves a variant's blank temperature to its parent's, so it comes back.
+          const parentTemps = (
+            change.spool.raw as { parentTemperatures?: Record<string, unknown> } | null
+          )?.parentTemperatures;
+          if (
+            parentTemps &&
+            (toNumber(parentTemps[key]) !== null || toNumber(parentTemps["nozzle"]) !== null)
+          )
+            (context.warn ?? context.problem)(
+              `The ${field === "nozzleTempMin" ? "minimum" : "maximum"} nozzle temperature is inherited from the template filament in Filament DB, so clearing it on the color variant leaves the template's value in effect. Clear it on the template to remove it.`,
+            );
+        }
         break;
-      case "nozzleTempMax":
-        filament["temperatures.nozzleRangeMax"] = toNumber(to);
-        if (toNumber(to) === null) filament["temperatures.nozzle"] = null;
-        break;
+      }
       case "bedTempMin":
         filament["temperatures.bed"] = toNumber(to);
         break;

@@ -4,7 +4,10 @@ import { idOf } from "./map";
 export interface FilamentDbAppConnection {
   /** Base URL as the user typed it, e.g. `http://192.168.1.20:3456`. */
   baseUrl: string;
-  /** Bearer key, only when the server sets FILAMENTDB_API_KEY. */
+  /**
+   * Bearer key, only when the server sets FILAMENTDB_API_KEY (the CLI reads it from
+   * FILAMENT_DB_API_KEY).
+   */
   token?: string | undefined;
   timeoutMs?: number | undefined;
   /** Replaces `fetch`; used by tests. */
@@ -28,6 +31,32 @@ export function normalizeFilamentDbAppUrl(input: string): string {
   if (url.username || url.password)
     throw new Error("Leave credentials out of the URL; use the key option");
   return `${url.origin}${url.pathname.replace(/\/+$/, "").replace(/\/api$/, "")}`;
+}
+
+const MAX_ERROR_DETAIL = 300;
+
+/** The `{ error, detail }` text of a failed response, trimmed; empty when there is none. */
+async function upstreamError(response: Response): Promise<string> {
+  try {
+    const text = (await response.text()).trim();
+    if (!text) return "";
+    let message = text;
+    try {
+      const body = JSON.parse(text) as unknown;
+      if (body && typeof body === "object") {
+        const { error, detail } = body as { error?: unknown; detail?: unknown };
+        const parts = [error, detail].filter((v): v is string => typeof v === "string" && !!v);
+        // Anything that is not the documented error shape is not worth echoing.
+        message = parts.join(" - ");
+      }
+    } catch {
+      // Plain text (for example a proxy error page) is shortened below.
+    }
+    message = message.replace(/\s+/g, " ").trim();
+    return message.length > MAX_ERROR_DETAIL ? `${message.slice(0, MAX_ERROR_DETAIL)}...` : message;
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -112,13 +141,19 @@ export class FilamentDbAppClient {
       );
     }
     if (response.status === 401)
-      throw new Error("Filament DB refused the request. Check the API key (FILAMENTDB_API_KEY).");
+      throw new Error(
+        "Filament DB refused the request. Check the API key (FILAMENT_DB_API_KEY, or FILAMENTDB_API_KEY).",
+      );
     if (response.status === 403)
       throw new Error(
-        "Filament DB rejected the request as cross-origin. Load it from the CLI, not a page.",
+        "Filament DB refused the request as cross-origin. A reverse proxy that rewrites the Host or Origin header is the usual cause; make it pass the original Host (with its port) through.",
       );
-    if (!response.ok)
-      throw new Error(`Filament DB answered ${response.status} ${response.statusText}.`);
+    if (!response.ok) {
+      const detail = await upstreamError(response);
+      throw new Error(
+        `Filament DB answered ${response.status} ${response.statusText}${detail ? `: ${detail}` : "."}`,
+      );
+    }
     try {
       return await response.json();
     } catch {

@@ -60,6 +60,15 @@ test("session-only tokens and sessions are listed and cleared under connections"
   expect(sessionStorage.getItem("spoolsync:tigertag-session")).toBeNull();
 });
 
+test("the connections group still clears the legacy Filament DB browser connection", () => {
+  const key = "spoolsync:filament-db-connection";
+  localStorage.setItem(key, '{"baseUrl":"http://x","token":"secret"}');
+  sessionStorage.setItem(key, '{"baseUrl":"http://x","token":"secret"}');
+  expect(forgetGroup("connections")).toBe(2);
+  expect(localStorage.getItem(key)).toBeNull();
+  expect(sessionStorage.getItem(key)).toBeNull();
+});
+
 test("forgetting everything clears all spoolsync keys, including ones no group names", () => {
   localStorage.setItem("spoolsync:prefs", "{}");
   localStorage.setItem("spoolsync:future-setting", "1");

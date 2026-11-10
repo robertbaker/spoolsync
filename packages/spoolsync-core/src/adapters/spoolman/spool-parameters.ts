@@ -1,6 +1,6 @@
 import type { PlannedCreate, PlannedUpdate } from "../../core/compare";
 import { shortIdFromLotNr, spoolstockLotNr } from "../../core/normalize";
-import { hasDiameterOverride } from "./filament-policy";
+import { REMAINING_NOT_CLEARED, hasDiameterOverride, storedWeight } from "./filament-policy";
 import { limitText, type LimitWarn } from "./limits";
 import {
   encodeExtras,
@@ -28,13 +28,13 @@ export function buildSpoolPatch(
         patch.price = to as number | null;
         break;
       case "initialWeight":
-        // Spoolman cannot use an initial weight of 0 (it refuses it), so 0 means "none".
-        patch.initial_weight = (to as number | null) || null;
+        // A filament refuses a weight of 0, and a spool accepts it but then derives every remaining
+        // weight as max(0 - used, 0), so it could never be changed again: 0 means "none".
+        patch.initial_weight = storedWeight(to as number | null);
         break;
       case "remainingWeight":
         // Spoolman derives the remaining weight from the used weight, so it cannot be cleared.
-        if (to == null)
-          warn?.("remaining weight not cleared: Spoolman has no way to store an unknown one");
+        if (to == null) warn?.(REMAINING_NOT_CLEARED);
         else patch.remaining_weight = to as number;
         break;
       case "emptySpoolWeight":
@@ -62,7 +62,16 @@ export function buildSpoolPatch(
   // move it. Spoolman applies `initial_weight` first, so this is measured against the new value.
   if (typeof patch.initial_weight === "number" && !("remaining_weight" in patch)) {
     const remaining = current.remaining_weight ?? change.spool.remainingWeight;
-    if (remaining !== null && remaining !== undefined) patch.remaining_weight = remaining;
+    if (remaining !== null && remaining !== undefined) {
+      // Spoolman clamps the used weight at 0, so a remaining weight above the new initial weight
+      // cannot be kept.
+      if (remaining > patch.initial_weight) {
+        warn?.(
+          `remaining weight lowered to ${patch.initial_weight} g: it cannot exceed the new initial weight`,
+        );
+        patch.remaining_weight = patch.initial_weight;
+      } else patch.remaining_weight = remaining;
+    }
   }
 
   return withExtras(patch, change, current, warn);
@@ -93,8 +102,14 @@ export function settleRemainingWeight(
     if (patch.initial_weight == null) drop();
     return;
   }
-  if (current.initial_weight != null) return;
+  // An initial weight of 0 cannot carry a remaining weight (Spoolman derives max(0 - used, 0)), so
+  // it counts as missing. Unlike a missing one it is not inherited on a filament move.
+  if (current.initial_weight) return;
   if (filamentWeight == null) return drop();
+  if (current.initial_weight === 0) {
+    patch.initial_weight = filamentWeight;
+    return;
+  }
   // Moving to another filament inherits that filament's weight before the remaining weight is read.
   // Otherwise stating the inherited weight pins it on the spool, so a later filament weight change
   // no longer reaches it; Spoolman gives no other way to set a remaining weight here.
@@ -148,11 +163,16 @@ export function createSpoolParameters(
   const links = { ...change.groupIds, ...change.links };
   const hasInitial = (values.initialWeight ?? 0) > 0 || (filament.weight ?? 0) > 0;
   const remainingDropped = values.remainingWeight != null && !hasInitial;
+  if (values.remainingWeight == null && hasInitial)
+    warn?.("remaining weight unknown: Spoolman records a new spool as full");
   const params: SpoolParameters = {
     filament_id: filament.id,
     // Spoolman refuses an initial weight of 0, so it is left unset (the filament's applies).
     initial_weight: values.initialWeight || null,
-    ...(remainingDropped ? {} : { remaining_weight: values.remainingWeight }),
+    // A null remaining weight is left out: Spoolman records a new spool without one as full.
+    ...(remainingDropped || values.remainingWeight == null
+      ? {}
+      : { remaining_weight: values.remainingWeight }),
     spool_weight: values.emptySpoolWeight,
     location: limitText("location", values.location, warn),
     price: values.price,

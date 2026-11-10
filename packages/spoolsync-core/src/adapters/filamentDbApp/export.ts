@@ -59,15 +59,47 @@ export function exportFilamentDbApp(
   );
   const problem = (message: string) => warnings.push(message);
 
+  // Empty-spool weight each non-legacy filament is planned to get. Every spool of it that this run
+  // writes must use that weight, whichever order the changes come in, or its remaining weight would
+  // be converted with the old one.
+  const plannedTare = new Map<string, number | null>();
+  for (const change of changes) {
+    if (change.source !== "filamentDbApp" || change.kind !== "update") continue;
+    if (legacyRolls.has(change.spool.sourceId)) continue;
+    const spool = spools.get(change.spool.sourceId);
+    const hostId = spool ? filamentOf.get(spool) : null;
+    if (!hostId) continue;
+    const tare = changePatches(change, { locationIdByName: locationIds, problem: () => {} })
+      .filament.spoolWeight;
+    if (tare !== undefined) plannedTare.set(hostId, tare);
+  }
+
   let updated = 0;
   let created = 0;
   for (const change of changes) {
     if (change.source !== "filamentDbApp") continue;
     if (change.kind === "create") {
-      const target = findSpoolTarget(filaments as Bag[], change.values);
-      const host = (filaments as Bag[]).find((filament) => idOf(filament["_id"]) === target.id)!;
+      let host: Bag;
+      let fields: Bag;
+      try {
+        const target = findSpoolTarget(filaments as Bag[], change.values);
+        host = (filaments as Bag[]).find((filament) => idOf(filament["_id"]) === target.id)!;
+        fields = newSpoolFields(
+          change.values,
+          target.id && plannedTare.has(target.id)
+            ? (plannedTare.get(target.id) ?? null)
+            : target.tare,
+          locationIds,
+          problem,
+        );
+      } catch (error) {
+        // One spool that cannot be added must not abort the export of the others.
+        warnings.push(
+          `Skipped a new spool (${change.values.name ?? change.groupId}): ${error instanceof Error ? error.message : String(error)}`,
+        );
+        continue;
+      }
       const ids = runtime.randomUUID().replaceAll("-", "");
-      const fields = newSpoolFields(change.values, target.tare, locationIds, problem);
       const spool: Bag = {
         _id: ids.slice(0, 24),
         instanceId: ids.slice(22, 32),
@@ -107,9 +139,11 @@ export function exportFilamentDbApp(
         `Filament DB spool ${change.spool.sourceId} is missing. Reload the inventory and try again.`,
       );
     const patches = changePatches(change, { locationIdByName: locationIds, problem });
-    const host = (filaments as Bag[]).find(
-      (filament) => idOf(filament["_id"]) === filamentOf.get(spool),
-    );
+    const hostId = filamentOf.get(spool);
+    // A sibling written before the spool that carries a new empty-spool weight uses that weight too.
+    if (hostId && plannedTare.has(hostId) && patches.filament.spoolWeight === undefined)
+      patches.filament.spoolWeight = plannedTare.get(hostId) ?? null;
+    const host = (filaments as Bag[]).find((filament) => idOf(filament["_id"]) === hostId);
     if (host) patchSnapshotFilament(host, patches.filament);
     const remainingWeight = remainingToWrite(change, patches);
     patchSnapshotSpool(

@@ -2,6 +2,7 @@ import type { PlannedChange, PlannedCreate, PlannedUpdate } from "../../core/com
 import { shortIdFromLotNr, spoolstockLotNr, toText } from "../../core/normalize";
 import type { AdapterRuntime } from "../shared/runtime";
 import { field } from "../shared/tabular";
+import { rowMaterial } from "./vocabulary";
 
 const fields: Record<string, string> = {
   vendor: "brand",
@@ -48,6 +49,20 @@ function setProperty(row: Record<string, unknown>, key: string, value: unknown):
   row["spool_properties"] = properties;
 }
 
+/**
+ * New notes text with the existing `Lot:` line kept where it was (first line, last line or between
+ * the user's lines), rather than always moved to the top.
+ */
+function notesWithLot(existing: string | null, comment: unknown): string {
+  const lines = (existing ?? "").split(/\r?\n/);
+  const index = lines.findIndex((line) => /^Lot:\s*\S/i.test(line));
+  const body = toText(comment);
+  const text = body ? body.split(/\r?\n/) : [];
+  if (index === -1) return text.join("\n");
+  text.splice(Math.min(index, text.length), 0, lines[index]!.trim());
+  return text.join("\n");
+}
+
 export function updateRecord(
   row: Record<string, unknown>,
   change: PlannedUpdate,
@@ -59,6 +74,8 @@ export function updateRecord(
   if (runtime && Object.hasOwn(row, "updated_at")) row["updated_at"] = isoUtc(runtime);
   const changed = new Map(change.changes.map((item) => [item.field, item.to]));
   for (const item of change.changes) {
+    // `material` and `material_type` are rebuilt together below.
+    if (item.field === "material" || item.field === "finish") continue;
     const fieldName = fields[item.field];
     if (!fieldName) continue;
     const rawValue =
@@ -88,9 +105,7 @@ export function updateRecord(
         );
     }
     if (item.field === "comment") {
-      const existingNote = toText(field(row, "notes", "comment", "description"));
-      const lot = /^Lot:\s*(.+)$/im.exec(existingNote ?? "")?.[1]?.trim();
-      row[fieldName] = [lot ? `Lot: ${lot}` : "", toText(value) ?? ""].filter(Boolean).join("\n");
+      row[fieldName] = notesWithLot(toText(field(row, "notes", "comment", "description")), value);
       for (const alias of ["comment", "description"])
         if (Object.hasOwn(row, alias)) row[alias] = row[fieldName];
     } else if (format === "csv") row[fieldName] = value;
@@ -100,6 +115,25 @@ export function updateRecord(
       if (Object.hasOwn(row, fieldName)) row[fieldName] = value;
       setProperty(row, propertyFields[item.field]!, value);
     } else row[fieldName] = value;
+  }
+  if (changed.has("material") || changed.has("finish")) {
+    const rebuilt = rowMaterial(
+      {
+        ...(changed.has("material") ? { material: changed.get("material") as string | null } : {}),
+        ...(changed.has("finish") ? { finish: changed.get("finish") as string | null } : {}),
+      },
+      { materialType: toText(row["material_type"]) },
+    );
+    if (rebuilt.material !== undefined) {
+      row["material"] = rebuilt.material;
+      for (const alias of aliases["material"] ?? [])
+        if (Object.hasOwn(row, alias)) row[alias] = rebuilt.material;
+    }
+    row["material_type"] = rebuilt.materialType;
+    if (rebuilt.droppedLine)
+      warnings.push(
+        `3DFilamentProfiles ${change.spool.sourceId}: the material type holds one value, so the finish ${rebuilt.materialType} was stored and the product line ${rebuilt.droppedLine} was not.`,
+      );
   }
 }
 
@@ -148,12 +182,20 @@ export function createRecord(
   const lot = lotValue ? `Lot: ${lotValue}` : "";
   const nozzleTemp = change.values.nozzleTempMin ?? change.values.nozzleTempMax;
   const bedTemp = change.values.bedTempMin ?? change.values.bedTempMax;
+  const created = rowMaterial(
+    { material: change.values.material, finish: change.values.finish },
+    { materialType: null },
+  );
+  if (created.droppedLine)
+    warnings.push(
+      `3DFilamentProfiles ${change.values.name ?? change.groupId}: the material type holds one value, so the finish ${created.materialType} was stored and the product line ${created.droppedLine} was not.`,
+    );
   const row: Record<string, unknown> = {
     short_code: shortCode,
     spool_url: `https://spooldb.com/s/${shortCode}`,
     brand: change.values.vendor ?? "",
-    material: change.values.material ?? "PLA",
-    material_type: change.values.finish ?? "",
+    material: created.material ?? "PLA",
+    material_type: created.materialType,
     td_value: change.values.td ?? (format === "csv" ? "" : null),
     color: change.values.name ?? "",
     rgb: change.values.colors[0] ? `#${change.values.colors[0]}` : "",

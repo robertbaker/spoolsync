@@ -122,6 +122,8 @@ For standalone Linux installs, update your `.env` file and restart the service
 
 - Spoolman stores a single extruder and bed temperature rather than a min/max range, so it is excluded from min/max
   temperature comparisons. Newly created Spoolman filaments use the midpoint of the range.
+- Spoolio and TigerTag also store one nozzle and one bed temperature, so only the min fields are compared
+  for them and a write sets the max to the same value.
 - Spoolman needs an initial weight (the spool's or its filament's) to accept a remaining weight, so a
   new or existing spool without either is written without one and the apply log says so. Text over
   Spoolman's 64-character limits (name, material, vendor, article number, location, lot number) is
@@ -134,8 +136,9 @@ For standalone Linux installs, update your `.env` file and restart the service
   Temperatures within 0.5 degrees compare as equal, since Spoolman rounds them.
 - FilaMeter and FilamentDB require a material, and FilaMeter a filament name: if a change empties one,
   the old value is kept with a warning, and a new FilaMeter filament without a name is called "Imported Filament".
-- FilaMeter has no unknown weight. A spool with no known weight is written as a full 1000 g spool
+- FilaMeter has no unknown weight. A new spool with no known weight is written as a full 1000 g spool
   (with a warning) and reads back as a measured 1000 g, so do not sync that weight to other services.
+  An existing spool's weight is left unchanged (with a warning).
   Spoolio likewise stores 0 for an unknown price or remaining weight.
 - Filament DB's API is available from the command line only: its server rejects cross-origin browser
   requests. In the browser, load a JSON snapshot or spool CSV instead.
@@ -168,7 +171,7 @@ For standalone Linux installs, update your `.env` file and restart the service
 - Spoolio normalizes `PLA-Glow`, `PETG+`, and `PA6-CF` into base material types on import. SpoolSync preserves the exact material name
   in the filament notes and restores it on the next load.
 - Read-only sources (<!-- services:readonly-names-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:readonly-names-inline:end -->) do not accept imports from SpoolSync. Details:
-  - **SpoolMaster** exports have no record IDs, so spools are identified by worksheet row; the Shopping List sheet is ignored. It does not store density, barcode, empty spool weight, or archived status. A remaining percentage above 1 is read as percentage points; 0 to 1 is read as an Excel fraction (0.5 is 50%) and reported, since it could mean 0.5%. A sheet with two columns of the same name (such as "Remaining (g)" and "Remaining (%)") is refused.
+  - **SpoolMaster** exports have no record IDs, so spools are identified by worksheet row; the Shopping List sheet is ignored. It does not store density, barcode, empty spool weight, or archived status. A remaining percentage above 1 is read as percentage points; 0 to 1 is read as an Excel fraction (0.5 is 50%) and reported, since it could mean 0.5%. A sheet with two columns of the same name among the numeric columns it reads (weights, remaining, price, price per kg, diameter, temperatures; such as "Remaining (g)" and "Remaining (%)") is refused; other duplicate columns keep the first one.
   - **Spool Hoarder** reads its inventory CSV and the HueForge library CSV. HueForge rows have no weights, and entries with `Owned` false load as archived. Rows marked deleted are skipped. A gross `weightBasis` is converted to net filament weight when the empty spool weight is known.
   - **Spool** stores one nozzle and bed temperature, and storage locations only as slot numbers, so location is not read. Finished or archived spools load as archived.
   - **SpoolKeep** counts spools instead of weighing them, so each counted unit (new and used) loads as its own spool with unknown weights, and an entry with none left loads as one archived spool. A backup that would expand to too many spools is refused. It does not store density, weights, location, or purchase date.

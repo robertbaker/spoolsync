@@ -59,3 +59,45 @@ test("a new link uses batchNumber when free and the notes when a lot number is t
   expect(withLot["batchNumber"]).toBe("L1");
   expect(load(withLot).crossIds.spoolstockShortId).toBe("abc");
 });
+
+test("a different Spoolstock link in batchNumber is replaced, and the same one is left alone", () => {
+  const target: Record<string, unknown> = { batchNumber: "spoolstock:spool:old", notes: "Dry" };
+  setSpoolstockLink(target, "new");
+  expect(target["batchNumber"]).toBe("spoolstock:spool:new");
+  expect(target["notes"]).toBe("Dry");
+  expect(load(target).crossIds.spoolstockShortId).toBe("new");
+  setSpoolstockLink(target, "new");
+  expect(target["batchNumber"]).toBe("spoolstock:spool:new");
+});
+
+test("a different Spoolstock link in the notes is replaced beside a real lot number", () => {
+  const target: Record<string, unknown> = {
+    batchNumber: "L1",
+    notes: "[Spoolstock link: old]\nDry",
+  };
+  setSpoolstockLink(target, "new");
+  expect(target["batchNumber"]).toBe("L1");
+  expect(load(target).crossIds.spoolstockShortId).toBe("new");
+  expect(load(target).comment).toBe("Dry");
+});
+
+test("single-value temperatures: a min write also sets max, and max writes are ignored", () => {
+  const target: Record<string, unknown> = {
+    nozzleTempMin: 190,
+    nozzleTempMax: 230,
+    bedTempMin: 50,
+    bedTempMax: 60,
+  };
+  setField(target, "nozzleTempMin", 205);
+  setField(target, "bedTempMin", 55);
+  setField(target, "nozzleTempMax", 240);
+  setField(target, "bedTempMax", 70);
+  expect(target).toMatchObject({
+    nozzleTempMin: 205,
+    nozzleTempMax: 205,
+    bedTempMin: 55,
+    bedTempMax: 55,
+  });
+  setField(target, "nozzleTempMin", null);
+  expect(target).toMatchObject({ nozzleTempMin: 0, nozzleTempMax: 0 });
+});

@@ -52,6 +52,11 @@ function payload(record: Record<string, unknown>, only?: Set<string>): Record<st
   for (const key of WRITABLE) {
     if (only && !only.has(key)) continue;
     const value = record[key];
+    // Filadex's create schema requires colorName, even when empty.
+    if (!only && key === "colorName") {
+      out[key] = value == null ? "" : value;
+      continue;
+    }
     if (value === undefined) continue;
     if (value === "" || value === null) {
       if (NULLABLE.has(key) && only) out[key] = null;

@@ -106,6 +106,34 @@ test("a change during a run causes exactly one more run, and a failure keeps the
   expect(h.exitCode()).toBe(1);
 });
 
+test("a rerun that is pending when the signal aborts is not started", async () => {
+  const h = harness();
+  let runs = 0;
+  let release: (() => void) | undefined;
+  const done = runWatch({
+    files: ["/data/a.json"],
+    run: async () => {
+      runs++;
+      if (runs === 2) await new Promise<void>((resolve) => (release = resolve));
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get(abs("/data"))!("a.json");
+  await wait(30);
+  expect(runs).toBe(2);
+  // A change arrives during the second run, then Ctrl+C: the queued rerun must not run.
+  h.handlers.get(abs("/data"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  release!();
+  await done;
+  await wait(30);
+  expect(runs).toBe(2);
+});
+
 test("stopping waits for a run in progress and reports its exit code", async () => {
   const h = harness();
   let release: (() => void) | undefined;

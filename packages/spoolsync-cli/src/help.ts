@@ -28,7 +28,7 @@ Inputs (provide at least two):
   --filamentdb-url <url>  Load FilamentDB directly instead of from a file
   --filamentdb-token <token> Session token for installs with user management (or set FILAMENTDB_TOKEN)
   --filament-db-url <url> Load Filament DB directly instead of from a file
-  --filament-db-token <key> API key if the server sets FILAMENTDB_API_KEY (or set FILAMENT_DB_API_KEY)
+  --filament-db-token <key> API key if the server sets one (or set FILAMENT_DB_API_KEY, else FILAMENTDB_API_KEY)
   --bambuddy-url <url>    Load Bambuddy directly instead of from a file
   --bambuddy-token <key>  Bambuddy API key (or set BAMBUDDY_API_KEY); --apply needs the Manage inventory scope
   --filadex-url <url>     Load Filadex directly instead of from a file

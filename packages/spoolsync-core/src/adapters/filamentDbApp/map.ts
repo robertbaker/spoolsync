@@ -94,6 +94,7 @@ export function mapFilamentSpools(
   const nozzle = temperature(filament, parent, "nozzle");
   const nozzleMin = temperature(filament, parent, "nozzleRangeMin") ?? nozzle;
   const nozzleMax = temperature(filament, parent, "nozzleRangeMax") ?? nozzle;
+  const parentTemps = isBag(parent?.["temperatures"]) ? parent["temperatures"] : null;
   const tare = toNonNegativeNumber(inherited(filament, parent, "spoolWeight"));
   const net = toPositiveNumber(inherited(filament, parent, "netFilamentWeight"));
   const cost = toNonNegativeNumber(inherited(filament, parent, "cost"));
@@ -140,7 +141,12 @@ export function mapFilamentSpools(
       td,
       comment: toText(spool["label"]),
       archived: spool["retired"] === true,
-      raw: { filamentId: idOf(filament["_id"]), spool, ...(legacyId ? { legacyRoll: true } : {}) },
+      raw: {
+        filamentId: idOf(filament["_id"]),
+        spool,
+        ...(legacyId ? { legacyRoll: true } : {}),
+        ...(parentTemps ? { parentTemperatures: parentTemps } : {}),
+      },
     });
   }
   return spools;

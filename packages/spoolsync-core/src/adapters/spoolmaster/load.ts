@@ -2,6 +2,7 @@ import type { LoadResult } from "../../core/model";
 import { readXlsx, type XlsxCell, type XlsxSheet } from "../shared/xlsx";
 import { ZipError } from "../shared/zip";
 import {
+  columnKey,
   normalizeHeader,
   AMBIGUOUS_HEADERS,
   spoolmasterToCommon,
@@ -13,7 +14,7 @@ const REQUIRED_HEADERS = ["brand", "material"] as const;
 function headerMap(row: readonly XlsxCell[]): Map<string, number> | null {
   const columns = new Map<string, number>();
   row.forEach((cell, index) => {
-    const name = normalizeHeader(cell);
+    const name = columnKey(cell);
     if (name && !columns.has(name)) columns.set(name, index);
   });
   return REQUIRED_HEADERS.every((name) => columns.has(name)) ? columns : null;

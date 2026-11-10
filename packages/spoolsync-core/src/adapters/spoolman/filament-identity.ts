@@ -1,4 +1,4 @@
-import { defaultDensity } from "./filament-policy";
+import { defaultDensity, filamentTemps, middle } from "./filament-policy";
 import type { SpoolmanFilament } from "./schema";
 
 export const norm = (value: string | null | undefined) => (value ?? "").trim().toLowerCase();
@@ -40,6 +40,7 @@ export function filamentIdentity(filament: SpoolmanFilament): FilamentIdentity {
   const single = filament.color_hex
     ? [filament.color_hex.replace(/^#/, "").slice(0, 6).toUpperCase()]
     : [];
+  const temps = filamentTemps(filament);
   return {
     vendorId: filament.vendor?.id ?? null,
     material: filament.material ?? null,
@@ -54,17 +55,22 @@ export function filamentIdentity(filament: SpoolmanFilament): FilamentIdentity {
     diameter: filament.diameter ?? 1.75,
     density: filament.density ?? defaultDensity(filament.material ?? null),
     upc: filament.article_number ?? null,
-    nozzleTemp: filament.settings_extruder_temp || null,
-    bedTemp: filament.settings_bed_temp || null,
+    // The effective temperatures (a Spoolman-NG range wins over the single value), so a filament
+    // with only a range still matches the midpoint a write would store.
+    nozzleTemp: middle(temps.nozzleTempMin, temps.nozzleTempMax),
+    bedTemp: middle(temps.bedTempMin, temps.bedTempMax),
   };
 }
 
+/**
+ * Metadata a filament keeps beyond its identity. Temperatures are left out on purpose: identity
+ * covers their midpoint and ranges are compared separately, so a move that changes them can still
+ * reuse the filament an earlier spool of the same move created.
+ */
 export function metadataKey(filament: SpoolmanFilament): string {
   return JSON.stringify([
     filament.comment ?? null,
     filament.external_id ?? null,
-    filament.settings_extruder_temp ?? null,
-    filament.settings_bed_temp ?? null,
     Object.entries(filament.extra ?? {}).sort(([a], [b]) => a.localeCompare(b)),
   ]);
 }

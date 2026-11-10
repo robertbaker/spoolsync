@@ -2,6 +2,7 @@ import type { CommonSpool } from "../../core/model";
 import {
   toBoolean,
   toDate,
+  toNonNegativeNumber,
   toNumber,
   toPositiveNumber,
   toText,
@@ -89,7 +90,8 @@ export function spoolstockToCommon(record: SpoolstockRecord): CommonSpool {
     upc: toText(record["filament.upc"]),
     initialWeight,
     remainingWeight: toNumber(record.remaining_weight),
-    emptySpoolWeight: toPositiveNumber(record["empty_spool.weight"]),
+    // A coreless spool's tare is a known zero; the export leaves it blank when unset.
+    emptySpoolWeight: toNonNegativeNumber(record["empty_spool.weight"]),
     location: toText(record.inventory_location),
     // Spoolstock exports 0 for an unpriced spool.
     price: toPositiveNumber(record.price),

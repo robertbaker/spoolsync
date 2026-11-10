@@ -30,6 +30,32 @@ export function normalizeFilamentDbUrl(input: string): string {
   return `${url.origin}${url.pathname.replace(/\/+$/, "").replace(/\/api$/, "")}`;
 }
 
+const MAX_ERROR_DETAIL = 300;
+
+/** The `{ error, detail }` text of a failed response, trimmed; empty when there is none. */
+async function upstreamError(response: Response): Promise<string> {
+  try {
+    const text = (await response.text()).trim();
+    if (!text) return "";
+    let message = text;
+    try {
+      const body = JSON.parse(text) as unknown;
+      if (body && typeof body === "object") {
+        const { error, detail } = body as { error?: unknown; detail?: unknown };
+        const parts = [error, detail].filter((v): v is string => typeof v === "string" && !!v);
+        // Anything that is not the documented error shape is not worth echoing.
+        message = parts.join(" - ");
+      }
+    } catch {
+      // Plain text (for example a proxy error page) is shortened below.
+    }
+    message = message.replace(/\s+/g, " ").trim();
+    return message.length > MAX_ERROR_DETAIL ? `${message.slice(0, MAX_ERROR_DETAIL)}...` : message;
+  } catch {
+    return "";
+  }
+}
+
 /** Minimal client for FilamentDB's `/api/spools` endpoints. */
 export class FilamentDbClient {
   readonly baseUrl: string;
@@ -78,8 +104,12 @@ export class FilamentDbClient {
       throw new Error(
         "FilamentDB denied permission for this request. The signed-in user may not edit this spool (for example one owned by another user).",
       );
-    if (!response.ok)
-      throw new Error(`FilamentDB answered ${response.status} ${response.statusText}.`);
+    if (!response.ok) {
+      const detail = await upstreamError(response);
+      throw new Error(
+        `FilamentDB answered ${response.status} ${response.statusText}${detail ? `: ${detail}` : "."}`,
+      );
+    }
     try {
       return await response.json();
     } catch {

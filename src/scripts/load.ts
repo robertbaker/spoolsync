@@ -1,5 +1,4 @@
 import { allSpools, SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
-import { SERVICES } from "@spoolsync/core/core/services";
 import { spoolKey, summarizeInventory } from "@spoolsync/core/workflow";
 
 import {
@@ -21,15 +20,12 @@ import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
 import { confirmDialog } from "./confirm-dialog";
-import {
-  announceConnectionChange,
-  changedConnectionSource,
-  CONNECTION_CHANGED,
-} from "./connections/events";
+import { announceConnectionChange, CONNECTION_CHANGED } from "./connections/events";
 import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
 import { wireCleanupPanel } from "./load/cleanup-view";
+import { handleConnectionChange } from "./load/connection-change";
 import { wireConnectionPanels } from "./load/connection-panels";
 import { renderCostChart } from "./load/cost-chart";
 import { wireDryingPanel } from "./load/drying-panel";
@@ -254,22 +250,15 @@ void Promise.all([
 
 // Saving a different connection invalidates that service's fetched snapshot in storage; mirror it
 // here so the page never shows (or syncs) an inventory that came from the previous server or account.
-document.addEventListener(CONNECTION_CHANGED, (event) => {
-  // An event naming one service leaves other services' in-flight loads and snapshots alone.
-  const only = changedConnectionSource(event);
-  for (const source of SOURCE_IDS) {
-    if (only && source !== only) continue;
-    // Reject any in-flight server response that was started for the previous connection. In-flight
-    // file loads are unaffected: they do not depend on a connection.
-    if ((SERVICES[source].apiClients as readonly string[]).includes("browser"))
-      state.invalidateApi(source);
-    if (state.results.get(source)?.origin === "api" && !readLoadResult(source)) {
-      state.unload(source);
-      setStatus(source);
-    }
-  }
-  render();
-});
+document.addEventListener(CONNECTION_CHANGED, (event) =>
+  handleConnectionChange(event, {
+    state,
+    sources: SOURCE_IDS,
+    readStored: readLoadResult,
+    setStatus,
+    render,
+  }),
+);
 
 unloadAll?.addEventListener("click", async () => {
   const count = state.results.size;

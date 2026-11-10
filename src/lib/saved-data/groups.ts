@@ -26,6 +26,9 @@ export const SAVED_GROUPS: readonly SavedGroup[] = [
       "spoolsync:tigertag-session",
       "spoolsync:bambuddy-connection",
       "spoolsync:filamentdb-connection",
+      // Written briefly by an unreleased build that could connect to Filament DB from the
+      // browser; kept here so a development browser does not keep that token.
+      "spoolsync:filament-db-connection",
     ],
     storage: "local",
   },

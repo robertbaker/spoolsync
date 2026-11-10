@@ -151,7 +151,7 @@ export function exportSpoolmanJson(
       change.changes.some(
         (item) => item.field === "initialWeight" || item.field === "remainingWeight",
       );
-    const initial = target["initial_weight"] ?? target.filament["weight"];
+    const initial = target["initial_weight"] || target.filament["weight"];
     const remaining = target["remaining_weight"];
     if (changingWeights) {
       if (

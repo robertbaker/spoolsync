@@ -227,6 +227,7 @@ describe("config safety", () => {
   test("the secret hint names every credential variable, including FILAMENT_DB_API_KEY", () => {
     expect(() => read({ password: "x" })).toThrow("FILAMENT_DB_API_KEY");
     expect(() => read({ "spoolman-url": "http://u:p@host" })).toThrow("FILAMENT_DB_API_KEY");
+    expect(() => read({ password: "x" })).toThrow("FILAMENTDB_API_KEY");
   });
 
   test("service URLs with credentials in the query string are refused", () => {

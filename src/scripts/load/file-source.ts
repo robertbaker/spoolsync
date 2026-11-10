@@ -73,7 +73,7 @@ export async function readInventoryFile(
   { state, store, fileLoaded }: LoadContext,
 ): Promise<LoadResult | null> {
   const message = byId(`${source}-message`);
-  const started = state.currentRevision(source);
+  const started = state.foreignRevision(source);
   message.replaceChildren();
   if (file.size > MAX_INVENTORY_FILE_BYTES) {
     message.replaceChildren(
@@ -85,6 +85,8 @@ export async function readInventoryFile(
     );
     return null;
   }
+  // Taken as the read starts, but only a read that stores claims the source (see below), so a bad
+  // newer file cannot discard a good older one.
   const ticket = state.startFileRead(source);
   let result: LoadResult;
   try {
@@ -100,21 +102,18 @@ export async function readInventoryFile(
       loadedAt: new Date().toISOString(),
     };
   }
-  // A newer-started read owns the panel (and its message); a server load, unload or other file
-  // that took the source meanwhile has already reported its own outcome there.
-  if (!state.isLatestFileRead(source, ticket) || !state.isCurrent(source, started)) {
-    if (state.isLatestFileRead(source, ticket) && message.childElementCount === 0) {
-      message.replaceChildren(
-        notice(
-          "info",
-          `${file.name} was not loaded`,
-          h("p", { class: "mt-1" }, `${SOURCE_LABELS[source]} changed while the file was read.`),
-        ),
-      );
-    }
+  const notLoaded = (reason: string) =>
+    message.append(
+      notice("info", `${file.name} was not loaded`, h("p", { class: "mt-1" }, reason)),
+    );
+  // A server load, unload or empty inventory took the source while the file was read.
+  if (state.foreignRevision(source) !== started) {
+    notLoaded(`${SOURCE_LABELS[source]} changed while the file was read.`);
     return null;
   }
   if (!result.spools.length && result.warnings.length) {
+    // Only the newest-started read reports a failure; a newer read owns the panel otherwise.
+    if (!state.isLatestFileRead(source, ticket)) return null;
     message.replaceChildren(
       notice(
         "error",
@@ -127,8 +126,12 @@ export async function readInventoryFile(
     );
     return null;
   }
-  // Only a file that replaces the inventory supersedes other loads of this source.
-  state.nextRevision(source);
+  // A file that started later and was stored already owns the inventory; it keeps its message.
+  if (!state.claimFileStore(source, ticket)) {
+    notLoaded("A file chosen after it was loaded instead.");
+    return null;
+  }
+  // The claim above supersedes server loads of this source.
   message.replaceChildren(
     notice("success", `Loaded ${plural(result.spools.length, "spool")} from ${file.name}`),
     ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),

@@ -22,6 +22,17 @@ test("comparePair marks differing fields and ignores case, spacing and sub-gram 
   expect(rows.map((row) => row.label).slice(0, 3)).toEqual(["Brand", "Material", "Color"]);
 });
 
+test("comparePair keeps a 64-character cut as a difference unless Spoolman is involved", () => {
+  const full = "x".repeat(70);
+  const cut = "x".repeat(64);
+  const status = (a: "spoolio" | "spoolman", b: "spoolio" | "spoolstock") =>
+    comparePair(makeSpool(a, "1", { name: full }), makeSpool(b, "2", { name: cut })).find(
+      (row) => row.field === "name",
+    )?.status;
+  expect(status("spoolman", "spoolio")).toBe("same");
+  expect(status("spoolio", "spoolstock")).toBe("differs");
+});
+
 function fixture() {
   const spools = [
     makeSpool("spoolman", "1", { remainingWeight: 500 }),

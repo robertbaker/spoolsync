@@ -9,6 +9,7 @@ import {
   uniqueHexes,
 } from "../../core/normalize";
 import { field } from "../shared/tabular";
+import { commonMaterialAndFinish } from "./vocabulary";
 
 export const JSON_NUMERIC_FIELDS = [
   "remaining_grams",
@@ -60,6 +61,10 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
   const bedTemp = toPositiveNumber(
     field(record, "spool_preferred_bed_temp") ?? properties.preferred_bed_temp,
   );
+  const { material, finish } = commonMaterialAndFinish(
+    toText(field(record, "material", "type", "filament_type")),
+    toText(field(record, "material_type")),
+  );
   return {
     source: "threeDfp",
     sourceId: id,
@@ -69,7 +74,7 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
       ...(shortIdFromLotNr(lotNr) ? { spoolstockShortId: shortIdFromLotNr(lotNr) } : {}),
     },
     vendor: toText(field(record, "brand", "vendor", "manufacturer")),
-    material: toText(field(record, "material", "type", "filament_type")),
+    material,
     name: toText(field(record, "color", "name", "filament", "color_name", "colour_name")),
     colors,
     diameter: null,
@@ -84,10 +89,11 @@ export function mapRecord(record: Record<string, unknown>, index: number): Commo
     remainingWeight: remaining,
     emptySpoolWeight: toNonNegativeNumber(field(record, "empty_spool_weight", "spool_weight")),
     location: toText(field(record, "location", "storage_location")),
-    price: toNumber(field(record, "spool_purchase_price") ?? properties.purchase_price),
+    // 3DFP carries 0 for an unpriced spool, like Spoolio and Spoolstock.
+    price: toPositiveNumber(field(record, "spool_purchase_price") ?? properties.purchase_price),
     purchasedOn: toDate(field(record, "spool_purchase_date") ?? properties.purchase_date),
     lotNr,
-    finish: toText(field(record, "material_type")),
+    finish,
     td: toPositiveNumber(field(record, "td_value")),
     comment: note?.replace(/^Lot:\s*.+(?:\r?\n|$)/im, "").trim() || null,
     archived: false,

@@ -128,3 +128,44 @@ test("Filadex update leaves density and unrelated fields out of the patch", asyn
   ]);
   expect(patches).toEqual([{ colorName: "B" }]);
 });
+
+test("Filadex create always sends colorName and warns about invented weight and diameter", async () => {
+  const change = {
+    kind: "create",
+    source: "filadex",
+    groupId: "g2",
+    values: {
+      vendor: "Acme",
+      material: "PLA",
+      name: null,
+      colors: [],
+      diameter: null,
+      nozzleTempMin: null,
+      nozzleTempMax: null,
+      initialWeight: null,
+      remainingWeight: null,
+      price: null,
+      location: null,
+      upc: null,
+      purchasedOn: null,
+    },
+    links: {},
+    groupIds: {},
+  } as unknown as PlannedChange;
+  const sent: Array<Record<string, unknown>> = [];
+  const client: FiladexWriteClient = {
+    async listFilaments() {
+      return [];
+    },
+    async updateFilament() {},
+    async createFilament(payload) {
+      sent.push(payload);
+      return { id: 4 };
+    },
+  };
+  const log = await applyToFiladex(client, [change]);
+  expect(log[0]!.ok).toBe(true);
+  expect(sent[0]).toHaveProperty("colorName", "");
+  expect(JSON.stringify(log)).toContain("weights are unknown");
+  expect(JSON.stringify(log)).toContain("diameter was unknown");
+});

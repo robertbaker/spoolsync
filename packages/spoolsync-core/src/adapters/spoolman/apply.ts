@@ -12,12 +12,17 @@ import type { SpoolmanWriteClient } from "./write-client";
 export { defaultDensity } from "./filament-policy";
 export type { ApplyLogEntry } from "../../core/model";
 
-/** Whether a failed `/info` only means this server (or test double) has none to read. */
-function isMissingInfo(error: unknown): boolean {
-  if ((error as { name?: string } | null)?.name === "AbortError") return false;
-  if (!(error instanceof SpoolmanError)) return true;
-  if (error.kind === "parse") return true;
-  return error.kind === "http" && [404, 405, 501].includes(error.status ?? 0);
+/**
+ * Whether a failed `/info` must stop the apply. `/info` only detects Spoolman-NG, so just
+ * cancellation and rejected credentials are fatal; anything else (404, 5xx, timeout, network) falls
+ * back to detecting ranges from the filaments' keys.
+ */
+function isFatalInfoError(error: unknown): boolean {
+  if ((error as { name?: string } | null)?.name === "AbortError") return true;
+  return (
+    error instanceof SpoolmanError &&
+    (error.kind === "auth" || (error.kind === "http" && [401, 403].includes(error.status ?? 0)))
+  );
 }
 
 /**
@@ -71,12 +76,17 @@ export async function applyToSpoolman(
   const catalog = new FilamentCatalog(client, vendors, filaments);
   // Spoolman-NG leaves unset fields out of responses, so ranges may not show on any filament.
   // Older servers or test doubles without a usable /info simply stay on the key-based detection.
+  let infoNote: string | undefined;
   try {
     if (isSpoolmanNg(await client.info())) catalog.markRanges();
   } catch (error) {
-    // Cancellation and auth/connection failures are real; only a server without a usable `/info`
-    // falls back to detecting ranges from the filaments themselves.
-    if (!isMissingInfo(error)) throw error;
+    if (isFatalInfoError(error)) throw error;
+    const missing =
+      !(error instanceof SpoolmanError) ||
+      error.kind === "parse" ||
+      (error.kind === "http" && [404, 405, 501].includes(error.status ?? 0));
+    if (!missing)
+      infoNote = `Spoolman /info was unavailable (${(error as Error).message}); Spoolman-NG temperature ranges are only detected from existing filaments`;
   }
   const spoolsByFilament = new Map<number, number>();
   for (const spool of spools)
@@ -146,6 +156,10 @@ export async function applyToSpoolman(
         const note = (text: string) => {
           if (!notes.includes(text)) notes.push(text);
         };
+        if (infoNote) {
+          note(infoNote);
+          infoNote = undefined;
+        }
         let message: string;
         try {
           message = await (change.kind === "update"

@@ -499,3 +499,31 @@ test("a CSV create with no tare known writes the weight without one and warns", 
   expect(file.warnings.join(" ")).toContain("no empty-spool weight");
   expect(file.warnings.join(" ")).toContain("price");
 });
+
+test("a snapshot export gives every planned spool of a filament its new empty-spool weight, in any order", async () => {
+  const doc = snapshot();
+  doc.collections.filaments[1]!.spools.push({
+    _id: "s2",
+    totalWeight: 600,
+    lotNumber: "L8",
+    retired: false,
+  } as never);
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(doc));
+  const first = loaded.spools.find((s) => s.sourceId === "s1")!;
+  const sibling = loaded.spools.find((s) => s.sourceId === "s2")!;
+  expect(first.remainingWeight).toBe(500);
+  expect(sibling.remainingWeight).toBe(400);
+  // The sibling is listed first and carries no tare change of its own.
+  const result = exportFilamentDbApp(loaded as never, [
+    update(sibling, [["lotNr", "L8", "L9"]]),
+    update(first, [["emptySpoolWeight", 200, 250]]),
+  ]);
+  const out = JSON.parse(result.json) as ReturnType<typeof snapshot>;
+  const spools = out.collections.filaments[1]!.spools as Array<{
+    _id: string;
+    totalWeight: number;
+  }>;
+  // Both keep their remaining weight (500 g and 400 g) on top of the new 250 g tare.
+  expect(spools.find((s) => s._id === "s1")!.totalWeight).toBe(750);
+  expect(spools.find((s) => s._id === "s2")!.totalWeight).toBe(650);
+});

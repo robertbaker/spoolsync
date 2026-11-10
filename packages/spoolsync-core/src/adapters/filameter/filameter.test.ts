@@ -212,3 +212,15 @@ test("FilaMeter names a new spool without a name rather than writing an empty fi
   expect(doc.filament).toBe("Imported Filament");
   expect(out.warnings.join("\n")).toContain("requires a filament name");
 });
+
+test("FilaMeter clamps a negative used weight so remaining never exceeds the total", () => {
+  const loaded = loadFilameterFile(
+    JSON.stringify({
+      regular: [
+        { _id: "n", filament: "Neg", material: "PLA", used_weight: -50, total_weight: 1000 },
+      ],
+      local: [],
+    }),
+  );
+  expect(loaded.spools[0]).toMatchObject({ initialWeight: 1000, remainingWeight: 1000 });
+});

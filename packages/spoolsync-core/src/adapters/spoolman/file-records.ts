@@ -8,6 +8,7 @@ import {
   filamentTemps,
   hasDiameterOverride,
   hasTempRanges,
+  storedWeight,
   temperatureParams,
 } from "./filament-policy";
 import { encodeExtras, readExtra, truncateComment } from "./schema";
@@ -71,10 +72,11 @@ export function setField(spool: Spool, field: ComparableField, value: unknown): 
       filament["article_number"] = value;
       break;
     case "initialWeight":
-      spool["initial_weight"] = value;
+      spool["initial_weight"] = storedWeight(value as number | null);
       break;
     case "remainingWeight":
       spool["remaining_weight"] = value;
+      // A file can say the remaining weight is unknown by leaving the used weight out.
       if (value == null) delete spool["used_weight"];
       if (typeof spool["initial_weight"] === "number" && typeof value === "number") {
         spool["used_weight"] = Math.max(0, spool["initial_weight"] - value);
@@ -137,7 +139,7 @@ export function newSpool(id: number, values: SpoolValues, ranges = false): Spool
       vendor: null,
       density: defaultDensity(values.material),
       diameter: 1.75,
-      weight: values.initialWeight,
+      weight: storedWeight(values.initialWeight),
       spool_weight: values.emptySpoolWeight,
       ...temperatureParams(values, ranges),
     },

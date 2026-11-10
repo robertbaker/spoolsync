@@ -145,6 +145,13 @@ export function createRecord(
   // Filadex only uses density to seed a new material catalog entry; it is not stored per spool.
   if (v.density != null && v.density > 0) record["density"] = String(v.density);
   if (v.colors.length > 1) warn(`${label}: ${COLOR_WARNING}`);
+  if (v.diameter == null)
+    warn(`${label}: diameter was unknown; Filadex requires one, so 1.75 mm was written.`);
+  const noTotal = !((v.initialWeight ?? 0) > 0) && !((v.remainingWeight ?? 0) > 0);
+  if (noTotal)
+    warn(
+      `${label}: weights are unknown and Filadex cannot store that, so the filament was written as a full 1 kg spool. It will read back as a measured 1 kg, so do not sync its weight to other services.`,
+    );
   setWeights(record, v.initialWeight, v.remainingWeight, label, warn);
   return record;
 }

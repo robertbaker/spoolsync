@@ -91,14 +91,13 @@ describe("finish (aspect) and TD", () => {
     expect(file).toMatchObject({ id_aspect1: 247, id_aspect2: 91, TD: 3.5 });
     expect(output.warnings).toEqual([]);
     expect(loadTtag(output.json).spools[0]).toMatchObject({
-      finish: "Matte, Glow",
+      finish: "Matte, Glow In the Dark",
       td: 3.5,
     });
 
     const odd = exported(loaded, [{ field: "finish", from: "Silk", to: "Plaid, Matte, Silk" }]);
-    expect(odd.file).toMatchObject({ id_aspect1: 255, id_aspect2: 247 });
-    expect(odd.output.warnings.join("\n")).toContain("Plaid is not a TigerTag aspect");
-    expect(odd.output.warnings.join("\n")).toContain("only two aspects fit");
+    expect(odd.file).toMatchObject({ id_aspect1: 247, id_aspect2: 92 });
+    expect(odd.output.warnings.join("\n")).toContain("Plaid has no TigerTag aspect");
 
     const cleared = exported(loaded, [{ field: "finish", from: "Silk", to: null }]);
     expect(cleared.file).toMatchObject({ id_aspect1: 255, id_aspect2: 255 });

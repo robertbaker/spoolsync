@@ -26,6 +26,13 @@ export function loadSpoolKeepJson(text: string): LoadResult {
   const warnings: string[] = [];
   const spools: CommonSpool[] = [];
   const seen = new Set<string>();
+  // Real ids win over generated `${id}:new-1` ids, whichever order they appear in.
+  const realIds = new Set<string>();
+  for (const entry of parsed) {
+    const id = (entry as { id?: unknown } | null)?.id;
+    if (typeof id === "string") realIds.add(id);
+  }
+  const emitted = new Set<string>();
   parsed.forEach((entry, position) => {
     const result = SpoolKeepRecordSchema.safeParse(entry);
     if (!result.success) {
@@ -67,8 +74,18 @@ export function loadSpoolKeepJson(text: string): LoadResult {
       used: 0,
       none: 0,
     };
-    for (const condition of units)
-      spools.push(spoolKeepToCommon(record, condition, ++counts[condition], units.length));
+    for (const condition of units) {
+      const spool = spoolKeepToCommon(record, condition, ++counts[condition], units.length);
+      const generated = spool.sourceId !== record.id;
+      if (emitted.has(spool.sourceId) || (generated && realIds.has(spool.sourceId))) {
+        warnings.push(
+          `Filament ${record.id}: generated ID ${spool.sourceId} collides with another entry; skipped that spool.`,
+        );
+        continue;
+      }
+      emitted.add(spool.sourceId);
+      spools.push(spool);
+    }
   });
   return {
     source: "spoolkeep",

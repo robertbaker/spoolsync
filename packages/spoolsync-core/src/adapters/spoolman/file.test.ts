@@ -280,3 +280,32 @@ test("a spreadsheet formula quote is stripped from extra values too", () => {
   });
   expect(unflatten(row)).toMatchObject({ extra: { note: "'-5" } });
 });
+
+describe("exportSpoolmanJson weight rules shared with the API path", () => {
+  test("a weight of 0 is left unset and a cleared remaining weight drops the used weight", () => {
+    const loaded = loadSpoolmanFile(JSON.stringify([apiSpool]));
+    const update = {
+      kind: "update" as const,
+      source: "spoolman" as const,
+      groupId: "x",
+      spool: loaded.spools[0]!,
+      links: {},
+      changes: [
+        { field: "initialWeight" as const, from: 1000, to: 0 },
+        { field: "remainingWeight" as const, from: 860, to: null },
+      ],
+    };
+    const { groups } = matchSpools([makeSpool("spoolstock", "new", { initialWeight: 0 })]);
+    const creates = buildPlan(
+      groups,
+      new Map([[groups[0]!.id, { values: { initialWeight: 0 }, createIn: ["spoolman"] }]]),
+    ).get("spoolman")!;
+    const result = exportSpoolmanJson(loaded, [update, ...creates]);
+    const [edited, created] = JSON.parse(result.json);
+    expect(edited.initial_weight).toBeNull();
+    expect(edited.used_weight).toBeUndefined();
+    expect(edited.remaining_weight ?? null).toBeNull();
+    expect(created.initial_weight ?? null).toBeNull();
+    expect(created.filament.weight ?? null).toBeNull();
+  });
+});

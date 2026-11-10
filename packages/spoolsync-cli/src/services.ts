@@ -26,6 +26,22 @@ export interface RemoteService {
   ): Promise<ApplyLogEntry[]>;
 }
 
+/**
+ * The API key for Filament DB (hyiger): `--filament-db-token`, then FILAMENT_DB_API_KEY, then
+ * FILAMENTDB_API_KEY, the name the Filament DB server itself reads. An empty variable is unset.
+ */
+export function filamentDbApiKey(
+  options: Pick<Options, "filamentDbToken">,
+  environment: Readonly<Record<string, string | undefined>>,
+): string | undefined {
+  return (
+    options.filamentDbToken ||
+    environment["FILAMENT_DB_API_KEY"] ||
+    environment["FILAMENTDB_API_KEY"] ||
+    undefined
+  );
+}
+
 /** Resolve each connection when its turn is reached, preserving service load/error order. */
 export function* remoteServices(
   options: Options,
@@ -60,7 +76,7 @@ export function* remoteServices(
     };
   }
   if (options.filamentDbUrl) {
-    const token = options.filamentDbToken ?? environment["FILAMENT_DB_API_KEY"];
+    const token = filamentDbApiKey(options, environment);
     const connection = {
       baseUrl: options.filamentDbUrl,
       ...(token ? { token } : {}),

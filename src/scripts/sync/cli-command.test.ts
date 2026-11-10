@@ -44,6 +44,26 @@ function command(excluded = new Set<string>(), origin: "api" | "file" = "api") {
 }
 
 describe("buildCliCommand", () => {
+  test("names both Filament DB key variables, primary first", () => {
+    const { groups, resolutions, plan } = scenario();
+    const choices = deriveCliChoices(
+      groups,
+      resolutions,
+      { confirmed: [], rejected: [] },
+      [],
+      plan,
+      ["spoolman", "spoolio"],
+    );
+    const { text } = buildCliCommand({
+      loaded: new Map([["filamentDbApp", { origin: "api" }]]),
+      choices,
+      plan,
+      excludedCount: 0,
+    });
+    expect(text).toContain("--filament-db-url '<filamentDbApp-url>'");
+    expect(text).toContain("Set FILAMENT_DB_API_KEY (or FILAMENTDB_API_KEY) in your environment");
+  });
+
   test("uses only real options with placeholders and no secrets", () => {
     const { text, caveats } = command();
     expect(caveats).toEqual([]);

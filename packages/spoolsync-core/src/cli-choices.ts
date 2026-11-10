@@ -96,7 +96,7 @@ export function deriveCliChoices(
         const option = compareGroup(group)
           .find((item) => item.field === field && item.kind === "conflict")
           ?.options.find((candidate) => candidate.sources.includes(source));
-        if (option && valuesEqual(field, option.value, chosen[field]!)) matches++;
+        if (option && valuesEqual(field, option.value, chosen[field]!, source)) matches++;
       }
       if (matches > 0 && (!best || matches > best.matches)) best = { source, matches };
     }

@@ -174,6 +174,28 @@ describe("planRollback", () => {
     ).toHaveLength(2);
   });
 
+  test("a 64-character cut is a different value on a service other than Spoolman", () => {
+    const full = "x".repeat(70);
+    const cut = "x".repeat(64);
+    const doc = buildRollback(
+      "spoolio",
+      [update("1", [{ field: "name", from: full, to: cut }], { source: "spoolio" })],
+      { target: "t", now },
+    );
+    const spoolio = (name: string): LoadResult => ({
+      source: "spoolio",
+      spools: [makeSpool("spoolio", "1", { name })],
+      warnings: [],
+      loadedAt: "2026-11-04T10:05:00.000Z",
+    });
+    // The service holds the cut value that was written: it is put back.
+    expect(planRollback(doc, spoolio(cut)).changes).toHaveLength(1);
+    // The full value is not the written one, and is not treated as equal to the cut.
+    const plan = planRollback(doc, spoolio(full));
+    expect(plan.changes).toEqual([]);
+    expect(plan.skipped[0]?.reason).toBe("already has its earlier value");
+  });
+
   test("restored updates are ordinary planned updates for the service", () => {
     const [change] = planRollback(
       document,

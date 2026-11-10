@@ -1,6 +1,7 @@
 import type { PlannedCreate, PlannedUpdate, SpoolValues } from "../../core/compare";
 import type { ComparableField } from "../../core/model";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
+import { grams } from "./map";
 import { aspectId, brandId, diameterId, finishLabels, materialId, NO_ASPECT } from "./reference";
 import {
   FILAMENT_TYPE,
@@ -162,21 +163,24 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
     case "diameter":
       target["data1"] = diameterId(value as number | null);
       break;
+    // A TigerTag chip stores one nozzle and one bed temperature (data2 == data3, data6 == data7),
+    // so only the min fields are compared and a min write also sets max. Max writes are ignored.
     case "nozzleTempMin":
-      target["data2"] = uint16(value as number | null);
-      if (value == null) clearCatalogTemp(target, "nozzle", "temp_min");
-      break;
-    case "nozzleTempMax":
-      target["data3"] = uint16(value as number | null);
-      if (value == null) clearCatalogTemp(target, "nozzle", "temp_max");
+      target["data2"] = target["data3"] = uint16(value as number | null);
+      if (value == null) {
+        clearCatalogTemp(target, "nozzle", "temp_min");
+        clearCatalogTemp(target, "nozzle", "temp_max");
+      }
       break;
     case "bedTempMin":
-      target["data6"] = byte(value as number | null);
-      if (value == null) clearCatalogTemp(target, "bed", "temp_min");
+      target["data6"] = target["data7"] = byte(value as number | null);
+      if (value == null) {
+        clearCatalogTemp(target, "bed", "temp_min");
+        clearCatalogTemp(target, "bed", "temp_max");
+      }
       break;
+    case "nozzleTempMax":
     case "bedTempMax":
-      target["data7"] = byte(value as number | null);
-      if (value == null) clearCatalogTemp(target, "bed", "temp_max");
       break;
     case "density":
       if (value == null) delete target["density"];
@@ -200,9 +204,12 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
       break;
     }
     case "finish": {
-      const [first, second] = finishLabels(value as string | null);
-      target["id_aspect1"] = first ? (aspectId(first) ?? NO_ASPECT) : NO_ASPECT;
-      target["id_aspect2"] = second ? (aspectId(second) ?? NO_ASPECT) : NO_ASPECT;
+      // Words TigerTag has no aspect for are left out (export.ts warns); the rest fill the slots.
+      const ids = [
+        ...new Set(finishLabels(value as string | null).flatMap((label) => aspectId(label) ?? [])),
+      ];
+      target["id_aspect1"] = ids[0] ?? NO_ASPECT;
+      target["id_aspect2"] = ids[1] ?? NO_ASPECT;
       break;
     }
     case "td":
@@ -221,10 +228,7 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
       // for both created and updated records (export.ts warns about it).
       target["weight_available"] = Math.max(
         0,
-        Math.round(
-          (value as number | null) ??
-            (typeof target["measure_gr"] === "number" ? target["measure_gr"] : 0),
-        ),
+        Math.round((value as number | null) ?? grams(target as TtagRecord) ?? 0),
       );
       break;
     case "emptySpoolWeight":
@@ -240,41 +244,12 @@ function setField(target: Record<string, unknown>, field: ComparableField, value
   }
 }
 
-/** Visual finish TigerTag records as its primary aspect, guessed from the name. 255 = none. */
-function aspectFor(values: SpoolValues): number {
-  const text = `${values.material ?? ""} ${values.name ?? ""}`.toLowerCase();
-  const aspects: Array<[string, number]> = [
-    ["rainbow", 145],
-    ["tricolor", 24],
-    ["tri color", 24],
-    ["bicolor", 252],
-    ["bi color", 252],
-    ["glow", 91],
-    ["wood", 123],
-    ["marble", 232],
-    ["carbon", 238],
-    ["silk", 92],
-    ["glitter", 64],
-    ["metal", 226],
-    ["neon", 216],
-    ["clear", 21],
-    ["translucent", 67],
-    ["gloss", 129],
-    ["matte", 247],
-    ["matt", 247],
-    ["satin", 134],
-    ["pearl", 126],
-    ["fiber", 132],
-  ];
-  return aspects.find(([needle]) => text.includes(needle))?.[1] ?? 255;
-}
-
 /** A chipless filament record, as `tools/tigertag/spoolman-to-ttag.ts` builds it. */
 function newRecord(values: SpoolValues, runtime: AdapterRuntime): TtagRecord {
   const record: Record<string, unknown> = {
     uid: `TigerData_${runtime.randomUUID().replaceAll("-", "")}`,
     id_type: FILAMENT_TYPE,
-    id_aspect1: aspectFor(values),
+    id_aspect1: NO_ASPECT,
     id_aspect2: 255,
     data4: 0,
     data5: 0,
@@ -302,9 +277,8 @@ function newRecord(values: SpoolValues, runtime: AdapterRuntime): TtagRecord {
   ] as const) {
     setField(record, field, values[field]);
   }
-  // Without a finish the aspect guessed from the name stays.
+  // The aspect comes only from the finish; it is never guessed from the name.
   if (values.finish) setField(record, "finish", values.finish);
-  if (values.remainingWeight === null) record["weight_available"] = record["measure_gr"];
   return record as TtagRecord;
 }
 
@@ -313,7 +287,11 @@ export function updatedRecords(change: PlannedUpdate): TtagRecord[] {
   const { records: originals } = change.spool.raw as TigertagRaw;
   return originals.map((original) => {
     const record: Record<string, unknown> = { ...original };
-    for (const { field, to } of change.changes) setField(record, field, to);
+    // The remaining weight may fall back to the spool weight, so it is applied after that.
+    const ordered = change.changes.toSorted(
+      (a, b) => Number(a.field === "remainingWeight") - Number(b.field === "remainingWeight"),
+    );
+    for (const { field, to } of ordered) setField(record, field, to);
     if (change.links.spoolmanId !== undefined) record["spoolmanId"] = change.links.spoolmanId;
     return record as TtagRecord;
   });

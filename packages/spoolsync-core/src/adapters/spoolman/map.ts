@@ -35,7 +35,8 @@ export function spoolmanToCommon(spool: SpoolmanSpool): CommonSpool {
   const spoolDiameter =
     typeof spool.diameter === "number" && spool.diameter > 0 ? spool.diameter : null;
   const tigertagUid = readExtra(spool.extra, "spoolsync_tigertag_uid");
-  const initialWeight = spool.initial_weight ?? filament.weight ?? null;
+  // Weights of 0 are "unset" (see storedWeight), so the filament's weight applies.
+  const initialWeight = spool.initial_weight || filament.weight || null;
   const remainingWeight =
     spool.remaining_weight ??
     (initialWeight !== null && spool.used_weight !== undefined

@@ -9,11 +9,15 @@ const zeroIfNull = (value: number | null) => value ?? 0;
 const batchLink = (target: Record<string, unknown>) =>
   typeof target["batchNumber"] === "string" ? shortIdFromLotNr(target["batchNumber"]) : undefined;
 
-/** Stores a Spoolstock link in `batchNumber`, or beside the lot number when one is already there. */
+/**
+ * Stores a Spoolstock link in `batchNumber`, replacing a different Spoolstock link already there,
+ * or beside the lot number (in the notes) when a real lot number is already there.
+ */
 export function setSpoolstockLink(target: Record<string, unknown>, shortId: string): void {
-  if (!target["batchNumber"]) target["batchNumber"] = spoolstockLotNr(shortId);
-  else if (!batchLink(target))
-    setNotes(target, target["notes"], materialNote(target["notes"]), shortId);
+  const current = batchLink(target);
+  if (!target["batchNumber"] || current) {
+    if (current !== shortId) target["batchNumber"] = spoolstockLotNr(shortId);
+  } else setNotes(target, target["notes"], materialNote(target["notes"]), shortId);
 }
 
 /** Writes one common field into a Spoolio filament. Fields Spoolio does not store are ignored. */
@@ -51,11 +55,16 @@ export function setField(
     case "diameter":
       target["diameter"] = value ?? 1.75;
       break;
+    // Spoolio keeps one nozzle and one bed temperature, so the max fields are not compared
+    // (see `core/comparison/fields.ts`). A min write also sets max so no stale range is left.
     case "nozzleTempMin":
-    case "nozzleTempMax":
+      target["nozzleTempMin"] = target["nozzleTempMax"] = zeroIfNull(value as number | null);
+      break;
     case "bedTempMin":
+      target["bedTempMin"] = target["bedTempMax"] = zeroIfNull(value as number | null);
+      break;
+    case "nozzleTempMax":
     case "bedTempMax":
-      target[field] = zeroIfNull(value as number | null);
       break;
     case "initialWeight":
       target["weightTotal"] = zeroIfNull(value as number | null);

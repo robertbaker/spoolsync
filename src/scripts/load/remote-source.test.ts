@@ -100,3 +100,15 @@ test("a response dropped as stale replaces the loading notice", async () => {
   expect(f.message.textContent).not.toContain("Cancel");
   expect(f.message.textContent).toContain("Nothing was loaded");
 });
+
+test("a stale response leaves the panel alone when a file read cleared the loading notice", async () => {
+  const f = fixture();
+  // A file read empties the panel as it starts, then stores and supersedes the server request.
+  f.message.replaceChildren();
+  f.state.nextRevision("spoolman", true);
+  f.resolve(inventory);
+  await flush();
+  expect(f.store).not.toHaveBeenCalled();
+  expect(f.message.textContent).toBe("");
+  expect(f.button.disabled).toBe(false);
+});

@@ -149,3 +149,16 @@ describe("loadSpoolKeepJson limits and BOM", () => {
     expect(result.spools).toHaveLength(1);
   });
 });
+
+test("SpoolKeep generated ids never replace a real id that looks the same", () => {
+  for (const order of [0, 1]) {
+    const a = record({ id: "A", newQuantity: 2, usedQuantity: 0 });
+    const b = record({ id: "A:new-1", newQuantity: 1, usedQuantity: 0 });
+    const result = loadSpoolKeepJson(JSON.stringify(order ? [b, a] : [a, b]));
+    const ids = result.spools.map((spool) => spool.sourceId);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain("A:new-1");
+    expect(ids).toContain("A:new-2");
+    expect(result.warnings.join(" ")).toContain("collides");
+  }
+});

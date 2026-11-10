@@ -175,6 +175,16 @@ describe("matchSpools", () => {
     expect(rejected.groups.map((group) => group.status)).toEqual(["single", "single"]);
   });
 
+  test("a legacy confirmed key with an unescaped % links the same records as a rejected one is read", () => {
+    const spoolman = makeSpool("spoolman", "5%7Cx%");
+    const twin = makeSpool("spoolstock", "abc");
+    const legacy = "spoolman:5%7Cx%|spoolstock:abc";
+    const result = matchSpools([spoolman, twin], { confirmed: [legacy], rejected: [] });
+    expect(result.problems ?? []).toEqual([]);
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0]?.status).toBe("linked");
+  });
+
   test("takes the best candidate when two look alike", () => {
     const spoolman = makeSpool("spoolman", "7", { crossIds: { spoolmanId: 7 }, upc: "123" });
     const close = makeSpool("spoolstock", "a", { upc: "123" });

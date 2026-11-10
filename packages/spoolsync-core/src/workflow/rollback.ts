@@ -252,13 +252,13 @@ export function planRollback(document: RollbackDocument, inventory: LoadResult):
     const restore = [];
     for (const change of update.changes) {
       const current = spool[change.field];
-      const exactOnly = valuesEqual(change.field, change.before, change.after);
+      const exactOnly = valuesEqual(change.field, change.before, change.after, inventory.source);
       const matchesAfter = exactOnly
         ? strictValuesEqual(current, change.after)
-        : valuesEqual(change.field, current, change.after);
+        : valuesEqual(change.field, current, change.after, inventory.source);
       const matchesBefore = exactOnly
         ? strictValuesEqual(current, change.before)
-        : valuesEqual(change.field, current, change.before);
+        : valuesEqual(change.field, current, change.before, inventory.source);
       if (matchesAfter) {
         restore.push({ field: change.field, from: current, to: change.before });
       } else if (matchesBefore) {

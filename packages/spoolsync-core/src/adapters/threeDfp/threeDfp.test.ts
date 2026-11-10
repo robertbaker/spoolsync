@@ -49,7 +49,7 @@ describe("3DFilamentProfiles finish and TD", () => {
       comment: "Dry box",
     });
     expect(loadThreeDfpFile(csv).spools[0]).toMatchObject({
-      finish: "Basic",
+      finish: null,
       td: 5.5,
     });
   });
@@ -57,7 +57,7 @@ describe("3DFilamentProfiles finish and TD", () => {
   test("writes them back to JSON and CSV", () => {
     for (const [text, finishFrom] of [
       [json, "Matte"],
-      [csv, "Basic"],
+      [csv, null],
     ] as const) {
       const loaded = loadThreeDfpFile(text);
       const output = exportThreeDfp(loaded, [

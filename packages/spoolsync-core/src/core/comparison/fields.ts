@@ -68,15 +68,17 @@ const withExtras = (
  * rather than conflicting on every spool:
  *
  * - Spoolman keeps a single extruder and bed temperature, not a range.
- * - Spoolio has no density, barcode, location or archived flag.
+ * - Spoolio has no density, barcode, location or archived flag, and keeps one nozzle and one bed
+ *   temperature (min == max), so only the min fields are compared.
  * - TigerTag records carry no location (rack placement is never applied on import), price, purchase
- *   date or archived flag.
+ *   date or archived flag, and keep one nozzle and one bed temperature (data2 == data3), so only
+ *   the min fields are compared.
  */
 const BASE_SOURCE_FIELDS: Record<SourceId, ReadonlySet<ComparableField>> = {
   spoolman: without("nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"),
   spoolstock: without(),
-  spoolio: without("density", "upc", "location", "archived"),
-  tigertag: without("location", "price", "purchasedOn", "archived"),
+  spoolio: without("density", "upc", "location", "archived", "nozzleTempMax", "bedTempMax"),
+  tigertag: without("location", "price", "purchasedOn", "archived", "nozzleTempMax", "bedTempMax"),
   // 3DFP keeps one preferred nozzle and bed temperature per spool, not a range (like Spoolman).
   threeDfp: without(
     "diameter",

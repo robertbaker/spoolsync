@@ -37,7 +37,7 @@ export const inputs = [
   {
     flag: "--filament-db-url <url>",
     copy: "--filament-db-url",
-    desc: "Load Filament DB (filament-db.app) directly; --apply writes back (key via --filament-db-token or FILAMENTDB_API_KEY).",
+    desc: "Load Filament DB (filament-db.app) directly; --apply writes back (key via --filament-db-token or FILAMENT_DB_API_KEY, else FILAMENTDB_API_KEY).",
   },
   {
     flag: "--bambuddy-url <url>",

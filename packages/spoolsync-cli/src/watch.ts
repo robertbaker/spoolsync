@@ -146,7 +146,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
         if (exitCode !== 0) failureCode = exitCode;
       }
       flush(header);
-    } while (again);
+    } while (again && !signal.aborted);
   }
 
   function flush(header: string): void {
@@ -190,6 +190,7 @@ export async function runWatch(request: WatchRequest): Promise<void> {
   function schedule(): void {
     clearTimeout(timer);
     timer = setTimeout(() => {
+      if (signal.aborted) return;
       if (running) again = true;
       else {
         // A failed run is reported, never an unhandled rejection or a throw from `await running`.

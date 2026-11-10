@@ -36,6 +36,13 @@ export function defaultDensity(material: string | null): number {
   return DEFAULT_DENSITY[base] ?? 1.24;
 }
 
+/** Spoolman refuses a filament weight of 0 and cannot use one on a spool, so 0 means "unset". */
+export const storedWeight = (value: number | null | undefined): number | null => value || null;
+
+/** Spoolman derives the remaining weight from the used weight, so it cannot be cleared. */
+export const REMAINING_NOT_CLEARED =
+  "remaining weight not cleared: Spoolman has no way to store an unknown one";
+
 export function middle(min: number | null, max: number | null): number | null {
   if (min !== null && max !== null) return Math.round((min + max) / 2);
   const only = min ?? max;

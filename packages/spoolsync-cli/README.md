@@ -127,7 +127,7 @@ spoolsync --config spoolsync.json
 ```
 
 Tokens and passwords are rejected in config files (they tend to be committed); use the
-`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, `FILAMENT_DB_API_KEY`, `BAMBUDDY_API_KEY`, and `FILADEX_PASSWORD` environment variables. For the same
+`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, `FILAMENT_DB_API_KEY`, `FILAMENTDB_API_KEY`, `BAMBUDDY_API_KEY`, and `FILADEX_PASSWORD` environment variables. For the same
 reason a service URL with credentials in it (`http://user:pass@host`, or `?token=...`, `?api_key=...`
 and similar) is rejected, on the command line too. `"apply"` is rejected in any config, saved-settings
 or imported-settings file (the error names the file, so delete that key from it): writing to a service is turned on only by `--apply` on the command line.
@@ -325,6 +325,10 @@ Both can be loaded and written the same way:
 
 - **FilamentDB:** `--filamentdb-url`, plus `--filamentdb-token` or `FILAMENTDB_TOKEN` when user
   management is on.
+- **Filament DB (hyiger/filament-db):** `--filament-db-url`, plus `--filament-db-token` or the
+  `FILAMENT_DB_API_KEY` environment variable when the server requires an API key.
+  `FILAMENTDB_API_KEY`, the name the Filament DB server itself reads, is used when
+  `FILAMENT_DB_API_KEY` is not set.
 - **Filadex:** `--filadex-url` and `--filadex-user`, with the password in `FILADEX_PASSWORD`. It
   logs in with a session cookie, so it is available from the CLI only.
 

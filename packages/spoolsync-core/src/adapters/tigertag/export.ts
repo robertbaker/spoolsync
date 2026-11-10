@@ -63,14 +63,15 @@ export function exportTtag(
       );
     if (typeof values.finish === "string") {
       const labels = finishLabels(values.finish);
-      const unknown = labels.slice(0, 2).filter((label) => aspectId(label) === null);
+      const unknown = labels.filter((word) => aspectId(word) === null);
+      const mapped = [...new Set(labels.flatMap((word) => aspectId(word) ?? []))];
       if (unknown.length)
         warnings.push(
-          `TigerTag ${label}: finish ${unknown.join(", ")} is not a TigerTag aspect, so it was exported as no aspect.`,
+          `TigerTag ${label}: finish ${unknown.join(", ")} has no TigerTag aspect, so it was not exported.`,
         );
-      if (labels.length > 2)
+      if (mapped.length > 2)
         warnings.push(
-          `TigerTag ${label}: only two aspects fit in a record; ${labels.slice(2).join(", ")} was left out.`,
+          `TigerTag ${label}: only two aspects fit in a record; ${mapped.length - 2} finish word(s) were left out.`,
         );
     }
     if (change.kind === "update") {

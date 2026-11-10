@@ -26,10 +26,16 @@ const INPUT_FLAGS: Record<SourceId, string> = {
 };
 
 /** Services the CLI can read directly, with the options and environment variable it uses. */
-const API_INPUTS: Partial<Record<SourceId, { flag: string; token: string }>> = {
+const API_INPUTS: Partial<
+  Record<SourceId, { flag: string; token: string; fallbackToken?: string }>
+> = {
   spoolman: { flag: "--spoolman-url", token: "SPOOLMAN_TOKEN" },
   filamentdb: { flag: "--filamentdb-url", token: "FILAMENTDB_TOKEN" },
-  filamentDbApp: { flag: "--filament-db-url", token: "FILAMENT_DB_API_KEY" },
+  filamentDbApp: {
+    flag: "--filament-db-url",
+    token: "FILAMENT_DB_API_KEY",
+    fallbackToken: "FILAMENTDB_API_KEY",
+  },
   bambuddy: { flag: "--bambuddy-url", token: "BAMBUDDY_API_KEY" },
 };
 
@@ -80,7 +86,8 @@ export function buildCliCommand(input: CliCommandInput): CliCommand {
     const api = API_INPUTS[source];
     if (result.origin === "api" && api) {
       args.push(`${api.flag} ${shellQuote(`<${source}-url>`)}`);
-      notes.push(`Set ${api.token} in your environment if ${SOURCE_LABELS[source]} needs a token.`);
+      const variable = api.fallbackToken ? `${api.token} (or ${api.fallbackToken})` : api.token;
+      notes.push(`Set ${variable} in your environment if ${SOURCE_LABELS[source]} needs a token.`);
     } else {
       args.push(`${INPUT_FLAGS[source]} ${shellQuote(`<${source}-export-file>`)}`);
       if (result.origin === "api")
