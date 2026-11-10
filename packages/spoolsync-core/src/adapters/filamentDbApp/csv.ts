@@ -28,6 +28,19 @@ const date = (value: string | null) =>
   value && /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : null;
 
 /**
+ * The spool export writes the stored filament name (a variant's is often "Parent - Red"), but
+ * SpoolSync names a spool by its color name, as the JSON load does. A variant's name that starts
+ * with its parent's name and a separator loses that prefix; anything else is kept whole.
+ */
+function spoolName(stored: string | null, parent: string | null): string | null {
+  if (!stored || !parent || !stored.toLowerCase().startsWith(parent.toLowerCase())) return stored;
+  // The prefix only counts when a separator follows it ("PLA+ Red" is not "PLA" + "+ Red").
+  const separator = /^[\s\-–—:|/·]+/.exec(stored.slice(parent.length));
+  if (!separator) return stored;
+  return stored.slice(parent.length + separator[0].length) || stored;
+}
+
+/**
  * Reads the spool CSV from Filament DB's `/api/spools/export-csv`: one row per spool, with the
  * filament's resolved vendor, material, color and weights beside it. A legacy single-roll filament
  * has no spool id, so its row is keyed by the filament and cannot be written back.
@@ -57,7 +70,7 @@ export function loadFilamentDbAppCsv(csv: string): FilamentDbAppLoadResult {
       crossIds: { filamentDbAppId: id },
       vendor: text(row, "vendor"),
       material: text(row, "type"),
-      name: text(row, "filament"),
+      name: spoolName(text(row, "filament"), text(row, "parent")),
       colors: color ? [color] : [],
       diameter: null,
       density: null,

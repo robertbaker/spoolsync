@@ -99,7 +99,7 @@ export function wireRemoteSource(
 
     const cancel = h("button", { type: "button", class: buttonClass({ size: "xs" }) }, "Cancel");
     cancel.addEventListener("click", () => {
-      if (!state.isCurrent(source, current)) return;
+      if (!state.isCurrent(source, current, "api")) return;
       state.nextRevision(source);
       abort.abort();
       message.replaceChildren(notice("info", "Cancelled. Nothing was loaded."));
@@ -114,7 +114,7 @@ export function wireRemoteSource(
     });
     try {
       const result = await Promise.race([request.load(abort.signal), timeout]);
-      if (!state.isCurrent(source, current)) return;
+      if (!state.isCurrent(source, current, "api")) return;
       if (result === TIMED_OUT) {
         state.nextRevision(source);
         abort.abort();
@@ -138,7 +138,7 @@ export function wireRemoteSource(
       message.replaceChildren(...request.success(result));
       store(result);
     } catch (error) {
-      if (!state.isCurrent(source, current)) return;
+      if (!state.isCurrent(source, current, "api")) return;
       message.replaceChildren(
         options.error
           ? options.error(error)

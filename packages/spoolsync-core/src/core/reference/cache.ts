@@ -1,5 +1,5 @@
 import { normalizeBarcode, normalizeHex } from "../cleanup/numbers";
-import { contentId } from "./normalize";
+import { contentId } from "./content-id";
 import {
   BED_RANGE,
   DENSITY_RANGE,

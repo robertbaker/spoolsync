@@ -250,3 +250,40 @@ describe("SpoolMaster price per kilo", () => {
     expect(result.spools.map((spool) => spool.price)).toEqual([15, 12, null]);
   });
 });
+
+describe("SpoolMaster remaining percent and headers", () => {
+  const row = (percent: number) => [
+    "Prusa",
+    "PLA",
+    "red",
+    null,
+    1000,
+    null,
+    percent,
+    ...Array<null>(11).fill(null),
+  ];
+
+  test("reads fractional Excel percent cells and warns that the value was ambiguous", async () => {
+    const result = await loadSpoolmasterXlsx(workbook([row(0.4), row(40), row(1), row(0)]));
+    expect(result.spools.map((spool) => spool.remainingWeight)).toEqual([400, 400, 1000, 0]);
+    expect(result.warnings).toEqual([
+      "Row 2: Remaining 0.4 is read as 40% (Excel stores percent cells as fractions); check this row if it meant 0.4%.",
+      "Row 4: Remaining 1 is read as 100% (Excel stores percent cells as fractions); check this row if it meant 1%.",
+    ]);
+  });
+
+  test("rejects headers that collide once units are dropped", async () => {
+    const bytes = buildXlsx([
+      {
+        name: "Stock",
+        rows: [
+          ["Brand", "Material", "Remaining (g)", "Remaining (%)"],
+          ["Prusa", "PLA", 400, 40],
+        ],
+      },
+    ]);
+    await expect(loadSpoolmasterXlsx(bytes)).rejects.toThrow(
+      "duplicate column names (Remaining (g) and Remaining (%))",
+    );
+  });
+});

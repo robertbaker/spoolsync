@@ -170,6 +170,9 @@ export function recordsToSpools(records: TtagRecord[]): {
     uids.add(record.uid);
   }
   const usable = records.filter((record) => {
+    // Only `deleted: true` is known to mean deleted. Every export and the Studio fixtures carry
+    // `deleted_at: null`, and nothing documents a non-null value, so `deleted_at` is ignored here
+    // (and dropped on write, see export.ts) rather than guessed at.
     if (record["deleted"] === true) return false;
     if (record["id_type"] !== undefined && record["id_type"] !== FILAMENT_TYPE) {
       warnings.push(

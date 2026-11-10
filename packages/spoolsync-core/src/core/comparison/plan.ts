@@ -1,5 +1,5 @@
-import type { SpoolGroup } from "../match";
 import { recordKey } from "../matching/keys";
+import type { SpoolGroup } from "../matching/types";
 import {
   NATIVE_CROSS_ID,
   WRITABLE_SOURCE_IDS,
@@ -136,7 +136,10 @@ export function buildPlan(
 
   for (const group of groups) {
     const stored = resolutions.get(group.id) ?? defaultResolution(group);
-    const resolution = { ...stored, values: cleanedValues(group, stored.values, recordEdits) };
+    const resolution = {
+      ...stored,
+      values: cleanedValues(group, stored.values, recordEdits),
+    };
     const links = groupLinks(group);
     const edit = edits.get(group.id);
     for (const source of WRITABLE_SOURCE_IDS) {
@@ -177,7 +180,11 @@ export function buildPlan(
             ? strictValuesEqual(member[field], to)
             : valuesEqual(field, member[field], to);
         if (!same)
-          changes.push({ field, from: cloneFieldValue(member[field]), to: cloneFieldValue(to) });
+          changes.push({
+            field,
+            from: cloneFieldValue(member[field]),
+            to: cloneFieldValue(to),
+          });
       }
       const memberLinks = missingLinks(member, links, source);
       if (changes.length || Object.keys(memberLinks).length) {

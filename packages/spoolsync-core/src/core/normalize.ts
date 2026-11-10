@@ -6,7 +6,27 @@ export function toNumber(value: unknown): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
+  if (Number.isFinite(parsed)) return parsed;
+  return parseGroupedNumber(trimmed);
+}
+
+/**
+ * Numbers written with a decimal comma or thousands separators, which `Number` rejects. Only
+ * unambiguous layouts are read: `12,99`, `1.234,56`, `1,234.56` and `1,500`. A single comma
+ * followed by three digits ("1,500") is thousands, but "0,500" and anything else is left null.
+ */
+function parseGroupedNumber(text: string): number | null {
+  const negative = text.startsWith("-");
+  const body = negative ? text.slice(1) : text;
+  let normalized: string | null = null;
+  if (/^\d+,\d{1,2}$/.test(body)) normalized = body.replace(",", ".");
+  else if (/^[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(body)) normalized = body.replaceAll(",", "");
+  else if (/^[1-9]\d{0,2}(\.\d{3})+,\d{1,2}$/.test(body))
+    normalized = body.replaceAll(".", "").replace(",", ".");
+  if (normalized === null) return null;
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  return negative ? -parsed : parsed;
 }
 
 /** Temperatures and weights of 0 mean "not set" in Spoolstock and Spoolio exports. */
@@ -54,6 +74,13 @@ export function uniqueHexes(values: unknown[]): string[] {
   return out;
 }
 
+/**
+ * A zone written in free text: Z, GMT/UTC, a US zone abbreviation, or a numeric offset after a
+ * time.
+ */
+const EXPLICIT_ZONE =
+  /(?:\dZ|\b(?:GMT|UTC|UT|[ECMP][SD]T)\b|\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*[+-]\d{2}(?::?\d{2})?)(?:\s*\([^)]*\))?\s*$/i;
+
 /** Accepts ISO timestamps or dates and returns `YYYY-MM-DD`. */
 export function toDate(value: unknown): string | null {
   const text = toText(value);
@@ -87,9 +114,15 @@ export function toDate(value: unknown): string | null {
   if (/^\d+$/.test(text)) return null;
   const parsed = new Date(text);
   if (Number.isNaN(parsed.getTime())) return null;
-  const year = parsed.getUTCFullYear();
+  // Text with an explicit zone names one instant, so its UTC date is the same on every host. Text
+  // without one is read in the host zone, so its local components are exactly what was written;
+  // taking the UTC date there would shift the day by the host offset.
+  const zoned = EXPLICIT_ZONE.test(text);
+  const year = zoned ? parsed.getUTCFullYear() : parsed.getFullYear();
   if (year < 1000 || year > 9999) return null;
-  return parsed.toISOString().slice(0, 10);
+  const month = (zoned ? parsed.getUTCMonth() : parsed.getMonth()) + 1;
+  const day = zoned ? parsed.getUTCDate() : parsed.getDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 const SPOOLSTOCK_LOT_PREFIX = "spoolstock:spool:";

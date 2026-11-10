@@ -4,6 +4,21 @@ import type { AdapterRuntime } from "../shared/runtime";
 import { exportWeights } from "../shared/weights";
 import type { FilameterDoc } from "./types";
 
+/**
+ * FilaMeter has no unknown weight: its v2 migration turns a missing or zero `total_weight` into
+ * 1000 g, and its schema rejects null. Unknown weights are therefore written as that full 1000 g
+ * spool, said out loud, rather than as a null that fails on import.
+ *
+ * Known limitation: nothing in the record can mark that 1000 g as a placeholder. FilaMeter
+ * validates documents with a strict Joi schema (no extra fields), and the only free-text field,
+ * `comments`, is the user's own note, which must not carry a marker. So a spool written this way
+ * reloads as a measured 1000/1000 g, and the warning tells the user so; review it before syncing
+ * weights from it to other services.
+ */
+const UNKNOWN_TOTAL = 1000;
+const unknownWeightsWarning = (label: string) =>
+  `${label}: weights are unknown and FilaMeter cannot store that, so the spool was written as a full ${UNKNOWN_TOTAL} g spool. It will read back as a measured ${UNKNOWN_TOTAL} g, so do not sync its weight to other services.`;
+
 export function updateDoc(
   existing: FilameterDoc,
   change: PlannedUpdate,
@@ -17,10 +32,10 @@ export function updateDoc(
     const initial = initialWeight ? toNumber(initialWeight.to) : change.spool.initialWeight;
     const remaining = remainingWeight ? toNumber(remainingWeight.to) : change.spool.remainingWeight;
     if (initial === null && remaining === null) {
-      // Both weights unknown: keep them unknown rather than writing a 0 g spool.
-      doc.total_weight = null;
+      doc.total_weight = UNKNOWN_TOTAL;
       doc.used_weight = 0;
-      if ("calc_weight" in doc) doc.calc_weight = null;
+      if ("calc_weight" in doc) doc.calc_weight = UNKNOWN_TOTAL;
+      warnings.push(unknownWeightsWarning(`FilaMeter ${change.spool.sourceId}`));
     } else {
       const weights = exportWeights(initial, remaining, `FilaMeter ${change.spool.sourceId}`);
       doc.total_weight = weights.total;
@@ -32,8 +47,15 @@ export function updateDoc(
   }
   for (const item of change.changes) {
     if (item.field === "vendor") doc.brand = toText(item.to) ?? "";
-    if (item.field === "material") doc.material = toText(item.to) ?? "";
-    if (item.field === "name") doc.filament = toText(item.to) ?? "";
+    // FilaMeter's schema requires a non-empty material and filament name, so emptied values are kept.
+    if (item.field === "material" || item.field === "name") {
+      const text = toText(item.to);
+      if (text) doc[item.field === "material" ? "material" : "filament"] = text;
+      else
+        warnings.push(
+          `FilaMeter ${change.spool.sourceId}: FilaMeter requires a ${item.field === "material" ? "material" : "filament name"}, so it was left unchanged.`,
+        );
+    }
     if (item.field === "colors")
       doc.color = Array.isArray(item.to) && item.to[0] ? `#${item.to[0]}` : "";
     if (item.field === "colors" && Array.isArray(item.to) && item.to.length > 1)
@@ -65,15 +87,19 @@ export function createDoc(
   const unknown = change.values.initialWeight === null && change.values.remainingWeight === null;
   const weights = unknown
     ? {
-        total: null,
+        total: UNKNOWN_TOTAL,
         used: 0,
-        warnings: [`${label}: weights are unknown, so they were left blank.`],
+        warnings: [unknownWeightsWarning(label)],
       }
     : exportWeights(change.values.initialWeight, change.values.remainingWeight, label);
   warnings.push(...weights.warnings);
+  if (!change.values.name)
+    warnings.push(
+      `${label}: FilaMeter requires a filament name, so it is named "Imported Filament".`,
+    );
   const doc: FilameterDoc = {
     _id: runtime.randomUUID(),
-    filament: change.values.name ?? "",
+    filament: change.values.name || "Imported Filament",
     material: change.values.material ?? "PLA",
     brand: change.values.vendor ?? "",
     color: change.values.colors[0] ? `#${change.values.colors[0]}` : "",

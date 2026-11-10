@@ -1,5 +1,5 @@
 import type { PlannedChange, PlannedCreate, PlannedUpdate } from "../../core/compare";
-import { spoolstockLotNr, toText } from "../../core/normalize";
+import { shortIdFromLotNr, spoolstockLotNr, toText } from "../../core/normalize";
 import type { AdapterRuntime } from "../shared/runtime";
 import { field } from "../shared/tabular";
 
@@ -100,17 +100,29 @@ export function updateRecord(
   }
 }
 
+const NOTE_KEYS = ["notes", "comment", "description"] as const;
+
+/** Picks a short code that no existing row uses, so a new spool never overwrites another by ID. */
+function uniqueShortCode(runtime: AdapterRuntime, taken: ReadonlySet<string>): string {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const code = runtime.randomUUID().replaceAll("-", "").slice(0, 9);
+    if (!taken.has(code)) return code;
+  }
+  throw new Error("Could not generate a unique 3DFilamentProfiles short code. Try again.");
+}
+
 export function createRecord(
   change: PlannedCreate,
   format: "csv" | "json",
   warnings: string[],
   runtime: AdapterRuntime,
+  takenShortCodes: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
   if (change.values.colors.length > 1)
     warnings.push(
       `3DFilamentProfiles ${change.values.name ?? change.groupId}: only the primary color is exported; this format stores one color per spool.`,
     );
-  const shortCode = runtime.randomUUID().replaceAll("-", "").slice(0, 9);
+  const shortCode = uniqueShortCode(runtime, takenShortCodes);
   const links = { ...change.groupIds, ...change.links };
   const lotValue =
     change.values.lotNr ??
@@ -128,8 +140,10 @@ export function createRecord(
     color: change.values.name ?? "",
     rgb: change.values.colors[0] ? `#${change.values.colors[0]}` : "",
     remaining_grams: change.values.remainingWeight,
-    empty_spool_weight: change.values.emptySpoolWeight ?? "",
+    empty_spool_weight: change.values.emptySpoolWeight ?? (format === "csv" ? "" : null),
     location: change.values.location ?? "",
+    // filament_id points at the shared 3DFilamentProfiles catalog, which SpoolSync cannot derive.
+    updated_at: new Date(runtime.now()).toISOString().replace("Z", "+00:00"),
     notes: [lot, change.values.comment ?? ""].filter(Boolean).join("\n"),
   };
   if (format === "csv")
@@ -140,22 +154,55 @@ export function createRecord(
       spool_preferred_bed_temp: bedTemp ?? "",
     });
   else
+    // Real exports omit the preferred temperatures when they are unset.
     row["spool_properties"] = {
       purchase_date: change.values.purchasedOn,
       purchase_price: change.values.price,
       last_dried_date: null,
-      preferred_nozzle_temp: nozzleTemp,
-      preferred_bed_temp: bedTemp,
+      ...(nozzleTemp == null ? {} : { preferred_nozzle_temp: nozzleTemp }),
+      ...(bedTemp == null ? {} : { preferred_bed_temp: bedTemp }),
     };
   return row;
+}
+
+/** Records a Spoolstock link as a `Lot:` line in the notes, keeping every other note line. */
+function setSpoolstockLink(
+  row: Record<string, unknown>,
+  shortId: string,
+  spoolId: string,
+  warnings: string[],
+): void {
+  const key = NOTE_KEYS.find((name) => Object.hasOwn(row, name)) ?? "notes";
+  const lines = (toText(row[key]) ?? "").split(/\r?\n/);
+  const index = lines.findIndex((line) => /^Lot:\s*\S/i.test(line));
+  const link = `Lot: ${spoolstockLotNr(shortId)}`;
+  if (index === -1) lines.unshift(link);
+  else {
+    const existing = /^Lot:\s*(.+)$/i.exec(lines[index]!)?.[1]?.trim();
+    const current = shortIdFromLotNr(existing);
+    if (current === shortId) return;
+    if (!current) {
+      warnings.push(
+        `3DFilamentProfiles ${spoolId}: kept the existing lot number, so the Spoolstock link was not stored in its notes.`,
+      );
+      return;
+    }
+    lines[index] = link;
+  }
+  const notes = lines.join("\n");
+  row[key] = notes;
+  for (const alias of NOTE_KEYS) if (alias !== key && Object.hasOwn(row, alias)) row[alias] = notes;
 }
 
 export function setLinks(
   row: Record<string, unknown>,
   change: PlannedChange,
   format: "csv" | "json",
+  warnings: string[] = [],
 ): void {
   const links = change.kind === "create" ? { ...change.groupIds, ...change.links } : change.links;
+  if (change.kind === "update" && links.spoolstockShortId)
+    setSpoolstockLink(row, links.spoolstockShortId, change.spool.sourceId, warnings);
   if (links.spoolmanId !== undefined) {
     if (format === "csv") row["spool_spoolman_id"] = String(links.spoolmanId);
     else {

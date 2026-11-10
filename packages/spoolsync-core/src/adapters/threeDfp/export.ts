@@ -1,4 +1,5 @@
 import type { PlannedChange } from "../../core/compare";
+import { toText } from "../../core/normalize";
 import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
 import { csvText } from "../shared/tabular";
 import { mapRecord } from "./map";
@@ -30,6 +31,10 @@ export function exportThreeDfp(
     throw new Error(
       "Cannot export 3DFilamentProfiles rows with duplicate IDs. Give each spool a unique ID and reload the file.",
     );
+  const takenShortCodes = new Set<string>([
+    ...byId.keys(),
+    ...[...byId.values()].flatMap((record) => toText(record["short_code"]) ?? []),
+  ]);
   let updated = 0,
     created = 0;
   const output = [...byId.values()];
@@ -46,11 +51,12 @@ export function exportThreeDfp(
       updateRecord(row, change, loaded.format, warnings);
       updated++;
     } else {
-      row = createRecord(change, loaded.format, warnings, runtime);
+      row = createRecord(change, loaded.format, warnings, runtime, takenShortCodes);
+      takenShortCodes.add(String(row["short_code"]));
       created++;
       output.push(row);
     }
-    setLinks(row, change, loaded.format);
+    setLinks(row, change, loaded.format, warnings);
   }
   const { jsonRows, csvRows } = serializeRows(output, loaded.format);
   const file = Array.isArray(loaded.file)

@@ -32,6 +32,9 @@ export {
   loadFilamentDbConnection,
   saveFilamentDbConnection,
   clearFilamentDbConnection,
+  loadFilamentDbAppConnection,
+  saveFilamentDbAppConnection,
+  clearFilamentDbAppConnection,
 } from "./storage/api-connections";
 export type { InventorySnapshot, InventorySnapshots } from "./storage/insights";
 export {

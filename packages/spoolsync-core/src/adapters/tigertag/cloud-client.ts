@@ -1,7 +1,7 @@
 import { refreshSession } from "./auth";
 import { FIRESTORE } from "./cloud-config";
-import { TigertagCloudError, googleError } from "./cloud-errors";
-import { decodeFields, encodeValue, type FirestoreValue } from "./firestore";
+import { TigertagCloudError, conflictError, googleError, isWriteConflict } from "./cloud-errors";
+import { decodeFields, encodeLike, type FirestoreValue } from "./firestore";
 import type { TigertagInventoryClient } from "./inventory-client";
 import type { TtagRecord } from "./schema";
 import { defaultFetch, type FetchLike, type TigertagSession } from "./session";
@@ -10,8 +10,15 @@ import { defaultFetch, type FetchLike, type TigertagSession } from "./session";
 const fieldPath = (key: string) =>
   /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? key : `\`${key.replace(/[`\\]/g, "\\$&")}\``;
 
+interface LoadedDocument {
+  updateTime?: string;
+  fields: Record<string, FirestoreValue>;
+}
+
 export class TigertagCloud implements TigertagInventoryClient {
   private refreshing: Promise<void> | undefined;
+  /** Each document as loaded: its version and typed fields, so writes can detect and preserve. */
+  private loaded = new Map<string, LoadedDocument>();
   constructor(
     private session: TigertagSession,
     /** Called whenever the session is refreshed, so the caller can store the new tokens. */
@@ -70,13 +77,18 @@ export class TigertagCloud implements TigertagInventoryClient {
     const records: TtagRecord[] = [];
     const pageTokens = new Set<string>();
     const documentIds = new Set<string>();
+    const loaded = new Map<string, LoadedDocument>();
     let pageToken: string | undefined;
     do {
       const url = new URL(this.inventoryUrl());
       url.searchParams.set("pageSize", "300");
       if (pageToken) url.searchParams.set("pageToken", pageToken);
       const body = (await (await this.request(url.toString())).json()) as {
-        documents?: Array<{ name: string; fields?: Record<string, FirestoreValue> }>;
+        documents?: Array<{
+          name: string;
+          updateTime?: string;
+          fields?: Record<string, FirestoreValue>;
+        }>;
         nextPageToken?: string;
       };
       for (const document of body.documents ?? []) {
@@ -87,6 +99,7 @@ export class TigertagCloud implements TigertagInventoryClient {
             "INVALID_RESPONSE",
           );
         documentIds.add(docId);
+        loaded.set(docId, { updateTime: document.updateTime, fields: document.fields ?? {} });
         const fields = decodeFields(document.fields ?? {});
         records.push({
           ...fields,
@@ -104,6 +117,7 @@ export class TigertagCloud implements TigertagInventoryClient {
         pageTokens.add(pageToken);
       }
     } while (pageToken);
+    this.loaded = loaded;
     return records;
   }
 
@@ -116,19 +130,35 @@ export class TigertagCloud implements TigertagInventoryClient {
     fields: Record<string, unknown>,
     options: { create?: boolean } = {},
   ): Promise<void> {
+    const create = options.create === true;
     const url = new URL(this.inventoryUrl(docId));
     for (const key of Object.keys(fields))
       url.searchParams.append("updateMask.fieldPaths", fieldPath(key));
-    url.searchParams.set("currentDocument.exists", options.create ? "false" : "true");
-    const present = Object.fromEntries(
-      Object.entries(fields).filter(([, value]) => value !== undefined),
+    const before = this.loaded.get(docId);
+    if (create) url.searchParams.set("currentDocument.exists", "false");
+    else if (before?.updateTime)
+      url.searchParams.set("currentDocument.updateTime", before.updateTime);
+    else url.searchParams.set("currentDocument.exists", "true");
+    const encoded = Object.fromEntries(
+      Object.entries(fields)
+        .filter(([, value]) => value !== undefined)
+        .map(([k, v]) => [k, encodeLike(v, before?.fields[k])]),
     );
-    await this.request(url.toString(), {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        fields: Object.fromEntries(Object.entries(present).map(([k, v]) => [k, encodeValue(v)])),
-      }),
-    });
+    let response: Response;
+    try {
+      response = await this.request(url.toString(), {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ fields: encoded }),
+      });
+    } catch (error) {
+      if (isWriteConflict(error)) throw conflictError(create);
+      throw error;
+    }
+    // Keep a later write to this document in step with what was just saved.
+    const saved = (await response.json().catch(() => ({}))) as { updateTime?: string };
+    const merged = { ...before?.fields, ...encoded };
+    for (const key of Object.keys(fields)) if (fields[key] === undefined) delete merged[key];
+    this.loaded.set(docId, { updateTime: saved.updateTime, fields: merged });
   }
 }

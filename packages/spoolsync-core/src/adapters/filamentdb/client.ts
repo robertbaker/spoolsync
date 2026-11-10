@@ -93,8 +93,31 @@ export class FilamentDbClient {
       throw new Error(
         "FilamentDB has user management on and hides private spools without a session token. Add the token and try again.",
       );
-    if ((await this.send("/api/auth/me", "GET")).status === 401)
+    // `/api/auth/*` sends no CORS headers, so a browser cannot call `/api/auth/me`. A sync under the
+    // CORS middleware answers 401 for a missing or expired session. Upstream the handler is a full
+    // scan of the collection even when nothing changed, so this probe is not free on a large library.
+    // Cheaper routes were checked upstream and rejected: `POST /api/spools` validates the body before
+    // auth (a bad body is 400 either way, a good one writes), `GET /api/spools` and `/api/spools/[serial]`
+    // never answer 401, `/api/users` answers 403 for anyone but an admin, and `/api/auth/*` has no CORS.
+    let probe: Response;
+    try {
+      probe = await this.send("/api/sync", "POST", {
+        lastSyncTime: Number.MAX_SAFE_INTEGER,
+        changes: [],
+        deletions: [],
+      });
+    } catch (error) {
+      throw new Error(
+        `Could not verify the FilamentDB sign-in: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (probe.status === 401)
       throw new Error("FilamentDB refused the session token, so private spools would be hidden.");
+    // Only a 2xx proves the token is accepted; 403, 5xx and anything else must not skip the guard.
+    if (!probe.ok)
+      throw new Error(
+        `Could not verify the FilamentDB sign-in: the server answered ${probe.status} ${probe.statusText}.`,
+      );
   }
 
   async listSpools(): Promise<unknown[]> {

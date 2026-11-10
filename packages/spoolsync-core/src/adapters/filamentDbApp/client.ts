@@ -30,10 +30,16 @@ export function normalizeFilamentDbAppUrl(input: string): string {
   return `${url.origin}${url.pathname.replace(/\/+$/, "").replace(/\/api$/, "")}`;
 }
 
+const ORIGIN_HINT =
+  "Filament DB only answers pages it trusts: add this page's address (scheme, host and port, e.g. https://spoolsync.example) to the server's ALLOWED_ORIGINS and restart it.";
+
+/** True in a page, where a cross-origin block shows up as a bare network failure. */
+const inPage = (): boolean => typeof document !== "undefined";
+
 /**
  * Client for Filament DB. `GET /api/snapshot` is the one call that returns full filaments, spools
- * and locations, and Filament DB rejects its writes for browser cross-origin requests, so the API
- * integration is for Node (the CLI) only.
+ * and locations. From a page it works only when the server lists the page's origin in
+ * ALLOWED_ORIGINS; otherwise the browser blocks the reply and the guard answers writes with 403.
  */
 export class FilamentDbAppClient {
   readonly baseUrl: string;
@@ -108,14 +114,17 @@ export class FilamentDbAppClient {
       );
     } catch (error) {
       throw new Error(
-        `Could not reach Filament DB at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}`,
+        `Could not reach Filament DB at ${this.baseUrl}: ${error instanceof Error ? error.message : String(error)}` +
+          (inPage()
+            ? ` If the server is running, check that the address is right. ${ORIGIN_HINT}`
+            : ""),
       );
     }
     if (response.status === 401)
       throw new Error("Filament DB refused the request. Check the API key (FILAMENTDB_API_KEY).");
     if (response.status === 403)
       throw new Error(
-        "Filament DB rejected the request as cross-origin. Load it from the CLI, not a page.",
+        `Filament DB rejected the request as cross-origin. ${inPage() ? ORIGIN_HINT : "Run the command from the machine that serves it, or list this origin in ALLOWED_ORIGINS."}`,
       );
     if (!response.ok)
       throw new Error(`Filament DB answered ${response.status} ${response.statusText}.`);

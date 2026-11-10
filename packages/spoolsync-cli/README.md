@@ -98,7 +98,9 @@ spoolsync --summary          # uses the saved inventories
 - **Saved inventories never join a comparison you spelled out:** they are used only when the command
   line and `--config` name no inventory at all, and a note on stderr says so.
 - **Never saved:** tokens and passwords, `--apply`, `--watch`, and per-run choices such as
-  `--confirm`. The file is written atomically and readable only by you.
+  `--confirm`. The file is written atomically and readable only by you. A service address that
+  carries a credential (user name and password, or a query parameter such as `token`, `key`, `secret`,
+  `password` or `auth`) is not saved, and `--save-config` stops with an error naming the option.
 - `--no-user-config` ignores the file for one run, and `--clear-config` deletes it.
 - **Share settings:** `--export-settings <file>` writes your saved settings to a file and
   `--import-settings <file>` replaces them from one. The file uses the same format as the browser's
@@ -125,10 +127,13 @@ spoolsync --config spoolsync.json
 ```
 
 Tokens and passwords are rejected in config files (they tend to be committed); use the
-`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables.
+`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, and `FILADEX_PASSWORD` environment variables. For the same
+reason a service URL with credentials in it (`http://user:pass@host`, or `?token=...`, `?api_key=...`
+and similar) is rejected, on the command line too. `"apply"` is rejected in any config, saved-settings
+or imported-settings file: writing to a service is turned on only by `--apply` on the command line.
 
 Keep a plan up to date while you edit an export. `--watch` re-runs whenever an input file changes,
-reports errors and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
+reports errors (a run that fails is printed as "Watch run failed" and the exit code becomes 1) and keeps going, and stops on Ctrl+C (or when you type `q` and press Enter, which
 also works where a signal cannot be sent, such as a Windows process started by another program). It only watches files, and it refuses `--apply`
 so a service is never written on every save:
 
@@ -225,7 +230,8 @@ spoolsync --spoolman a.json --spoolio b.json --cleanup=all,-vendor-alias
 - A **possible duplicates after cleanup** line names spools in one service that would look like
   duplicates once the safe changes are applied. Nothing is merged.
 - In `--config` or the settings file, `"cleanup": true` (or text such as `"casing,whitespace"`) and
-  `"cleanup-report"` work like the options. `--save-config` does not save them.
+  `"cleanup-report"` work like the options. `--save-config` does not save them. Rules named on the
+  command line replace rules named in `--config`, which replace those in the settings file.
 - JSON reports gain a `cleanup` object: `rules`, `counts`, `applied` (changes added to the plan),
   `proposals` (with `--cleanup-report`), `warnings`, and `duplicatesAfterCleanup`. With
   `--cleanup-report` alone the report is `"inventory"` with a `cleanup` object.
@@ -288,7 +294,7 @@ created (never the whole inventory). It goes to `--rollback-dir <dir>`, or by de
 `rollbacks` folder beside the settings file (see `--config-path`), readable only by you, named
 `spoolsync-rollback-<service>-<time>.json`. The path is printed (stderr in text mode, `rollbackFiles`
 in JSON). If the file cannot be saved, nothing is written to that service; `--no-rollback` writes
-without one.
+without one. If a restore fails, the error report still lists the rollback file that was saved.
 
 ```bash
 spoolsync --restore-rollback spoolsync-rollback-spoolman-2026-11-04T10-00-00-000.json --spoolman-url http://spoolman.local
@@ -335,6 +341,8 @@ Terminal match suggestions include the record pair and matching reasons, ready t
 - Decisions must reference two different loaded sources and record IDs present in the loaded
   inventories.
 - A pair cannot be both confirmed and rejected.
+- Record IDs may contain `|` and `,`. In the pair, `|` and `%` inside an ID are written `%7C` and
+  `%25`; the suggestions print pairs in that form, so copy them as shown.
 - The CLI stops before writing if a confirmation would put two records from the same service in one
   group, or if a rejection conflicts with existing cross-ID links or other confirmations.
 - Duplicate native record IDs in file inventories are rejected before matching, so records are never

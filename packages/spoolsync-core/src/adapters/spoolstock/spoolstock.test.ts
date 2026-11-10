@@ -46,9 +46,7 @@ describe("parseSpoolstockCsv", () => {
   });
 
   test("rejects a file that is not a Spoolstock export", () => {
-    const { records, warnings } = parseSpoolstockCsv("name,weight\nfoo,1\n");
-    expect(records).toEqual([]);
-    expect(warnings[0]).toContain("short_id");
+    expect(() => parseSpoolstockCsv("name,weight\nfoo,1\n")).toThrow("short_id");
   });
 
   test("flags rows without a short_id instead of failing the file", () => {
@@ -131,5 +129,12 @@ describe("finish and filament notes", () => {
     expect(load({ "filament.notes": "Dries well" }).comment).toBe("Filament notes: Dries well");
     expect(load({ notes: "Mine" }).comment).toBe("Mine");
     expect(load({ notes: "Mine", "filament.notes": " " }).comment).toBe("Mine");
+  });
+});
+
+describe("parseSpoolstockCsv without a short_id column", () => {
+  test("throws instead of returning an empty list", () => {
+    expect(() => parseSpoolstockCsv("size,brand\n1000,Acme\n")).toThrow(/no short_id column/);
+    expect(() => loadSpoolstockCsv("size,brand\n1000,Acme\n")).toThrow(/no short_id column/);
   });
 });

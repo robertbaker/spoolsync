@@ -1,5 +1,6 @@
 import type { BambuddyConnection } from "@spoolsync/core/adapters/bambuddy";
 import type { FilamentDbConnection } from "@spoolsync/core/adapters/filamentdb";
+import type { FilamentDbAppConnection } from "@spoolsync/core/adapters/filamentDbApp";
 
 import { read, write, session } from "./access";
 import { invalidateApiInventory } from "./invalidate";
@@ -49,4 +50,28 @@ export function saveFilamentDbConnection(connection: FilamentDbConnection): void
 export function clearFilamentDbConnection(): void {
   invalidateApiInventory("filamentdb");
   write(session, FILAMENTDB_CONNECTION_KEY, null);
+}
+const FILAMENT_DB_CONNECTION_KEY = "spoolsync:filament-db-connection";
+export function loadFilamentDbAppConnection(): FilamentDbAppConnection | null {
+  try {
+    const parsed = JSON.parse(
+      read(session, FILAMENT_DB_CONNECTION_KEY) ?? "null",
+    ) as Partial<FilamentDbAppConnection> | null;
+    return parsed && typeof parsed.baseUrl === "string"
+      ? (parsed as FilamentDbAppConnection)
+      : null;
+  } catch {
+    return null;
+  }
+}
+export function saveFilamentDbAppConnection(connection: FilamentDbAppConnection): void {
+  const previous = loadFilamentDbAppConnection();
+  if (previous?.baseUrl !== connection.baseUrl || previous?.token !== connection.token) {
+    invalidateApiInventory("filamentDbApp");
+  }
+  write(session, FILAMENT_DB_CONNECTION_KEY, JSON.stringify(connection));
+}
+export function clearFilamentDbAppConnection(): void {
+  invalidateApiInventory("filamentDbApp");
+  write(session, FILAMENT_DB_CONNECTION_KEY, null);
 }

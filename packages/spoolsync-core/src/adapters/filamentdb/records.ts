@@ -19,9 +19,16 @@ export function updateRecord(
       case "vendor":
         record["brand"] = toText(to) ?? "";
         break;
-      case "material":
-        record["type"] = toText(to) ?? "";
+      case "material": {
+        // FilamentDB rejects a spool without a type (400), so an emptied material keeps the old one.
+        const type = toText(to);
+        if (type) record["type"] = type;
+        else
+          warn(
+            `FilamentDB ${change.spool.sourceId}: FilamentDB requires a type, so the material was left unchanged.`,
+          );
         break;
+      }
       case "name":
         record["color"] = toText(to) ?? "";
         break;

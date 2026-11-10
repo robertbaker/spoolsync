@@ -123,3 +123,29 @@ describe("SpoolKeep family, condition and fractional quantities", () => {
     ]);
   });
 });
+
+describe("loadSpoolKeepJson limits and BOM", () => {
+  test("rejects a huge quantity before expanding it", () => {
+    for (const quantities of [{ newQuantity: 1e9 }, { newQuantity: 3000, usedQuantity: 3000 }])
+      expect(() => loadSpoolKeepJson(JSON.stringify([record(quantities)]))).toThrow(
+        "too many spools",
+      );
+    // The cap counts spools already loaded from earlier entries.
+    expect(() =>
+      loadSpoolKeepJson(
+        JSON.stringify([
+          record({ id: "A", newQuantity: 4999 }),
+          record({ id: "B", newQuantity: 2 }),
+        ]),
+      ),
+    ).toThrow("too many spools");
+    expect(loadSpoolKeepJson(JSON.stringify([record({ newQuantity: 5000 })])).spools).toHaveLength(
+      5000,
+    );
+  });
+
+  test("reads a backup that starts with a byte order mark", () => {
+    const result = loadSpoolKeepJson(`﻿${JSON.stringify([record({ newQuantity: 1 })])}`);
+    expect(result.spools).toHaveLength(1);
+  });
+});

@@ -82,7 +82,8 @@ export class SpoolmanClient {
     const fetchPage = async (offset: number, inner?: AbortSignal) => {
       const signal = outer && inner ? AbortSignal.any([outer, inner]) : (outer ?? inner);
       const options = {
-        query: { ...query, limit: PAGE_SIZE, offset },
+        // A stable order keeps offset paging from skipping or repeating records.
+        query: { sort: "id:asc", ...query, limit: PAGE_SIZE, offset },
         schema: pageSchema,
         ...(signal ? { signal } : {}),
       };

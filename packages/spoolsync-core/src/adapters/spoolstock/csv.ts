@@ -90,14 +90,10 @@ export function parseSpoolstockCsv(csvText: string): ParsedSpoolstockCsv {
   validateCsv(parsed);
   const warnings: string[] = [];
   const headers = parsed.meta.fields ?? [];
-  if (!headers.includes("short_id")) {
-    return {
-      records: [],
-      warnings: [
-        "This does not look like a Spoolstock export: there is no short_id column. Export from the Spoolstock app's Inventory tab.",
-      ],
-    };
-  }
+  if (!headers.includes("short_id"))
+    throw new Error(
+      "This does not look like a Spoolstock export: there is no short_id column. Export from the Spoolstock app's Inventory tab.",
+    );
 
   const records: SpoolstockRecord[] = [];
   for (let index = 0; index < parsed.data.length; index++) {

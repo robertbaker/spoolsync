@@ -178,6 +178,43 @@ describe("exportSpoolmanJson", () => {
     const second = JSON.parse(exportSpoolmanJson(first, creates).json);
     expect(second.map((s: { id: number }) => s.id)).toEqual([51, -1, -2]);
   });
+  describe("temperature ranges on created spools", () => {
+    function createRange(file: unknown) {
+      const loaded = loadSpoolmanFile(JSON.stringify(file));
+      const incoming = makeSpool("spoolstock", "range1", {
+        vendor: "Elegoo",
+        nozzleTempMin: 200,
+        nozzleTempMax: 220,
+      });
+      const { groups } = matchSpools([...loaded.spools, incoming]);
+      const group = groups.find((g) => g.members.spoolstock === incoming)!;
+      const plan = buildPlan(
+        groups,
+        new Map([[group.id, { values: {}, createIn: ["spoolman"] }]]),
+      ).get("spoolman")!;
+      const result = exportSpoolmanJson(loaded, plan);
+      return { result, created: JSON.parse(result.json).at(-1).filament };
+    }
+    test("writes the range when the file shows Spoolman-NG range keys, even when null", () => {
+      const ng = {
+        ...apiSpool,
+        filament: { ...apiSpool.filament, settings_extruder_temp_min: null },
+      };
+      const { result, created } = createRange([ng]);
+      expect(created).toMatchObject({
+        settings_extruder_temp: 210,
+        settings_extruder_temp_min: 200,
+        settings_extruder_temp_max: 220,
+      });
+      expect(result.warnings).toEqual([]);
+    });
+    test("warns when a range cannot be written because the file cannot be known as NG", () => {
+      const { result, created } = createRange([apiSpool]);
+      expect(created).not.toHaveProperty("settings_extruder_temp_min");
+      expect(created.settings_extruder_temp).toBe(210);
+      expect(result.warnings.join(" ")).toContain("temperature range was written as a single");
+    });
+  });
   test("applies changes, adds new spools with negative ids, and reloads", () => {
     const loaded = loadSpoolmanFile(JSON.stringify([apiSpool]));
     const spoolstock = makeSpool("spoolstock", "410e5312", {

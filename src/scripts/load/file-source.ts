@@ -61,14 +61,18 @@ export function wireFileSource(source: SourceId, { state, store, fileLoaded }: L
   });
 }
 
-/** Reads one file into a source's inventory, reporting the outcome in that source's panel. */
+/**
+ * Reads one file into a source's inventory, reporting the outcome in that source's panel. Returns
+ * the stored inventory, or null when the file was rejected, unreadable or superseded. A file that
+ * is not stored never takes a revision, so it cannot cancel a server load that is in flight.
+ */
 export async function readInventoryFile(
   source: SourceId,
   file: File,
   { state, store, fileLoaded }: LoadContext,
-): Promise<void> {
+): Promise<LoadResult | null> {
   const message = byId(`${source}-message`);
-  const current = state.nextRevision(source);
+  const started = state.currentRevision(source);
   message.replaceChildren();
   if (file.size > MAX_INVENTORY_FILE_BYTES) {
     message.replaceChildren(
@@ -78,7 +82,7 @@ export async function readInventoryFile(
         h("p", {}, "Exports are far smaller than 20 MB; check the file."),
       ),
     );
-    return;
+    return null;
   }
   let result: LoadResult;
   try {
@@ -94,7 +98,7 @@ export async function readInventoryFile(
       loadedAt: new Date().toISOString(),
     };
   }
-  if (!state.isCurrent(source, current)) return;
+  if (!state.isCurrent(source, started)) return null;
   if (!result.spools.length && result.warnings.length) {
     message.replaceChildren(
       notice(
@@ -106,8 +110,10 @@ export async function readInventoryFile(
           : null,
       ),
     );
-    return;
+    return null;
   }
+  // Only a file that replaces the inventory supersedes other loads of this source.
+  state.nextRevision(source);
   message.replaceChildren(
     notice("success", `Loaded ${plural(result.spools.length, "spool")} from ${file.name}`),
     ...[warningsNotice(result)].filter((node): node is HTMLElement => node !== null),
@@ -121,4 +127,5 @@ export async function readInventoryFile(
     loadedAt: new Date().toISOString(),
   });
   fileLoaded?.(result);
+  return result;
 }

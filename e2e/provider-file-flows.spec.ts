@@ -291,6 +291,53 @@ test("Bambuddy API fetch loads inventory from the configured server", async ({ p
   await expect(page.getByText("API yellow")).toBeVisible();
 });
 
+test("Filament DB API fetch loads a snapshot from a server that allows this origin", async ({
+  page,
+}) => {
+  await page.route("http://filament-db.test:3456/**", async (route) => {
+    const request = route.request();
+    const cors = {
+      "access-control-allow-origin": "*",
+      "access-control-allow-headers": "authorization, content-type",
+      "access-control-allow-methods": "GET, PUT, POST",
+    };
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers: cors });
+      return;
+    }
+    expect(new URL(request.url()).pathname).toBe("/api/snapshot");
+    expect(request.headers()["authorization"]).toBe("Bearer app-key");
+    await route.fulfill({
+      status: 200,
+      headers: cors,
+      contentType: "application/json",
+      body: JSON.stringify({
+        version: 8,
+        collections: {
+          locations: [],
+          filaments: [
+            {
+              _id: "f1",
+              name: "API Teal",
+              vendor: "Example Brand",
+              type: "PLA",
+              color: "#119988",
+              spools: [{ _id: "s1", totalWeight: 700 }],
+            },
+          ],
+        },
+      }),
+    });
+  });
+
+  await page.goto("/load");
+  await page.locator('[data-tile="filamentDbApp"]').click();
+  await page.getByLabel("Filament DB server address").fill("http://filament-db.test:3456");
+  await page.getByLabel("Filament DB API key").fill("app-key");
+  await page.locator("#filamentDbApp-fetch").click();
+  await expect(page.locator("#filamentDbApp-status").getByText("1 loaded from API")).toBeVisible();
+});
+
 const readOnlyAppCases = [
   {
     source: "spoolmaster",

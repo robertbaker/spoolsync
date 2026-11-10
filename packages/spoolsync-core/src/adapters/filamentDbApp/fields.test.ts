@@ -230,3 +230,116 @@ test("the spool CSV writes the lot number column and skips a legacy roll with a 
   expect(result.updated).toBe(1);
   expect(result.warnings.join(" ")).toContain("no spool record");
 });
+
+test("a variant's CSV row leaves the inherited vendor blank and shares one name with the JSON load", async () => {
+  const csv = [
+    "filament,vendor,type,totalWeight,spoolWeight,lotNumber,spoolId,filamentId,Parent",
+    "Prusament PLA - Red,Prusament,PLA,700,200,L7,s1,var,Prusament PLA",
+    "Solo,Acme,PETG,650,150,,s2,solo,",
+  ].join("\n");
+  const loaded = await loadInventoryFile("filamentDbApp", csv);
+  expect(loaded.spools.map((s) => s.name)).toEqual(["Red", "Solo"]);
+  const result = exportFilamentDbAppCsv(loaded as never, [
+    update(loaded.spools[0]!, [["lotNr", "L7", "L8"]]),
+    update(loaded.spools[1]!, [["lotNr", null, "L1"]]),
+    {
+      kind: "create",
+      source: "filamentDbApp",
+      groupId: "g",
+      values: { ...loaded.spools[0]!, name: "Red", comment: null, lotNr: null },
+    } as unknown as PlannedChange,
+  ]);
+  const rows = (await import("../shared/tabular")).parseRows(result.csv);
+  expect(rows[0]).toMatchObject({ filament: "Prusament PLA - Red", vendor: "" });
+  expect(rows[1]).toMatchObject({ filament: "Solo", vendor: "Acme" });
+  expect(rows[2]).toMatchObject({ filament: "Prusament PLA - Red", vendor: "" });
+});
+
+test("a label or lot number over 200 characters is left unchanged with a warning", async () => {
+  const loaded = await load();
+  const red = loaded.spools.find((s) => s.sourceId === "s1")!;
+  const long = "x".repeat(201);
+  const file = exportFilamentDbApp(loaded as never, [
+    update(red, [
+      ["lotNr", null, long],
+      ["comment", null, long],
+    ]),
+  ]);
+  expect(file.warnings.join(" ")).toContain("200 characters");
+  expect(file.json).not.toContain(long);
+});
+
+test("CSV names keep a parent prefix only when a separator follows it", async () => {
+  const csv = [
+    "filament,vendor,type,totalWeight,spoolWeight,spoolId,filamentId,Parent",
+    "PLA+ Red,Acme,PLA,700,200,s1,a,PLA",
+    "Basics Red,Acme,PLA,700,200,s2,b,Basic",
+    "Basic - Red,Acme,PLA,700,200,s3,c,Basic",
+    "Basic Red,Acme,PLA,700,200,s4,d,Basic",
+    "Basic,Acme,PLA,700,200,s5,e,Basic",
+  ].join("\n");
+  const loaded = await loadInventoryFile("filamentDbApp", csv);
+  expect(loaded.spools.map((s) => s.name)).toEqual([
+    "PLA+ Red",
+    "Basics Red",
+    "Red",
+    "Red",
+    "Basic",
+  ]);
+});
+
+const longText = "x".repeat(201);
+
+test("API updates leave an over-long label or lot number unchanged and still write the rest", async () => {
+  const loaded = await load();
+  const red = loaded.spools.find((s) => s.sourceId === "s1")!;
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp(client(calls), [
+    update(red, [
+      ["lotNr", "L7", longText],
+      ["comment", null, longText],
+      ["remainingWeight", 500, 400],
+    ]),
+  ]);
+  expect(log[0]!.message).toContain("200 characters");
+  expect(log[0]!.ok).toBe(true);
+  expect(log[0]!.message).toContain("200 characters");
+  expect(JSON.stringify(calls)).not.toContain(longText);
+  expect(calls).toEqual([["spool var/s1", { remainingWeight: 400 }]]);
+});
+
+test("a new spool with an over-long label omits it with a warning on API and CSV paths", async () => {
+  const loaded = await load();
+  const values = {
+    vendor: "Prusament",
+    material: "PLA",
+    name: "Red",
+    colors: ["FF0000"],
+    initialWeight: 1000,
+    remainingWeight: 800,
+    emptySpoolWeight: null,
+    location: null,
+    comment: longText,
+    lotNr: "OK",
+    archived: false,
+  };
+  const create = {
+    kind: "create",
+    source: "filamentDbApp",
+    groupId: "n",
+    links: {},
+    groupIds: {},
+    values,
+  } as unknown as PlannedChange;
+  const calls: Array<[string, unknown]> = [];
+  const log = await applyToFilamentDbApp(client(calls), [create]);
+  expect(log[0]!.ok).toBe(true);
+  expect(log[0]!.message).toContain("200 characters");
+  expect(calls[0]![1]).not.toHaveProperty("label");
+  expect(calls[0]![1]).toMatchObject({ lotNumber: "OK" });
+
+  const file = exportFilamentDbAppCsv(loaded as never, [create]);
+  expect(file.created).toBe(1);
+  expect(file.csv).not.toContain(longText);
+  expect(file.warnings.join(" ")).toContain("200 characters");
+});

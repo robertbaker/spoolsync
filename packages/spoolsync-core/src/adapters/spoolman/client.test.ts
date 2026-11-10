@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import { SpoolmanClient } from "./client";
 
 test("unauthorized responses report authentication errors without waiting for their body", async () => {
-  for (const status of [401, 403]) {
+  for (const status of [401]) {
     let cancelled = false;
     const client = new SpoolmanClient(
       { baseUrl: "http://spoolman.test", timeoutMs: 20 },

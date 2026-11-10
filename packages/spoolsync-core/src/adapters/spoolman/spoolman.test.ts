@@ -109,7 +109,7 @@ describe("SpoolmanClient", () => {
     expect(spools).toHaveLength(1500);
     expect(calls).toHaveLength(2);
     expect(calls[0]?.url).toBe(
-      "http://10.0.0.5:7912/api/v1/spool?allow_archived=true&limit=1000&offset=0",
+      "http://10.0.0.5:7912/api/v1/spool?sort=id%3Aasc&allow_archived=true&limit=1000&offset=0",
     );
   });
 

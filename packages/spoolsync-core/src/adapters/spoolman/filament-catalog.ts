@@ -12,8 +12,10 @@ import {
   colorParams,
   existingHexes,
   hasTempRanges,
+  integerTemperature,
   temperatureParams,
 } from "./filament-policy";
+import { limitText, type LimitWarn } from "./limits";
 import type { SpoolmanFilament, SpoolmanVendor } from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
 
@@ -21,7 +23,10 @@ import type { SpoolmanWriteClient } from "./write-client";
 export class FilamentCatalog {
   private readonly vendorsByName: Map<string, SpoolmanVendor>;
   private readonly filamentsByIdentity = new Map<string, Map<number, SpoolmanFilament>>();
-  /** Spoolman-NG filaments carry temperature ranges; learned from the filaments the server returns. */
+  /**
+   * Spoolman-NG filaments carry temperature ranges; learned from `/info` or any filament that has a
+   * range.
+   */
   private ranges = false;
 
   constructor(
@@ -31,6 +36,14 @@ export class FilamentCatalog {
   ) {
     this.vendorsByName = new Map(vendors.map((vendor) => [norm(vendor.name), vendor]));
     for (const filament of filaments) this.rememberFilament(filament);
+  }
+
+  /** Whether the server is Spoolman-NG, which stores temperature ranges. */
+  get hasRanges(): boolean {
+    return this.ranges;
+  }
+  markRanges(): void {
+    this.ranges = true;
   }
 
   rememberFilament(filament: SpoolmanFilament): void {
@@ -46,8 +59,13 @@ export class FilamentCatalog {
     bucket?.delete(filament.id);
     if (!bucket?.size) this.filamentsByIdentity.delete(key);
   }
-  async vendorId(name: string | null, template?: SpoolmanVendor | null): Promise<number | null> {
-    if (!name?.trim()) return null;
+  async vendorId(
+    rawName: string | null,
+    template?: SpoolmanVendor | null,
+    warn?: LimitWarn,
+  ): Promise<number | null> {
+    if (!rawName?.trim()) return null;
+    const name = limitText("vendor name", rawName, warn);
     const existing = this.vendorsByName.get(norm(name));
     if (existing) return existing.id;
     // Recreating the template filament's own vendor keeps what the vendor record carried.
@@ -88,9 +106,21 @@ export class FilamentCatalog {
     >,
     direction: "coaxial" | "longitudinal" = "coaxial",
     template?: SpoolmanFilament,
+    warn?: LimitWarn,
   ): Promise<SpoolmanFilament> {
+    values = {
+      ...values,
+      material: limitText("material", values.material, warn),
+      name: limitText("filament name", values.name, warn),
+      upc: limitText("article number", values.upc, warn),
+      // Spoolman stores whole degrees, so candidates are matched against what a write would store.
+      nozzleTempMin: integerTemperature(values.nozzleTempMin),
+      nozzleTempMax: integerTemperature(values.nozzleTempMax),
+      bedTempMin: integerTemperature(values.bedTempMin),
+      bedTempMax: integerTemperature(values.bedTempMax),
+    };
     const identity: FilamentIdentity = {
-      vendorId: await this.vendorId(values.vendor, template?.vendor),
+      vendorId: await this.vendorId(values.vendor, template?.vendor, warn),
       material: values.material,
       name: values.name,
       colors: values.colors,

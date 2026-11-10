@@ -190,3 +190,12 @@ test("Filadex reports a rejected password", async () => {
     /username or password/,
   );
 });
+
+test("Filadex login surfaces the server's reason for a 403", async () => {
+  const { baseUrl, fetchImpl } = serve(() =>
+    Response.json({ message: "PASSWORD_CHANGE_REQUIRED" }, { status: 403 }),
+  );
+  expect(loadFiladex({ baseUrl, username: "me", password: "x", fetchImpl })).rejects.toThrow(
+    "Filadex login answered 403: PASSWORD_CHANGE_REQUIRED.",
+  );
+});

@@ -343,3 +343,110 @@ describe("API writes", () => {
     expect(created[1]).toEqual({ name: "Other" });
   });
 });
+
+describe("Spoolman-NG range detection and weights", () => {
+  const ngInfo = { version: "2026.7.20", install_type: "docker" };
+
+  test("NG without any ranged filament is recognised from /info", async () => {
+    // NG omits null fields, so this filament shows no sign of NG.
+    const raw = spool(base);
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [base],
+      spools: [raw],
+      info: ngInfo,
+    });
+    const client = new SpoolmanClient(
+      { baseUrl: "http://spoolman.test" },
+      server.fetchImpl,
+      "http:",
+    );
+    const [entry] = await applyToSpoolman(client, [
+      update(raw, [
+        { field: "nozzleTempMin", to: 200 },
+        { field: "nozzleTempMax", to: 230 },
+      ]),
+    ]);
+    expect(entry!.ok).toBe(true);
+    expect(server.filaments.get(10)).toMatchObject({
+      settings_extruder_temp: 215,
+      settings_extruder_temp_min: 200,
+      settings_extruder_temp_max: 230,
+    });
+  });
+
+  test("upstream Spoolman info does not enable ranges", async () => {
+    const raw = spool(base);
+    const server = createFakeSpoolman({
+      vendors: [vendor],
+      filaments: [base],
+      spools: [raw],
+      info: { version: "0.23.0" },
+    });
+    const client = new SpoolmanClient(
+      { baseUrl: "http://spoolman.test" },
+      server.fetchImpl,
+      "http:",
+    );
+    await applyToSpoolman(client, [update(raw, [{ field: "nozzleTempMin", to: 200 }])]);
+    expect(server.filaments.get(10)).not.toHaveProperty("settings_extruder_temp_min");
+  });
+
+  test("changing the remaining weight states the filament weight when the spool has no initial weight", async () => {
+    const raw = spool({ ...base, weight: 1000 }, { initial_weight: null, remaining_weight: 1000 });
+    const { server, client } = connect([{ ...base, weight: 1000 }], [raw]);
+    const [entry] = await applyToSpoolman(client, [
+      update(raw, [{ field: "remainingWeight", to: 400 }]),
+    ]);
+    expect(entry!.ok).toBe(true);
+    const body = server.requests.find((r) => r.method === "PATCH" && r.path === "/spool/51")!
+      .body as Record<string, unknown>;
+    expect(Object.keys(body).indexOf("initial_weight")).toBeLessThan(
+      Object.keys(body).indexOf("remaining_weight"),
+    );
+    expect(body).toMatchObject({ initial_weight: 1000, remaining_weight: 400 });
+  });
+
+  test("a new spool with a remaining weight but no weight anywhere is created without it", async () => {
+    const { server, client } = connect([], []);
+    const values = makeSpool("spoolstock", "w", {
+      vendor: "Prusament",
+      material: "PLA",
+      initialWeight: null,
+      remainingWeight: 300,
+    });
+    const [entry] = await applyToSpoolman(client, [
+      {
+        kind: "create",
+        source: "spoolman",
+        groupId: "w",
+        links: {},
+        values,
+      } as never,
+    ]);
+    expect(entry!.ok).toBe(true);
+    expect(entry!.message).toContain("remaining weight not set");
+    const post = server.requests.find((r) => r.method === "POST" && r.path === "/spool")!
+      .body as Record<string, unknown>;
+    expect(post).not.toHaveProperty("remaining_weight");
+  });
+
+  test("a spool that fails after its filament was edited reports what was written", async () => {
+    const raw = spool(base);
+    const { server } = connect([base], [raw]);
+    const fetchImpl = (input: string, init?: RequestInit) =>
+      init?.method === "PATCH" && input.includes("/spool/")
+        ? Promise.resolve(new Response('{"message":"boom"}', { status: 500 }))
+        : server.fetchImpl(input, init);
+    const failing = new SpoolmanClient({ baseUrl: "http://spoolman.test" }, fetchImpl, "http:");
+    const [entry] = await applyToSpoolman(failing, [
+      update(raw, [
+        { field: "material", to: "PETG" },
+        { field: "location", to: "Shelf" },
+      ]),
+    ]);
+    expect(entry!.ok).toBe(false);
+    expect(entry!.message).toContain("Already written to Spoolman: updated filament #10");
+    expect(server.filaments.get(10)!.material).toBe("PETG");
+  });
+});

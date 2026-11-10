@@ -1,7 +1,7 @@
 import type { CommonSpool, SourceId } from "../model";
 import { Groups } from "./groups";
 import { linkIdentityClaims } from "./identity";
-import { escapeGroupKeyPart, groupKey, recordKey, SOURCE_INDEX } from "./keys";
+import { escapeGroupKeyPart, groupKey, recordKey, SOURCE_INDEX, splitPairKey } from "./keys";
 import { defaultMatchingPolicy } from "./similarity";
 import { suggestMatches } from "./suggestions";
 import type { RecordKey, MatchDecisions, MatchResult, SpoolGroup, MatchingPolicy } from "./types";
@@ -46,8 +46,13 @@ export function matchSpools(
   const problems = linkIdentityClaims(spools, byKey, groups);
 
   for (const pair of decisions.confirmed) {
-    const [a, b] = pair.split("|");
-    if (a && b && byKey.has(a) && byKey.has(b) && !groups.union(a, b))
+    const records = splitPairKey(pair);
+    if (!records) {
+      problems.push(`Could not confirm "${pair}": it is not a valid pair of records.`);
+      continue;
+    }
+    const [a, b] = records;
+    if (byKey.has(a) && byKey.has(b) && !groups.union(a, b))
       problems.push(
         `Could not confirm ${a},${b}: linking these groups would put multiple records from the same source together.`,
       );

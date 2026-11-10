@@ -114,3 +114,19 @@ describe("Spool app comment composition", () => {
     expect(result.spools[2]?.comment).toBeNull();
   });
 });
+
+describe("loadSpoolAppJson BOM and duplicates", () => {
+  test("reads a backup that starts with a byte order mark", () => {
+    expect(loadSpoolAppJson(`﻿${backup([{ id: "A" }])}`).spools).toHaveLength(1);
+  });
+
+  test("warns about a repeated ID and keeps both entries for the workflow to reject", () => {
+    const result = loadSpoolAppJson(
+      backup([{ id: "A", brand: "First" }, { id: "A", brand: "Second" }, { id: "B" }]),
+    );
+    expect(result.spools.map((spool) => spool.vendor)).toEqual(["First", "Second", null]);
+    expect(result.warnings).toEqual([
+      "Spool A appears more than once; each spool needs a unique ID.",
+    ]);
+  });
+});

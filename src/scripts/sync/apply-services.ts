@@ -1,8 +1,10 @@
 import { normalizeBambuddyUrl } from "@spoolsync/core/adapters/bambuddy/client";
 import { normalizeFilamentDbUrl } from "@spoolsync/core/adapters/filamentdb/client";
+import { normalizeFilamentDbAppUrl } from "@spoolsync/core/adapters/filamentDbApp/client";
 
 import {
   loadBambuddyConnection,
+  loadFilamentDbAppConnection,
   loadFilamentDbConnection,
   loadSpoolmanConnection,
   loadTigertagSession,
@@ -43,6 +45,20 @@ export function createApplyServices() {
             description: `FilamentDB at ${connection.baseUrl}`,
             apply: async (changes, progress) =>
               (await writes()).applyAndReloadFilamentDb(connection, changes, progress),
+          }
+        );
+      },
+    },
+    filamentDbApp: {
+      changedMessage: serverChanged,
+      connect() {
+        const connection = loadFilamentDbAppConnection();
+        return (
+          connection && {
+            identity: normalizeFilamentDbAppUrl(connection.baseUrl),
+            description: `Filament DB at ${connection.baseUrl}`,
+            apply: async (changes, progress) =>
+              (await writes()).applyAndReloadFilamentDbApp(connection, changes, progress),
           }
         );
       },

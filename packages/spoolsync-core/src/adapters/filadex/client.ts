@@ -71,6 +71,14 @@ export class FiladexClient {
     }
   }
 
+  private async errorDetail(response: Response): Promise<string> {
+    try {
+      return ((await response.json()) as { message?: string }).message ?? "";
+    } catch {
+      return "";
+    }
+  }
+
   private async login(): Promise<void> {
     const response = await this.fetch("/api/auth/login", {
       method: "POST",
@@ -78,7 +86,12 @@ export class FiladexClient {
     });
     if (response.status === 401 || response.status === 400)
       throw new Error("Filadex rejected the username or password.");
-    if (!response.ok) throw new Error(`Filadex login answered ${response.status}.`);
+    if (!response.ok) {
+      // A 403 carries the reason the account cannot sign in, e.g. an unverified email or a
+      // required password change.
+      const detail = await this.errorDetail(response);
+      throw new Error(`Filadex login answered ${response.status}${detail ? `: ${detail}` : ""}.`);
+    }
     const cookies = response.headers.getSetCookie?.() ?? [];
     const token = cookies
       .map((value) => value.split(";")[0]!)
@@ -91,12 +104,7 @@ export class FiladexClient {
     if (!this.cookie) await this.login();
     const response = await this.fetch(path, init);
     if (!response.ok) {
-      let detail = "";
-      try {
-        detail = ((await response.json()) as { message?: string }).message ?? "";
-      } catch {
-        // Non-JSON error body.
-      }
+      const detail = await this.errorDetail(response);
       throw new Error(`Filadex answered ${response.status}${detail ? `: ${detail}` : ""}.`);
     }
     return response.json();

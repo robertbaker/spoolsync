@@ -252,7 +252,11 @@ describe("CLI arguments", () => {
 
   test("requires distinct sources and unambiguous IDs", () => {
     expect(() => pairArg("spoolman:1,spoolman:2")).toThrow("different inventory sources");
-    expect(() => pairArg("spoolman:1|2,spoolio:3")).toThrow("cannot contain |");
+    // IDs may contain "|" and ","; the pair splits at the comma that starts the next "source:".
+    expect(pairArg("spoolman:1|2,spoolio:3")).toBe(pairArg("spoolio:3,spoolman:1|2"));
+    expect(pairArg("spoolman:1|2,spoolio:3")).toBe("spoolio:3|spoolman:1%7C2");
+    expect(pairArg("spoolman:a,b,spoolio:3")).toBe(pairArg("spoolio:3,spoolman:a,b"));
+    expect(() => pairArg("spoolman:1,spoolio:2,spoolstock:3")).toThrow("Invalid pair");
     expect(pairArg("spoolman:1,spoolio:2")).toBe(pairArg("spoolio:2,spoolman:1"));
   });
 

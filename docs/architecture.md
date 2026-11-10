@@ -26,7 +26,10 @@ The browser entry scripts compose smaller UI modules. `load.ts` wires the load s
 view, inventory table, file sources, and remote sources. `LoadState` receives an `InventoryStorage`
 implementation and owns per-source request revisions, restored inventories, persistence, and
 unloading. File and remote sources share those revisions so an older request cannot replace a
-newer inventory or resurrect one the user unloaded. `wireRemoteSource` shares the async request
+newer inventory or resurrect one the user unloaded. A file is given a revision only once it is
+accepted, so a dropped, oversize or unparseable file cannot cancel a server load in flight, and a
+server request is also checked against an API floor (`invalidateApi`) that a connection change
+raises. `wireRemoteSource` shares the async request
 lifecycle; API bindings retain service-specific credentials, lazy adapter imports, notices, and
 button-enabling rules. The inventory table module owns rendering and search. `load.ts` redraws
 through one ordered `pageViews` list, and storing a file and comparing it with the previous one
@@ -169,7 +172,9 @@ picks the service for each file: unique header or field signatures decide first 
 columns, Spool and SpoolKeep JSON, Spoolio's `version` + `filaments`), then each plausible parser is
 tried and only parsers that read at least one spool count. Several matches are shown as choices and
 nothing is guessed. `smart-drop.ts` loads the chosen source through the same `readInventoryFile`
-path as each service's own picker, so request revisions and persistence are shared.
+path as each service's own picker, so request revisions and persistence are shared. `readInventoryFile`
+returns the inventory it stored (or `null` when the file was rejected or superseded), and the drop
+zone reports that result rather than whatever the source held before.
 
 Services are native `<details>` panels (`SourcePanel.astro`) that open when they report a message.
 `source-panels.ts` adds search and filter chips, and `action-bar.ts` keeps the sticky Continue bar (and the count of unanswered possible matches)
@@ -183,10 +188,16 @@ Load panels, and `/connections` redirects to `/load` (`public/_redirects` and As
 
 The Spoolman and TigerTag connection forms are shared Astro components
 (`src/components/connections/`) used inside the Load panels. Their wiring
-(`connections/wire.ts`) is loaded the first time a panel's settings open, and dispatches
-`spoolsync:connection-changed` after any save or clear. The Load page re-reads credentials at use
-time on that event and, when storage dropped an API snapshot because the server or account changed,
-drops the in-page copy too; file snapshots are kept.
+(`connections/wire.ts`) is loaded the first time a panel's settings open (a submit that arrives
+before wiring finishes is held and replayed once wired, so the browser never reloads the page), and dispatches
+`spoolsync:connection-changed` after any save or clear. The Bambuddy and FilamentDB panels dispatch it
+too, when a successful load changes the saved address or key and from their Forget buttons, and the
+Saved settings dialog dispatches it when connections, inventories or everything are forgotten. The
+Load page re-reads credentials at use time on that event, rejects in-flight server loads of every
+browser-capable service (file loads are unaffected) and, when storage dropped an API snapshot
+because the server or account changed, drops the in-page copy too; file snapshots are kept. A
+Spoolman connection test that is still running when the connection is forgotten (or tested again)
+is stale and cannot save the connection afterwards.
 
 The Differences list renders a window of 25 groups at a time (cards are built only for that window)
 and can be filtered by text. The Apply section offers one button that downloads every changed file.
@@ -313,8 +324,9 @@ returns each run's snapshot, and `runWatch` hands the last successful one to the
 
 `spoolsync --watch` (`watch.ts`) watches the parent directories of the input files, so saves that
 replace the file are seen. A burst of changes is one run, a change during a run causes one more
-run, and the exit code is that of the last run. It refuses `--apply` and `--*-url` so a service is
-never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
+run, and the exit code is that of the last run. A run that throws is reported as "Watch run failed"
+and makes the exit code 1 instead of ending the process. It refuses `--apply` and `--*-url` so a
+service is never written on every save. CI installs zsh and fish and sets `REQUIRE_COMPLETION_SHELLS=1`, so the
 completion tests run the real shells there instead of skipping.
 
 Keyboard and persistence conveniences are small shared modules. `shortcuts.ts` focuses a page's
@@ -338,11 +350,28 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   inventory workflows are separate modules. The workflows depend on the read or write operations
   of `TigertagInventoryClient`, so they can run without an HTTP client or authentication state.
   A twin loads from its first chip, so that chip is written last and a failed write shows up again
-  on the next load. Refreshed tokens are saved only while the same account is still signed in.
+  on the next load. Refreshed tokens are saved only while the same account is still signed in; a
+  token lifetime that is missing or invalid counts as already expired, so the next call refreshes.
+  The cloud client keeps each document as loaded (its Firestore `updateTime` and typed fields) and
+  writes with that `currentDocument.updateTime` precondition, so a chip changed since the load fails
+  with a "changed since it was loaded" conflict instead of being overwritten, and a create fails if the
+  chip already exists. Firestore `FAILED_PRECONDITION` and HTTP 409 and 404 on a write all map to that
+  conflict (`isWriteConflict`; a create says the chip "already exists"). Only `deleted === true` marks a
+  record deleted; `deleted_at` is ignored on purpose, since every export carries `null` and no other
+  meaning is documented. Values are written back in their original Firestore type (timestamps,
+  references, geo points and large integers survive). The cloud load and apply workflows take an
+  optional `AdapterRuntime` for the clock and ID generation. A
+  color edit also updates `online_color`, the color lists and the RFID color bytes, each only where
+  the record already has the field and in that record's own format (`#` prefix, case, alpha).
 - 3DFilamentProfiles separates record mapping and validation, file loading, plan application, and
   CSV/JSON row serialization. Both output formats are derived from the same changed records.
   Record mutation and link writing share nested-property updates; CSV loss detection is independent
-  of plan application and serialization.
+  of plan application and serialization. A new row follows the shape of real exports: `updated_at`
+  is set, preferred temperatures are omitted when unknown, `empty_spool_weight` is `null` in JSON and
+  empty in CSV, and the `short_code` is checked against every existing ID and short code so a create
+  never overwrites a row. A Spoolstock link on an update is written as a `Lot:` line in the notes
+  (any other note lines stay), unless the row already holds a different real lot number, which is
+  kept with a warning. Duplicate IDs are warned about when the file loads.
 - Spoolman separates file loading from file export. File exports and API writes share filament
   field classification, color parameters, default densities, and temperature averaging.
   `FilamentCatalog` owns vendor resolution and compatible filament reuse for one apply operation;
@@ -358,11 +387,31 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   `filament-update.ts` handles shared-filament copying/reuse and unique-filament changes;
   the apply module retains write ordering, progress, logs, and completed-write counts.
   Spoolman stores the used weight and derives what is left, so a change to the initial weight alone
-  also sends the current remaining weight.
+  also sends the current remaining weight, and a remaining-weight edit on a spool without its own
+  initial weight also sends the weight its filament implies (initial weight is written first). A
+  created spool with neither an initial nor a filament weight drops the remaining weight, with a note,
+  because Spoolman would refuse the whole spool, and an update of a spool in that state drops it the
+  same way. `extra` merges per key, so clearing the purchase date
+  sends an explicit `null`. Writes ask `/info` whether the server is Spoolman-NG (it omits unset
+  fields, so temperature ranges cannot be detected from filaments alone). A file export instead
+  looks for the range keys: Spoolman-NG's own export always writes the `settings_*_temp_*` range
+  columns (null or empty when unset), so one filament carrying them marks the file and created
+  filaments get range keys. An API-shaped NG file with no ranged filament cannot be told apart from
+  upstream Spoolman; a range is then written as a single temperature with an export warning. Nozzle
+  and bed temperatures compare with an inclusive 0.5 tolerance (`comparison/values.ts`), so 216
+  and 215.5 are equal after Spoolman's integer rounding. Text over Spoolman's
+  64-character limits is truncated with a warning, temperatures are sent as integers (filaments are
+  matched on the integer values a write would store), and `archived: null` loads as not archived.
+  Because a stored cut value must not look like a new disagreement, `valuesEqual` treats a Spoolman
+  text value equal to the first 64 characters of a longer one as equal for location, lot number,
+  name, material, vendor, and article number (not notes), so a second sync plans nothing. When a spool write fails after a vendor or filament was
+  already created or updated, the error lists those writes.
 - Spoolio separates schemas, material-preserving notes, common-model mapping, file loading,
   record mutation, and export assembly. The material-note rules are shared by reads and writes.
   A Spoolstock link in `batchNumber` is not a lot number; when a real lot number needs that field,
   the link moves to a `[Spoolstock link: id]` tag at the start of the notes, beside the material tag.
+  Spoolio always stores numbers for price and remaining weight, so an unknown value is written as 0
+  and reads back as 0 rather than unknown.
 - Bambuddy separates common record validation and mapping, file loading, CSV export, and its HTTP
   client. API and file inventories use the same assembly function for spools and price warnings.
   `loadBambuddyInventory` accepts a `BambuddyInventoryClient`; `loadBambuddyApi` composes the default
@@ -374,16 +423,24 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   path still only creates spools and warns about fields the importer lacks. A `weight_used` write
   also sends the spool's current `weight_locked`, because Bambuddy otherwise locks the weight and
   stops AMS sync. Loads and writes are refused when Spoolman holds the inventory, since Bambuddy's
-  own spool table is then out of date (`usesSpoolman`).
+  own spool table is then out of date (`usesSpoolman`). Extra gradient colors keep the stored token
+  (alpha and case) when unchanged, and an unchanged color list sends no update.
 - Filadex separates file loading, common-model mapping, record mutation, export assembly, and API
   loading. File exports and API writes use the same record mutation functions. API writes accept
   the narrow `FiladexWriteClient` interface. `printTemp` can end in a bed temperature
-  (`215°C / Bed 60°C`), which is not read as a nozzle value and is kept on writes.
+  (`215°C / Bed 60°C`), which is not read as a nozzle value and is kept on writes. A failed login
+  shows the server's message, such as `PASSWORD_CHANGE_REQUIRED` or an unverified email.
 - FilamentDB separates file loading, common-model mapping, record mutation, export assembly, and
   API loading. File exports and API writes share the record functions; writes accept only the
   list/save operations of `FilamentDbWriteClient`. `deleted` is FilamentDB's recycle bin, so it is
   read but never written and `archived` is not compared. With user management on, a missing or
-  expired token gets a 200 with only public spools, so the client checks sign-in before listing.
+  expired token gets a 200 with only public spools, so the client checks sign-in before listing; the
+  check is a `POST /api/sync` probe: it is the only route that answers 401 before doing disk work and
+  is covered by CORS (`/api/auth/*` sends no CORS headers). A 401 means the token was
+  refused; any other non-2xx answer or a network failure stops the load with "Could not verify the
+  FilamentDB sign-in", rather than skipping the guard. After a valid token the upstream handler scans every spool even
+  when nothing changed, so the probe is not free on a large library. FilamentDB rejects a spool without a type, so an emptied
+  material keeps the old value with a warning.
 - Filament DB (`filamentDbApp`, hyiger/filament-db, not the FilamentDB above) embeds spools in
   filaments, so `map.ts` turns each spool into one record, resolving variant inheritance and
   subtracting the empty-spool weight; `load.ts` reads a snapshot or filament list and drops trashed
@@ -401,6 +458,14 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   reads the per-spool CSV and `export-csv.ts` writes the changed spools back in the columns the
   spool importer upserts by `spoolId` (spool fields only; filament-field changes are reported, as
   are retired flags, which the importer ignores). The filament CSV/XLSX exports carry no spool data.
+  CSV rows are matched by vendor and name. Spool labels and lot numbers over 200 characters (Filament
+  DB's limit) are never sent: an update leaves the field unchanged with a warning and a create omits
+  it, on the API and in the CSV alike. A CSV spool name loses its parent filament's name as a prefix
+  only when a separator follows it ("PLA+ Red" is not "PLA" plus "+ Red"). A filament shared
+  by several spools in one plan that want different filament-field values fails clearly instead of
+  letting one win. The spool is re-read just before writing, so a spool deleted since the load fails
+  with a reload message. A failure after the filament PUT notes that the filament change was
+  already written.
 - OpenPrintTag database (reference data, not an inventory service) is a git repository of YAML with
   no bulk export. `core/reference/openprinttag.ts` joins its brands, materials and packages into one
   flat record per package; `tools/openprinttag-to-reference.ts` builds that JSON from a local clone,
@@ -413,13 +478,26 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   the converter.
 - FilaMeter separates document contracts, mapping, file loading, document mutation, and export
   assembly. The exporter retains backup metadata and non-filament documents while replacing only
-  changed filament documents.
+  changed filament documents. FilaMeter requires a material and a filament name, so an emptied one
+  keeps the old value with a warning, and a nameless create is named "Imported Filament". FilaMeter has
+  no unknown weight (its migration turns a null `total_weight` into 1000 g), so an unknown weight is
+  written as a full 1000 g spool with a warning. That 1000 g cannot be marked as a placeholder (the
+  schema allows no extra field), so it reads back as a measured weight; known limitation: do not sync
+  such a spool's weight to other services.
 - SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only file sources, each with load and
   map modules. SpoolMaster's `.xlsx` export is read as bytes through `shared/xlsx.ts` and
   `shared/zip.ts` (stored and deflated entries, CRC-verified, via `DecompressionStream`); binary
   sources are listed in `BINARY_SOURCE_IDS`, and `loadInventoryFile` accepts text or bytes. Browser and
   CLI inputs choose bytes or text from `isBinarySource`. SpoolKeep expands its spool counts into
-  individual spools, and Spool Hoarder detects its inventory or HueForge layout from the headers.
+  individual spools (checking the total before expanding, so a huge count cannot exhaust memory),
+  and Spool Hoarder detects its inventory or HueForge layout from the headers. SpoolMaster rejects a
+  sheet whose headers collapse to the same name (for example "Remaining (g)" and "Remaining (%)").
+  Its remaining percentage is read as points when above 1 and as an Excel fraction from 0 to 1, which
+  is reported as ambiguous because it could be a literal 0.5%. Spoolio, Spool and SpoolKeep JSON loads
+  (and file detection) strip a UTF-8 BOM, and Spoolio, 3DFilamentProfiles and Spool warn when an ID
+  appears twice. `toNumber` (`normalize.ts`) reads a decimal comma ("12,99"), thousands groups ("1,500",
+  "1,234,567") and "1.234,56" / "1,234.56"; anything ambiguous ("0,500", "1,5000", "$12,99") stays
+  unknown.
 
 TigerTag file creation and Spoolio, 3DFilamentProfiles, FilamentDB, and FilaMeter exports accept an optional `AdapterRuntime` for
 clock and ID generation. Production callers use the default runtime; tests can supply deterministic
@@ -450,7 +528,17 @@ and suggestion selection. Identity claims remain all-or-nothing and prefer loade
 confirmed pairs are processed before fuzzy suggestions. Stable traversal and candidate ordering
 retain deterministic ties. An optional `MatchingPolicy` supplies fuzzy scoring and its threshold;
 the default retains the existing rules. A policy cannot bypass source uniqueness, rejected pairs,
-or the rule that suggestions do not themselves merge groups.
+or the rule that suggestions do not themselves merge groups. Record IDs may contain `|` and `,`, so
+`pairKey` escapes `|` and `%` inside each record key (ordinary IDs stay readable) and `splitPairKey`
+reverses it; a confirmed pair that is not two records is reported in `problems` instead of being
+dropped, and the CLI validates `--confirm`/`--reject` with the same split. Identity claims are
+ordered by UTF-16 code units (`compareText`), not the host locale, so cross-ID linking gives the same
+groups on every machine.
+
+`toDate` reads free-text dates (such as "March 5, 2024") without shifting the day: text with no zone is
+read in the host zone and its local year, month and day are kept, while text with an explicit zone
+(`Z`, GMT/UTC, a US zone abbreviation or a numeric offset after a time) names one instant, so its
+UTC date is used.
 
 The standalone `tools/tigertag/spoolman-to-ttag.ts` entry point retains its CLI and exported helper
 imports, with implementation modules under `tools/tigertag/converter/`. Arguments, logging, input
@@ -488,9 +576,11 @@ without requiring personal files from `ref/`.
 4. Export with the target's load result, or apply through a supported remote adapter. Review
    warnings when an output format cannot preserve a field. Refresh remote inventories after writes.
 
-Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, FilamentDB, and Bambuddy writes;
-the CLI's direct API connections support Spoolman, FilamentDB, Bambuddy, and Filadex
-(Filadex needs a cookie login and sends no CORS headers, so it is CLI-only). Other writes use exported files.
+Spoolstock is read-only. The browser supports direct Spoolman, TigerTag, FilamentDB, Bambuddy, and Filament DB
+(hyiger/filament-db) writes; the CLI's direct API connections add Filadex. Filadex needs a cookie
+login and sends no CORS headers, so it is CLI-only. Filament DB answers a page only when the server
+lists the page's origin in `ALLOWED_ORIGINS` (scheme, host and port); otherwise the browser blocks
+the reply and its guard answers writes with 403, and the client says so. Other writes use exported files.
 See the [service table and limitations](../README.md) for format-specific behavior.
 
 Export serialization does not itself write files. The CLI stages exports before remote writes
@@ -499,7 +589,9 @@ see the [CLI guide](../packages/spoolsync-cli/README.md) for partial failures an
 Remote helpers report completed writes through `ApplyReloadError` if a subsequent refresh fails.
 The CLI retains logs from earlier services when a later apply or refresh fails, skips file commits,
 and cleans staging. The browser retains completed-write entries alongside the refresh failure
-warning without persisting an unrefreshed inventory.
+warning without persisting an unrefreshed inventory. After such a reload failure the service's API
+snapshot and plan choices are dropped (`ApplyContext.invalidate`), so the service must be loaded
+again before another Apply; otherwise the stale plan would repeat creates.
 
 ## Browser data
 
@@ -510,7 +602,9 @@ to remember a connection or stay signed in; TigerTag passwords are not stored.
 
 Storage's public `storage.ts` entry delegates to modules for safe storage access, inventory snapshots,
 match choices, and service credentials. Shared invalidation clears API snapshots and match state
-when credentials change, while retaining file snapshots. Failed snapshot persistence removes stale
+when credentials change, while retaining file snapshots. A connection change also raises the request
+API floor of every browser-capable service, so an in-flight API load for the old connection is
+rejected while an in-flight file load still completes. Failed snapshot persistence removes stale
 data; unavailable browser storage remains safe to access.
 
 `lib/saved-data.ts` is the public entry for the saved-settings features. Under `lib/saved-data/`,
@@ -652,6 +746,13 @@ update", which posts `SKIP_WAITING`, and the page reloads once the new worker co
 worker registers only in production builds (`import.meta.env.PROD`), so `astro dev` never caches.
 The sidebar's Install button appears on `beforeinstallprompt`, and an indicator shows when the browser
 is offline. Playwright runs with service workers enabled, matching production.
+
+**Cache headers.** Cloudflare applies every `public/_headers` rule that matches a path and joins a
+header set by more than one with a comma, so the catch-all `/*` rule sets only security headers: a
+`Cache-Control` there would be appended to the specific rules. HTML and other assets keep the static
+assets default, `public, max-age=0, must-revalidate`. `/_astro/*` and the self-hosted fonts under
+`/fonts/*` are immutable for a year, and `/reference/*` is cached for an hour with
+`stale-while-revalidate`.
 
 ## Spool drawer, saved views, and reorder list
 
@@ -869,7 +970,17 @@ applicable proposals to `planSync` as record edits (`cleanup.ts`, `planning.ts`)
 `--apply` follow the plan unchanged; `--cleanup-report[=rules]` prints every proposal and warning
 and, on its own, plans nothing and accepts a single inventory (the `"inventory"` report gains a
 `cleanup` object, as does the `"compare"` report). Rule lists share `parseRuleSelection`. Matching
-still uses the values as loaded, so cleanup can change what a later run matches.
+still uses the values as loaded, so cleanup can change what a later run matches. Rules named in a
+stronger layer (command line over `--config` over saved settings) replace those named in a weaker
+one, since `--cleanup` and `--cleanup-report` share one rule set.
+
+`--apply` can only come from the command line: `config.ts` rejects an `apply` key in `--config`, saved
+settings and imported settings files, so a shared file can never switch writes on. Service URLs are
+rejected, in options, config files and `--save-config` (where nothing is saved), when they carry a
+credential: user info or a query parameter whose name contains token, key, secret, password, passwd
+or auth (`url-credentials.ts`). `--show-config` shows command-line URLs with such values redacted.
+A failure while restoring a rollback file, not only a reload failure, is raised with the rollback file
+named, so the report still lists it.
 
 ## Reference data
 

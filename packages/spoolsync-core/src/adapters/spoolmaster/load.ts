@@ -14,6 +14,23 @@ function headerMap(row: readonly XlsxCell[]): Map<string, number> | null {
   return REQUIRED_HEADERS.every((name) => columns.has(name)) ? columns : null;
 }
 
+/**
+ * Headers that collapse to the same name once units are dropped, such as "Remaining (g)" and
+ * "Remaining (%)".
+ */
+function duplicateHeaders(row: readonly XlsxCell[]): string[] {
+  const seen = new Map<string, string>();
+  const duplicates: string[] = [];
+  for (const cell of row) {
+    const name = normalizeHeader(cell);
+    if (!name) continue;
+    const first = seen.get(name);
+    if (first === undefined) seen.set(name, String(cell).trim());
+    else duplicates.push(`${first} and ${String(cell).trim()}`);
+  }
+  return duplicates;
+}
+
 /** The stock sheet is named "Stock"; otherwise use the first sheet with SpoolMaster's columns. */
 function findStockSheet(sheets: readonly XlsxSheet[]): XlsxSheet | undefined {
   const named = sheets.find((sheet) => sheet.name.trim().toLowerCase() === "stock");
@@ -42,6 +59,12 @@ export async function loadSpoolmasterXlsx(bytes: Uint8Array): Promise<LoadResult
       "This does not look like a SpoolMaster export: no Stock sheet with Brand and Material columns was found.",
     );
 
+  const duplicates = duplicateHeaders(sheet.rows[0]!);
+  if (duplicates.length)
+    throw new Error(
+      `SpoolMaster sheet contains duplicate column names (${duplicates.join(", ")}). Give each column a unique name and export again.`,
+    );
+
   const spools = [];
   const warnings: string[] = [];
   for (let index = 1; index < sheet.rows.length; index++) {
@@ -51,7 +74,7 @@ export async function loadSpoolmasterXlsx(bytes: Uint8Array): Promise<LoadResult
     for (const [name, column] of columns) values[name] = cells[column] ?? null;
     if (Object.values(values).every((value) => value === null || value === "")) continue;
     const row: SpoolmasterRow = { rowNumber, values };
-    const spool = spoolmasterToCommon(row);
+    const spool = spoolmasterToCommon(row, warnings);
     if (!spool.vendor && !spool.material && !spool.name) {
       warnings.push(`Row ${rowNumber}: no brand, material, or color; skipped.`);
       continue;

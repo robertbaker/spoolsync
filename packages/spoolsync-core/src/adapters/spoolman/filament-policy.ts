@@ -38,7 +38,8 @@ export function defaultDensity(material: string | null): number {
 
 export function middle(min: number | null, max: number | null): number | null {
   if (min !== null && max !== null) return Math.round((min + max) / 2);
-  return min ?? max;
+  const only = min ?? max;
+  return only === null ? null : Math.round(only);
 }
 
 export function colorParams(
@@ -81,6 +82,12 @@ type TempFilament = Pick<
 const temperature = (value: number | null | undefined): number | null =>
   typeof value === "number" && value > 0 ? value : null;
 
+/** Spoolman stores whole degrees only, so a fractional source temperature is rounded. */
+export const integerTemperature = (value: number | null | undefined): number | null => {
+  const positive = temperature(value);
+  return positive === null ? null : Math.max(1, Math.round(positive));
+};
+
 /**
  * The temperatures a filament states. Spoolman-NG ranges win; the single overridden temperature
  * (all upstream Spoolman has) fills in when a range end is missing.
@@ -97,7 +104,11 @@ export function filamentTemps(source: object): FilamentTemps {
   };
 }
 
-/** Only Spoolman-NG serialises the range keys (null when unset), so their presence identifies it. */
+/**
+ * Spoolman-NG omits unset (null) fields from its responses, so the range keys only appear on a
+ * filament that has a range. Their presence identifies NG; their absence proves nothing, which is
+ * why API writes also ask `/info` (see `isSpoolmanNg`).
+ */
 export function hasTempRanges(filament: object): boolean {
   return [
     "settings_extruder_temp_min",
@@ -124,10 +135,10 @@ export function temperatureParams(
   | "settings_bed_temp_max"
 > {
   temps = {
-    nozzleTempMin: temperature(temps.nozzleTempMin),
-    nozzleTempMax: temperature(temps.nozzleTempMax),
-    bedTempMin: temperature(temps.bedTempMin),
-    bedTempMax: temperature(temps.bedTempMax),
+    nozzleTempMin: integerTemperature(temps.nozzleTempMin),
+    nozzleTempMax: integerTemperature(temps.nozzleTempMax),
+    bedTempMin: integerTemperature(temps.bedTempMin),
+    bedTempMax: integerTemperature(temps.bedTempMax),
   };
   const single = {
     settings_extruder_temp: middle(temps.nozzleTempMin, temps.nozzleTempMax),

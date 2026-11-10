@@ -31,7 +31,11 @@ test("Spoolman endpoint operations accept an injected transport without fetch or
     ["added"],
   );
   expect(calls).toEqual([
-    { method: "GET", path: "/spool", query: { allow_archived: true, limit: 1000, offset: 0 } },
+    {
+      method: "GET",
+      path: "/spool",
+      query: { sort: "id:asc", allow_archived: true, limit: 1000, offset: 0 },
+    },
     { method: "GET", path: "/field/spool", query: undefined },
     { method: "POST", path: "/field/spool/added", body: { name: "Added", field_type: "text" } },
   ]);

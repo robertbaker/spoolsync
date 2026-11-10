@@ -224,7 +224,10 @@ const spoolman = serviceView("spoolman");
                     <label class="field-label" for="bambuddy-key">Bambuddy API key</label>
                     <input id="bambuddy-key" type="password" placeholder="API key" autocomplete="off" spellcheck="false" class="field-input mt-1" />
                   </div>
-                  <Button type="button" color="primary" id="bambuddy-fetch" aria-describedby="bambuddy-hint">Fetch spools</Button>
+                  <div class="flex gap-2">
+                    <Button type="button" color="primary" id="bambuddy-fetch" aria-describedby="bambuddy-hint">Fetch spools</Button>
+                    <Button type="button" variant="outline" id="bambuddy-forget">Forget</Button>
+                  </div>
                 </div>
                 <p id="bambuddy-hint" class="field-hint">
                   Needs an API key with the Read status scope. Enter the address and key to enable fetching. Kept for this tab only and cleared when it closes.
@@ -242,14 +245,38 @@ const spoolman = serviceView("spoolman");
                     <label class="field-label" for="filamentdb-token">FilamentDB session token</label>
                     <input id="filamentdb-token" type="password" placeholder="Only with user management" autocomplete="off" spellcheck="false" class="field-input mt-1" />
                   </div>
-                  <Button type="button" color="primary" id="filamentdb-fetch" aria-describedby="filamentdb-hint">Fetch spools</Button>
+                  <div class="flex gap-2">
+                    <Button type="button" color="primary" id="filamentdb-fetch" aria-describedby="filamentdb-hint">Fetch spools</Button>
+                    <Button type="button" variant="outline" id="filamentdb-forget">Forget</Button>
+                  </div>
                 </div>
                 <p id="filamentdb-hint" class="field-hint">
                   Enter the server address to enable fetching. The token is only needed when user management is on. Kept for this tab only and cleared when it closes.
                 </p>
               </div>
             )}
-            <p class="mb-4 text-sm text-muted-foreground">{source.cloud ? `Or use a file: ${source.how}` : source.how}</p>
+            {source.id === "filamentDbApp" && (
+              <div class="mb-3">
+                <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div>
+                    <label class="field-label" for="filamentDbApp-url">Filament DB server address</label>
+                    <input id="filamentDbApp-url" type="url" placeholder="http://filament-db.local:3456" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="filamentDbApp-key">Filament DB API key</label>
+                    <input id="filamentDbApp-key" type="password" placeholder="Only with FILAMENTDB_API_KEY" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                  </div>
+                  <div class="flex gap-2">
+                    <Button type="button" color="primary" id="filamentDbApp-fetch" aria-describedby="filamentDbApp-hint">Fetch spools</Button>
+                    <Button type="button" variant="outline" id="filamentDbApp-forget">Forget</Button>
+                  </div>
+                </div>
+                <p id="filamentDbApp-hint" class="field-hint">
+                  Add this page's address to the server's ALLOWED_ORIGINS first (for example {Astro.url.origin}), or the browser blocks the request. The key is only needed when FILAMENTDB_API_KEY is set. Kept for this tab only and cleared when it closes.
+                </p>
+              </div>
+            )}
+            <p class="mb-4 text-sm text-muted-foreground">{source.cloud ?`Or use a file: ${source.how}` : source.how}</p>
             {(source.id === "tigertag" || source.id === "spoolio") && (
               <Button type="button" variant="outline" class="mb-3" id={`${source.id}-empty`}>Start empty {source.label} inventory</Button>
             )}

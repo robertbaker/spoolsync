@@ -9,6 +9,8 @@ export function createFakeSpoolman(
     vendors?: SpoolmanVendor[];
     filaments?: SpoolmanFilament[];
     spools?: SpoolmanSpool[];
+    /** The body of `GET /info`; without it the route does not exist. */
+    info?: object;
   } = {},
 ) {
   const vendors = new Map((seed.vendors ?? []).map((v) => [v.id, v]));
@@ -23,7 +25,10 @@ export function createFakeSpoolman(
   let nextId = 1000;
 
   const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
   const page = <T>(items: T[], url: URL) => {
     const offset = Number(url.searchParams.get("offset") ?? 0);
     const limit = Number(url.searchParams.get("limit") ?? items.length);
@@ -37,7 +42,10 @@ export function createFakeSpoolman(
   ): SpoolmanFilament => {
     const { vendor_id, ...rest } = filament;
     const vendorId = vendor_id !== undefined ? vendor_id : filament.vendor?.id;
-    return { ...rest, vendor: vendorId != null ? (vendors.get(vendorId) ?? null) : null };
+    return {
+      ...rest,
+      vendor: vendorId != null ? (vendors.get(vendorId) ?? null) : null,
+    };
   };
 
   async function fetchImpl(input: string, init: RequestInit = {}): Promise<Response> {
@@ -54,6 +62,7 @@ export function createFakeSpoolman(
       fields[id]!.add(decodeURIComponent(key!));
       return json([]);
     }
+    if (method === "GET" && path === "/info" && seed.info) return json(seed.info);
     if (method === "GET" && path === "/vendor") return page([...vendors.values()], url);
     if (method === "GET" && path === "/filament") return page([...filaments.values()], url);
     if (method === "GET" && path === "/spool") return page([...spools.values()], url);
@@ -93,7 +102,26 @@ export function createFakeSpoolman(
       const unknown = checkExtra("spool", body.extra);
       if (unknown) return json({ message: `Unknown extra field ${unknown}` }, 400);
       const current = spools.get(Number(id))!;
-      const { filament_id, ...rest } = body;
+      const { filament_id, extra, ...rest } = body;
+      // Like Spoolman, walk the body in order: `remaining_weight` needs an initial weight that is
+      // already set or was listed (or inherited from a new filament) before it.
+      let initial: number | null | undefined = current.initial_weight;
+      for (const [key, value] of Object.entries(body)) {
+        if (key === "filament_id") {
+          const weight = filaments.get(value as number)!.weight;
+          if (initial == null && weight != null) {
+            initial = weight;
+            rest.initial_weight ??= weight;
+          }
+        } else if (key === "initial_weight") initial = value as number | null;
+        else if (key === "remaining_weight" && value != null && initial == null)
+          return json(
+            {
+              message: "remaining_weight can only be used if initial_weight is set.",
+            },
+            400,
+          );
+      }
       // Spoolman keeps the used weight, so a new initial weight alone moves what is left.
       if (
         typeof rest.initial_weight === "number" &&
@@ -105,9 +133,16 @@ export function createFakeSpoolman(
           rest.initial_weight - (current.initial_weight - current.remaining_weight),
           0,
         );
+      // `extra` is merged per key and only a null value clears one.
+      const merged: Record<string, string> = { ...current.extra };
+      for (const [key, value] of Object.entries((extra ?? {}) as Record<string, string | null>)) {
+        if (value === null) delete merged[key];
+        else merged[key] = value;
+      }
       const updated = {
         ...current,
         ...rest,
+        ...(extra !== undefined ? { extra: merged } : {}),
         ...(filament_id ? { filament: filaments.get(filament_id)! } : {}),
       };
       spools.set(updated.id, updated);

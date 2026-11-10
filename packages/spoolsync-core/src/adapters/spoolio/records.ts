@@ -61,14 +61,15 @@ export function setField(
       target["weightTotal"] = zeroIfNull(value as number | null);
       break;
     case "remainingWeight":
-      target["weightRemaining"] = value;
+      // Spoolio always stores a number here (0 for none), never null.
+      target["weightRemaining"] = zeroIfNull(value as number | null);
       break;
     case "emptySpoolWeight":
       if (value == null) delete target["spoolWeight"];
       else target["spoolWeight"] = value;
       break;
     case "price":
-      target["price"] = value;
+      target["price"] = zeroIfNull(value as number | null);
       break;
     case "purchasedOn":
       target["purchaseDate"] = value ?? "";

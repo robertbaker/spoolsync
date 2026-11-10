@@ -10,6 +10,7 @@ import {
   hasTempRanges,
   temperatureParams,
 } from "./filament-policy";
+import { limitText, type LimitWarn } from "./limits";
 import type { FilamentParameters, SpoolParameters, SpoolmanSpool } from "./schema";
 import type { SpoolmanWriteClient } from "./write-client";
 
@@ -20,6 +21,7 @@ export async function applyFilamentChanges(
   shared: boolean,
   client: Pick<SpoolmanWriteClient, "updateFilament">,
   catalog: FilamentCatalog,
+  warn?: LimitWarn,
 ): Promise<string> {
   // A per-spool diameter override is patched on the spool, not on the filament.
   const filamentChanges = change.changes.filter(
@@ -54,6 +56,7 @@ export async function applyFilamentChanges(
         },
         current.filament.multi_color_direction === "longitudinal" ? "longitudinal" : "coaxial",
         current.filament,
+        warn,
       );
       if (filament.id !== current.filament.id) {
         patch.filament_id = filament.id;
@@ -75,9 +78,10 @@ export async function applyFilamentChanges(
     } else {
       const filamentPatch: Partial<FilamentParameters> = {};
       if ("vendor" in target)
-        filamentPatch.vendor_id = await catalog.vendorId(target.vendor ?? null);
-      if ("material" in target) filamentPatch.material = target.material ?? null;
-      if ("name" in target) filamentPatch.name = target.name ?? null;
+        filamentPatch.vendor_id = await catalog.vendorId(target.vendor ?? null, undefined, warn);
+      if ("material" in target)
+        filamentPatch.material = limitText("material", target.material, warn);
+      if ("name" in target) filamentPatch.name = limitText("filament name", target.name, warn);
       if (target.colors)
         Object.assign(
           filamentPatch,
@@ -88,10 +92,14 @@ export async function applyFilamentChanges(
           ),
         );
       if (["nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"].some((k) => k in target))
-        Object.assign(filamentPatch, temperatureParams(temps, hasTempRanges(current.filament)));
+        Object.assign(
+          filamentPatch,
+          temperatureParams(temps, catalog.hasRanges || hasTempRanges(current.filament)),
+        );
       if (target.diameter != null) filamentPatch.diameter = target.diameter;
       if (target.density != null) filamentPatch.density = target.density;
-      if ("upc" in target) filamentPatch.article_number = target.upc ?? null;
+      if ("upc" in target)
+        filamentPatch.article_number = limitText("article number", target.upc, warn);
       const updated = await client.updateFilament(current.filament.id, filamentPatch);
       catalog.forgetFilament(current.filament);
       catalog.rememberFilament(updated);

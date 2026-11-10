@@ -71,6 +71,11 @@ export interface RollbackHook {
 export interface ApplyContext {
   loaded: Map<SourceId, LoadResult>;
   onApplied(): void;
+  /**
+   * Drops the stored API snapshot and plan choices for a source whose written changes can no longer
+   * be trusted (the post-write reload failed). File snapshots are never passed here.
+   */
+  invalidate?(source: SourceId): void;
 }
 
 export class ApplyController {
@@ -174,6 +179,16 @@ export class ApplyController {
         this.logs.set(source, log);
         // A refresh failure after writes keeps the writes' counts; the extra entry is the error.
         this.remember(source, changes, log, message);
+        if (
+          error instanceof ApplyReloadError &&
+          this.context.loaded.get(source)?.origin === "api"
+        ) {
+          // The writes landed but the API snapshot is stale: re-planning from it would repeat
+          // creates. Unload it (page map and stored copy) so the service must be reloaded before
+          // another Apply. A file snapshot never reaches here and is kept.
+          this.context.loaded.delete(source);
+          this.context.invalidate?.(source);
+        }
       }
       this.context.onApplied();
     } finally {

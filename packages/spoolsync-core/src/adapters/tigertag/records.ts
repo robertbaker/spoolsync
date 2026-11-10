@@ -29,6 +29,64 @@ const uint16 = (value: number | null) => Math.max(0, Math.min(65535, Math.round(
 
 const COLOR_SLOTS = ["", "2", "3"] as const;
 
+/**
+ * Writes a colour in the format the record already uses for it: `#` prefix or not, hex case, and
+ * the alpha suffix (the stored alpha is kept when the colour is the same, otherwise
+ * `fallbackAlpha`).
+ */
+function colorLike(existing: unknown, hex: string, fallbackAlpha: string): string {
+  const old = typeof existing === "string" ? existing.trim() : "";
+  const match = /^(#?)([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(old);
+  const rgb = hex.toUpperCase();
+  const alpha =
+    match?.[3] && match[2]!.toUpperCase() === rgb ? match[3] : match?.[3] ? fallbackAlpha : null;
+  const text = rgb + (alpha ?? (match ? "" : fallbackAlpha));
+  const cased = match && old === old.toLowerCase() && /[a-f]/.test(old) ? text.toLowerCase() : text;
+  return `${match ? match[1] : "#"}${cased}`;
+}
+
+const isBag = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
+/** A mono or multi flag follows the colour count; any other kind (e.g. gradient) is left alone. */
+function colorKind(type: unknown, count: number): unknown {
+  if (count > 1) return type === undefined || type === null || type === "mono" ? "multi" : type;
+  return type === "mono" ? type : "mono";
+}
+
+/** Colour fields on a catalogue product (and its filament block), only where they already exist. */
+function setCatalogColors(target: Record<string, unknown>, list: string[], alpha: string): void {
+  const catalog = target["catalogProduct"];
+  if (!isBag(catalog)) return;
+  const next: Record<string, unknown> = { ...catalog };
+  const apply = (holder: Record<string, unknown>) => {
+    if ("color" in holder) holder["color"] = colorLike(holder["color"], list[0] ?? "000000", alpha);
+    const info = holder["color_info"];
+    if (isBag(info)) {
+      const sample = Array.isArray(info["colors"]) ? info["colors"][0] : holder["color"];
+      holder["color_info"] = {
+        ...info,
+        ...("colors" in info ? { colors: list.map((hex) => colorLike(sample, hex, alpha)) } : {}),
+        ...("type" in info ? { type: colorKind(info["type"], list.length) } : {}),
+      };
+    }
+  };
+  apply(next);
+  if (isBag(next["filament"])) {
+    next["filament"] = { ...next["filament"] };
+    apply(next["filament"] as Record<string, unknown>);
+  }
+  if (isBag(next["RFID_Data"])) {
+    const rfid: Record<string, unknown> = { ...next["RFID_Data"] };
+    const hex = list[0] ?? "000000";
+    if ("color_r" in rfid) rfid["color_r"] = parseInt(hex.slice(0, 2), 16);
+    if ("color_g" in rfid) rfid["color_g"] = parseInt(hex.slice(2, 4), 16);
+    if ("color_b" in rfid) rfid["color_b"] = parseInt(hex.slice(4, 6), 16);
+    next["RFID_Data"] = rfid;
+  }
+  target["catalogProduct"] = next;
+}
+
 function setColors(target: Record<string, unknown>, list: string[]): void {
   for (let index = 0; index < COLOR_SLOTS.length; index++) {
     const suffix = COLOR_SLOTS[index]!;
@@ -45,8 +103,20 @@ function setColors(target: Record<string, unknown>, list: string[]): void {
     }
   }
   if (target["color_a"] === undefined) target["color_a"] = 255;
-  // Keep whatever shape the record already used for the display list.
-  target["online_color_list"] = list;
+  const alphaByte = Math.max(0, Math.min(255, Math.round(Number(target["color_a"]) || 0)));
+  const alpha = alphaByte.toString(16).padStart(2, "0").toUpperCase();
+  // Keep whatever shape the record already used for the display list (array or comma string).
+  const shown = target["online_color_list"];
+  const sample = Array.isArray(shown)
+    ? shown[0]
+    : typeof shown === "string"
+      ? shown.split(",")[0]
+      : undefined;
+  const formatted = list.map((hex) => colorLike(sample ?? target["online_color"], hex, alpha));
+  target["online_color_list"] = typeof shown === "string" ? formatted.join(",") : formatted;
+  if ("online_color" in target)
+    target["online_color"] = colorLike(target["online_color"], list[0] ?? "000000", alpha);
+  setCatalogColors(target, list, alpha);
   // Studio shows a multi-colour spool from this flag; leave any other kind (e.g. gradient) alone.
   const type = target["online_color_type"];
   if (list.length > 1) {

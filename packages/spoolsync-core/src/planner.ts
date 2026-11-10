@@ -102,8 +102,8 @@ function withoutStaleValues(group: SpoolGroup, resolution: GroupResolution): Gro
 
 /**
  * IDs of every group this one could have grown from. At most one member per source: enumerate its
- * possible ancestor groups (at most 127). Splitting the group ID is unsafe because native record
- * IDs may themselves contain '+'.
+ * possible ancestor groups (at most 2^14 - 1 with the 14 sources). Splitting the group ID is unsafe
+ * because native record IDs may themselves contain '+'.
  */
 function ancestorGroupIds(group: SpoolGroup): Set<string> {
   const ancestorIds = new Set([""]);
@@ -216,8 +216,9 @@ export function resolutionsFromChoices(
   const resolutions = new Map<string, GroupResolution>();
   for (const group of groups) {
     const resolution = ensureResolution(resolutions, group);
+    const comparisons = resolves.length ? compareGroup(group) : [];
     for (const [field, source] of resolves) {
-      const comparison = compareGroup(group).find((item) => item.field === field);
+      const comparison = comparisons.find((item) => item.field === field);
       const option = comparison?.options.find((candidate) => candidate.sources.includes(source));
       if (option) resolution.values[field] = option.value;
     }
@@ -292,7 +293,11 @@ const sameItems = <T>(a: readonly T[], b: readonly T[]): boolean =>
  * it. A caller that needs its own match to change should use `findMatches`.
  */
 export function findMatchesCached(spools: CommonSpool[], decisions: MatchDecisions): MatchResult {
+  // The same object twice would pass the membership check below for a different inventory; it is
+  // a duplicate record, which matchSpools rejects.
+  const unique = new Set(spools).size === spools.length;
   if (
+    unique &&
     lastMatch &&
     lastMatch.spools.length === spools.length &&
     spools.every((spool) => lastMatch!.spoolSet.has(spool)) &&

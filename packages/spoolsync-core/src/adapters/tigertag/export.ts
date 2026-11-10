@@ -71,7 +71,7 @@ export function exportTtag(
     }
     if (change.kind === "update") {
       const linked = change.spool.raw as TigertagRaw;
-      const edited = ["material", "name", "finish"].filter((field) => field in values);
+      const edited = ["material", "name", "finish", "colors"].filter((field) => field in values);
       if (edited.length && linked.records.some(catalogueLinked))
         warnings.push(
           `TigerTag ${label}: this record is linked to the TigerTag catalogue, which keeps its own ${edited.join(", ")}. The record now differs from the catalogue entry, and a catalogue resync in Studio may bring the catalogue values back.`,

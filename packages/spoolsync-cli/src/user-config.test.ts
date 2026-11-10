@@ -129,3 +129,11 @@ test("saving nothing is an error that says what to do", async () => {
   await writeFile(path.join(directory, "keep.txt"), "x");
   expect(await readdir(directory)).toEqual(["keep.txt"]);
 });
+
+test("saving refuses service URLs that carry a credential in the query string", () => {
+  // Option parsing refuses such a URL already; saving checks again for options built another way.
+  const options = parseArgs(["--spoolman-url", "http://s/", "--spoolio", "a.json"]);
+  options.spoolmanUrl = "http://s/?token=SECRET";
+  expect(() => savableSettings(options)).toThrow("contains credentials");
+  expect(() => savableSettings(options)).not.toThrow("SECRET");
+});

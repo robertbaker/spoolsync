@@ -1,5 +1,5 @@
 import { compareGroup } from "@spoolsync/core/core/compare";
-import { matchSpools, recordKey } from "@spoolsync/core/core/match";
+import { matchSpools, recordKey, splitPairKey } from "@spoolsync/core/core/match";
 import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 import { mergeRecordEdits } from "@spoolsync/core/core/reference";
 import { planSync, resolutionsFromChoices } from "@spoolsync/core/planner";
@@ -29,7 +29,7 @@ export function createCliPlan(
   }
   const validatePairs = (pairs: readonly string[]) => {
     for (const pair of pairs) {
-      for (const key of pair.split("|")) {
+      for (const key of splitPairKey(pair) ?? [pair]) {
         if (!recordKeys.has(key))
           throw new Error(`Match decision references unknown record: ${key}`);
       }
@@ -45,15 +45,15 @@ export function createCliPlan(
     }
   }
   for (const pair of decisions.confirmed) {
-    const [a, b] = pair.split("|");
-    if (groupByRecord.get(a!) !== groupByRecord.get(b!))
+    const [a, b] = splitPairKey(pair)!;
+    if (groupByRecord.get(a) !== groupByRecord.get(b))
       throw new Error(
         `Could not confirm ${a},${b}: the match conflicts with other records from the same source. Review your --confirm choices and cross-IDs.`,
       );
   }
   for (const pair of decisions.rejected) {
-    const [a, b] = pair.split("|");
-    if (groupByRecord.get(a!) === groupByRecord.get(b!))
+    const [a, b] = splitPairKey(pair)!;
+    if (groupByRecord.get(a) === groupByRecord.get(b))
       throw new Error(
         `Could not reject ${a},${b}: these records are already linked by cross-IDs or other confirmations. Correct those links before rejecting the pair.`,
       );

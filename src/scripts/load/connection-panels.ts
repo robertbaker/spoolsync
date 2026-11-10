@@ -12,9 +12,20 @@ export function wireConnectionPanels(): void {
   async function wire(service: Service): Promise<void> {
     if (wired.has(service)) return;
     wired.add(service);
+    // The form is only wired after the import below. A submit before then would be a native
+    // submit (reloading the page and losing what was typed), so hold it and replay it once wired.
+    const form = document.getElementById(`${service}-form`);
+    let early = false;
+    const hold = (event: Event) => {
+      event.preventDefault();
+      early = true;
+    };
+    form?.addEventListener("submit", hold);
     const { wireSpoolmanForm, wireTigertagForm } = await import("../connections/wire");
     if (service === "spoolman") wireSpoolmanForm();
     else wireTigertagForm();
+    form?.removeEventListener("submit", hold);
+    if (early && form instanceof HTMLFormElement) form.requestSubmit();
   }
 
   function settings(service: Service): HTMLDetailsElement | null {

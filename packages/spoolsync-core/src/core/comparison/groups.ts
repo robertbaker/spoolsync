@@ -1,5 +1,5 @@
-import type { SpoolGroup } from "../match";
 import { recordKey } from "../matching/keys";
+import type { SpoolGroup } from "../matching/types";
 import { SOURCE_IDS, COMPARABLE_FIELDS, type ComparableField, type SourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
 import type { RecordEdits } from "./record-edits";
@@ -62,7 +62,11 @@ function compareMembers(group: SpoolGroup, sources: SourceId[]): FieldComparison
       }
       const option = options.find((candidate) => valuesEqual(field, candidate.value, value));
       if (option) option.sources.push(source);
-      else options.push({ value: Array.isArray(value) ? [...value] : value, sources: [source] });
+      else
+        options.push({
+          value: Array.isArray(value) ? [...value] : value,
+          sources: [source],
+        });
     }
     if (participants < 2 || options.length === 0) continue;
     if (options.length > 1) comparisons.push({ field, kind: "conflict", options, blank });

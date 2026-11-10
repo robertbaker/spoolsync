@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { groupKey, matchSpools, pairKey, similarity } from "./match";
+import { groupKey, matchSpools, pairKey, similarity, splitPairKey } from "./match";
+import { compareText } from "./matching/identity";
 import { makeSpool } from "./testing";
 
 describe("matchSpools", () => {
@@ -185,5 +186,37 @@ describe("similarity", () => {
     expect(similarity(a, makeSpool("spoolstock", "z", { colors: ["FFFFFF"] })).reasons).toContain(
       "different color",
     );
+  });
+});
+
+describe("pair decisions", () => {
+  test("record IDs containing | or % round-trip through pair keys instead of dropping the match", () => {
+    const a = makeSpool("spoolman", "7|8");
+    const b = makeSpool("spoolio", "x%7Cy");
+    const key = pairKey("spoolman:7|8", "spoolio:x%7Cy");
+    expect(key).toBe(pairKey("spoolio:x%7Cy", "spoolman:7|8"));
+    expect(splitPairKey(key)).toEqual(["spoolio:x%7Cy", "spoolman:7|8"]);
+    const result = matchSpools([a, b], { confirmed: [key], rejected: [] });
+    expect(result.groups.map((group) => group.status)).toEqual(["linked"]);
+    expect(result.problems).toEqual([]);
+    const rejected = matchSpools([a, b], { confirmed: [], rejected: [key] });
+    expect(rejected.suggestions).toEqual([]);
+  });
+
+  test("a malformed confirmed pair is reported, not silently dropped", () => {
+    const result = matchSpools([makeSpool("spoolman", "1")], {
+      confirmed: ["spoolman:1|spoolio:2|spoolio:3", "garbage"],
+      rejected: [],
+    });
+    expect(result.problems).toEqual([
+      'Could not confirm "spoolman:1|spoolio:2|spoolio:3": it is not a valid pair of records.',
+      'Could not confirm "garbage": it is not a valid pair of records.',
+    ]);
+  });
+
+  test("identity claims are ordered without the host locale", () => {
+    expect(compareText("B", "a")).toBeLessThan(0);
+    expect(compareText("a", "B")).toBeGreaterThan(0);
+    expect(compareText("same", "same")).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import {
 import { makeSpool } from "./core/testing";
 import {
   decideMatch,
+  findMatchesCached,
   ensureResolution,
   reconcileResolutions,
   withResolutionBasis,
@@ -236,4 +237,14 @@ test("merged groups preserve compatible choices from every previous group", () =
     expect(choices[0]![1].values.colors).toEqual(["FFFFFF"]);
     expect(choices[1]![1].values.colors).toEqual(["FFFFFF"]);
   }
+});
+
+describe("findMatchesCached", () => {
+  test("the same object twice is a duplicate record, not a cache hit for another inventory", () => {
+    const a = makeSpool("spoolman", "1");
+    const b = makeSpool("spoolio", "x");
+    const decisions = { confirmed: [], rejected: [] };
+    expect(findMatchesCached([a, b], decisions).groups).toHaveLength(2);
+    expect(() => findMatchesCached([a, a], decisions)).toThrow("Duplicate inventory record");
+  });
 });

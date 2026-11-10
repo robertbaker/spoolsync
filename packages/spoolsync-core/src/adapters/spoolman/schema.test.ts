@@ -1,7 +1,13 @@
 import { expect, test } from "bun:test";
 
 import { spoolmanToCommon } from "./map";
-import { encodeExtras, readExtra, SPOOLMAN_MAX_COMMENT, truncateComment } from "./schema";
+import {
+  encodeExtras,
+  readExtra,
+  SPOOLMAN_MAX_COMMENT,
+  SpoolSchema,
+  truncateComment,
+} from "./schema";
 
 test("comment truncation counts Unicode characters without splitting surrogate pairs", () => {
   const withinLimit = "🧵".repeat(600);
@@ -48,4 +54,13 @@ test("blank or non-text extras do not suppress a valid Spoolstock lot-number lin
     });
     expect(spool.crossIds.spoolstockShortId).toBe("actual-id");
   }
+});
+
+test("spools with a null archived flag parse", () => {
+  const parsed = SpoolSchema.parse({
+    id: 1,
+    filament: { id: 2 },
+    archived: null,
+  });
+  expect(spoolmanToCommon(parsed).archived).toBe(false);
 });

@@ -13,7 +13,8 @@ export function createLoadStatusView(state: LoadState, renderTable: () => void) 
         ? " from file"
         : result?.origin === "api" && source === "tigertag"
           ? " from cloud"
-          : result?.origin === "api" && (source === "bambuddy" || source === "filamentdb")
+          : result?.origin === "api" &&
+              (source === "bambuddy" || source === "filamentdb" || source === "filamentDbApp")
             ? " from API"
             : "";
     const container = byId(`${source}-status`);

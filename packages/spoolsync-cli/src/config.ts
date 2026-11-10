@@ -8,6 +8,7 @@ import {
 } from "@spoolsync/core/core/stock";
 
 import { closestOption } from "./suggest";
+import { urlCredential } from "./url-credentials";
 
 /** Config keys are the long option names without dashes. Source keys hold file paths. */
 const SOURCE_KEYS = [
@@ -44,14 +45,7 @@ const URL_KEYS = new Set([
 const STRING_KEYS = new Set<string>([...PATH_KEYS, "format", ...URL_KEYS, "filadex-user"]);
 const NUMBER_KEYS = new Set(["low-threshold"]);
 const LIST_KEYS = new Set(["resolve", "confirm", "reject", "create-in", "empty"]);
-const BOOLEAN_KEYS = new Set([
-  "apply",
-  "json",
-  "summary",
-  "reorder",
-  "fail-on-mismatch",
-  "no-rollback",
-]);
+const BOOLEAN_KEYS = new Set(["json", "summary", "reorder", "fail-on-mismatch", "no-rollback"]);
 /** Boolean, or text naming the rules to run. */
 const CLEANUP_KEYS = ["cleanup", "cleanup-report"];
 const ALLOWED_KEYS = [
@@ -136,6 +130,8 @@ function optionsFromFile(
   config: Record<string, unknown>,
   given: ReadonlySet<string>,
   skipInputs: boolean,
+  /** A stronger layer already named cleanup rules, which win over rules named here. */
+  strongerRules = false,
 ): string[] {
   const base = path.dirname(path.resolve(configFile));
   const expanded: string[] = [];
@@ -144,6 +140,12 @@ function optionsFromFile(
       fail(
         configFile,
         `"${key}" looks like a secret. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
+      );
+    // A shared, imported or saved file must never switch writes on.
+    if (key === "apply")
+      fail(
+        configFile,
+        '"apply" cannot be saved as a default setting. Writing to a service is turned on only by passing --apply on the command line.',
       );
     if (!ALLOWED_KEYS.includes(key)) {
       const suggestion = closestOption(
@@ -160,7 +162,9 @@ function optionsFromFile(
     const resolvePath = (text: string) => (path.isAbsolute(text) ? text : path.join(base, text));
     if (key === "cleanup" || key === "cleanup-report") {
       // true turns it on with every rule; text names the rules, like `--cleanup=casing,whitespace`.
-      if (typeof value === "string" && value) expanded.push(`--${key}=${value}`);
+      // Rules from a stronger layer replace these (the option stays on), since both options share one set.
+      if (typeof value === "string" && value)
+        expanded.push(strongerRules ? `--${key}` : `--${key}=${value}`);
       else if (typeof value !== "boolean")
         fail(configFile, `"${key}" must be true, false, or a list of cleanup rules as text.`);
       else if (value) expanded.push(`--${key}`);
@@ -192,10 +196,11 @@ function optionsFromFile(
         }
         if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:")
           fail(configFile, `"${key}" must use http:// or https://.`);
-        if (parsedUrl.username || parsedUrl.password)
+        const credential = urlCredential(parsedUrl);
+        if (credential)
           fail(
             configFile,
-            `"${key}" contains credentials in the URL. Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
+            `"${key}" contains credentials in the URL (${credential}). Keep tokens and passwords out of config files; set SPOOLMAN_TOKEN, FILAMENTDB_TOKEN, BAMBUDDY_API_KEY, or FILADEX_PASSWORD in the environment instead.`,
           );
       }
       expanded.push(`--${key}=${PATH_KEYS.has(key) ? resolvePath(value as string) : value}`);
@@ -208,6 +213,9 @@ function optionsFromFile(
 export function checkConfig(file: string, config: Record<string, unknown>): void {
   optionsFromFile(file, config, new Set(), false);
 }
+
+const namesCleanupRules = (args: readonly string[]) =>
+  args.some((arg) => /^--cleanup(?:-report)?=/.test(arg));
 
 const givenFlags = (args: readonly string[]) =>
   new Set(
@@ -250,7 +258,13 @@ export function expandConfig(
   if (configFile !== undefined) {
     const config = readConfig(configFile, dependencies);
     for (const key of Object.keys(config)) configKeys.add(canonical(key));
-    const fromConfig = optionsFromFile(configFile, config, givenFlags(rest), false);
+    const fromConfig = optionsFromFile(
+      configFile,
+      config,
+      givenFlags(rest),
+      false,
+      namesCleanupRules(rest),
+    );
     for (const option of fromConfig) settings.trace?.({ layer: "--config file", option });
     result = [...fromConfig, ...rest];
   }
@@ -263,7 +277,13 @@ export function expandConfig(
     if (config) {
       const given = new Set([...givenFlags(result), ...configKeys]);
       const hasInputs = [...given].some((flag) => INPUT_KEYS.has(flag));
-      const expanded = optionsFromFile(user.path, config, given, hasInputs);
+      const expanded = optionsFromFile(
+        user.path,
+        config,
+        given,
+        hasInputs,
+        namesCleanupRules(result),
+      );
       const savedInputs = expanded.some((option) =>
         INPUT_KEYS.has(canonical(option.slice(2).split("=")[0]!)),
       );

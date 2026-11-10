@@ -9,6 +9,7 @@ import { requestsJson } from "./json-report";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
 import { buildExportDocument, parseImportDocument } from "./settings-transfer";
+import { redactUrl } from "./url-credentials";
 import {
   clearUserConfig,
   savableSettings,
@@ -35,6 +36,14 @@ const TOKEN_FLAGS = new Set([
   "--filament-db-token",
 ]);
 
+const URL_FLAGS = new Set([
+  "--spoolman-url",
+  "--filamentdb-url",
+  "--filament-db-url",
+  "--bambuddy-url",
+  "--filadex-url",
+]);
+
 function redactArgs(args: readonly string[]): string[] {
   const redacted: string[] = [];
   for (let i = 0; i < args.length; i++) {
@@ -45,6 +54,12 @@ function redactArgs(args: readonly string[]): string[] {
       if (eq > 0) redacted.push(`${flag}=<redacted>`);
       else if (args[i + 1] && !args[i + 1]!.startsWith("-")) {
         redacted.push(flag, "<redacted>");
+        i++;
+      } else redacted.push(arg);
+    } else if (URL_FLAGS.has(flag)) {
+      if (eq > 0) redacted.push(`${flag}=${redactUrl(arg.slice(eq + 1))}`);
+      else if (args[i + 1] && !args[i + 1]!.startsWith("-")) {
+        redacted.push(flag, redactUrl(args[i + 1]!));
         i++;
       } else redacted.push(arg);
     } else {

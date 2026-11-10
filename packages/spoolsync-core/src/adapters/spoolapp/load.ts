@@ -1,4 +1,5 @@
 import type { CommonSpool, LoadResult } from "../../core/model";
+import { stripBom } from "../shared/text";
 import { spoolAppToCommon } from "./map";
 import { SpoolAppBackupSchema, SpoolAppSpoolSchema } from "./schema";
 
@@ -6,7 +7,7 @@ import { SpoolAppBackupSchema, SpoolAppSpoolSchema } from "./schema";
 export function loadSpoolAppJson(text: string): LoadResult {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripBom(text));
   } catch {
     throw new Error(
       "This file is not valid JSON. Export a backup from the Spool app and try again.",
@@ -17,10 +18,18 @@ export function loadSpoolAppJson(text: string): LoadResult {
     throw new Error("This does not look like a Spool app backup: there is no spools list.");
   const warnings: string[] = [];
   const spools: CommonSpool[] = [];
+  const seen = new Set<string>();
   backup.data.spools.forEach((entry, index) => {
     const spool = SpoolAppSpoolSchema.safeParse(entry);
-    if (spool.success) spools.push(spoolAppToCommon(spool.data));
-    else
+    if (spool.success) {
+      const common = spoolAppToCommon(spool.data);
+      if (seen.has(common.sourceId))
+        warnings.push(
+          `Spool ${common.sourceId} appears more than once; each spool needs a unique ID.`,
+        );
+      seen.add(common.sourceId);
+      spools.push(common);
+    } else
       warnings.push(
         `Spool ${index + 1}: ${spool.error.issues.map((issue) => `${issue.path.join(".")} ${issue.message}`).join(", ")}`,
       );

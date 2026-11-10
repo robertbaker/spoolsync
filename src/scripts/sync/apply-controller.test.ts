@@ -24,7 +24,11 @@ async function fixture() {
     progress(1, 1);
     return { log, inventory: { ...inventory } };
   });
-  const target = { identity: inventory.connectionId, description: "Spoolman", apply };
+  const target = {
+    identity: inventory.connectionId,
+    description: "Spoolman",
+    apply,
+  };
   const connect = mock((): ApplyTarget | null => target);
   const onApplied = mock(() => {});
   const save = mock((_inventory: LoadResult) => {});
@@ -103,16 +107,71 @@ test("refresh failures retain completed write logs and the reload warning withou
     ...f.log,
     { groupId: "", ok: false, message: failure.message },
   ]);
-  expect(f.loaded.get("spoolman")).toBe(f.inventory);
   expect(f.save).not.toHaveBeenCalled();
   expect(f.onApplied).toHaveBeenCalledTimes(1);
+});
+
+test("a failed reload drops the written source's snapshot so the plan cannot be applied twice", async () => {
+  const f = await fixture();
+  const invalidate = mock((_source: SourceId) => {});
+  const controller = new ApplyController(
+    {
+      spoolman: { changedMessage: "Reload changed server", connect: f.connect },
+    },
+    { loaded: f.loaded, onApplied: f.onApplied, invalidate },
+    f.save,
+    f.confirm,
+  );
+  f.apply.mockRejectedValue(new ApplyReloadError("Spoolman", f.log, new Error("offline")));
+  await controller.run("spoolman", [], f.status);
+  expect(f.loaded.has("spoolman")).toBe(false);
+  expect(invalidate).toHaveBeenCalledWith("spoolman");
+  await controller.run("spoolman", [], f.status);
+  expect(f.apply).toHaveBeenCalledTimes(1);
+  expect(f.status.textContent).toContain("Reload changed server");
+});
+
+test("a failed reload keeps a file snapshot", async () => {
+  const f = await fixture();
+  const fileInventory = { ...f.inventory, origin: "file" as const };
+  f.loaded.set("spoolman", fileInventory);
+  const invalidate = mock((_source: SourceId) => {});
+  const controller = new ApplyController(
+    { spoolman: { changedMessage: "x", connect: f.connect } },
+    { loaded: f.loaded, onApplied: f.onApplied, invalidate },
+    f.save,
+    f.confirm,
+  );
+  f.apply.mockRejectedValue(new ApplyReloadError("Spoolman", f.log, new Error("offline")));
+  await controller.run("spoolman", [], f.status);
+  expect(f.loaded.get("spoolman")).toBe(fileInventory);
+  expect(invalidate).not.toHaveBeenCalled();
+});
+
+test("plain write failures keep the snapshot and do not invalidate", async () => {
+  const f = await fixture();
+  const invalidate = mock((_source: SourceId) => {});
+  const controller = new ApplyController(
+    { spoolman: { changedMessage: "x", connect: f.connect } },
+    { loaded: f.loaded, onApplied: f.onApplied, invalidate },
+    f.save,
+    f.confirm,
+  );
+  f.apply.mockRejectedValue(new Error("down"));
+  await controller.run("spoolman", [], f.status);
+  expect(f.loaded.get("spoolman")).toBe(f.inventory);
+  expect(invalidate).not.toHaveBeenCalled();
 });
 
 const planned = (): PlannedUpdate => ({
   kind: "update",
   source: "spoolman",
   groupId: "g1",
-  spool: makeSpool("spoolman", "1", { vendor: "Prusament", material: "PLA", name: "Galaxy" }),
+  spool: makeSpool("spoolman", "1", {
+    vendor: "Prusament",
+    material: "PLA",
+    name: "Galaxy",
+  }),
   changes: [{ field: "density", from: null, to: 1.24 }],
   links: {},
 });
@@ -123,7 +182,10 @@ async function withRollback(options: { enabled?: boolean; failSave?: boolean } =
   const hook: RollbackHook = {
     enabled: () => options.enabled ?? true,
     build: (source, changes, target) =>
-      buildRollback(source, changes, { target, now: new Date("2026-11-04T10:00:00.000Z") }),
+      buildRollback(source, changes, {
+        target,
+        now: new Date("2026-11-04T10:00:00.000Z"),
+      }),
     save: (document) => {
       if (options.failSave) throw new Error("blocked");
       saved.push(document);

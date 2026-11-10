@@ -17,6 +17,8 @@ export interface InventoryStorage {
 export class LoadState {
   readonly results = new Map<SourceId, LoadResult>();
   private readonly revisions = new Map<SourceId, number>();
+  /** Server requests started at or before this revision used a connection that has since changed. */
+  private readonly apiFloors = new Map<SourceId, number>();
 
   constructor(private readonly storage: InventoryStorage) {}
 
@@ -25,14 +27,28 @@ export class LoadState {
     if (previous) this.results.set(source, previous);
   }
 
+  currentRevision(source: SourceId): number {
+    return this.revisions.get(source) ?? 0;
+  }
+
   nextRevision(source: SourceId): number {
     const revision = (this.revisions.get(source) ?? 0) + 1;
     this.revisions.set(source, revision);
     return revision;
   }
 
-  isCurrent(source: SourceId, revision: number): boolean {
-    return this.revisions.get(source) === revision;
+  /**
+   * File and server loads compete for a source (the newest wins), so they share one revision. A
+   * server request also passes `"api"` so it is rejected after `invalidateApi`.
+   */
+  isCurrent(source: SourceId, revision: number, kind: "api" | "file" = "file"): boolean {
+    if (this.currentRevision(source) !== revision) return false;
+    return kind === "file" || revision > (this.apiFloors.get(source) ?? 0);
+  }
+
+  /** Rejects in-flight server requests for a source (its connection changed); file loads continue. */
+  invalidateApi(source: SourceId): void {
+    this.apiFloors.set(source, this.currentRevision(source));
   }
 
   store(result: LoadResult): boolean {

@@ -397,3 +397,35 @@ test("Bambuddy client explains a key without the inventory scope and shows valid
     }).updateSpool(1, {}),
   ).rejects.toThrow("answered 422: rgba: String should match pattern");
 });
+
+test("Bambuddy keeps the stored alpha and case of unchanged extra colours", async () => {
+  const stored: BambuddySpool[] = [
+    { ...records[0]!, rgba: "1A2B3C80", extra_colors: "ff000080,00ff00" },
+  ];
+  const calls: Call[] = [];
+  const client = {
+    baseUrl: "https://bambuddy.test",
+    async usesSpoolman() {
+      return false;
+    },
+    async listSpools() {
+      return stored;
+    },
+    async updateSpool(id: number, payload: BambuddySpoolPayload) {
+      calls.push(["update", id, payload]);
+      return {};
+    },
+  } as unknown as BambuddyWriteClient;
+  // The same colours (alpha is not part of SpoolSync's six-hex colours): nothing to send.
+  await applyToBambuddy(client, [
+    update(4, [{ field: "colors", from: ["1A2B3C"], to: ["1A2B3C", "FF0000", "00FF00"] }]),
+  ]);
+  expect(calls).toEqual([]);
+  // A new third colour is appended while the existing tokens keep their alpha.
+  await applyToBambuddy(client, [
+    update(4, [
+      { field: "colors", from: ["1A2B3C"], to: ["1A2B3C", "FF0000", "00FF00", "0000FF"] },
+    ]),
+  ]);
+  expect(calls).toEqual([["update", 4, { extra_colors: "ff000080,00ff00,0000FF" }]]);
+});

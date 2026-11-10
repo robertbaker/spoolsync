@@ -1,12 +1,7 @@
-import type { ApplyLogEntry } from "./model";
+import type { ApplyLogEntry, SourceId } from "./model";
+import type { ServiceRegistry } from "./services";
 
-export type ApplyServiceName =
-  | "Spoolman"
-  | "TigerTag"
-  | "FilamentDB"
-  | "Filament DB"
-  | "Filadex"
-  | "Bambuddy";
+export type ApplyServiceName = ServiceRegistry[SourceId]["name"];
 
 /**
  * Writes have already been attempted; callers must retain the log even if refresh fails. Lives

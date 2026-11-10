@@ -62,7 +62,7 @@ describe("loadSpoolioJson", () => {
 });
 
 describe("exportSpoolioJson", () => {
-  test("unknown remaining weights and prices remain distinct from explicit zero values", () => {
+  test("unknown remaining weights and prices are written as numeric zero like real exports", () => {
     const empty = loadSpoolioJson('{"version":1,"filaments":[]}');
     for (const value of [null, 0]) {
       const group = matchSpools([
@@ -73,9 +73,12 @@ describe("exportSpoolioJson", () => {
         new Map([[group.id, { values: {}, createIn: ["spoolio"] }]]),
       ).get("spoolio")!;
       const output = exportSpoolioJson(empty, changes);
+      const written = JSON.parse(output.json).filaments[0];
+      expect(written.weightRemaining).toBe(0);
+      expect(written.price).toBe(0);
       expect(loadSpoolioJson(output.json).spools[0]).toMatchObject({
-        remainingWeight: value,
-        price: value,
+        remainingWeight: 0,
+        price: 0,
       });
     }
     const loaded = loadSpoolioJson(
@@ -95,8 +98,8 @@ describe("exportSpoolioJson", () => {
       },
     ]);
     expect(loadSpoolioJson(cleared.json).spools[0]).toMatchObject({
-      remainingWeight: null,
-      price: null,
+      remainingWeight: 0,
+      price: 0,
     });
   });
   test("preserves richer material names through Spoolio's canonical types and later note edits", () => {
@@ -254,5 +257,27 @@ describe("finish and lot number", () => {
     expect(JSON.parse(exportSpoolioJson(empty, plainChanges).json).filaments[0].abrasive).toBe(
       false,
     );
+  });
+});
+
+describe("loadSpoolioJson BOM and duplicates", () => {
+  test("reads an export that starts with a byte order mark", () => {
+    expect(loadSpoolioJson(`﻿${text}`).spools).toHaveLength(1);
+  });
+
+  test("warns about a repeated ID at load", () => {
+    const result = loadSpoolioJson(
+      JSON.stringify({
+        version: 1,
+        filaments: [
+          { id: "a", brand: "First" },
+          { id: "a", brand: "Second" },
+        ],
+      }),
+    );
+    expect(result.spools).toHaveLength(2);
+    expect(result.warnings).toEqual([
+      "Filament a appears more than once; each spool needs a unique ID.",
+    ]);
   });
 });

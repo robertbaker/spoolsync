@@ -30,7 +30,11 @@ const spool = (id: number, overrides: Partial<SpoolmanSpool> = {}): SpoolmanSpoo
 });
 
 function setup(spools: SpoolmanSpool[]) {
-  const server = createFakeSpoolman({ vendors: [vendor], filaments: [filament], spools });
+  const server = createFakeSpoolman({
+    vendors: [vendor],
+    filaments: [filament],
+    spools,
+  });
   const client = new SpoolmanClient({ baseUrl: "http://spoolman.test" }, server.fetchImpl, "http:");
   return { server, client };
 }
@@ -49,7 +53,10 @@ describe("applyToSpoolman", () => {
       },
     ]);
     expect(result[0]!.ok).toBe(true);
-    expect(server.spools.get(51)).toMatchObject({ initial_weight: 750, remaining_weight: 640 });
+    expect(server.spools.get(51)).toMatchObject({
+      initial_weight: 750,
+      remaining_weight: 640,
+    });
   });
   test("filament reuse searches all matching identities for compatible metadata", async () => {
     const original = { ...filament, comment: "Keep these notes" };
@@ -109,7 +116,10 @@ describe("applyToSpoolman", () => {
       { spool_weight: 400 },
     ]) {
       const existing = { ...filament, ...overrides };
-      const server = createFakeSpoolman({ vendors: [vendor], filaments: [existing] });
+      const server = createFakeSpoolman({
+        vendors: [vendor],
+        filaments: [existing],
+      });
       const client = new SpoolmanClient(
         { baseUrl: "http://spoolman.test" },
         server.fetchImpl,
@@ -120,7 +130,10 @@ describe("applyToSpoolman", () => {
           kind: "create",
           source: "spoolman",
           groupId: "new",
-          values: makeSpool("spoolio", "new", { initialWeight: null, remainingWeight: null }),
+          values: makeSpool("spoolio", "new", {
+            initialWeight: null,
+            remainingWeight: null,
+          }),
           links: {},
           groupIds: {},
         },
@@ -144,7 +157,10 @@ describe("applyToSpoolman", () => {
       external_id: "catalog-42",
       settings_extruder_temp: 210,
       settings_bed_temp: 60,
-      extra: { source: JSON.stringify("catalog"), profile: JSON.stringify("fine") },
+      extra: {
+        source: JSON.stringify("catalog"),
+        profile: JSON.stringify("fine"),
+      },
     };
     const candidate = {
       ...original,
@@ -189,7 +205,12 @@ describe("applyToSpoolman", () => {
   });
   test("moving a shared spool to an existing filament preserves inherited price and weights", async () => {
     for (const requestedPrice of [undefined, 7]) {
-      const original = { ...filament, price: 12, weight: 1000, spool_weight: 200 };
+      const original = {
+        ...filament,
+        price: 12,
+        weight: 1000,
+        spool_weight: 200,
+      };
       const candidate = {
         ...original,
         id: 20,
@@ -255,7 +276,12 @@ describe("applyToSpoolman", () => {
         multi_color_hexes: "112233,445566",
         multi_color_direction: "longitudinal",
       };
-      const candidate = { ...original, id: 20, name: "Updated", multi_color_direction: "coaxial" };
+      const candidate = {
+        ...original,
+        id: 20,
+        name: "Updated",
+        multi_color_direction: "coaxial",
+      };
       const server = createFakeSpoolman({
         vendors: [vendor],
         filaments: [original, candidate],
@@ -275,7 +301,13 @@ describe("applyToSpoolman", () => {
           links: {},
           changes: shared
             ? [{ field: "name", from: "Galaxy Black", to: "Updated" }]
-            : [{ field: "colors", from: ["112233", "445566"], to: ["AABBCC", "DDEEFF"] }],
+            : [
+                {
+                  field: "colors",
+                  from: ["112233", "445566"],
+                  to: ["AABBCC", "DDEEFF"],
+                },
+              ],
         },
       ]);
       expect(log[0]?.ok).toBe(true);
@@ -306,7 +338,13 @@ describe("applyToSpoolman", () => {
         changes: [{ field: "purchasedOn", from: "2025-05-06", to: null }],
       },
     ]);
-    expect(server.spools.get(51)!.extra).toEqual({ spoolstock_short_id: JSON.stringify("sample") });
+    const patch = server.requests.find((r) => r.method === "PATCH")!.body as {
+      extra: Record<string, unknown>;
+    };
+    expect(patch.extra.spoolstock_purchased_on).toBeNull();
+    expect(server.spools.get(51)!.extra).toEqual({
+      spoolstock_short_id: JSON.stringify("sample"),
+    });
     expect(spoolmanToCommon(server.spools.get(51)!).purchasedOn).toBeNull();
   });
   test("density and barcode corrections never change a sibling spool's filament", async () => {
@@ -325,8 +363,14 @@ describe("applyToSpoolman", () => {
         ],
       },
     ]);
-    expect(server.spools.get(51)!.filament).toMatchObject({ density: 1.3, article_number: "NEW" });
-    expect(server.spools.get(52)!.filament).toMatchObject({ id: 10, density: 1.24 });
+    expect(server.spools.get(51)!.filament).toMatchObject({
+      density: 1.3,
+      article_number: "NEW",
+    });
+    expect(server.spools.get(52)!.filament).toMatchObject({
+      id: 10,
+      density: 1.24,
+    });
     expect(server.filaments.get(10)!.article_number).toBeUndefined();
   });
   test("a failed move keeps the original filament shared for subsequent updates", async () => {
@@ -351,7 +395,10 @@ describe("applyToSpoolman", () => {
     }));
     const log = await applyToSpoolman(client, changes);
     expect(log.map((entry) => entry.ok)).toEqual([false, true]);
-    expect(server.spools.get(51)!.filament).toMatchObject({ id: 10, name: "Galaxy Black" });
+    expect(server.spools.get(51)!.filament).toMatchObject({
+      id: 10,
+      name: "Galaxy Black",
+    });
     expect(server.spools.get(52)!.filament.name).toBe("New name 52");
     expect(
       server.requests.filter(
@@ -382,7 +429,10 @@ describe("applyToSpoolman", () => {
     const { server, client } = setup([spool(51, { extra: { other: JSON.stringify("kept") } })]);
     server.fields.spool!.add("other");
     const spoolman = spoolmanToCommon(server.spools.get(51)!);
-    const spoolstock = makeSpool("spoolstock", "s1", { remainingWeight: 600, location: "Shelf B" });
+    const spoolstock = makeSpool("spoolstock", "s1", {
+      remainingWeight: 600,
+      location: "Shelf B",
+    });
     const [group] = matchSpools([spoolman, spoolstock], {
       confirmed: ["spoolman:51|spoolstock:s1"],
       rejected: [],
@@ -390,7 +440,13 @@ describe("applyToSpoolman", () => {
     const plan = buildPlan(
       [group!],
       new Map([
-        [group!.id, { values: { remainingWeight: 600, location: "Shelf B" }, createIn: [] }],
+        [
+          group!.id,
+          {
+            values: { remainingWeight: 600, location: "Shelf B" },
+            createIn: [],
+          },
+        ],
       ]),
     );
 
@@ -423,7 +479,10 @@ describe("applyToSpoolman", () => {
       new Map([
         [
           group!.id,
-          { values: { name: "Galaxy Black v2", vendor: "Prusa Research" }, createIn: [] },
+          {
+            values: { name: "Galaxy Black v2", vendor: "Prusa Research" },
+            createIn: [],
+          },
         ],
       ]),
     );
@@ -490,7 +549,9 @@ describe("applyToSpoolman", () => {
 
   test("logs a failure and carries on", async () => {
     const { server, client } = setup([spool(51)]);
-    const stale = makeSpool("spoolman", "999", { crossIds: { spoolmanId: 999 } });
+    const stale = makeSpool("spoolman", "999", {
+      crossIds: { spoolmanId: 999 },
+    });
     const ok = spoolmanToCommon(server.spools.get(51)!);
     const groups = matchSpools([stale, ok], {
       confirmed: [],
@@ -509,4 +570,122 @@ describe("applyToSpoolman", () => {
 test("defaultDensity uses the base material", () => {
   expect(defaultDensity("PETG-CF")).toBe(1.27);
   expect(defaultDensity(null)).toBe(1.24);
+});
+
+describe("applyToSpoolman convergence and guards", () => {
+  test("a second sync after writing over-long text and fractional temperatures plans no changes", async () => {
+    const { server, client } = setup([spool(51)]);
+    const long = "L".repeat(80);
+    const longName = "N".repeat(80);
+    const wanted = { location: long, lotNr: long, name: longName, nozzleTempMin: 215.5 };
+    const run = async () => {
+      const spoolman = spoolmanToCommon(server.spools.get(51)!);
+      const other = makeSpool("spoolstock", "s1", {
+        ...wanted,
+        remainingWeight: spoolman.remainingWeight,
+      });
+      const [group] = matchSpools([spoolman, other], {
+        confirmed: ["spoolman:51|spoolstock:s1"],
+        rejected: [],
+      }).groups;
+      const plan = buildPlan(
+        [group!],
+        new Map([[group!.id, { values: { ...wanted }, createIn: [] }]]),
+      );
+      const changes = plan.get("spoolman") ?? [];
+      const log = await applyToSpoolman(client, changes);
+      expect(log.every((entry) => entry.ok)).toBe(true);
+      return changes;
+    };
+    expect((await run()).length).toBeGreaterThan(0);
+    const stored = server.spools.get(51)!;
+    expect(stored.location).toBe("L".repeat(64));
+    expect(stored.filament.name).toBe("N".repeat(64));
+    // Stamping the cross-service ids is the only thing left; no field is proposed again.
+    const second = await run();
+    for (const change of second) {
+      if (change.kind === "update") expect(change.changes).toEqual([]);
+    }
+  });
+
+  test("fractional source temperatures reuse the filament they created", async () => {
+    const { server, client } = setup([]);
+    const create = () => [
+      {
+        kind: "create" as const,
+        source: "spoolman" as const,
+        groupId: "g",
+        values: makeSpool("spoolio", "n", { nozzleTempMin: 215.5, nozzleTempMax: 225.5 }),
+        links: {},
+        groupIds: {},
+      },
+    ];
+    await applyToSpoolman(client, create());
+    await applyToSpoolman(client, create());
+    expect(server.filaments.size).toBe(2);
+    expect(server.spools.size).toBe(2);
+  });
+
+  test("fractional source temperatures reuse an existing integer-temperature filament", async () => {
+    const existing: SpoolmanFilament = {
+      ...filament,
+      id: 11,
+      weight: 1000,
+      settings_extruder_temp: 221,
+      settings_bed_temp: 65,
+      settings_extruder_temp_min: 216,
+      settings_extruder_temp_max: 226,
+      settings_bed_temp_min: 60,
+      settings_bed_temp_max: 70,
+    };
+    // The existing filament carries ranges, so the catalog compares them exactly (Spoolman-NG).
+    const server = createFakeSpoolman({ vendors: [vendor], filaments: [existing], spools: [] });
+    const client = new SpoolmanClient(
+      { baseUrl: "http://spoolman.test" },
+      server.fetchImpl,
+      "http:",
+    );
+    const create = () => [
+      {
+        kind: "create" as const,
+        source: "spoolman" as const,
+        groupId: "g",
+        values: makeSpool("spoolio", "n", {
+          vendor: vendor.name,
+          material: "PLA",
+          name: filament.name,
+          nozzleTempMin: 215.5,
+          nozzleTempMax: 225.5,
+          bedTempMin: 59.6,
+          bedTempMax: 69.6,
+        }),
+        links: {},
+        groupIds: {},
+      },
+    ];
+    const first = await applyToSpoolman(client, create());
+    const second = await applyToSpoolman(client, create());
+    expect([...first, ...second].every((entry) => entry.ok)).toBe(true);
+    expect(server.requests.filter((r) => r.method === "POST" && r.path === "/filament")).toEqual(
+      [],
+    );
+    expect(server.filaments.size).toBe(1);
+    expect(server.spools.size).toBe(2);
+  });
+
+  test("a remaining weight with no initial or filament weight is dropped with a note", async () => {
+    const { server, client } = setup([spool(51, { initial_weight: undefined })]);
+    const result = await applyToSpoolman(client, [
+      {
+        kind: "update",
+        source: "spoolman",
+        groupId: "w",
+        spool: spoolmanToCommon(server.spools.get(51)!),
+        links: {},
+        changes: [{ field: "remainingWeight", from: 640, to: 500 }],
+      },
+    ]);
+    expect(result[0]!.ok).toBe(true);
+    expect(JSON.stringify(result[0])).toContain("remaining weight not set");
+  });
 });

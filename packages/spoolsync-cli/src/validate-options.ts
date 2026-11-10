@@ -1,3 +1,4 @@
+import { splitPairKey } from "@spoolsync/core/core/match";
 import {
   WRITABLE_SOURCE_IDS,
   type SourceId,
@@ -6,6 +7,7 @@ import {
 
 import { pairArg } from "./decisions";
 import type { Options } from "./options";
+import { urlCredential } from "./url-credentials";
 import { SOURCE_KEYS } from "./user-config";
 
 function isLoaded(options: Options, source: SourceId): boolean {
@@ -162,9 +164,10 @@ export function validateOptions(options: Options): void {
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
       throw new Error(`${flag} must use http:// or https://.`);
-    if (parsed.username || parsed.password)
+    const credential = urlCredential(parsed);
+    if (credential)
       throw new Error(
-        `${flag} cannot include credentials in the URL. Pass a token flag or environment variable instead.`,
+        `${flag} cannot include credentials in the URL (${credential}). Pass a token flag or environment variable instead.`,
       );
   }
   if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
@@ -305,7 +308,7 @@ export function validateOptions(options: Options): void {
   for (const pair of confirmed)
     if (rejected.has(pair)) throw new Error("A pair cannot be both confirmed and rejected.");
   for (const pair of [...confirmed, ...rejected])
-    for (const record of pair.split("|")) {
+    for (const record of splitPairKey(pair) ?? []) {
       const source = record.split(":")[0] as SourceId;
       if (!isLoaded(options, source))
         throw new Error("Match decision requires a loaded " + source + " inventory.");

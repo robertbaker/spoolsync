@@ -1,4 +1,5 @@
 import { allSpools, SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import { SERVICES } from "@spoolsync/core/core/services";
 import { spoolKey, summarizeInventory } from "@spoolsync/core/workflow";
 
 import {
@@ -51,7 +52,11 @@ import { renderTrendChart } from "./load/trend-chart";
 import { wireViewsPanel } from "./load/views-panel";
 import { button, download } from "./sync/presentation";
 
-const state = new LoadState({ clearLoadResult, readLoadResult, saveLoadResult });
+const state = new LoadState({
+  clearLoadResult,
+  readLoadResult,
+  saveLoadResult,
+});
 const insights = new LoadInsights(state.results, {
   readSnapshot,
   saveSnapshot,
@@ -74,7 +79,11 @@ const labels = wireLazyLabelPrinting({
   results: state.results,
   visibleSpools: () => renderTable.visibleSpools(),
 });
-const drawer = wireSpoolDrawer({ results: state.results, insights, onChange: () => render() });
+const drawer = wireSpoolDrawer({
+  results: state.results,
+  insights,
+  onChange: () => render(),
+});
 const viewsRoot = document.getElementById("saved-views");
 const views = viewsRoot
   ? wireViewsPanel(viewsRoot, renderTable, () => state.results.size > 0)
@@ -243,6 +252,10 @@ void Promise.all([
 // here so the page never shows (or syncs) an inventory that came from the previous server or account.
 document.addEventListener(CONNECTION_CHANGED, () => {
   for (const source of SOURCE_IDS) {
+    // Reject any in-flight server response that was started for the previous connection. In-flight
+    // file loads are unaffected: they do not depend on a connection.
+    if ((SERVICES[source].apiClients as readonly string[]).includes("browser"))
+      state.invalidateApi(source);
     if (state.results.get(source)?.origin === "api" && !readLoadResult(source)) {
       state.unload(source);
       setStatus(source);
@@ -355,6 +368,7 @@ if (autoFetch) {
       ["tigertag", "tigertag-cloud"],
       ["bambuddy", "bambuddy-fetch"],
       ["filamentdb", "filamentdb-fetch"],
+      ["filamentDbApp", "filamentDbApp-fetch"],
     ];
     for (const [source, id] of fetchers) {
       const button = document.getElementById(id) as HTMLButtonElement | null;

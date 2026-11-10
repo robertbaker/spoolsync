@@ -5,6 +5,12 @@ import { defaultFetch, type FetchLike, type TigertagSession } from "./session";
 const IDENTITY = "https://identitytoolkit.googleapis.com/v1";
 const SECURE_TOKEN = "https://securetoken.googleapis.com/v1";
 
+/** Epoch ms to refresh at; a missing or invalid lifetime counts as already expiring. */
+function expiryFrom(expiresIn: unknown, now: number): number {
+  const seconds = Number(expiresIn);
+  return Number.isFinite(seconds) && seconds > 0 ? now + Math.max(0, seconds - 60) * 1000 : now;
+}
+
 export async function signIn(
   email: string,
   password: string,
@@ -24,14 +30,14 @@ export async function signIn(
     email: string;
     idToken: string;
     refreshToken: string;
-    expiresIn: string;
+    expiresIn?: string;
   };
   return {
     uid: body.localId,
     email: body.email,
     idToken: body.idToken,
     refreshToken: body.refreshToken,
-    expiresAt: Date.now() + (Number(body.expiresIn) - 60) * 1000,
+    expiresAt: expiryFrom(body.expiresIn, Date.now()),
   };
 }
 
@@ -48,14 +54,14 @@ export async function refreshSession(
   const body = (await response.json()) as {
     id_token: string;
     refresh_token: string;
-    user_id: string;
-    expires_in: string;
+    user_id?: string;
+    expires_in?: string;
   };
   return {
     ...session,
-    uid: body.user_id,
+    uid: body.user_id || session.uid,
     idToken: body.id_token,
     refreshToken: body.refresh_token,
-    expiresAt: Date.now() + (Number(body.expires_in) - 60) * 1000,
+    expiresAt: expiryFrom(body.expires_in, Date.now()),
   };
 }

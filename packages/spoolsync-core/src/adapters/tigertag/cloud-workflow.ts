@@ -2,6 +2,8 @@ import type { PlannedChange } from "../../core/compare";
 import type { ApplyLogEntry } from "../../core/model";
 import { validateTargetChanges } from "../../core/plan";
 import { applyEachChange } from "../shared/apply-loop";
+import { systemRuntime, type AdapterRuntime } from "../shared/runtime";
+import { structuralEqual } from "./firestore";
 import type { TigertagInventoryClient } from "./inventory-client";
 import { recordsToSpools } from "./map";
 import { createdRecord, updatedRecords } from "./records";
@@ -9,6 +11,7 @@ import type { TigertagLoadResult, TigertagRaw } from "./schema";
 
 export async function loadTigertagCloud(
   cloud: Pick<TigertagInventoryClient, "uid" | "listInventory">,
+  runtime: AdapterRuntime = systemRuntime,
 ): Promise<TigertagLoadResult> {
   const records = await cloud.listInventory();
   const { spools, warnings } = recordsToSpools(records);
@@ -18,7 +21,7 @@ export async function loadTigertagCloud(
     connectionId: cloud.uid,
     spools,
     warnings,
-    loadedAt: new Date().toISOString(),
+    loadedAt: new Date(runtime.now()).toISOString(),
     // As if exported by this account, so a .ttag download restores in place too.
     file: { format: "tigertag", kind: "ttag", version: 1, exportedBy: cloud.uid, records },
   };
@@ -32,7 +35,7 @@ function changedFields(
   const out: Record<string, unknown> = {};
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (key.startsWith("__")) continue;
-    if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) out[key] = after[key];
+    if (!structuralEqual(before[key], after[key])) out[key] = after[key];
   }
   return out;
 }
@@ -46,6 +49,7 @@ export async function applyToTigertagCloud(
   cloud: Pick<TigertagInventoryClient, "writeDocument">,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
+  runtime: AdapterRuntime = systemRuntime,
 ): Promise<ApplyLogEntry[]> {
   validateTargetChanges("tigertag", changes);
   // Whether the change being written has already saved one chip of a twin, for its failure message.
@@ -66,19 +70,17 @@ export async function applyToTigertagCloud(
             if (!Object.keys(fields).length) continue;
             await cloud.writeDocument(String(original["__docId"] ?? original.uid), {
               ...fields,
-              last_update: Date.now(),
+              last_update: runtime.now(),
             });
             savedChip = true;
           }
           const twin = updated.length > 1 ? " (both chips)" : "";
           return `Updated ${change.spool.name ?? change.spool.sourceId}${twin}`;
         }
-        const record = createdRecord(change);
-        await cloud.writeDocument(
-          record.uid,
-          { ...record, last_update: Date.now() },
-          { create: true },
-        );
+        // One instant for the whole document, so its timestamps agree.
+        const now = runtime.now();
+        const record = createdRecord(change, { now: () => now, randomUUID: runtime.randomUUID });
+        await cloud.writeDocument(record.uid, { ...record, last_update: now }, { create: true });
         return `Created ${record.uid}`;
       },
       subject: (change) => (change.kind === "update" ? change.spool.sourceId : "a new spool"),

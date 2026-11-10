@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { toDate, toNonNegativeNumber } from "./normalize";
+import { toDate, toNonNegativeNumber, toNumber } from "./normalize";
 
 test("non-negative quantities preserve zero and reject invalid or negative values", () => {
   expect(toNonNegativeNumber(0)).toBe(0);
@@ -44,4 +44,59 @@ test("preserves valid dates and the calendar day of ISO timestamps", () => {
   expect(toDate("invalid")).toBeNull();
   expect(toDate(123)).toBeNull();
   expect(toDate(" ")).toBeNull();
+});
+
+test("free-text dates give the written day in any host time zone", () => {
+  const original = process.env.TZ;
+  try {
+    for (const zone of ["UTC", "Pacific/Kiritimati", "Pacific/Pago_Pago", "America/New_York"]) {
+      process.env.TZ = zone;
+      expect(toDate("March 5, 2024")).toBe("2024-03-05");
+      expect(toDate("5 Mar 2024 00:30")).toBe("2024-03-05");
+      expect(toDate("Mar 5 2024 23:30")).toBe("2024-03-05");
+      expect(toDate("Tue, 05 Mar 2024 23:30:00 GMT")).toBe("2024-03-05");
+      expect(toDate("5 Mar 2024 23:30 -0500")).toBe("2024-03-06");
+    }
+  } finally {
+    if (original === undefined) delete process.env.TZ;
+    else process.env.TZ = original;
+  }
+});
+
+test("toNumber reads decimal commas and thousands separators only when unambiguous", () => {
+  const cases: [unknown, number | null][] = [
+    ["12,99", 12.99],
+    ["1,5", 1.5],
+    ["0,5", 0.5],
+    [" 12,99 ", 12.99],
+    ["-1,5", -1.5],
+    ["1,500", 1500],
+    ["1,234,567", 1234567],
+    ["1.234,56", 1234.56],
+    ["1.234.567,5", 1234567.5],
+    ["1,234.56", 1234.56],
+    ["-1,234.56", -1234.56],
+    ["1.5", 1.5],
+    ["215", 215],
+    [12.5, 12.5],
+    ["0,500", null],
+    ["1,5000", null],
+    ["1,23,456", null],
+    ["1,234,56", null],
+    ["1,2,3", null],
+    ["1,", null],
+    [",5", null],
+    ["1.234,567", null],
+    ["12.345,6,7", null],
+    ["1,5.5", null],
+    ["1.5,5", null],
+    ["--1,5", null],
+    ["$12,99", null],
+    ["12,99 EUR", null],
+    ["", null],
+    ["abc", null],
+    [null, null],
+    [Number.NaN, null],
+  ];
+  for (const [input, expected] of cases) expect(toNumber(input)).toBe(expected);
 });

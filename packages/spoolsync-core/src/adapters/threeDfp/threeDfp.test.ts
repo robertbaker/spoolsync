@@ -152,3 +152,84 @@ describe("3DFilamentProfiles preferred temperatures", () => {
     });
   });
 });
+
+describe("3DFilamentProfiles created rows and links", () => {
+  const createChanges = (values: Parameters<typeof makeSpool>[2]) => {
+    const { groups } = matchSpools([makeSpool("spoolman", "1", values)]);
+    return buildPlan(
+      groups,
+      new Map([[groups[0]!.id, { values: {}, createIn: ["threeDfp"] }]]),
+    ).get("threeDfp")!;
+  };
+  const runtime = (ids: string[]) => ({
+    now: () => Date.UTC(2026, 10, 9, 12, 0, 0, 123),
+    randomUUID: () => ids.shift() ?? "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  });
+
+  test("new JSON rows match the real row shape", () => {
+    const row = JSON.parse(
+      exportThreeDfp(
+        loadThreeDfpFile("[]"),
+        createChanges({ vendor: "Synth", remainingWeight: 400 }),
+        runtime(["abcdefab-1111-2222-3333-444444444444"]),
+      ).json,
+    )[0];
+    expect(row.short_code).toBe("abcdefab1");
+    expect(row.updated_at).toBe("2026-11-09T12:00:00.123+00:00");
+    expect(row).not.toHaveProperty("filament_id");
+    expect(row.empty_spool_weight).toBeNull();
+    expect(row.spool_properties).toMatchObject({
+      purchase_date: null,
+      purchase_price: null,
+      last_dried_date: null,
+    });
+    expect(row.spool_properties).not.toHaveProperty("preferred_bed_temp");
+    expect(row.spool_properties).not.toHaveProperty("preferred_nozzle_temp");
+  });
+
+  test("a new short code never reuses an existing row's code", () => {
+    const row = JSON.parse(
+      exportThreeDfp(
+        loadThreeDfpFile(JSON.stringify([{ short_code: "abcdefab1", brand: "Synth" }])),
+        createChanges({ vendor: "Synth" }),
+        runtime(["abcdefab-1111-2222-3333-444444444444", "bbbbbbbb-2222-3333-4444-555555555555"]),
+      ).json,
+    )[1];
+    expect(row.short_code).toBe("bbbbbbbb2");
+  });
+
+  test("updates write the Spoolstock link into the notes and keep other notes", () => {
+    for (const [text, comment] of [
+      [json.replace("Lot: spoolstock:spool:410e5312\\n", ""), "Dry box"],
+      [csv, null],
+    ] as const) {
+      const loaded = loadThreeDfpFile(text);
+      const output = exportThreeDfp(loaded, [
+        { ...update(loaded, []), links: { spoolstockShortId: "deadbeef" } },
+      ]);
+      const reloaded = loadThreeDfpFile(loaded.format === "json" ? output.json : output.csv);
+      expect(reloaded.spools[0]).toMatchObject({
+        lotNr: "spoolstock:spool:deadbeef",
+        crossIds: { spoolstockShortId: "deadbeef" },
+        comment,
+      });
+    }
+  });
+
+  test("a real lot number is kept and the link is reported as not stored", () => {
+    const loaded = loadThreeDfpFile(json.replace("spoolstock:spool:410e5312", "LOT-9"));
+    const output = exportThreeDfp(loaded, [
+      { ...update(loaded, []), links: { spoolstockShortId: "deadbeef" } },
+    ]);
+    expect(JSON.parse(output.json)[0].notes).toBe("Lot: LOT-9\nDry box");
+    expect(output.warnings.join("\n")).toContain("kept the existing lot number");
+  });
+
+  test("warns about repeated IDs at load", () => {
+    const row = { short_code: "A", brand: "Synth" };
+    expect(loadThreeDfpFile(JSON.stringify([row, row])).warnings).toEqual([
+      "Spool A appears more than once; give each spool a unique ID before exporting.",
+    ]);
+    expect(loadThreeDfpFile("short_code,brand\nA,x\nA,y\n").warnings).toHaveLength(1);
+  });
+});

@@ -1,5 +1,6 @@
 import type { SpoolValues } from "../../core/compare";
 import { filamentProfile, idOf } from "./map";
+import { withinTextLimit } from "./records";
 import type { FilamentDbAppFilament } from "./types";
 
 type Bag = Record<string, unknown>;
@@ -59,14 +60,17 @@ export function newSpoolFields(
   tare: number | null,
   locationIdByName: ReadonlyMap<string, string>,
   problem: (message: string) => void,
+  warn: (message: string) => void = problem,
 ): Bag {
   const body: Bag = {};
   const remaining = values.remainingWeight ?? values.initialWeight;
   if (remaining !== null) body["totalWeight"] = remaining + (tare ?? values.emptySpoolWeight ?? 0);
   if (values.purchasedOn) body["purchaseDate"] = values.purchasedOn;
   if (values.archived) body["retired"] = true;
-  if (values.comment) body["label"] = values.comment;
-  if (values.lotNr) body["lotNumber"] = values.lotNr;
+  const label = withinTextLimit(values.comment || null, "label", warn);
+  if (label) body["label"] = label;
+  const lot = withinTextLimit(values.lotNr || null, "lot number", warn);
+  if (lot) body["lotNumber"] = lot;
   if (values.location) {
     const id = locationIdByName.get(values.location.toLowerCase());
     if (id) body["locationId"] = id;

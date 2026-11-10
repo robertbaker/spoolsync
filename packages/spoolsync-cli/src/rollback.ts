@@ -151,15 +151,14 @@ export async function runRestore(
         if (!options.json) output.error(`Restoring ${service.label} changes: ${done}/${total}`);
       });
     } catch (error) {
-      if (error instanceof ApplyReloadError)
-        throw new ExecutionError(
-          error,
-          error.log,
-          [],
-          undefined,
-          rollbackFile ? [rollbackFile] : [],
-        );
-      throw error;
+      // Any failure, not just a reload one, must still name the rollback file that was saved.
+      throw new ExecutionError(
+        error,
+        error instanceof ApplyReloadError ? error.log : [],
+        [],
+        undefined,
+        rollbackFile ? [rollbackFile] : [],
+      );
     }
     if (applied.some((entry) => !entry.ok)) output.setExitCode(1);
   }

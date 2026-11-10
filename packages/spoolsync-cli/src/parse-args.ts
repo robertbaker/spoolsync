@@ -283,7 +283,7 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
             cleanupRules.some((rule, index) => rule !== selection.enabled[index]))
         )
           throw new Error(
-            "--cleanup and --cleanup-report name different rules. Give the rules once, or name the same ones.",
+            "--cleanup and --cleanup-report name different rules (from the command line, --config, or saved settings). Give the rules once, or name the same ones.",
           );
         cleanupRules = selection.enabled;
       }

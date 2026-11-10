@@ -39,6 +39,9 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
     );
   }
 
+  // Forgetting (or a newer test) makes a test that is still running stale: it must not save.
+  let generation = 0;
+
   const stored = dependencies.loadSpoolmanConnection();
   if (stored) {
     urlInput.value = stored.baseUrl;
@@ -64,7 +67,11 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       return;
     }
     urlInput.value = baseUrl;
-    const connection = { baseUrl, token: tokenInput.value, rememberToken: rememberInput.checked };
+    const connection = {
+      baseUrl,
+      token: tokenInput.value,
+      rememberToken: rememberInput.checked,
+    };
     // Saving announces a connection change, which drops data fetched from the previous server, so
     // only a connection that passed the test replaces the saved one.
     const hadConnection = dependencies.loadSpoolmanConnection() !== null;
@@ -75,6 +82,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
           : "Not saved: fix the problem above and test again.",
       );
 
+    const attempt = ++generation;
     testButton.disabled = true;
     testButton.setAttribute("aria-busy", "true");
     result.replaceChildren(notice("info", "Testing…", h("p", {}, `Contacting ${baseUrl}`)));
@@ -83,6 +91,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
         connection,
         await dependencies.browserEnvironment(),
       );
+      if (attempt !== generation) return;
       result.replaceChildren(connectionDiagnosisNotice(diagnosis));
       if (diagnosis.code === "ok") {
         dependencies.saveSpoolmanConnection(connection);
@@ -94,6 +103,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
         result.append(notSaved());
       }
     } catch (error) {
+      if (attempt !== generation) return;
       result.replaceChildren(notice("error", "Test failed", h("p", {}, (error as Error).message)));
       spoolmanBadge.replaceChildren(badge("Error", "warning"));
       result.append(notSaved());
@@ -114,6 +124,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       });
       if (!confirmed) return;
     }
+    generation++;
     dependencies.clearSpoolmanConnection();
     form.reset();
     urlInput.focus();

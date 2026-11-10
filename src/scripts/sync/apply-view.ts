@@ -21,6 +21,7 @@ import { ensureResolution, planSync } from "@spoolsync/core/planner";
 import { exportInventory } from "@spoolsync/core/workflow";
 
 import { saveLoadResult } from "~/lib/browser/storage";
+import { invalidateApiInventory } from "~/lib/browser/storage/invalidate";
 
 import { byId, h, notice, showToast } from "../dom";
 import { ApplyController } from "./apply-controller";
@@ -63,7 +64,7 @@ export function createApplyView(
   history.container.id = "sync-history";
   const controller = new ApplyController(
     createApplyServices(),
-    { loaded, onApplied },
+    { loaded, onApplied, invalidate: invalidateApiInventory },
     saveLoadResult,
     undefined,
     history.record,

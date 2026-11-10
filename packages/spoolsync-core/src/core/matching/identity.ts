@@ -9,8 +9,8 @@ import type { Groups } from "./groups";
 import { recordKey, SOURCE_INDEX } from "./keys";
 import type { RecordKey } from "./types";
 
-/** Same ordering as `a.localeCompare(b)` (default locale, no options), minus the per-call setup. */
-const IDENTITY_COLLATOR = new Intl.Collator();
+/** Locale-independent ordering (UTF-16 code units), so cross-ID claims link the same on any host. */
+export const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
 /** The cross-id keys a record answers to, including its own native id. */
 function identityKeys(spool: CommonSpool): string[] {
@@ -51,10 +51,7 @@ export function linkIdentityClaims(
       source: SOURCE_INDEX.get(claim[0].slice(0, claim[0].indexOf(":"))) ?? -1,
     }))
     .sort(
-      (a, b) =>
-        b.native - a.native ||
-        a.source - b.source ||
-        IDENTITY_COLLATOR.compare(a.claim[0], b.claim[0]),
+      (a, b) => b.native - a.native || a.source - b.source || compareText(a.claim[0], b.claim[0]),
     )
     .map(({ claim }) => claim);
   for (const [identity, keys] of orderedClaims) {

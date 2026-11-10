@@ -8,6 +8,23 @@ import {
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+/** The server's own explanation from an error body (`message` or `detail`), else its plain text. */
+function errorDetail(body: string): string {
+  const text = body.trim();
+  if (!text) return "";
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed && typeof parsed === "object") {
+      const { message, detail } = parsed as { message?: unknown; detail?: unknown };
+      const found = [message, detail].find((value) => typeof value === "string" && value.trim());
+      if (typeof found === "string") return found.trim().slice(0, 300);
+    }
+  } catch {
+    // Not JSON: fall through to the raw text.
+  }
+  return text.slice(0, 300);
+}
+
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface RequestOptions<T> {
@@ -112,7 +129,16 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
     let body: string;
     try {
       response = await this.fetchImpl(this.apiUrl(path, options.query), this.requestInit(init));
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 403) {
+        // 403 is not always the token (Spoolman-NG also uses it for a CORS origin), so say what it said.
+        const detail = errorDetail(await response.text());
+        throw new SpoolmanError(
+          "auth",
+          detail ? `Spoolman refused the request: ${detail}` : "Spoolman refused the request (403)",
+          403,
+        );
+      }
+      if (response.status === 401) {
         void response.body?.cancel().catch(() => {});
         throw new SpoolmanError(
           "auth",

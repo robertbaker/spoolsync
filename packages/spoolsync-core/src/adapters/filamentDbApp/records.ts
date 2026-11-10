@@ -50,6 +50,30 @@ export interface PatchContext {
   legacyRoll?: boolean;
   /** Reports a value that cannot be written; the API path throws, the file path warns. */
   problem: (message: string) => void;
+  /**
+   * Reports an over-long label or lot number, which is left unchanged rather than failing the
+   * change. Defaults to `problem`.
+   */
+  warn?: (message: string) => void;
+}
+
+/** Filament DB rejects a spool label or lot number longer than this (`MAX_SPOOL_TEXT_LENGTH`). */
+export const MAX_SPOOL_TEXT_LENGTH = 200;
+
+/**
+ * Returns the text if Filament DB accepts its length; otherwise reports it and returns `undefined`
+ * so the field is left unchanged rather than failing the whole write.
+ */
+export function withinTextLimit(
+  value: string | null,
+  field: string,
+  problem: (message: string) => void,
+): string | null | undefined {
+  if (value === null || value.length <= MAX_SPOOL_TEXT_LENGTH) return value;
+  problem(
+    `Filament DB limits a spool's ${field} to ${MAX_SPOOL_TEXT_LENGTH} characters, so it was left unchanged (or left out of a new spool).`,
+  );
+  return undefined;
 }
 
 const hash = (hex: string) => `#${hex}`;
@@ -120,9 +144,11 @@ export function changePatches(
           context.problem("Filament DB does not accept a negative TD, so it was left unchanged.");
         break;
       }
-      case "lotNr":
-        spool.lotNumber = toText(to);
+      case "lotNr": {
+        const lot = withinTextLimit(toText(to), "lot number", context.warn ?? context.problem);
+        if (lot !== undefined) spool.lotNumber = lot;
         break;
+      }
       case "nozzleTempMin":
         filament["temperatures.nozzleRangeMin"] = toNumber(to);
         break;
@@ -157,10 +183,12 @@ export function changePatches(
       case "archived":
         spool.retired = Boolean(to);
         break;
-      case "comment":
+      case "comment": {
         // A spool's label is its free-text name, e.g. "Roll 3".
-        spool.label = toText(to) ?? "";
+        const label = withinTextLimit(toText(to), "label", context.warn ?? context.problem);
+        if (label !== undefined) spool.label = label ?? "";
         break;
+      }
       case "location": {
         const name = toText(to);
         if (name === null) spool.locationId = null;

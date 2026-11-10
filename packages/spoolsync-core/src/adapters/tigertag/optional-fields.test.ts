@@ -159,6 +159,34 @@ describe("TigerTag write fixes", () => {
     ).toMatchObject({ online_color_type: "gradient" });
   });
 
+  test("changing colours also updates online_color and the catalogue colour fields in their own format", () => {
+    const catalog = {
+      color: "#6C47B2FF",
+      color_info: { colors: ["#6C47B2FF"], type: "mono" },
+      filament: { color: "#6C47B2FF", color_info: { colors: ["#6C47B2FF"], type: "mono" } },
+      RFID_Data: { color_r: 108, color_g: 71, color_b: 178 },
+    };
+    const loaded = load(
+      record({ online_color: "#6C47B2FF", color_a: 255, catalogProduct: catalog }),
+    );
+    const file = exported(loaded, [{ field: "colors", from: ["6C47B2"], to: ["FF0000", "0000FF"] }])
+      .file as Record<string, any>;
+    expect(file["online_color"]).toBe("#FF0000FF");
+    expect(file["online_color_list"]).toEqual(["#FF0000FF", "#0000FFFF"]);
+    expect(file["catalogProduct"].color).toBe("#FF0000FF");
+    expect(file["catalogProduct"].color_info).toEqual({
+      colors: ["#FF0000FF", "#0000FFFF"],
+      type: "multi",
+    });
+    expect(file["catalogProduct"].filament.color).toBe("#FF0000FF");
+    expect(file["catalogProduct"].RFID_Data).toEqual({ color_r: 255, color_g: 0, color_b: 0 });
+    // A record without these fields does not gain them.
+    const bare = exported(load(record()), [{ field: "colors", from: ["6C47B2"], to: ["FF0000"] }])
+      .file as Record<string, unknown>;
+    expect("online_color" in bare).toBe(false);
+    expect("catalogProduct" in bare).toBe(false);
+  });
+
   test("changing the UPC leaves the other identifier alone", () => {
     const loaded = load(record({ barcode: "6971234567890", sku: "SKU-1" }));
     expect(loaded.spools[0]!.upc).toBe("6971234567890");

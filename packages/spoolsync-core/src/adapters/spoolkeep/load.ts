@@ -1,4 +1,5 @@
 import type { CommonSpool, LoadResult } from "../../core/model";
+import { stripBom } from "../shared/text";
 import { spoolKeepToCommon, type SpoolKeepCondition } from "./map";
 import { SpoolKeepRecordSchema } from "./schema";
 
@@ -15,7 +16,7 @@ function quantity(value: number | null | undefined): number {
 export function loadSpoolKeepJson(text: string): LoadResult {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripBom(text));
   } catch {
     throw new Error("This file is not valid JSON. Export a backup from SpoolKeep and try again.");
   }
@@ -47,13 +48,16 @@ export function loadSpoolKeepJson(text: string): LoadResult {
         warnings.push(
           `${record.brand ?? "Filament"} ${record.color ?? record.id}: ${label} quantity ${value} is fractional; loaded as ${quantity(value)}.`,
         );
+    const newCount = quantity(record.newQuantity);
+    const usedCount = quantity(record.usedQuantity);
+    // Check the total before building any arrays so a huge quantity cannot exhaust memory.
+    if (spools.length + Math.max(1, newCount + usedCount) > MAX_EXPANDED_SPOOLS)
+      throw new Error("This SpoolKeep backup lists too many spools to load.");
     const units: SpoolKeepCondition[] = [
-      ...Array<SpoolKeepCondition>(quantity(record.newQuantity)).fill("new"),
-      ...Array<SpoolKeepCondition>(quantity(record.usedQuantity)).fill("used"),
+      ...Array<SpoolKeepCondition>(newCount).fill("new"),
+      ...Array<SpoolKeepCondition>(usedCount).fill("used"),
     ];
     if (units.length === 0) units.push("none");
-    if (spools.length + units.length > MAX_EXPANDED_SPOOLS)
-      throw new Error("This SpoolKeep backup lists too many spools to load.");
     if (units.length > 1)
       warnings.push(
         `${record.brand ?? "Filament"} ${record.color ?? record.id}: SpoolKeep counts ${units.length} spools without weights; loaded as ${units.length} spools with unknown remaining weight.`,

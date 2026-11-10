@@ -83,8 +83,8 @@ export {
   type ReferenceMapping,
   type ReferencePreset,
 } from "./reference/mapping";
+export { contentId } from "./reference/content-id";
 export {
-  contentId,
   hexFromCell,
   normalizeReferenceRecord,
   normalizeReferenceRecords,

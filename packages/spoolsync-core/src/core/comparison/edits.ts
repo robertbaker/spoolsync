@@ -1,4 +1,4 @@
-import type { SpoolGroup } from "../match";
+import type { SpoolGroup } from "../matching/types";
 import { WRITABLE_SOURCE_IDS, type ComparableField, type WritableSourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
 import type { FieldValue } from "./types";

@@ -77,6 +77,27 @@ function rgbaFor(color: string, existing: unknown): string {
     : `${hex}FF`;
 }
 
+/**
+ * Bambuddy stores each extra colour as 6 or 8 hex characters (the server lowercases them). A colour
+ * that is already stored keeps its stored token, so its alpha survives; a new one is sent as six
+ * uppercase characters.
+ */
+function extraColorsFor(colors: readonly string[], existing: unknown): string | null {
+  if (!colors.length) return null;
+  const stored = (
+    Array.isArray(existing) ? existing : typeof existing === "string" ? existing.split(",") : []
+  )
+    .map((token) => String(token).trim().replace(/^#/, ""))
+    .filter((token) => /^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/.test(token));
+  return colors
+    .map(
+      (color) =>
+        stored.find((token) => token.slice(0, 6).toUpperCase() === color.toUpperCase()) ??
+        color.toUpperCase(),
+    )
+    .join(",");
+}
+
 export interface BambuddyWritePlan {
   payload: BambuddySpoolPayload;
   /** The archived state to reach through the archive/restore endpoints; absent when unchanged. */
@@ -144,7 +165,7 @@ function encode(
       );
     const [first, ...rest] = next.colors;
     put("rgba", first === undefined ? null : rgbaFor(first, existing?.["rgba"]));
-    put("extra_colors", rest.length ? rest.map((color) => color.toUpperCase()).join(",") : null);
+    put("extra_colors", extraColorsFor(rest, existing?.["extra_colors"]));
   }
 
   if (touched("initialWeight") || touched("remainingWeight")) {

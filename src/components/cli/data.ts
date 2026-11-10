@@ -1,9 +1,19 @@
-import { formatPhrase } from "@spoolsync/core/core/services";
+import { SERVICES, canWriteViaApi, formatPhrase } from "@spoolsync/core/core/services";
 
 import { READ_ONLY_VIEWS, SERVICE_VIEWS, allServiceNames, joinNames } from "~/lib/services";
 
 export const NPM_URL = "https://www.npmjs.com/package/spoolsync";
 export const REPO_URL = "https://github.com/robertbaker/spoolsync/tree/main/packages/spoolsync-cli";
+
+/** Services the command line can write to over an API, from the registry. */
+const CLI_APPLY_NAMES = joinNames(
+  SERVICE_VIEWS.filter(
+    (service) =>
+      canWriteViaApi(service.id) &&
+      (SERVICES[service.id].apiClients as readonly string[]).includes("cli"),
+  ).map((service) => service.name),
+  "or",
+);
 
 /** One file option per service, generated from the services registry. */
 const fileInputs = SERVICE_VIEWS.map((service) => {
@@ -203,7 +213,7 @@ export const output = [
   {
     flag: "--apply",
     copy: "--apply",
-    desc: "Apply planned changes directly to connected API services (Spoolman, Filadex, Bambuddy, FilamentDB, or Filament DB).",
+    desc: `Apply planned changes directly to connected API services (${CLI_APPLY_NAMES}).`,
   },
   {
     flag: "--format <text|json>",

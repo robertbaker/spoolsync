@@ -5,8 +5,13 @@ import {
   loadSpoolmanConnection,
   loadBambuddyConnection,
   saveBambuddyConnection,
+  clearBambuddyConnection,
   loadFilamentDbConnection,
   saveFilamentDbConnection,
+  clearFilamentDbConnection,
+  loadFilamentDbAppConnection,
+  saveFilamentDbAppConnection,
+  clearFilamentDbAppConnection,
   loadTigertagSession,
   saveRefreshedTigertagSession,
 } from "~/lib/browser/storage";
@@ -16,6 +21,11 @@ import { byId, h, notice } from "../dom";
 import { plural, warningsNotice } from "./presentation";
 import { wireRemoteSource } from "./remote-source";
 import type { LoadContext } from "./state";
+
+/** Tells the page a saved connection changed, so data fetched with the old one is dropped. */
+const announceConnectionChange = (): void => {
+  document.dispatchEvent(new CustomEvent(CONNECTION_CHANGED));
+};
 
 function success(result: LoadResult, from: string, includeWarnings = true): HTMLElement[] {
   const warnings = includeWarnings ? warningsNotice(result) : null;
@@ -66,7 +76,11 @@ function wireSpoolman(context: LoadContext): void {
               { class: "mt-2" },
               h(
                 "button",
-                { type: "button", class: "underline", "data-open-settings": "spoolman" },
+                {
+                  type: "button",
+                  class: "underline",
+                  "data-open-settings": "spoolman",
+                },
                 "Test the connection to see why →",
               ),
             )
@@ -92,12 +106,25 @@ function wireBambuddy(context: LoadContext): void {
   };
   url.addEventListener("input", updateEnabled);
   key.addEventListener("input", updateEnabled);
+  document.getElementById("bambuddy-forget")?.addEventListener("click", () => {
+    clearBambuddyConnection();
+    url.value = "";
+    key.value = "";
+    updateEnabled();
+    message.replaceChildren(
+      notice("info", "Connection cleared", h("p", {}, "The address and API key were forgotten.")),
+    );
+    announceConnectionChange();
+  });
   wireRemoteSource(context, {
     source: "bambuddy",
     button,
     message,
     prepare() {
-      const connection = { baseUrl: url.value.trim().replace(/\/$/, ""), apiKey: key.value.trim() };
+      const connection = {
+        baseUrl: url.value.trim().replace(/\/$/, ""),
+        apiKey: key.value.trim(),
+      };
       if (!connection.baseUrl || !connection.apiKey) {
         message.replaceChildren(notice("error", "Enter the Bambuddy address and API key first."));
         return null;
@@ -109,7 +136,10 @@ function wireBambuddy(context: LoadContext): void {
           return loadBambuddyApi(connection);
         },
         success(result) {
+          const before = loadBambuddyConnection();
           saveBambuddyConnection(connection);
+          if (before?.baseUrl !== connection.baseUrl || before?.apiKey !== connection.apiKey)
+            announceConnectionChange();
           return success(result, "Bambuddy.");
         },
       };
@@ -131,6 +161,16 @@ function wireFilamentDb(context: LoadContext): void {
   };
   updateEnabled();
   url.addEventListener("input", updateEnabled);
+  document.getElementById("filamentdb-forget")?.addEventListener("click", () => {
+    clearFilamentDbConnection();
+    url.value = "";
+    token.value = "";
+    updateEnabled();
+    byId("filamentdb-message").replaceChildren(
+      notice("info", "Connection cleared", h("p", {}, "The address and token were forgotten.")),
+    );
+    announceConnectionChange();
+  });
   wireRemoteSource(context, {
     source: "filamentdb",
     button,
@@ -149,8 +189,65 @@ function wireFilamentDb(context: LoadContext): void {
           return loadFilamentDb(connection);
         },
         success(result) {
+          const before = loadFilamentDbConnection();
           saveFilamentDbConnection(connection);
+          if (before?.baseUrl !== connection.baseUrl || before?.token !== connection.token)
+            announceConnectionChange();
           return success(result, "FilamentDB.");
+        },
+      };
+    },
+  });
+}
+
+function wireFilamentDbApp(context: LoadContext): void {
+  const url = byId<HTMLInputElement>("filamentDbApp-url");
+  const key = byId<HTMLInputElement>("filamentDbApp-key");
+  const button = byId<HTMLButtonElement>("filamentDbApp-fetch");
+  const message = byId("filamentDbApp-message");
+  const previous = loadFilamentDbAppConnection();
+  if (previous) {
+    url.value = previous.baseUrl;
+    key.value = previous.token ?? "";
+  }
+  const updateEnabled = () => {
+    button.disabled = !url.value.trim();
+  };
+  updateEnabled();
+  url.addEventListener("input", updateEnabled);
+  document.getElementById("filamentDbApp-forget")?.addEventListener("click", () => {
+    clearFilamentDbAppConnection();
+    url.value = "";
+    key.value = "";
+    updateEnabled();
+    message.replaceChildren(
+      notice("info", "Connection cleared", h("p", {}, "The address and key were forgotten.")),
+    );
+    announceConnectionChange();
+  });
+  wireRemoteSource(context, {
+    source: "filamentDbApp",
+    button,
+    message,
+    finish: updateEnabled,
+    prepare() {
+      const value = key.value.trim();
+      const connection = {
+        baseUrl: url.value.trim(),
+        ...(value ? { token: value } : {}),
+      };
+      return {
+        loading: notice("info", "Fetching Filament DB spools…"),
+        async load() {
+          const { loadFilamentDbApp } = await import("@spoolsync/core/adapters/filamentDbApp");
+          return loadFilamentDbApp(connection);
+        },
+        success(result) {
+          const before = loadFilamentDbAppConnection();
+          saveFilamentDbAppConnection(connection);
+          if (before?.baseUrl !== connection.baseUrl || before?.token !== connection.token)
+            announceConnectionChange();
+          return success(result, "Filament DB.");
         },
       };
     },
@@ -168,7 +265,11 @@ function wireTigertag(context: LoadContext): void {
     else {
       const open = h(
         "button",
-        { type: "button", class: "underline", "data-open-settings": "tigertag" },
+        {
+          type: "button",
+          class: "underline",
+          "data-open-settings": "tigertag",
+        },
         "Sign in",
       );
       hint.append("Not signed in. ", open);
@@ -204,5 +305,6 @@ export function wireApiSources(context: LoadContext): void {
   wireSpoolman(context);
   wireBambuddy(context);
   wireFilamentDb(context);
+  wireFilamentDbApp(context);
   wireTigertag(context);
 }

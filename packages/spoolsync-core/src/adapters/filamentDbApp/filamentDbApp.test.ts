@@ -494,3 +494,86 @@ test("changing emptySpoolWeight alone adjusts totalWeight in snapshot export so 
     remainingWeight: 500,
   });
 });
+
+async function planFor(sourceId: string, fields: Array<[string, unknown, unknown]>) {
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(snapshot));
+  return {
+    kind: "update",
+    source: "filamentDbApp",
+    groupId: `g-${sourceId}`,
+    spool: loaded.spools.find((s) => s.sourceId === sourceId)!,
+    links: {},
+    changes: fields.map(([field, from, to]) => ({ field, from, to })),
+  } as unknown as PlannedChange;
+}
+
+function recordingClient(overrides: Record<string, unknown> = {}) {
+  const sent: unknown[] = [];
+  const client = {
+    snapshot: async () => snapshot,
+    locationIds: async () => new Map<string, string>(),
+    createSpool: async () => {},
+    updateFilament: async (id: string, patch: object) => {
+      sent.push(["filament", id, patch]);
+    },
+    updateSpool: async (_f: string, id: string, patch: object) => {
+      sent.push(["spool", id, patch]);
+    },
+    ...overrides,
+  };
+  return { client, sent };
+}
+
+test("spools of one filament that want different filament fields are refused, not overwritten", async () => {
+  const a = await planFor("s1", [["material", "PLA", "PETG"]]);
+  const b = await planFor("s2", [["material", "PLA", "ABS"]]);
+  const { client, sent } = recordingClient();
+  const log = await applyToFilamentDbApp(client, [a, b]);
+  expect(log.map((entry) => entry.ok)).toEqual([false, false]);
+  expect(log[0]!.message).toContain("shared by several spools");
+  expect(sent).toEqual([]);
+});
+
+test("spools of one filament that agree write the shared fields once", async () => {
+  const a = await planFor("s1", [
+    ["material", "PLA", "PETG"],
+    ["remainingWeight", 500, 400],
+  ]);
+  const b = await planFor("s2", [
+    ["material", "PLA", "PETG"],
+    ["remainingWeight", 0, 50],
+  ]);
+  const { client, sent } = recordingClient();
+  const log = await applyToFilamentDbApp(client, [a, b]);
+  expect(log.map((entry) => entry.ok)).toEqual([true, true]);
+  expect(sent.filter((entry) => (entry as unknown[])[0] === "filament")).toEqual([
+    ["filament", "f2", { type: "PETG" }],
+  ]);
+  expect(sent.filter((entry) => (entry as unknown[])[0] === "spool")).toHaveLength(2);
+});
+
+test("a spool deleted since the inventory loaded is reported and not written", async () => {
+  const change = await planFor("s1", [["remainingWeight", 500, 400]]);
+  const gone = structuredClone(snapshot);
+  gone.collections.filaments[1]!.spools = [];
+  const { client, sent } = recordingClient({ snapshot: async () => gone });
+  const log = await applyToFilamentDbApp(client, [change]);
+  expect(log[0]).toMatchObject({ ok: false });
+  expect(log[0]!.message).toContain("no longer exists");
+  expect(sent).toEqual([]);
+});
+
+test("a spool update that fails after the filament was saved says so", async () => {
+  const change = await planFor("s1", [
+    ["material", "PLA", "PETG"],
+    ["remainingWeight", 500, 400],
+  ]);
+  const { client } = recordingClient({
+    updateSpool: async () => {
+      throw new Error("boom");
+    },
+  });
+  const log = await applyToFilamentDbApp(client, [change]);
+  expect(log[0]!.ok).toBe(false);
+  expect(log[0]!.message).toContain("The filament fields were already saved");
+});

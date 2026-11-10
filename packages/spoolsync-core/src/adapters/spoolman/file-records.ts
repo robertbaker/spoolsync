@@ -107,6 +107,7 @@ export function setField(spool: Spool, field: ComparableField, value: unknown): 
 export function setTemperatures(
   spool: Spool,
   changes: ReadonlyArray<{ field: ComparableField; to: unknown }>,
+  ranges = false,
 ): void {
   const temps = { ...filamentTemps(spool.filament) };
   let touched = false;
@@ -117,10 +118,13 @@ export function setTemperatures(
     }
   }
   if (touched)
-    Object.assign(spool.filament, temperatureParams(temps, hasTempRanges(spool.filament)));
+    Object.assign(
+      spool.filament,
+      temperatureParams(temps, ranges || hasTempRanges(spool.filament)),
+    );
 }
 
-export function newSpool(id: number, values: SpoolValues): Spool {
+export function newSpool(id: number, values: SpoolValues, ranges = false): Spool {
   const spool: Spool = {
     id,
     registered: new Date().toISOString(),
@@ -135,7 +139,7 @@ export function newSpool(id: number, values: SpoolValues): Spool {
       diameter: 1.75,
       weight: values.initialWeight,
       spool_weight: values.emptySpoolWeight,
-      ...temperatureParams(values, false),
+      ...temperatureParams(values, ranges),
     },
   };
   for (const [field, value] of Object.entries(values)) {

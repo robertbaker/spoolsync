@@ -34,14 +34,35 @@ function date(value: XlsxCell | undefined): string | null {
   return toDate(value);
 }
 
-export function spoolmasterToCommon(row: SpoolmasterRow): CommonSpool {
+/**
+ * Excel stores percent-formatted cells as fractions (50% is 0.5) but plain numbers as typed (50).
+ * The workbook reader cannot tell them apart, so values above 1 are percentage points and values
+ * from 0 up to 1 are fractions. A 1 or a fraction is therefore reported, because it could also be a
+ * literal 1% or 0.5%.
+ */
+function remainingFraction(
+  percent: number,
+  rowNumber: number,
+  warnings: string[] | undefined,
+): number {
+  if (percent > 1) return Math.min(percent, 100) / 100;
+  if (percent > 0)
+    warnings?.push(
+      `Row ${rowNumber}: Remaining ${percent} is read as ${Math.round(percent * 10000) / 100}% (Excel stores percent cells as fractions); check this row if it meant ${percent}%.`,
+    );
+  return percent;
+}
+
+export function spoolmasterToCommon(row: SpoolmasterRow, warnings?: string[]): CommonSpool {
   const { values } = row;
   const id = `row-${row.rowNumber}`;
   const initialWeight = toPositiveNumber(values["initial weight"]);
   const percent = toNonNegativeNumber(values["remaining"]);
   let remainingWeight = toNonNegativeNumber(values["remaining weight"]);
   if (remainingWeight === null && initialWeight !== null && percent !== null)
-    remainingWeight = Math.round((initialWeight * Math.min(percent, 100)) / 100);
+    remainingWeight = Math.round(
+      initialWeight * remainingFraction(percent, row.rowNumber, warnings),
+    );
   let price = toNonNegativeNumber(values["price"]);
   const perKilo = toNonNegativeNumber(values["price / kg"]);
   if (price === null && perKilo !== null && initialWeight !== null)

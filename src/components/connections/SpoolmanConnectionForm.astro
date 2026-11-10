@@ -11,8 +11,8 @@ const { badge = false } = Astro.props;
 
 {badge && <div class="mb-3 flex justify-end"><span id="spoolman-status-badge" class="text-xs"></span></div>}
 <form id="spoolman-form" class="mt-5 grid gap-5" novalidate>
-  <label class="field-label" for="spoolman-url">
-    Spoolman address
+  <div class="field-label">
+    <label for="spoolman-url">Spoolman address</label>
     <input
       id="spoolman-url"
       name="baseUrl"
@@ -20,13 +20,14 @@ const { badge = false } = Astro.props;
       inputmode="url"
       autocomplete="url"
       required
+      aria-describedby="spoolman-url-hint"
       placeholder="http://192.168.1.20:7912"
-      class={inputClass}
+      class={`${inputClass} mt-1.5`}
     />
-    <span class="field-hint">
+    <span id="spoolman-url-hint" class="field-hint">
       The URL where you open Spoolman's web UI. A bare host like <code>spoolman.local:7912</code> works too.
     </span>
-  </label>
+  </div>
   <div class="field-label">
     <label for="spoolman-token">
       API token <span class="font-normal text-muted-foreground">(Spoolman-NG, optional)</span>
@@ -38,6 +39,7 @@ const { badge = false } = Astro.props;
         type="password"
         autocomplete="off"
         spellcheck="false"
+        aria-describedby="spoolman-token-hint"
         class={`${inputClass} mt-0 pr-10`}
       />
       <button
@@ -49,7 +51,7 @@ const { badge = false } = Astro.props;
         <span class="text-xs font-mono font-medium" id="toggle-spoolman-token-text">Show</span>
       </button>
     </div>
-    <span class="field-hint">
+    <span id="spoolman-token-hint" class="field-hint">
       Only needed if Spoolman-NG has <code>SPOOLMAN_API_TOKEN</code> set. Standard Spoolman does not use a token.
     </span>
   </div>

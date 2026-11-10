@@ -1,6 +1,6 @@
 import type { PlannedChange } from "../../core/compare";
 import { csvText } from "../shared/tabular";
-import { changePatches } from "./records";
+import { changePatches, withinTextLimit } from "./records";
 import type { FilamentDbAppLoadResult } from "./types";
 
 /**
@@ -23,6 +23,16 @@ const COLUMNS = [
 
 type Row = Record<string, unknown>;
 
+const lower = (value: unknown) => (typeof value === "string" ? value.toLowerCase() : "");
+
+/**
+ * The importer finds a filament by its stored name and, when a vendor is given, its stored vendor.
+ * The export writes the vendor a variant inherits, which no stored vendor matches, so a variant's
+ * row leaves the vendor blank and is matched by name alone.
+ */
+const importVendor = (row: Row) =>
+  String(row["parent"] ?? "").trim() ? "" : (row["vendor"] ?? "");
+
 /**
  * Writes the changed spools as a CSV that Filament DB's spool importer applies: it carries only the
  * rows that changed, so importing it leaves every other spool alone. The importer reads spool
@@ -42,12 +52,23 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
     if (change.source !== "filamentDbApp") continue;
     if (change.kind === "create") {
       const v = change.values;
+      // The importer matches the stored filament name, which a color name only equals for a
+      // standalone filament; borrow the stored name of a loaded spool of the same filament.
+      const twin = loaded.spools.find(
+        (s) =>
+          lower(s.name) === lower(v.name) &&
+          lower(s.vendor) === lower(v.vendor) &&
+          lower(s.material) === lower(v.material),
+      );
+      const twinRow = (twin?.raw as { spool?: Row } | null)?.spool;
+      const label = withinTextLimit(v.comment || null, "label", problem);
+      const lot = withinTextLimit(v.lotNr || null, "lot number", problem);
       const remaining = v.remainingWeight ?? v.initialWeight;
       rows.push({
-        filament: v.name ?? "",
-        vendor: v.vendor ?? "",
-        label: v.comment ?? "",
-        lotNumber: v.lotNr ?? "",
+        filament: twinRow ? (twinRow["filament"] ?? "") : (v.name ?? ""),
+        vendor: twinRow ? importVendor(twinRow) : (v.vendor ?? ""),
+        label: label ?? "",
+        lotNumber: lot ?? "",
         totalWeight: remaining === null ? "" : remaining + (v.emptySpoolWeight ?? 0),
         purchaseDate: v.purchasedOn ?? "",
         location: v.location ?? "",
@@ -69,6 +90,7 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
     if (Object.keys(filament).length) filamentFields++;
     const row: Row = {};
     for (const column of COLUMNS) row[column] = source[column.toLowerCase()] ?? "";
+    row["vendor"] = importVendor(source);
     let wroteSpoolField = false;
     if (spool.remainingWeight !== undefined) {
       row["totalWeight"] =

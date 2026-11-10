@@ -27,7 +27,6 @@ describe("expandConfig", () => {
           "output-dir": "/abs/out",
           resolve: ["material=spoolio", "name=spoolio"],
           "create-in": "spoolio",
-          apply: false,
           summary: true,
           "spoolman-url": "http://spoolman.local",
         }),
@@ -88,7 +87,7 @@ describe("expandConfig", () => {
     expect(() => read({ password: "x" })).toThrow("environment");
     expect(() => read({ "output-dr": "x" })).toThrow('Did you mean "output-dir"?');
     expect(() => read({ unrelated: 1 })).toThrow('unknown key "unrelated"');
-    expect(() => read({ apply: "yes" })).toThrow("must be true or false");
+    expect(() => read({ summary: "yes" })).toThrow("must be true or false");
     expect(() => read({ resolve: [1] })).toThrow("list of text values");
     expect(() => read({ "output-dir": "" })).toThrow("must be a text value");
     expect(() => read([])).toThrow("must contain a JSON object");
@@ -212,5 +211,41 @@ describe("the per-user settings file", () => {
     expect(() =>
       expandConfig(["--summary"], files({ [USER]: "{nope" }), { userConfig: { path: USER } }),
     ).toThrow("not valid JSON");
+  });
+});
+
+describe("config safety", () => {
+  const read = (config: unknown) =>
+    expandConfig(["--config", "c.json"], files({ "c.json": JSON.stringify(config) }));
+
+  test("a config file can never turn writes on", () => {
+    for (const apply of [true, false])
+      expect(() => read({ apply })).toThrow("cannot be saved as a default setting");
+  });
+
+  test("service URLs with credentials in the query string are refused", () => {
+    for (const query of [
+      "token=abc",
+      "api_key=abc",
+      "apikey=1",
+      "secret=x",
+      "password=p",
+      "auth=z",
+    ])
+      expect(() => read({ "spoolman-url": `http://s.local/?${query}` })).toThrow(
+        "contains credentials",
+      );
+    expect(() => read({ "spoolman-url": "http://s.local/?page=2" })).not.toThrow();
+  });
+
+  test("rules from a stronger layer replace config rules for the other cleanup option", () => {
+    const expanded = expandConfig(
+      ["--config", "c.json", "--cleanup-report=casing"],
+      files({ "c.json": JSON.stringify({ cleanup: "whitespace" }) }),
+    );
+    expect(expanded).toEqual(["--cleanup", "--cleanup-report=casing"]);
+    expect(() =>
+      parseArgs(expanded.concat("--spoolio", "a.json", "--spoolkeep", "b.json")),
+    ).not.toThrow();
   });
 });

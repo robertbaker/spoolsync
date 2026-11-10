@@ -188,7 +188,15 @@ export async function runWatch(request: WatchRequest): Promise<void> {
       timer = setTimeout(() => {
         if (running) again = true;
         else {
-          running = execute().finally(() => (running = undefined));
+          // A failed run is reported, never an unhandled rejection or a throw from `await running`.
+          running = execute()
+            .catch((error: unknown) => {
+              exitCode = 1;
+              output.error(
+                `Watch run failed: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            })
+            .finally(() => (running = undefined));
         }
       }, dependencies.debounceMs);
     }),

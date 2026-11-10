@@ -1,4 +1,5 @@
-import { FIELD_LABELS, type PlannedChange, type PlannedUpdate } from "../../core/compare";
+import type { PlannedChange, PlannedUpdate } from "../../core/compare";
+import { FIELD_LABELS } from "../../core/comparison/fields";
 import type { ApplyLogEntry } from "../../core/model";
 
 /** How one service writes a single planned change and words the outcome. */

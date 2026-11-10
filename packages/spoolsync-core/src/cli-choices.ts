@@ -5,7 +5,12 @@ import {
   type GroupResolution,
   type PlannedChange,
 } from "./core/compare";
-import type { MatchDecisions, MatchSuggestion, SpoolGroup } from "./core/match";
+import {
+  splitPairKey,
+  type MatchDecisions,
+  type MatchSuggestion,
+  type SpoolGroup,
+} from "./core/match";
 import {
   WRITABLE_SOURCE_IDS,
   type ComparableField,
@@ -27,7 +32,7 @@ export interface CliChoices {
   missing: number;
 }
 
-const pairArgument = (pair: string) => pair.replace("|", ",");
+const pairArgument = (pair: string) => splitPairKey(pair)!.join(",");
 
 /** A comparable description of what a change writes, for telling two plans apart. */
 function signatures(plan: ReadonlyMap<SourceId, PlannedChange[]>): Set<string> {
@@ -72,8 +77,8 @@ export function deriveCliChoices(
     ),
   );
   const known = (pair: string) => {
-    const parts = pair.split("|");
-    return parts.length === 2 && parts.every((key) => records.has(key) && !key.includes(","));
+    const parts = splitPairKey(pair);
+    return !!parts && parts.every((key) => records.has(key) && !key.includes(","));
   };
   const resolves: Array<[ComparableField, SourceId]> = [];
   const fields = new Set(

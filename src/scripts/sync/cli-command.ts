@@ -34,7 +34,12 @@ const API_INPUTS: Partial<Record<SourceId, { flag: string; token: string }>> = {
 };
 
 /** Services the CLI can write directly with `--apply`. */
-const API_WRITES: ReadonlySet<SourceId> = new Set(["spoolman", "filamentdb", "bambuddy"]);
+const API_WRITES: ReadonlySet<SourceId> = new Set([
+  "spoolman",
+  "filamentdb",
+  "filamentDbApp",
+  "bambuddy",
+]);
 
 export interface CliCommandInput {
   loaded: ReadonlyMap<SourceId, { origin?: "api" | "file" }>;

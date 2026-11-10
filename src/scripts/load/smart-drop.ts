@@ -99,8 +99,7 @@ export function wireSmartDrop(context: LoadContext): void {
   if (!input || !zone || !results) return;
 
   async function loadAs(source: SourceId, file: File, row: HTMLElement): Promise<void> {
-    await readInventoryFile(source, file, context);
-    const loaded = context.state.results.get(source);
+    const loaded = await readInventoryFile(source, file, context);
     if (!loaded || loaded.spools.length === 0) {
       row.replaceWith(
         line(

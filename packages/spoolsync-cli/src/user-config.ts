@@ -7,6 +7,7 @@ import type { SourceId } from "@spoolsync/core/core/model";
 
 import { ensureDirectory } from "./ensure-directory";
 import type { Options } from "./options";
+import { urlCredential } from "./url-credentials";
 
 /** The config key for each source's file option (the long option name without dashes). */
 export const SOURCE_KEYS: Record<SourceId, string> = {
@@ -79,11 +80,26 @@ export function savableSettings(options: Options): Record<string, unknown> {
   if (options.failOnMismatch) settings["fail-on-mismatch"] = true;
   if (options.rollbackDir) settings["rollback-dir"] = path.resolve(options.rollbackDir);
   if (options.noRollback) settings["no-rollback"] = true;
-  if (options.spoolmanUrl) settings["spoolman-url"] = options.spoolmanUrl;
-  if (options.filamentdbUrl) settings["filamentdb-url"] = options.filamentdbUrl;
-  if (options.filamentDbUrl) settings["filament-db-url"] = options.filamentDbUrl;
-  if (options.bambuddyUrl) settings["bambuddy-url"] = options.bambuddyUrl;
-  if (options.filadexUrl) settings["filadex-url"] = options.filadexUrl;
+  for (const [key, url] of [
+    ["spoolman-url", options.spoolmanUrl],
+    ["filamentdb-url", options.filamentdbUrl],
+    ["filament-db-url", options.filamentDbUrl],
+    ["bambuddy-url", options.bambuddyUrl],
+    ["filadex-url", options.filadexUrl],
+  ] as const) {
+    if (!url) continue;
+    let credential: string | undefined;
+    try {
+      credential = urlCredential(new URL(url));
+    } catch {
+      // An unparsable address is reported by option validation, not here.
+    }
+    if (credential)
+      throw new Error(
+        `--${key} contains credentials in the URL (${credential}), so it was not saved. Keep tokens and passwords out of saved settings; use the environment instead.`,
+      );
+    settings[key] = url;
+  }
   if (options.filadexUser) settings["filadex-user"] = options.filadexUser;
   return settings;
 }

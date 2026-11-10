@@ -1,6 +1,24 @@
+import type { CommonSpool } from "../../core/model";
 import { parseTable } from "../shared/tabular";
 import { CSV_NUMERIC_FIELDS, jsonNumber, mapRecord } from "./map";
 import type { ThreeDfpLoadResult } from "./types";
+
+/** Duplicate IDs make exports ambiguous, so flag them at load rather than only when exporting. */
+function duplicateIdWarnings(spools: readonly CommonSpool[]): string[] {
+  const seen = new Set<string>();
+  const reported = new Set<string>();
+  const warnings: string[] = [];
+  for (const { sourceId } of spools) {
+    if (seen.has(sourceId) && !reported.has(sourceId)) {
+      reported.add(sourceId);
+      warnings.push(
+        `Spool ${sourceId} appears more than once; give each spool a unique ID before exporting.`,
+      );
+    }
+    seen.add(sourceId);
+  }
+  return warnings;
+}
 
 export function loadThreeDfpFile(text: string): ThreeDfpLoadResult {
   let parsed: unknown;
@@ -27,12 +45,13 @@ export function loadThreeDfpFile(text: string): ThreeDfpLoadResult {
       for (const key of CSV_NUMERIC_FIELDS)
         if (Object.hasOwn(row, key)) jsonNumber(row[key], key, index + 1);
     const records = rows;
+    const spools = records.map(mapRecord);
     return {
       source: "threeDfp",
       file: records,
       format: "csv",
-      spools: records.map(mapRecord),
-      warnings: [],
+      spools,
+      warnings: duplicateIdWarnings(spools),
       loadedAt: new Date().toISOString(),
       origin: "file",
     };
@@ -73,12 +92,13 @@ export function loadThreeDfpFile(text: string): ThreeDfpLoadResult {
         `3DFilamentProfiles record ${index + 1}: spool_properties must be a JSON object or null. Export the inventory again before syncing.`,
       );
   }
+  const spools = records.map((record, i) => mapRecord(record as Record<string, unknown>, i));
   return {
     source: "threeDfp",
     file: parsed,
     format: "json",
-    spools: records.map((record, i) => mapRecord(record as Record<string, unknown>, i)),
-    warnings: [],
+    spools,
+    warnings: duplicateIdWarnings(spools),
     loadedAt: new Date().toISOString(),
     origin: "file",
   };

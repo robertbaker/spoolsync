@@ -34,6 +34,15 @@ describe("valuesEqual", () => {
     expect(valuesEqual("colors", ["000000", "FFFFFF"], ["FFFFFF", "000000"])).toBe(false);
     expect(valuesEqual("location", null, "")).toBe(true);
   });
+
+  test("treats temperatures within half a degree as equal after Spoolman rounds", () => {
+    for (const field of ["nozzleTempMin", "nozzleTempMax", "bedTempMin", "bedTempMax"] as const) {
+      expect(valuesEqual(field, 216, 215.5)).toBe(true);
+      expect(valuesEqual(field, 216, 216.5)).toBe(true);
+      expect(valuesEqual(field, 216, 215)).toBe(false);
+      expect(valuesEqual(field, 216, 215.4)).toBe(false);
+    }
+  });
 });
 
 describe("compareGroup", () => {

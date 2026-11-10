@@ -1,10 +1,23 @@
 import type { PlannedChange } from "../../core/compare";
 import type { ComparableField, LoadResult } from "../../core/model";
 import { spoolstockLotNr } from "../../core/normalize";
-import { FILAMENT_FIELDS, hasDiameterOverride } from "./filament-policy";
+import { FILAMENT_FIELDS, hasDiameterOverride, hasTempRanges } from "./filament-policy";
 import { newSpool, setField, setTemperatures, type Spool } from "./file-records";
 import { encodeExtras } from "./schema";
 import { linkExtras } from "./spool-links";
+
+function hasRange(temps: {
+  nozzleTempMin: number | null;
+  nozzleTempMax: number | null;
+  bedTempMin: number | null;
+  bedTempMax: number | null;
+}): boolean {
+  const differs = (low: number | null, high: number | null) =>
+    low !== null && high !== null && low !== high;
+  return (
+    differs(temps.nozzleTempMin, temps.nozzleTempMax) || differs(temps.bedTempMin, temps.bedTempMax)
+  );
+}
 
 export interface SpoolmanFileExport {
   json: string;
@@ -28,6 +41,10 @@ export function exportSpoolmanJson(
   let updated = 0;
   let created = 0;
   const warnings: string[] = [];
+  // Spoolman-NG's own export writes every range column, null or empty when unset, so one
+  // filament carrying the keys marks the whole file. An API-shaped NG file omits null fields and
+  // carries no marker when no filament has a range.
+  const ranges = spools.some((spool) => hasTempRanges(spool.filament));
   const filamentUses = new Map<unknown, number>();
   const vendorUses = new Map<unknown, number>();
   let nextNew = -1;
@@ -79,7 +96,7 @@ export function exportSpoolmanJson(
       if (!target.filament.vendor && vendorChange && vendorChange.to != null)
         target.filament.vendor = { id: nextNew--, name: vendorChange.to };
       for (const { field, to } of change.changes) setField(target, field, to);
-      setTemperatures(target, change.changes);
+      setTemperatures(target, change.changes, ranges);
       if (
         change.changes.some((item) => item.field === "initialWeight") &&
         !change.changes.some((item) => item.field === "remainingWeight")
@@ -106,10 +123,21 @@ export function exportSpoolmanJson(
       }
       updated++;
     } else {
-      target = newSpool(nextNew--, change.values);
+      target = newSpool(nextNew--, change.values, ranges);
       spools.push(target);
       created++;
     }
+    const temps =
+      change.kind === "create"
+        ? change.values
+        : {
+            ...change.spool,
+            ...Object.fromEntries(change.changes.map((item) => [item.field, item.to])),
+          };
+    if (!ranges && !hasTempRanges(target.filament) && hasRange(temps))
+      warnings.push(
+        `Spoolman ${change.kind === "create" ? "new spool" : change.spool.sourceId}: the temperature range was written as a single temperature, because this file does not show whether it comes from Spoolman-NG (the only Spoolman that stores ranges). Export from Spoolman-NG (Settings → Export) or use the API connection to keep the range.`,
+      );
     const links = change.kind === "create" ? { ...change.groupIds, ...change.links } : change.links;
     const { spoolstockShortId } = links;
     target.extra = {

@@ -239,3 +239,25 @@ describe("stopOnQuit", () => {
     expect(source.listenerCount("data")).toBe(0);
   });
 });
+
+test("a run that throws after a change is reported without an unhandled rejection", async () => {
+  const h = harness();
+  let runs = 0;
+  const done = runWatch({
+    files: ["/data/a.json"],
+    run: async () => {
+      if (++runs > 1) throw new Error("boom");
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get(abs("/data"))!("a.json");
+  await wait(30);
+  expect(runs).toBe(2);
+  expect(h.lines.some((line) => line.includes("Watch run failed: boom"))).toBe(true);
+  h.stop.abort();
+  await done;
+  expect(h.exitCode()).toBe(1);
+});

@@ -65,7 +65,7 @@ export const SpoolSchema = z.looseObject({
   location: z.string().nullish(),
   lot_nr: z.string().nullish(),
   comment: z.string().nullish(),
-  archived: z.boolean().optional(),
+  archived: z.boolean().nullish(),
   extra: ExtraSchema.optional(),
 });
 export type SpoolmanSpool = z.infer<typeof SpoolSchema>;
@@ -74,6 +74,8 @@ export const InfoSchema = z.looseObject({
   version: z.string(),
   debug_mode: z.boolean().optional(),
   db_type: z.string().optional(),
+  // Spoolman-NG only: how the server was installed. Upstream Spoolman has no such field.
+  install_type: z.string().optional(),
 });
 export type SpoolmanInfo = z.infer<typeof InfoSchema>;
 
@@ -129,8 +131,12 @@ export type SpoolParameters = {
   lot_nr?: string | null;
   comment?: string | null;
   archived?: boolean;
-  extra?: Record<string, string> | null;
+  /** Merged per key by Spoolman; a `null` value clears that key. */
+  extra?: Record<string, string | null> | null;
 };
+
+/** True when `/info` is from Spoolman-NG, whose info carries the install type. */
+export const isSpoolmanNg = (info: object): boolean => Object.hasOwn(info, "install_type");
 
 /** Spoolman rejects comments longer than 1024 characters. */
 export const SPOOLMAN_MAX_COMMENT = 1024;

@@ -172,7 +172,7 @@ export const SERVICES = {
     capabilities: ["file-import", "file-export", "api-import", "api-export"],
     readFormats: ["json", "csv"],
     writeFormats: ["json", "csv"],
-    apiClients: ["cli"],
+    apiClients: ["browser", "cli"],
     writeNote: "filament fields are shared by all of a filament's spools",
     cliFlag: "--filament-db",
     cliApiFlag: "--filament-db-url",
