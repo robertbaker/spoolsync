@@ -2,109 +2,205 @@
 import { Icon } from "astro-icon/components";
 import Button from "~/components/starwind/controls/Button/Button.astro";
 import Container from "~/components/starwind/controls/Container/Container.astro";
-import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
 import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
 import StepTimeline from "~/components/StepTimeline.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import ServiceMark from "~/components/ServiceMark.astro";
 import ServiceMatrix from "~/components/home/ServiceMatrix.astro";
+import HeroShowcase from "~/components/home/HeroShowcase.astro";
+import SyncVisualizer from "~/components/home/SyncVisualizer.astro";
+import FilamentPalette from "~/components/home/FilamentPalette.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
-import { SERVICE_VIEWS } from "~/lib/services";
+import { SERVICE_VIEWS, SERVICE_COUNT_WORD } from "~/lib/services";
 
 import { steps, highlights } from "~/components/home/data";
 
 ---
 
 <BaseLayout title={SITE_TITLE} description={SITE_DESCRIPTION}>
-  <Container class="py-12 sm:py-16">
-    <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_25rem]">
-    <div class="max-w-3xl" id="tour-overview">
-      <div class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary-text">
-        <span class="relative flex size-2">
-          <span class="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-success opacity-75"></span>
-          <span class="relative inline-flex size-2 rounded-full bg-success"></span>
-        </span>
-        Runs in your browser
-      </div>
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
 
-      <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-        Compare every spool list
-      </h1>
-      <p class="mt-4 text-lg sm:text-xl text-muted-foreground leading-relaxed">{SITE_DESCRIPTION}</p>
-      <p class="mt-3 text-muted-foreground leading-relaxed">
-        Drop export files from any supported tool, or connect directly to Spoolman on your local network. Everything is read right in your browser. There is no server and no account.
-      </p>
-
-      <div class="mt-8 flex flex-wrap items-center gap-3">
-        <Button href="/load" color="primary" size="lg" icon="material-symbols:upload-file-outline-rounded" iconPosition="left" class="shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30">
-          Load inventories
-        </Button>
-        <Button href="/cli" variant="ghost" size="lg" icon="material-symbols:terminal" iconPosition="left" class="text-muted-foreground hover:text-foreground">
-          CLI docs
-        </Button>
-      </div>
-
-      <div class="mt-8 flex flex-wrap items-center gap-2 pt-2 border-t text-xs text-muted-foreground">
-        <span class="font-medium text-foreground">Supported tools:</span>
-        {
-          SERVICE_VIEWS.map((service) => (
-            <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
-              <ServiceMark id={service.id} class="size-3.5" /> {service.name}
-            </span>
-          ))
-        }
-        <a href="#supported-tools" class="inline-flex min-h-11 items-center px-1 font-medium text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-          Compare what each can do
-        </a>
-      </div>
-    </div>
-
-    <div class="rounded-2xl border bg-card p-5 shadow-xs sm:p-6" aria-hidden="true">
-      <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your services</p>
-      <div class="mt-3 grid grid-cols-2 gap-2.5">
-        {
-          SERVICE_VIEWS.map((service) => (
-            <div class="flex items-center gap-2 rounded-xl border bg-background/60 px-3 py-2.5 text-sm font-medium">
-              <ServiceMark id={service.id} class="size-5" />
-              <span class="truncate">{service.name}</span>
+    <Container class="relative z-10 py-12 sm:py-16">
+      <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_26rem]">
+        <div class="max-w-3xl" id="tour-overview">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary-text shadow-xs backdrop-blur-xs animate-shimmer">
+              <span class="relative flex size-2">
+                <span class="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-success opacity-75"></span>
+                <span class="relative inline-flex size-2 rounded-full bg-success"></span>
+              </span>
+              Runs 100% in your browser
             </div>
-          ))
-        }
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-xs">
+              <Icon name="material-symbols:shield-outline" class="size-3.5 text-primary-text" />
+              Zero accounts · Zero tracking
+            </span>
+          </div>
+
+          <h1 class="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-balance">
+            Compare & sync <br class="hidden sm:inline" />
+            <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">
+              every spool list
+            </span>
+          </h1>
+          <p class="mt-4 text-lg sm:text-xl text-muted-foreground leading-relaxed">{SITE_DESCRIPTION}</p>
+          <p class="mt-3 text-muted-foreground leading-relaxed">
+            Drop export files from any supported tool, or connect directly to Spoolman on your local network. Everything is read right in your browser. There is no server and no account.
+          </p>
+
+          <div class="mt-8 flex flex-wrap items-center gap-3">
+            <Button
+              href="/load"
+              color="primary"
+              size="lg"
+              icon="material-symbols:upload-file-outline-rounded"
+              iconPosition="left"
+              class="shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
+            >
+              Load inventories
+            </Button>
+            <Button
+              href="/load"
+              variant="outline"
+              size="lg"
+              icon="material-symbols:play-circle-outline-rounded"
+              iconPosition="left"
+              class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5"
+            >
+              Try sample data
+            </Button>
+            <Button
+              href="/cli"
+              variant="ghost"
+              size="lg"
+              icon="material-symbols:terminal"
+              iconPosition="left"
+              class="text-muted-foreground hover:text-foreground"
+            >
+              CLI docs
+            </Button>
+          </div>
+
+          <div class="mt-8 flex flex-wrap items-center gap-2 pt-4 border-t text-xs text-muted-foreground">
+            <span class="font-semibold text-foreground flex items-center gap-1.5">
+              <Icon name="material-symbols:grid-view-rounded" class="size-3.5 text-primary-text" />
+              Supported tools:
+            </span>
+            {
+              SERVICE_VIEWS.map((service) => (
+                <a
+                  href="#supported-tools"
+                  class="inline-flex items-center gap-1.5 rounded-md bg-muted/80 px-2 py-0.5 font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary-text"
+                >
+                  <ServiceMark id={service.id} class="size-3.5" /> {service.name}
+                </a>
+              ))
+            }
+            <a href="#supported-tools" class="inline-flex min-h-11 items-center px-1 font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              Compare capabilities →
+            </a>
+          </div>
+        </div>
+
+        <HeroShowcase />
       </div>
-      <div class="my-3 flex items-center justify-center gap-2 text-primary-text">
-        <Icon name="material-symbols:arrow-downward-rounded" class="size-6" />
-        <Icon name="material-symbols:arrow-upward-rounded" class="size-6" />
-      </div>
-      <div class="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 p-4">
-        <img src="/logo-mark.svg" alt="" class="size-11" width="44" height="44" />
-        <div>
-          <p class="text-lg font-extrabold leading-tight">Spool<span class="text-primary-text">Sync</span></p>
-          <p class="text-xs text-muted-foreground">Matches, compares, applies. In your browser.</p>
+
+      <!-- Feature trust ribbon -->
+      <div class="glass-surface mt-12 grid grid-cols-2 gap-4 rounded-2xl p-4 sm:grid-cols-4 sm:p-5 border border-primary/15 shadow-xs">
+        <div class="flex items-center gap-3">
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
+            <Icon name="material-symbols:lock-outline" class="size-5" />
+          </div>
+          <div>
+            <p class="text-xs font-bold text-foreground">100% In-Browser</p>
+            <p class="text-[0.7rem] text-muted-foreground">Zero cloud servers or accounts</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
+            <Icon name="material-symbols:bolt-rounded" class="size-5" />
+          </div>
+          <div>
+            <p class="text-xs font-bold text-foreground">Instant Matching</p>
+            <p class="text-[0.7rem] text-muted-foreground">Sub-millisecond local indexing</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
+            <Icon name="material-symbols:wifi-off-rounded" class="size-5" />
+          </div>
+          <div>
+            <p class="text-xs font-bold text-foreground">Offline Ready</p>
+            <p class="text-[0.7rem] text-muted-foreground">PWA enabled on your network</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
+            <Icon name="material-symbols:sync-alt" class="size-5" />
+          </div>
+          <div>
+            <p class="text-xs font-bold text-foreground">{SERVICE_COUNT_WORD.charAt(0).toUpperCase() + SERVICE_COUNT_WORD.slice(1)} Unified Tools</p>
+            <p class="text-[0.7rem] text-muted-foreground">Cross-platform adapter engine</p>
+          </div>
         </div>
       </div>
-    </div>
-    </div>
 
-    <h2 class="sr-only">Why SpoolSync</h2>
-    <ul class="mt-14 grid gap-4 sm:grid-cols-3">
-      {
-        highlights.map((item) => (
-          <li class="modern-card flex gap-3.5 rounded-xl border bg-card p-5 shadow-sm">
-            <IconAvatar icon={item.icon} color="primary" class="shrink-0" />
-            <div>
-              <h3 class="font-semibold text-base">{item.title}</h3>
-              <p class="mt-1 text-sm text-muted-foreground">{item.body}</p>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
+      <h2 class="sr-only">Why SpoolSync</h2>
+      <ul class="mt-14 grid gap-5 sm:grid-cols-3">
+        {
+          highlights.map((item) => (
+            <li class="modern-card group relative overflow-hidden rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1">
+              <div class="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-primary/5 blur-xl transition-all group-hover:bg-primary/15" aria-hidden="true" />
+              <div class="flex items-start gap-4">
+                <div class="rounded-xl border border-primary/20 bg-primary/10 p-2.5 text-primary-text transition-colors group-hover:border-primary/40 group-hover:bg-primary/20 shrink-0">
+                  <Icon name={item.icon} class="size-6" />
+                </div>
+                <div>
+                  <h3 class="font-bold text-base text-foreground leading-snug">{item.title}</h3>
+                  <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">{item.body}</p>
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
 
-    <section class="mt-20 scroll-mt-20">
-      <SectionHeader align="left" eyebrow="Four steps" title="How a sync works" subtitle="From loading your inventories to writing updates, you choose every change." />
-      <StepTimeline steps={steps} class="mt-8" />
-    </section>
+      <section class="mt-20 scroll-mt-20">
+        <SectionHeader align="left" eyebrow="Four steps" title="How a sync works" subtitle="From loading your inventories to writing updates, you choose every change." />
+        <StepTimeline steps={steps} class="mt-8" />
+        <SyncVisualizer />
+      </section>
 
-    <ServiceMatrix />
-  </Container>
+      <FilamentPalette />
+
+      <!-- Interactive Callout -->
+      <div class="glass-surface mt-16 relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-10 shadow-layered text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-8">
+        <div class="max-w-xl">
+          <div class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-0.5 text-xs font-semibold text-primary-text mb-3">
+            <Icon name="material-symbols:play-circle-outline-rounded" class="size-3.5" />
+            Quick Test Drive
+          </div>
+          <h2 class="text-2xl font-extrabold tracking-tight sm:text-3xl text-foreground">Ready to see it in action?</h2>
+          <p class="mt-2 text-sm sm:text-base text-muted-foreground">
+            Explore with preloaded sample data from multiple tools. No file uploads or setup needed.
+          </p>
+        </div>
+        <div class="mt-6 sm:mt-0 shrink-0 flex flex-wrap gap-3 justify-center sm:justify-start">
+          <Button
+            href="/load"
+            color="primary"
+            size="lg"
+            icon="material-symbols:arrow-forward"
+            iconPosition="right"
+            class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all"
+          >
+            Launch app
+          </Button>
+        </div>
+      </div>
+
+      <ServiceMatrix />
+    </Container>
+  </div>
 </BaseLayout>

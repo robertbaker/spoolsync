@@ -12,7 +12,10 @@ import { SITE_TITLE } from "~/config";
   title={`Sync — ${SITE_TITLE}`}
   description="Steps 2 and 3 of 3: match spools across your loaded inventories, resolve differences, then apply or download the changes."
 >
-  <Container class="py-10 sm:py-14">
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
+
+    <Container class="relative z-10 py-10 sm:py-14">
     <FlowSteps current="sync" class="mb-6" />
     <PageHeader
       eyebrow="Steps 2 and 3 of 3"
@@ -23,7 +26,7 @@ import { SITE_TITLE } from "~/config";
 
     <!-- Neutral placeholder, same footprint as the empty state, until the script knows what is loaded. -->
     <div id="sync-loading" class="mt-10" aria-busy="true">
-      <div class="mx-auto grid max-w-xl gap-3 rounded-2xl border border-dashed bg-card/50 px-6 py-12" role="presentation">
+      <div class="glass-surface mx-auto grid max-w-xl gap-3.5 rounded-3xl border border-dashed border-primary/20 p-8 sm:p-12" role="presentation">
         <span class="skeleton-line"></span>
         <span class="skeleton-line"></span>
         <span class="skeleton-line"></span>
@@ -32,17 +35,22 @@ import { SITE_TITLE } from "~/config";
     </div>
 
     <div id="sync-empty" class="mt-10" hidden>
-      <div class="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-dashed bg-card/50 px-6 py-12 text-center shadow-xs" role="status">
-        <div>
-          <IconAvatar icon="material-symbols:sync-alt" color="primary" containerSize="xl" size="xl" rounded="full" />
+      <div class="glass-surface mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-dashed border-primary/30 p-8 sm:p-12 text-center shadow-layered" role="status">
+        <div class="relative">
+          <div class="absolute -inset-2 rounded-full bg-primary/20 blur-lg" aria-hidden="true"></div>
+          <IconAvatar icon="material-symbols:sync-alt" color="primary" containerSize="xl" size="xl" rounded="full" class="relative" />
         </div>
-        <h2 id="sync-empty-title" class="mt-5 text-xl font-bold tracking-tight">Nothing loaded yet</h2>
-        <p id="sync-empty-body" class="mt-2 text-muted-foreground">
+        <h2 id="sync-empty-title" class="mt-6 text-2xl font-extrabold tracking-tight">Nothing loaded yet</h2>
+        <p id="sync-empty-body" class="mt-2 text-muted-foreground text-sm sm:text-base leading-relaxed max-w-md">
           Load at least two services to match spools and compare differences side by side.
         </p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
-          <Button href="/load" color="primary" icon="material-symbols:arrow-forward" iconPosition="right">Back to Load</Button>
-          <Button type="button" variant="outline" id="try-sample-sync" hidden>Try sample data</Button>
+          <Button href="/load" color="primary" size="lg" icon="material-symbols:upload-file-outline-rounded" iconPosition="left" class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all">
+            Load inventories
+          </Button>
+          <Button type="button" variant="outline" size="lg" id="try-sample-sync" icon="material-symbols:play-circle-outline-rounded" iconPosition="left" class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all" hidden>
+            Try sample data
+          </Button>
         </div>
       </div>
     </div>
@@ -103,6 +111,7 @@ import { SITE_TITLE } from "~/config";
       </div>
     </div>
   </Container>
+  </div>
 </BaseLayout>
 
 <script>

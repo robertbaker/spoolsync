@@ -36,33 +36,38 @@ const spoolman = serviceView("spoolman");
   title={`Load — ${SITE_TITLE}`}
   description={`Step 1 of 3: load spool inventories from any of ${SERVICE_COUNT_WORD} supported tools, then review and apply changes.`}
 >
-  <Container class="py-10 sm:py-14">
-    <FlowSteps current="load" class="mb-6" />
-    <PageHeader
-      eyebrow="Step 1 of 3"
-      title="Load inventories"
-      description="Drop your export files or open a service to fetch from it. Nothing is modified yet. Loaded inventories and API keys clear when you close this tab; your Spoolman address, match answers and history stay on this device."
-    />
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
 
-    <section id="tour-drop" class="app-card mt-8" aria-labelledby="smart-heading">
-      <h2 id="smart-heading" class="text-xl font-bold">Drop your exports</h2>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Drop files from any of the {SERVICE_COUNT_WORD} supported services. SpoolSync works out which service each one belongs to; if a file could be
-        from several, it asks.
-      </p>
-      <label id="smart-drop" for="smart-file" class="dropzone mt-4">
-        <Icon name="material-symbols:upload-file-outline-rounded" class="size-8 text-primary" aria-hidden="true" />
-        <span class="font-medium text-foreground">Choose export files</span>
-        <span>or drop several at once ({extensionList()})</span>
-        <input id="smart-file" type="file" multiple accept={dropAccept} class="sr-only" />
-      </label>
-      <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
-      <p id="sample-prompt" class="mt-3 text-sm text-muted-foreground">
-        No files handy?&nbsp;<button type="button" id="try-sample" class="font-medium text-primary-text underline underline-offset-2 hover:no-underline">
-          Try it with sample data
-        </button>
-      </p>
-    </section>
+    <Container class="relative z-10 py-10 sm:py-14">
+      <FlowSteps current="load" class="mb-6" />
+      <PageHeader
+        eyebrow="Step 1 of 3"
+        title="Load inventories"
+        description="Drop your export files or open a service to fetch from it. Nothing is modified yet. Loaded inventories and API keys clear when you close this tab; your Spoolman address, match answers and history stay on this device."
+      />
+
+      <section id="tour-drop" class="app-card mt-8 backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-md" aria-labelledby="smart-heading">
+        <h2 id="smart-heading" class="text-xl font-bold">Drop your exports</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Drop files from any of the {SERVICE_COUNT_WORD} supported services. SpoolSync works out which service each one belongs to; if a file could be
+          from several, it asks.
+        </p>
+        <label id="smart-drop" for="smart-file" class="dropzone group mt-4">
+          <span class="flex size-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary-text mb-1 transition-transform group-hover:scale-105">
+            <Icon name="material-symbols:upload-file-outline-rounded" class="size-7" aria-hidden="true" />
+          </span>
+          <span class="font-semibold text-foreground text-base">Choose export files</span>
+          <span class="text-xs text-muted-foreground">or drop several at once ({extensionList()})</span>
+          <input id="smart-file" type="file" multiple accept={dropAccept} class="sr-only" />
+        </label>
+        <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>
+        <p id="sample-prompt" class="mt-3 text-sm text-muted-foreground">
+          No files handy?&nbsp;<button type="button" id="try-sample" class="font-semibold text-primary-text underline underline-offset-2 hover:no-underline">
+            Try it with sample data →
+          </button>
+        </p>
+      </section>
 
     <div id="tour-services" class="mt-10 flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -347,6 +352,7 @@ const spoolman = serviceView("spoolman");
       </Button>
     </div>
   </Container>
+  </div>
 </BaseLayout>
 
 <script>

@@ -20,38 +20,63 @@ import { NPM_URL, REPO_URL, sections, safety, quickSteps } from "~/components/cl
   title={`Command line — ${SITE_TITLE}`}
   description="Install the spoolsync npm package and reconcile filament inventory exports from a terminal."
 >
-  <Container class="py-12 sm:py-16">
-    <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
-      <div>
-        <Badge color="primary" style="soft" shape="pill">npm package</Badge>
-        <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">SpoolSync on the command line</h1>
-        <p class="mt-4 text-lg text-muted-foreground">
-          <code class="rounded bg-muted px-1.5 py-0.5 text-base">spoolsync</code> runs the same matching, planning, and export engine as this
-          site—built for terminals, scripts, and scheduled jobs.
-        </p>
-        <div class="mt-6 flex flex-wrap gap-3">
-          <Button href={NPM_URL} target="_blank" rel="noopener noreferrer" color="primary" icon="simple-icons:npm" iconPosition="left">View on npm</Button>
-          <Button href={REPO_URL} target="_blank" rel="noopener noreferrer" variant="outline" icon="simple-icons:github" iconPosition="left">Source</Button>
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
+
+    <Container class="relative z-10 py-12 sm:py-16">
+      <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
+        <div>
+          <Badge color="primary" style="soft" shape="pill" class="animate-shimmer">npm package</Badge>
+          <h1 class="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl text-balance">
+            SpoolSync on the <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">command line</span>
+          </h1>
+          <p class="mt-4 text-lg text-muted-foreground">
+            <code class="rounded bg-muted px-1.5 py-0.5 text-base">spoolsync</code> runs the same matching, planning, and export engine as this
+            site—built for terminals, scripts, and scheduled jobs.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <Button
+              href={NPM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              color="primary"
+              icon="simple-icons:npm"
+              iconPosition="left"
+              class="shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
+            >
+              View on npm
+            </Button>
+            <Button
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="outline"
+              icon="simple-icons:github"
+              iconPosition="left"
+              class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5"
+            >
+              Source
+            </Button>
+          </div>
+          <p class="mt-4 text-sm text-muted-foreground">Requires Node.js 22 or later.</p>
         </div>
-        <p class="mt-4 text-sm text-muted-foreground">Requires Node.js 22 or later.</p>
+
+        <Install />
       </div>
 
-      <Install />
-    </div>
-
-    <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {
-        safety.map((item) => (
-          <li class="flex gap-3 rounded-xl border bg-card p-4">
-            <IconAvatar icon={item.icon} color="primary" />
-            <div>
-              <h2 class="text-base font-semibold">{item.title}</h2>
-              <p class="mt-1 text-sm text-muted-foreground">{item.body}</p>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
+      <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          safety.map((item) => (
+            <li class="modern-card rounded-2xl border bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex gap-3.5">
+              <IconAvatar icon={item.icon} color="primary" class="shrink-0" />
+              <div>
+                <h2 class="text-base font-semibold leading-snug">{item.title}</h2>
+                <p class="mt-1 text-sm text-muted-foreground leading-relaxed">{item.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
 
     <nav aria-label="On this page" class="mt-12 flex flex-wrap gap-2">
       {
@@ -77,6 +102,7 @@ import { NPM_URL, REPO_URL, sections, safety, quickSteps } from "~/components/cl
 
     <Notes />
   </Container>
+  </div>
 </BaseLayout>
 
 <script>

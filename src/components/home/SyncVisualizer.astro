@@ -1,0 +1,459 @@
+---
+/**
+ * Interactive Step Walkthrough Visualizer.
+ * Provides an interactive, tactile preview of each stage in SpoolSync:
+ * 1. Multi-Tool Ingest
+ * 2. Smart Fuzzy Match
+ * 3. Side-by-Side Resolution
+ * 4. Zero-Loss Sync & Export
+ */
+import { Icon } from "astro-icon/components";
+import ServiceMark from "~/components/ServiceMark.astro";
+import { SERVICE_COUNT_WORD } from "~/lib/services";
+---
+
+<div class="sync-visualizer glass-surface relative overflow-hidden rounded-3xl border border-primary/25 bg-card/95 shadow-layered mt-8" id="sync-visualizer">
+  <!-- Ambient background glow -->
+  <div class="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+  <div class="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-amber-500/10 blur-3xl" aria-hidden="true"></div>
+
+  <!-- Tab navigation -->
+  <div class="border-b border-border/80 bg-muted/40 p-2 sm:p-3">
+    <div
+      role="tablist"
+      aria-label="SpoolSync workflow steps"
+      class="grid grid-cols-2 gap-1.5 sm:grid-cols-4"
+    >
+      <button
+        type="button"
+        role="tab"
+        id="tab-step-1"
+        aria-selected="true"
+        aria-controls="panel-step-1"
+        tabindex="0"
+        data-step="1"
+        class="step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-primary-text bg-background shadow-xs ring-1 ring-primary/30"
+      >
+        <span class="step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-white">1</span>
+        <span>Ingest</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        id="tab-step-2"
+        aria-selected="false"
+        aria-controls="panel-step-2"
+        tabindex="-1"
+        data-step="2"
+        class="step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-muted-foreground hover:text-foreground hover:bg-background/50"
+      >
+        <span class="step-num flex size-5 items-center justify-center rounded-full bg-muted-foreground/20 text-[0.65rem] font-black text-foreground">2</span>
+        <span>Match</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        id="tab-step-3"
+        aria-selected="false"
+        aria-controls="panel-step-3"
+        tabindex="-1"
+        data-step="3"
+        class="step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-muted-foreground hover:text-foreground hover:bg-background/50"
+      >
+        <span class="step-num flex size-5 items-center justify-center rounded-full bg-muted-foreground/20 text-[0.65rem] font-black text-foreground">3</span>
+        <span>Resolve</span>
+      </button>
+
+      <button
+        type="button"
+        role="tab"
+        id="tab-step-4"
+        aria-selected="false"
+        aria-controls="panel-step-4"
+        tabindex="-1"
+        data-step="4"
+        class="step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-muted-foreground hover:text-foreground hover:bg-background/50"
+      >
+        <span class="step-num flex size-5 items-center justify-center rounded-full bg-muted-foreground/20 text-[0.65rem] font-black text-foreground">4</span>
+        <span>Apply</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step Panels Container -->
+  <div class="p-5 sm:p-8">
+    <!-- PANEL 1: INGEST -->
+    <div
+      role="tabpanel"
+      id="panel-step-1"
+      aria-labelledby="tab-step-1"
+      class="step-panel space-y-6"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
+            <Icon name="material-symbols:download-rounded" class="size-3.5" /> Stage 1: Zero-Install Local Ingest
+          </span>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Connect Direct or Drop Any File</h3>
+          <p class="text-sm text-muted-foreground">Every inventory format across all {SERVICE_COUNT_WORD} supported tools is normalized in memory. No network server ever sees your data.</p>
+        </div>
+        <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+          <span class="size-2 rounded-full bg-emerald-500 motion-safe:animate-pulse"></span>
+          Pure In-Browser RAM
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-3">
+        <!-- Source 1 -->
+        <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 font-semibold text-sm">
+              <ServiceMark id="spoolman" class="size-5" />
+              <span>Spoolman</span>
+            </div>
+            <span class="rounded bg-primary/10 px-2 py-0.5 text-[0.7rem] font-bold text-primary-text">Local API</span>
+          </div>
+          <p class="mt-2 font-mono text-xs text-muted-foreground">http://spoolman.local:7912</p>
+          <div class="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-xs">
+            <span class="text-muted-foreground">Records:</span>
+            <span class="font-bold text-foreground">24 spools</span>
+          </div>
+        </div>
+
+        <!-- Source 2 -->
+        <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 font-semibold text-sm">
+              <ServiceMark id="bambuddy" class="size-5" />
+              <span>Bambuddy</span>
+            </div>
+            <span class="rounded bg-muted px-2 py-0.5 text-[0.7rem] font-bold text-muted-foreground">JSON Export</span>
+          </div>
+          <p class="mt-2 font-mono text-xs text-muted-foreground">bambuddy-export.json</p>
+          <div class="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-xs">
+            <span class="text-muted-foreground">Records:</span>
+            <span class="font-bold text-foreground">19 spools</span>
+          </div>
+        </div>
+
+        <!-- Source 3 -->
+        <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 font-semibold text-sm">
+              <ServiceMark id="tigertag" class="size-5" />
+              <span>TigerTag</span>
+            </div>
+            <span class="rounded bg-muted px-2 py-0.5 text-[0.7rem] font-bold text-muted-foreground">CSV Dump</span>
+          </div>
+          <p class="mt-2 font-mono text-xs text-muted-foreground">nfc-tags-backup.csv</p>
+          <div class="mt-3 flex items-center justify-between border-t border-border/60 pt-2 text-xs">
+            <span class="text-muted-foreground">Records:</span>
+            <span class="font-bold text-foreground">12 spools</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: MATCH -->
+    <div
+      role="tabpanel"
+      id="panel-step-2"
+      aria-labelledby="tab-step-2"
+      class="step-panel hidden space-y-6"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
+            <Icon name="material-symbols:link-rounded" class="size-3.5" /> Stage 2: Smart Link & Fuzzy Match
+          </span>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Automatic Cross-System Linking</h3>
+          <p class="text-sm text-muted-foreground">SpoolSync compares material, vendor, diameter, color hex distance, and weights.</p>
+        </div>
+        <div class="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary-text">
+          <Icon name="material-symbols:verified-rounded" class="size-4" />
+          Deterministic Ordering
+        </div>
+      </div>
+
+      <!-- Match Card Simulation -->
+      <div class="rounded-2xl border border-primary/30 bg-background/90 p-4 sm:p-6 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <!-- Spool 1 -->
+          <div class="flex-1 rounded-xl border border-border/70 bg-card/60 p-3.5">
+            <div class="flex items-center gap-2">
+              <span class="filament-swatch size-6 shrink-0" style="background-color: #1e1e24;"></span>
+              <div>
+                <p class="text-xs font-bold text-foreground">Polymaker PolyLite Galaxy Black</p>
+                <p class="text-[0.7rem] text-muted-foreground">Spoolman #42 · PLA · 1.75mm · 740g remaining</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Match Badge -->
+          <div class="flex shrink-0 flex-col items-center justify-center gap-1">
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-extrabold text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
+              <Icon name="material-symbols:check-circle-rounded" class="size-3.5" /> 98% Match
+            </span>
+            <span class="text-[0.65rem] font-medium text-muted-foreground">Exact color & vendor match</span>
+          </div>
+
+          <!-- Spool 2 -->
+          <div class="flex-1 rounded-xl border border-border/70 bg-card/60 p-3.5">
+            <div class="flex items-center gap-2">
+              <span class="filament-swatch size-6 shrink-0" style="background-color: #1e1e24;"></span>
+              <div>
+                <p class="text-xs font-bold text-foreground">PolyLite PLA Black</p>
+                <p class="text-[0.7rem] text-muted-foreground">Bambuddy #108 · PLA · 1.75mm · 720g remaining</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center justify-between border-t border-border/60 pt-3 text-xs">
+          <span class="text-muted-foreground">Uncertain matches are never auto-merged: you keep full editorial control.</span>
+          <span class="font-bold text-primary-text">Action: Link confirmed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 3: RESOLVE -->
+    <div
+      role="tabpanel"
+      id="panel-step-3"
+      aria-labelledby="tab-step-3"
+      class="step-panel hidden space-y-6"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
+            <Icon name="material-symbols:balance-rounded" class="size-3.5" /> Stage 3: Conflict Resolution Studio
+          </span>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">You Choose Which Value Wins</h3>
+          <p class="text-sm text-muted-foreground">Interactive side-by-side reconciliation. Click a value to test resolving fields!</p>
+        </div>
+        <div class="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+          <Icon name="material-symbols:edit-note" class="size-4" />
+          Interactive Demo
+        </div>
+      </div>
+
+      <!-- Interactive resolution table -->
+      <div class="overflow-hidden rounded-2xl border border-border/80 bg-background/90 shadow-xs">
+        <div class="border-b border-border/80 bg-muted/50 px-4 py-2.5 text-xs font-bold text-foreground grid grid-cols-[100px_1fr_1fr] sm:grid-cols-[140px_1fr_1fr]">
+          <span>Field</span>
+          <span class="flex items-center gap-1.5"><ServiceMark id="spoolman" class="size-3.5" /> Spoolman</span>
+          <span class="flex items-center gap-1.5"><ServiceMark id="bambuddy" class="size-3.5" /> Bambuddy</span>
+        </div>
+
+        <!-- Field 1: Remaining Weight -->
+        <div class="p-3 border-b border-border/60 grid grid-cols-[100px_1fr_1fr] sm:grid-cols-[140px_1fr_1fr] items-center gap-2 text-xs">
+          <span class="font-bold text-foreground">Remaining:</span>
+          <div>
+            <button
+              type="button"
+              class="field-resolve-btn w-full rounded-xl border border-primary bg-primary/10 px-3 py-2 font-semibold text-primary-text transition-all hover:ring-2 hover:ring-primary/40 text-left flex items-center justify-between"
+              data-field="weight"
+              data-val="740g"
+              aria-pressed="true"
+            >
+              <span>740 g</span>
+              <span class="status-indicator size-2 rounded-full bg-primary"></span>
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              class="field-resolve-btn w-full rounded-xl border border-border bg-card px-3 py-2 font-medium text-muted-foreground transition-all hover:border-primary/40 text-left flex items-center justify-between"
+              data-field="weight"
+              data-val="720g"
+              aria-pressed="false"
+            >
+              <span>720 g</span>
+              <span class="status-indicator size-2 rounded-full bg-muted-foreground/30"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Field 2: Storage Location -->
+        <div class="p-3 grid grid-cols-[100px_1fr_1fr] sm:grid-cols-[140px_1fr_1fr] items-center gap-2 text-xs">
+          <span class="font-bold text-foreground">Location:</span>
+          <div>
+            <button
+              type="button"
+              class="field-resolve-btn w-full rounded-xl border border-border bg-card px-3 py-2 font-medium text-muted-foreground transition-all hover:border-primary/40 text-left flex items-center justify-between"
+              data-field="location"
+              data-val="drybox"
+              aria-pressed="false"
+            >
+              <span>Drybox A</span>
+              <span class="status-indicator size-2 rounded-full bg-muted-foreground/30"></span>
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              class="field-resolve-btn w-full rounded-xl border border-primary bg-primary/10 px-3 py-2 font-semibold text-primary-text transition-all hover:ring-2 hover:ring-primary/40 text-left flex items-center justify-between"
+              data-field="location"
+              data-val="ams"
+              aria-pressed="true"
+            >
+              <span>AMS Slot 1</span>
+              <span class="status-indicator size-2 rounded-full bg-primary"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-muted-foreground">
+        <strong class="text-foreground">Preservation guarantee:</strong> Unresolved fields stay untouched; unknown vendor-specific metadata is preserved 1:1.
+      </p>
+    </div>
+
+    <!-- PANEL 4: APPLY -->
+    <div
+      role="tabpanel"
+      id="panel-step-4"
+      aria-labelledby="tab-step-4"
+      class="step-panel hidden space-y-6"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
+            <Icon name="material-symbols:publish-rounded" class="size-3.5" /> Stage 4: Zero-Loss Sync & Write
+          </span>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Preview Staging & Safe Commit</h3>
+          <p class="text-sm text-muted-foreground">All changes are prepared and verified before any remote writes occur.</p>
+        </div>
+        <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+          <Icon name="material-symbols:shield-outline" class="size-4" />
+          Pre-Flight Staging Check
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div class="rounded-2xl border border-emerald-500/30 bg-card/80 p-4">
+          <div class="flex items-center gap-2 font-bold text-sm text-foreground">
+            <Icon name="material-symbols:cloud-sync-outline" class="size-4 text-emerald-800 dark:text-emerald-300" />
+            <span>Direct API Writes</span>
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">
+            Spoolman receives atomic PATCH requests for confirmed field differences. Failed requests leave the previous state intact.
+          </p>
+          <div class="mt-3 font-mono text-[0.7rem] bg-muted/60 p-2 rounded-lg text-foreground">
+            PATCH /api/v1/spool/42 {"{remaining_weight: 740}"}
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-primary/30 bg-card/80 p-4">
+          <div class="flex items-center gap-2 font-bold text-sm text-foreground">
+            <Icon name="material-symbols:download-rounded" class="size-4 text-primary-text" />
+            <span>Updated File Exports</span>
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">
+            Download updated JSON or CSV exports tailored for Bambuddy or TigerTag, with full vendor schema parity.
+          </p>
+          <div class="mt-3 font-mono text-[0.7rem] bg-muted/60 p-2 rounded-lg text-foreground">
+            bambuddy-synchronized.json ready for import
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function initSyncVisualizer() {
+    const root = document.getElementById("sync-visualizer");
+    if (!root) return;
+
+    const tabs = root.querySelectorAll<HTMLButtonElement>(".step-tab");
+    const panels = root.querySelectorAll<HTMLElement>(".step-panel");
+
+    function selectStep(stepNum: string) {
+      tabs.forEach((tab) => {
+        const isMatch = tab.dataset.step === stepNum;
+        tab.setAttribute("aria-selected", isMatch ? "true" : "false");
+        tab.setAttribute("tabindex", isMatch ? "0" : "-1");
+        const numSpan = tab.querySelector(".step-num");
+
+        if (isMatch) {
+          tab.className = "step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-primary-text bg-background shadow-xs ring-1 ring-primary/30";
+          if (numSpan) {
+            numSpan.className = "step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-white";
+          }
+        } else {
+          tab.className = "step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-muted-foreground hover:text-foreground hover:bg-background/50";
+          if (numSpan) {
+            numSpan.className = "step-num flex size-5 items-center justify-center rounded-full bg-muted-foreground/20 text-[0.65rem] font-black text-foreground";
+          }
+        }
+      });
+
+      panels.forEach((panel) => {
+        const isMatch = panel.id === `panel-step-${stepNum}`;
+        if (isMatch) {
+          panel.classList.remove("hidden");
+        } else {
+          panel.classList.add("hidden");
+        }
+      });
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const step = tab.dataset.step;
+        if (step) selectStep(step);
+      });
+
+      tab.addEventListener("keydown", (e) => {
+        const tabList = Array.from(tabs);
+        const index = tabList.indexOf(tab);
+        let nextIndex: number | null = null;
+
+        if (e.key === "ArrowRight") {
+          nextIndex = (index + 1) % tabList.length;
+        } else if (e.key === "ArrowLeft") {
+          nextIndex = (index - 1 + tabList.length) % tabList.length;
+        }
+
+        if (nextIndex !== null) {
+          e.preventDefault();
+          const target = tabList[nextIndex];
+          target?.focus();
+          const step = target?.dataset.step;
+          if (step) selectStep(step);
+        }
+      });
+    });
+
+    // Resolution button simulation
+    const resolveButtons = root.querySelectorAll<HTMLButtonElement>(".field-resolve-btn");
+    resolveButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const field = btn.dataset.field;
+        if (!field) return;
+
+        // Deselect sibling buttons in same field
+        const siblings = root.querySelectorAll<HTMLButtonElement>(`.field-resolve-btn[data-field="${field}"]`);
+        siblings.forEach((s) => {
+          s.setAttribute("aria-pressed", "false");
+          s.className = "field-resolve-btn w-full rounded-xl border border-border bg-card px-3 py-2 font-medium text-muted-foreground transition-all hover:border-primary/40 text-left flex items-center justify-between";
+          const indicator = s.querySelector(".status-indicator");
+          if (indicator) indicator.className = "status-indicator size-2 rounded-full bg-muted-foreground/30";
+        });
+
+        // Activate clicked button
+        btn.setAttribute("aria-pressed", "true");
+        btn.className = "field-resolve-btn w-full rounded-xl border border-primary bg-primary/10 px-3 py-2 font-semibold text-primary-text transition-all hover:ring-2 hover:ring-primary/40 text-left flex items-center justify-between";
+        const indicator = btn.querySelector(".status-indicator");
+        if (indicator) indicator.className = "status-indicator size-2 rounded-full bg-primary";
+      });
+    });
+  }
+
+  // Support both normal load and client router if present
+  initSyncVisualizer();
+  document.addEventListener("astro:page-load", initSyncVisualizer);
+</script>

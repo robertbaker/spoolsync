@@ -35,126 +35,142 @@ const providerPlatforms: Record<SourceId, string> = {
   title={`Credits — ${SITE_TITLE}`}
   description="Credits and attributions for third-party icons, brand logos, and assets used in SpoolSync."
 >
-  <Container class="py-10 sm:py-14">
-    <PageHeader
-      eyebrow="Attribution"
-      title="Credits"
-      description="SpoolSync is open-source and relies on graphics, icons, and libraries created by the community. We gratefully credit the following authors and resources."
-    />
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
 
-    <h2 class="mt-10 text-2xl font-bold tracking-tight">Service & Provider Icons</h2>
-    <div class="mt-6 grid gap-6 md:grid-cols-2">
-      <section class="app-card flex flex-col" aria-labelledby="credit-3dfp-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="vendor/3dfilamentprofiles" color="primary" />
-          <h3 id="credit-3dfp-heading" class="text-xl font-semibold">3DFilamentProfiles</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          3d printer filament by Oleksandr Panasovskyi from <a
-            href="https://thenounproject.com/browse/icons/term/3d-printer-filament/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="3d printer filament Icons"
-            class="underline hover:text-foreground"
-          >Noun Project</a> (<a
-            href="https://creativecommons.org/licenses/by/3.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >CC BY 3.0</a>)
-        </p>
-      </section>
+    <Container class="relative z-10 py-10 sm:py-14">
+      <PageHeader
+        eyebrow="Attribution"
+        title="Credits"
+        description="SpoolSync is open-source and relies on graphics, icons, and libraries created by the community. We gratefully credit the following authors and resources."
+      />
 
-      {
-        logoCredits.map((service) => (
-          <section class="app-card flex flex-col" aria-labelledby={`credit-${service.id}-heading`}>
-            <div class="flex items-center gap-3">
-              <IconAvatar color="primary">
-                <ServiceMark id={service.id} class="size-7" slot="icon" />
-              </IconAvatar>
-              <h3 id={`credit-${service.id}-heading`} class="text-xl font-semibold">{service.fullName}</h3>
-            </div>
-            <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Logo courtesy of <a
-                href={service.vendorUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="underline hover:text-foreground"
-              >{service.creditBy}</a>, used to identify compatibility.
-            </p>
-          </section>
-        ))
-      }
+      <h2 class="mt-10 text-2xl font-bold tracking-tight">Service & Provider Icons</h2>
+      <div class="mt-6 grid gap-6 md:grid-cols-2">
+        <section class="modern-card rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex flex-col" aria-labelledby="credit-3dfp-heading">
+          <div class="flex items-center gap-3">
+            <IconAvatar icon="vendor/3dfilamentprofiles" color="primary" />
+            <h3 id="credit-3dfp-heading" class="text-xl font-semibold">3DFilamentProfiles</h3>
+          </div>
+          <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+            3d printer filament by Oleksandr Panasovskyi from <a
+              href="https://thenounproject.com/browse/icons/term/3d-printer-filament/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="3d printer filament Icons"
+              class="underline hover:text-foreground"
+            >Noun Project</a> (<a
+              href="https://creativecommons.org/licenses/by/3.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline hover:text-foreground"
+            >CC BY 3.0</a>)
+          </p>
+        </section>
 
-      <section class="app-card flex flex-col" aria-labelledby="credit-generic-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="material-symbols:inventory-2-outline" color="primary" />
-          <h3 id="credit-generic-heading" class="text-xl font-semibold">Other tools</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          {allServiceNames(genericIconTools.map((service) => service.id))} are shown with generic Google Material Symbols
-          icons rather than their own logos.
-        </p>
-      </section>
-
-      <section class="app-card flex flex-col" aria-labelledby="credit-icons-heading">
-        <div class="flex items-center gap-3">
-          <IconAvatar icon="material-symbols:category-outline" color="primary" />
-          <h3 id="credit-icons-heading" class="text-xl font-semibold">Interface Icons</h3>
-        </div>
-        <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
-          UI and system icons are provided by <a
-            href="https://fonts.google.com/icons"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Google Material Symbols</a> (Apache 2.0) and <a
-            href="https://simpleicons.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >Simple Icons</a> (CC0 1.0 Universal) via <a
-            href="https://github.com/natemoo-re/astro-icon"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="underline hover:text-foreground"
-          >astro-icon</a>.
-        </p>
-      </section>
-    </div>
-
-    <h2 class="mt-10 text-2xl font-bold tracking-tight">Service Providers</h2>
-    <p class="mt-2 text-sm text-muted-foreground">
-      The tools SpoolSync can read from and write to. Please support their authors.
-    </p>
-    <ul class="mt-6 grid gap-4 md:grid-cols-2">
-      {
-        SERVICE_VIEWS.map((service) => (
-          <li class="app-card flex flex-col">
-            <h3 class="text-lg font-semibold">
-              {service.vendorUrl ? (
-                <a
+        {
+          logoCredits.map((service) => (
+            <section class="modern-card rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex flex-col" aria-labelledby={`credit-${service.id}-heading`}>
+              <div class="flex items-center gap-3">
+                <IconAvatar color="primary">
+                  <ServiceMark id={service.id} class="size-7" slot="icon" />
+                </IconAvatar>
+                <h3 id={`credit-${service.id}-heading`} class="text-xl font-semibold">{service.fullName}</h3>
+              </div>
+              <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Logo courtesy of <a
                   href={service.vendorUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   class="underline hover:text-foreground"
-                >{service.fullName}</a>
-              ) : (
-                service.fullName
-              )}
-            </h3>
-            <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{providerPlatforms[service.id]}</p>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{service.tagline}</p>
-          </li>
-        ))
-      }
-    </ul>
+                >{service.creditBy}</a>, used to identify compatibility.
+              </p>
+            </section>
+          ))
+        }
 
-    <section class="app-card mt-10" aria-labelledby="disclaimer-heading">
-      <h3 id="disclaimer-heading" class="text-lg font-semibold">Trademarks & Compatibility Notice</h3>
-      <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+        <section class="modern-card rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex flex-col" aria-labelledby="credit-generic-heading">
+          <div class="flex items-center gap-3">
+            <IconAvatar icon="material-symbols:inventory-2-outline" color="primary" />
+            <h3 id="credit-generic-heading" class="text-xl font-semibold">Other tools</h3>
+          </div>
+          <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+            {allServiceNames(genericIconTools.map((service) => service.id))} are shown with generic Google Material Symbols
+            icons rather than their own logos.
+          </p>
+        </section>
+
+        <section class="modern-card rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex flex-col" aria-labelledby="credit-icons-heading">
+          <div class="flex items-center gap-3">
+            <IconAvatar icon="material-symbols:category-outline" color="primary" />
+            <h3 id="credit-icons-heading" class="text-xl font-semibold">Interface Icons</h3>
+          </div>
+          <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+            UI and system icons are provided by <a
+              href="https://fonts.google.com/icons"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline hover:text-foreground"
+            >Google Material Symbols</a> (Apache 2.0) and <a
+              href="https://simpleicons.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline hover:text-foreground"
+            >Simple Icons</a> (CC0 1.0 Universal) via <a
+              href="https://github.com/natemoo-re/astro-icon"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="underline hover:text-foreground"
+            >astro-icon</a>.
+          </p>
+        </section>
+      </div>
+
+      <h2 class="mt-12 text-2xl font-bold tracking-tight">Service Providers</h2>
+      <p class="mt-2 text-sm text-muted-foreground">
+        The tools SpoolSync can read from and write to. Please support their authors.
+      </p>
+      <ul class="mt-6 grid gap-4 md:grid-cols-2">
+        {
+          SERVICE_VIEWS.map((service) => (
+            <li class="modern-card rounded-2xl border bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <ServiceMark id={service.id} class="size-5 shrink-0" />
+                    <h3 class="text-base font-bold text-foreground">
+                      {service.vendorUrl ? (
+                        <a
+                          href={service.vendorUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="hover:text-primary-text hover:underline inline-flex items-center gap-1"
+                        >
+                          {service.fullName}
+                          <span class="text-xs text-muted-foreground">↗</span>
+                        </a>
+                      ) : (
+                        service.fullName
+                      )}
+                    </h3>
+                  </div>
+                  <span class="rounded-md bg-muted px-2 py-0.5 text-[0.68rem] font-bold text-muted-foreground">
+                    {providerPlatforms[service.id]}
+                  </span>
+                </div>
+                <p class="mt-2.5 text-sm leading-relaxed text-muted-foreground">{service.tagline}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+
+      <section class="modern-card mt-10 rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs" aria-labelledby="disclaimer-heading">
+        <h3 id="disclaimer-heading" class="text-lg font-semibold">Trademarks & Compatibility Notice</h3>
+        <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
         SpoolSync is an independent open-source project and is not affiliated with, endorsed by, or sponsored by {allServiceNames(undefined, "or", ["Bambu Lab"])}. All brand names, registered trademarks, and logos are property of their respective owners and are used strictly to identify compatibility.
       </p>
     </section>
   </Container>
+  </div>
 </BaseLayout>

@@ -23,13 +23,13 @@ const { steps, class: className } = Astro.props;
       <TimelineItem classes={{ end: "timeline-end lg:!col-[1/4] lg:self-stretch lg:justify-self-stretch lg:px-2" }}>
         <span
           slot="middle"
-          class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground"
+          class="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-amber-600 text-sm font-extrabold text-white shadow-xs ring-4 ring-primary/15"
         >
           {index + 1}
         </span>
-        <div class="modern-card ml-4 rounded-xl border bg-card p-4 transition-all hover:border-primary/60 hover:shadow-md lg:ml-0 lg:mt-1 lg:h-full lg:text-center">
-          <h3 class="text-lg font-semibold">{step.href ? <a class="hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded" href={step.href}>{step.title}</a> : step.title}</h3>
-          <p class="mt-1 text-sm text-muted-foreground">{step.body}</p>
+        <div class="modern-card ml-4 rounded-2xl border bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 lg:ml-0 lg:mt-2 lg:h-full lg:text-center">
+          <h3 class="text-lg font-bold">{step.href ? <a class="hover:text-primary-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded" href={step.href}>{step.title}</a> : step.title}</h3>
+          <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">{step.body}</p>
         </div>
       </TimelineItem>
     ))

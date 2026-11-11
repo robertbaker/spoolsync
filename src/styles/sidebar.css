@@ -190,6 +190,7 @@ body.has-sidebar {
   background: color-mix(in oklab, var(--primary) 14%, transparent);
   color: var(--primary-text);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .sb-link[hidden] {

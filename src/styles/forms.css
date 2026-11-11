@@ -25,11 +25,11 @@
   }
 
   .app-card {
-    @apply bg-card rounded-2xl border p-5 shadow-xs sm:p-6;
+    @apply bg-card/90 border-border/80 rounded-2xl border p-5 shadow-xs backdrop-blur-xs sm:p-6;
   }
 
   .dropzone {
-    @apply border-border bg-muted/30 text-muted-foreground hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:bg-primary/5 data-[dragging=true]:border-primary data-[dragging=true]:bg-primary/10 data-[dragging=true]:ring-primary/20 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-6 text-center text-sm transition-all duration-150 data-[dragging=true]:ring-4;
+    @apply border-border/80 bg-muted/20 text-muted-foreground hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:bg-primary/5 data-[dragging=true]:border-primary data-[dragging=true]:bg-primary/10 data-[dragging=true]:ring-primary/20 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center text-sm shadow-xs transition-all duration-200 data-[dragging=true]:ring-4;
   }
 }
 
