@@ -11,6 +11,7 @@ import HeroShowcase from "~/components/home/HeroShowcase.astro";
 import SyncVisualizer from "~/components/home/SyncVisualizer.astro";
 import FilamentPalette from "~/components/home/FilamentPalette.astro";
 import TareCalculator from "~/components/home/TareCalculator.astro";
+import FaqSection from "~/components/home/FaqSection.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
 import { SERVICE_VIEWS, SERVICE_COUNT_WORD } from "~/lib/services";
 
@@ -204,6 +205,8 @@ import { steps, highlights } from "~/components/home/data";
       </div>
 
       <ServiceMatrix />
+
+      <FaqSection />
     </Container>
   </div>
 </BaseLayout>

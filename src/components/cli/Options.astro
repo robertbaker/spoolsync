@@ -28,7 +28,7 @@ import { optionGroups } from "./data";
                 <h3 class="text-lg">{group.title}</h3>
                 <p class="text-sm text-muted-foreground">{group.note}</p>
               </div>
-              <dl class="mt-3 divide-y overflow-hidden rounded-xl border bg-card">
+              <dl class="glass-surface mt-3 divide-y overflow-hidden rounded-2xl border border-border/80 bg-card/90 shadow-layered">
                 {group.rows.map((row) => (
                   <div data-option-row class="group grid gap-1 px-4 py-3 transition-colors hover:bg-muted/50 sm:grid-cols-[17rem_1fr] sm:gap-4">
                     <dt class="flex min-w-0 items-center gap-1">

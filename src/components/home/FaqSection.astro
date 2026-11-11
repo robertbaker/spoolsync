@@ -1,0 +1,78 @@
+---
+/**
+ * Maker FAQ & Architecture Section.
+ * Answers the most common questions regarding local-first execution,
+ * non-destructive field preservation, and cross-ecosystem synchronization.
+ */
+import { Icon } from "astro-icon/components";
+import { SERVICE_COUNT_WORD } from "~/lib/services";
+
+const faqs = [
+  {
+    question: "How does SpoolSync connect to Spoolman without a backend server?",
+    answer:
+      "SpoolSync runs 100% client-side inside your browser tab. When you connect Spoolman, your browser dispatches direct HTTP/REST requests across your local area network (LAN) straight to your server. No proxy, cloud server, or middleman is involved, keeping your homelab completely private.",
+  },
+  {
+    question: "Are custom or vendor-specific fields preserved when syncing?",
+    answer:
+      "Yes. SpoolSync follows strict non-destructive synchronization rules. If a tool includes proprietary fields (like Bambu AMS RFID tags, custom notes, or unique vendor IDs), those fields are preserved untouched during reconciliation and export. SpoolSync never discards fields it doesn't recognize.",
+  },
+  {
+    question: "Can I use SpoolSync offline in my workshop without internet?",
+    answer:
+      "Yes! SpoolSync is built as an offline-ready Progressive Web App (PWA). Once loaded in your browser, the matching engine, density tables, tare calculator, and reference catalogs remain cached and fully operational even if your internet connection goes down.",
+  },
+  {
+    question: `How does SpoolSync match spools across all ${SERVICE_COUNT_WORD} supported tools?`,
+    answer:
+      "SpoolSync uses a multi-tier deterministic matching algorithm: first linking identical shared hardware IDs and serials, then computing fuzzy confidence scores based on normalized vendor names, polymer types (PLA, PETG, ASA, TPU), filament diameters, and perceptual color hex distances. You always retain manual approval over ambiguous matches.",
+  },
+  {
+    question: "How does the empty spool tare calculator work?",
+    answer:
+      "Every brand's empty spool has a distinct tare weight (e.g. 250g for Bambu Lab, 200g for Prusament, 140g for Polymaker). By subtracting the empty spool tare from the gross scale reading, SpoolSync calculates the exact net filament, converts it to remaining length in meters, and syncs the verified weight directly to your inventories.",
+  },
+];
+---
+
+<section class="mt-20 scroll-mt-20" id="maker-faq">
+  <div class="glass-surface relative overflow-hidden rounded-3xl border border-border/80 p-6 sm:p-10 shadow-layered">
+    <!-- Ambient background glow -->
+    <div class="pointer-events-none absolute -right-24 -top-24 size-60 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-border/70 pb-6">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-primary-text">Maker Knowledge Base</p>
+        <h2 class="mt-1 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+          Frequently asked questions
+        </h2>
+        <p class="mt-2 text-sm text-muted-foreground sm:text-base max-w-xl">
+          Everything you need to know about SpoolSync's local-first architecture, field preservation, and offline capabilities.
+        </p>
+      </div>
+      <div class="shrink-0 mt-3 sm:mt-0">
+        <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-text">
+          <Icon name="material-symbols:help-outline" class="size-4" />
+          Zero Telemetry Guaranteed
+        </span>
+      </div>
+    </div>
+
+    <div class="mt-8 divide-y divide-border/60">
+      {faqs.map((faq, index) => (
+        <details class="group py-4 first:pt-0 last:pb-0" id={`faq-item-${index}`}>
+          <summary class="flex cursor-pointer items-center justify-between gap-4 text-left font-bold text-base sm:text-lg text-foreground hover:text-primary-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg transition-colors py-1">
+            <span>{faq.question}</span>
+            <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition-transform duration-200 group-open:rotate-180 group-open:bg-primary/15 group-open:text-primary-text">
+              <Icon name="material-symbols:keyboard-arrow-down-rounded" class="size-5" />
+            </span>
+          </summary>
+          <div class="mt-3 pr-8 text-sm leading-relaxed text-muted-foreground">
+            <p>{faq.answer}</p>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
