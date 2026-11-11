@@ -78,7 +78,7 @@ const ctaTopics = postTopics.slice(0, 5);
     />
 
     <section class="relative mx-auto -mt-6 grid max-w-5xl gap-10 px-4 sm:-mt-8 lg:px-8">
-      <figure class="aspect-16/9 overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
+      <figure class="aspect-16/9 overflow-hidden rounded-3xl border border-border/80 bg-card shadow-layered">
         <OptimizedImage
           src={post.data.coverImage}
           alt={post.data.coverAlt}
@@ -91,7 +91,7 @@ const ctaTopics = postTopics.slice(0, 5);
         />
       </figure>
 
-      <div class="rounded-3xl border border-border bg-card p-8 shadow-xl lg:p-12">
+      <div class="rounded-3xl border border-border/80 bg-card/90 p-8 shadow-layered backdrop-blur-xs lg:p-12">
         <div class="prose prose-lg max-w-none dark:prose-invert">
           <Content components={mdxComponents} />
         </div>
@@ -99,7 +99,8 @@ const ctaTopics = postTopics.slice(0, 5);
         <PostTopics topics={postTopics} />
       </div>
 
-      <div class="rounded-3xl border border-primary/20 bg-primary/5 p-6 sm:p-8">
+      <div class="glass-surface relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-10 shadow-layered">
+        <div class="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-primary/10 blur-2xl" aria-hidden="true"></div>
         <p class="text-xs font-semibold uppercase tracking-[0.3em] text-primary-text">Thanks for reading</p>
         <h2 class="text-2xl font-bold text-foreground">{ctaHeading}</h2>
         <p class="mt-3 text-base text-muted-foreground">{ctaDescription}</p>

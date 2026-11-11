@@ -112,12 +112,12 @@ const spoolman = serviceView("spoolman");
       </search>
     </div>
 
-    <div class="mt-3 rounded-lg border bg-muted/20 p-3">
-      <label class="flex items-start gap-2 text-sm" for="auto-fetch">
-        <input id="auto-fetch" type="checkbox" class="mt-0.5 size-4" aria-describedby="auto-fetch-hint" />
-        <span class="font-medium">Fetch connected services when this page opens</span>
+    <div class="mt-4 rounded-2xl border border-border/80 bg-card/60 p-4 backdrop-blur-xs shadow-xs transition-all">
+      <label class="flex items-start gap-2.5 text-sm cursor-pointer" for="auto-fetch">
+        <input id="auto-fetch" type="checkbox" class="mt-0.5 size-4 accent-primary" aria-describedby="auto-fetch-hint" />
+        <span class="font-medium text-foreground">Fetch connected services when this page opens</span>
       </label>
-      <p id="auto-fetch-hint" class="field-hint ml-6">
+      <p id="auto-fetch-hint" class="field-hint ml-6.5 text-xs text-muted-foreground mt-0.5">
         Contacts the servers you have connected (including ones on your local network) each time you open Load, using the saved address and key.
       </p>
     </div>
@@ -349,7 +349,7 @@ const spoolman = serviceView("spoolman");
     <div
       id="load-bar"
       hidden
-      class="sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border bg-card/95 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-card/80"
+      class="glass-surface sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border border-primary/20 bg-card/90 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-layered backdrop-blur-md"
     >
       <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
         Nothing loaded yet. Drop export files above or open a service below.
