@@ -10,6 +10,7 @@ import ServiceMatrix from "~/components/home/ServiceMatrix.astro";
 import HeroShowcase from "~/components/home/HeroShowcase.astro";
 import SyncVisualizer from "~/components/home/SyncVisualizer.astro";
 import FilamentPalette from "~/components/home/FilamentPalette.astro";
+import TareCalculator from "~/components/home/TareCalculator.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
 import { SERVICE_VIEWS, SERVICE_COUNT_WORD } from "~/lib/services";
 
@@ -173,6 +174,8 @@ import { steps, highlights } from "~/components/home/data";
       </section>
 
       <FilamentPalette />
+
+      <TareCalculator />
 
       <!-- Interactive Callout -->
       <div class="glass-surface mt-16 relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-10 shadow-layered text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-8">

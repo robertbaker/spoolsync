@@ -59,6 +59,13 @@ const spoolman = serviceView("spoolman");
           </span>
           <span class="font-semibold text-foreground text-base">Choose export files</span>
           <span class="text-xs text-muted-foreground">or drop several at once ({extensionList()})</span>
+          <div class="mt-2 flex flex-wrap justify-center gap-1.5" aria-hidden="true">
+            <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">JSON</span>
+            <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">CSV</span>
+            <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">3MF</span>
+            <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">XLSX</span>
+            <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">.ttag</span>
+          </div>
           <input id="smart-file" type="file" multiple accept={dropAccept} class="sr-only" />
         </label>
         <div id="smart-message" class="mt-4 empty:mt-0" aria-live="polite"></div>

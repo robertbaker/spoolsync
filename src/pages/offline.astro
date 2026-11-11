@@ -10,18 +10,24 @@ import { SITE_TITLE } from "~/config";
   description="This page is not saved for offline use."
   robots="noindex, follow, noarchive"
 >
-  <Container class="py-20 text-center sm:py-28">
-    <div class="mx-auto flex max-w-2xl flex-col items-center">
-      <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">You are offline</h1>
-      <p class="mt-4 text-lg text-muted-foreground">
-        This page was not saved on this device, so it cannot open without a connection. The main
-        pages are saved, and loading files and comparing inventories works offline. Fetching from a
-        service on your network needs that service to be reachable.
-      </p>
-      <div class="mt-8 flex flex-wrap justify-center gap-3">
-        <Button href="/" color="primary" size="lg">Home</Button>
-        <Button href="/load" variant="outline" size="lg">Inventory</Button>
+  <div class="relative isolate overflow-hidden">
+    <div class="hero-glow-backdrop" aria-hidden="true"></div>
+
+    <Container class="relative z-10 py-20 text-center sm:py-28">
+      <div class="mx-auto flex max-w-2xl flex-col items-center">
+        <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
+          You are <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">offline</span>
+        </h1>
+        <p class="mt-4 text-lg text-muted-foreground">
+          This page was not saved on this device, so it cannot open without a connection. The main
+          pages are saved, and loading files and comparing inventories works offline. Fetching from a
+          service on your network needs that service to be reachable.
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          <Button href="/" color="primary" size="lg" class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all">Home</Button>
+          <Button href="/load" variant="outline" size="lg" class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5">Inventory</Button>
+        </div>
       </div>
-    </div>
-  </Container>
+    </Container>
+  </div>
 </BaseLayout>
