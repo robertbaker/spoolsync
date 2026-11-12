@@ -18,3 +18,5 @@ ref/
 public/reference/
 
 .claude/worktrees/
+
+.ref/
