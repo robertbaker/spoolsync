@@ -37,12 +37,16 @@ export function wireDryingPanel(
   results: ReadonlyMap<SourceId, LoadResult>,
   catalogFor: (spool: CommonSpool) => CatalogDrying | null = () => null,
 ): { update(): void; count(): number } {
-  const details = h("details", { class: "rounded-xl border", id: "drying-details" });
+  const details = h("details", {
+    class:
+      "modern-card group rounded-2xl border border-border/80 bg-card/90 shadow-xs transition-all hover:border-primary/40",
+    id: "drying-details",
+  });
   const summary = h(
     "summary",
     {
       class:
-        "cursor-pointer rounded-xl p-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary",
+        "cursor-pointer rounded-2xl p-4 text-sm font-semibold text-foreground hover:text-primary-text transition-colors focus-visible:outline-2 focus-visible:outline-primary",
     },
     "Drying guide",
   );

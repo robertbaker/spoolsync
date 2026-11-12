@@ -177,5 +177,37 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(page.locator("#suggestions article").first()).toBeVisible();
       expect(await violations(page)).toEqual([]);
     });
+
+    test("cli page has no detectable violations", async ({ page }) => {
+      await page.goto("/cli");
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("credits page has no detectable violations", async ({ page }) => {
+      await page.goto("/credits");
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("privacy page has no detectable violations", async ({ page }) => {
+      await page.goto("/privacy");
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("offline page has no detectable violations", async ({ page }) => {
+      await page.goto("/offline");
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("not-found page has no detectable violations", async ({ page }) => {
+      await page.goto("/404");
+      expect(await violations(page)).toEqual([]);
+    });
+
+    test("resources archive and article pages have no detectable violations", async ({ page }) => {
+      await page.goto("/resources");
+      expect(await violations(page)).toEqual([]);
+      await page.goto("/resources/introducing-the-cli");
+      expect(await violations(page)).toEqual([]);
+    });
   });
 }

@@ -32,7 +32,7 @@ import { optionGroups } from "./data";
                 {group.rows.map((row) => (
                   <div data-option-row class="group grid gap-1 px-4 py-3 transition-colors hover:bg-muted/50 sm:grid-cols-[17rem_1fr] sm:gap-4">
                     <dt class="flex min-w-0 items-center gap-1">
-                      <code class="min-w-0 break-words font-mono text-sm font-semibold text-primary">{row.flag}</code>
+                      <code class="min-w-0 break-words font-mono text-sm font-semibold text-primary-text">{row.flag}</code>
                       <button
                         type="button"
                         data-copy-code={row.copy}

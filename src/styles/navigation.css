@@ -201,8 +201,6 @@
 }
 
 .service-matrix__row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 11rem;
   display: grid;
   gap: 0.875rem;
   padding: 1rem;

@@ -67,13 +67,14 @@ export function wireCleanupPanel(
   const details = h("details", {
     id: "cleanup-details",
     "data-panel": "cleanup",
-    class: "rounded-xl border",
+    class:
+      "modern-card group rounded-2xl border border-border/80 bg-card/90 shadow-xs transition-all hover:border-primary/40",
   });
   const summary = h(
     "summary",
     {
       class:
-        "cursor-pointer rounded-xl p-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-primary",
+        "cursor-pointer rounded-2xl p-4 text-sm font-semibold text-foreground hover:text-primary-text transition-colors focus-visible:outline-2 focus-visible:outline-primary",
     },
     "Clean up data",
   );

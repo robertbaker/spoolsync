@@ -23,29 +23,33 @@ const { meta: BLOG_META, page, allTags, heroTags, currentPageLabel } = Astro.pro
           {BLOG_META.subheading}
         </p>
         <dl class="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-border/60 pt-5">
-          <div class="flex items-center gap-2.5">
+          <div>
             <dt class="sr-only">Archive size</dt>
-            <div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-text">
-              <Icon name="material-symbols:article-outline" class="size-4" />
-            </div>
-            <dd class="text-sm font-semibold text-foreground/80">
-              <span class="text-xl font-black text-foreground">{page.total}</span>
-              {page.total === 1 ? "article" : "articles"}
+            <dd class="flex items-center gap-2.5 text-sm font-semibold text-foreground/80">
+              <span class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-text" aria-hidden="true">
+                <Icon name="material-symbols:article-outline" class="size-4" />
+              </span>
+              <span>
+                <span class="text-xl font-black text-foreground mr-1.5">{page.total}</span>
+                {page.total === 1 ? "article" : "articles"}
+              </span>
             </dd>
           </div>
-          <div class="flex items-center gap-2.5">
+          <div>
             <dt class="sr-only">Topic coverage</dt>
-            <div class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-text">
-              <Icon name="material-symbols:label-outline" class="size-4" />
-            </div>
-            <dd class="text-sm font-semibold text-foreground/80">
-              <span class="text-xl font-black text-foreground">{allTags.length}</span>
-              {allTags.length === 1 ? "topic" : "topics"}
+            <dd class="flex items-center gap-2.5 text-sm font-semibold text-foreground/80">
+              <span class="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary-text" aria-hidden="true">
+                <Icon name="material-symbols:label-outline" class="size-4" />
+              </span>
+              <span>
+                <span class="text-xl font-black text-foreground mr-1.5">{allTags.length}</span>
+                {allTags.length === 1 ? "topic" : "topics"}
+              </span>
             </dd>
           </div>
           {
             page.lastPage > 1 && (
-              <div class="flex items-center gap-2.5">
+              <div>
                 <dt class="sr-only">Current page</dt>
                 <dd class="text-sm font-semibold text-foreground/80" aria-label={currentPageLabel}>
                   {currentPageLabel}
