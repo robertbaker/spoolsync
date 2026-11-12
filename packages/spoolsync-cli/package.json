@@ -1,6 +1,6 @@
 {
   "name": "spoolsync",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "CLI for comparing filament inventories across supported tools and syncing updates",
   "homepage": "https://spoolsync.com",
   "bugs": {

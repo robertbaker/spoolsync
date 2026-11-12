@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.6.0...spoolsync-cli-v0.7.0) (2026-11-12)
+
+### Features
+
+* **ui:** add workshop drying guide and polish workflow action bars ([4a7734a](https://github.com/robertbaker/spoolsync/commit/4a7734a6f64f2c87871a462af675410d2ebca3ac))
+* **web:** add interactive tare weigh-in calculator and maker dropzone badges ([efa61ec](https://github.com/robertbaker/spoolsync/commit/efa61ecca42e085ef1610a0dbeeeaca48dd3efcd))
+* **web:** add maker FAQ knowledge base and elevate privacy and CLI cards ([dcc0b85](https://github.com/robertbaker/spoolsync/commit/dcc0b8597b63657ada793c95724122fceb715304))
+* **web:** enhance visual design with interactive components and ambient effects ([21386d1](https://github.com/robertbaker/spoolsync/commit/21386d16c4db724b25a252c0c19e299715dafec8))
+
+### Bug Fixes
+
+* **a11y:** resolve contrast and dl hierarchy across themes, polish drawer panels and matrix rendering ([9a15657](https://github.com/robertbaker/spoolsync/commit/9a1565745d6291f9a49d66086aa87d373d6bee10))
+
 ## [0.6.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.5.0...spoolsync-cli-v0.6.0) (2026-11-10)
 
 ### Features
