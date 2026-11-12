@@ -38,7 +38,7 @@
     "test:dist": "bun run build && SPOOLSYNC_CLI_PATH=./dist/cli.js bun test ./src/cli.test.ts"
   },
   "dependencies": {
-    "papaparse": "^5.7.0",
+    "papaparse": "^5.7.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

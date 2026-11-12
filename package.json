@@ -69,7 +69,7 @@
     "tailwindcss-motion": "^1.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.3.8",
-    "wrangler": "^4.160.1"
+    "wrangler": "^4.161.0"
   },
   "browserslist": [
     "last 2 chrome versions",
