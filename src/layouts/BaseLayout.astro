@@ -36,11 +36,6 @@ interface Props {
 }
 
 const { title, description, post, image, imageAlt, robots, hideHeader, hideFooter } = Astro.props;
-// The navigation entries (config/site.ts) plus Credits, which the sidebar lists with the primary pages.
-const sidebarLinks = [
-  ...navLinks,
-  { href: "/credits", label: "Credits", text: "Credits", icon: "material-symbols:attribution-outline" },
-];
 // Sets the saved sidebar state before first paint so a collapsed rail does not flash open.
 const sidebarInitScript = `(function(){var m="expanded";try{if(localStorage.getItem(${JSON.stringify(SIDEBAR_KEY)})==="collapsed")m="collapsed"}catch(e){}document.documentElement.dataset.sidebar=m})()`;
 if (!hideHeader && Astro.csp) {
@@ -82,7 +77,7 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
       !hideHeader && (
         <>
           <a href="#app-sidebar" class="skip-nav">Skip to navigation</a>
-          <Sidebar links={sidebarLinks} version={cliPackage.version} />
+          <Sidebar links={navLinks} version={cliPackage.version} />
         </>
       )
     }
