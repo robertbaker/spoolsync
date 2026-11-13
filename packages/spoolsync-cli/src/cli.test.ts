@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { createFakePrintStudio } from "../../spoolsync-core/src/adapters/printstudio/fake-server";
 import { buildXlsx } from "../../spoolsync-core/src/adapters/shared/xlsx-fixture";
 import { createFakeSpoolman } from "../../spoolsync-core/src/adapters/spoolman/fake-server";
 import { version } from "../package.json";
@@ -790,6 +791,165 @@ for (const failRefresh of [true, false]) {
     }
   });
 }
+
+/** Serves the in-memory PrintStudio over HTTP and runs the CLI against it. */
+async function withPrintStudio(
+  lots: Parameters<typeof createFakePrintStudio>[0],
+  body: (
+    fake: ReturnType<typeof createFakePrintStudio>,
+    run: (
+      args: string[],
+      env?: Record<string, string>,
+    ) => Promise<{ stdout: string; stderr: string; code: number }>,
+  ) => Promise<void>,
+) {
+  const fake = createFakePrintStudio(lots);
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    async fetch(request) {
+      const text = request.method === "GET" ? undefined : await request.text();
+      return fake.fetchImpl(request.url, {
+        method: request.method,
+        headers: request.headers,
+        ...(text ? { body: text } : {}),
+      });
+    },
+  });
+  const run = async (args: string[], env: Record<string, string> = {}) => {
+    const child = spawnIsolated(
+      [runtime, cli, "--printstudio-url", server.url.toString(), ...args],
+      { stdout: "pipe", stderr: "pipe", env },
+    );
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, code };
+  };
+  try {
+    await body(fake, run);
+  } finally {
+    await server.stop(true);
+  }
+}
+
+const printstudioLot = (id: string, sourceSystem: string, extra: object = {}) => ({
+  id,
+  code: "pla",
+  family: "filament",
+  label: "Example PLA Blue",
+  brand: "Example",
+  material: "PLA",
+  colorName: "Blue",
+  quantityOnHand: 800,
+  unit: "g",
+  unitCostUsd: 0.02,
+  sourceSystem,
+  reorderPoint: 0,
+  appearance: { colors: ["#0000FF"], pattern: "solid", effects: [] },
+  ...extra,
+});
+
+test("PrintStudio loads over its API, needs the operator id, and links Spoolman lots by spoolmanId", async () => {
+  await writeFile(
+    path.join(directory, "spoolio.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          spoolmanId: 7,
+          brand: "Example",
+          type: "PLA",
+          colorName: "Blue",
+          weightTotal: 1000,
+          weightRemaining: 800,
+        },
+      ],
+    }),
+  );
+  await withPrintStudio([printstudioLot("spoolman-7", "spoolman")], async (fake, run) => {
+    const missing = await run(["--spoolio", path.join(directory, "spoolio.json"), "--json"]);
+    expect(missing.code).toBe(1);
+    expect(JSON.parse(missing.stdout).error.message).toContain("PRINTSTUDIO_OPERATOR_ID");
+
+    const refused = await run([
+      "--printstudio-operator",
+      "wrong",
+      "--spoolio",
+      path.join(directory, "spoolio.json"),
+      "--json",
+    ]);
+    expect(refused.code).toBe(1);
+    expect(JSON.parse(refused.stdout).error.message).toContain("Check the operator id");
+
+    const planned = await run(["--spoolio", path.join(directory, "spoolio.json"), "--json"], {
+      PRINTSTUDIO_OPERATOR_ID: "web-ops",
+    });
+    expect(planned.code).toBe(0);
+    const report = JSON.parse(planned.stdout);
+    expect(report.groups).toBe(1);
+    expect(report.pendingMatches).toEqual([]);
+    expect(report.inventories.printstudio.spools).toBe(1);
+    expect(fake.requests.every((request) => request.method === "GET")).toBe(true);
+  });
+});
+
+test("PrintStudio --apply creates a local lot and refuses to edit a Spoolman-synced one", async () => {
+  await writeFile(
+    path.join(directory, "spoolio.json"),
+    JSON.stringify({
+      version: 1,
+      filaments: [
+        {
+          id: "a",
+          spoolmanId: 7,
+          brand: "Example",
+          type: "PLA",
+          colorName: "Blue",
+          weightTotal: 1000,
+          weightRemaining: 100,
+        },
+        {
+          id: "b",
+          brand: "Other",
+          type: "PETG",
+          colorName: "Red",
+          weightTotal: 1000,
+          weightRemaining: 500,
+        },
+      ],
+    }),
+  );
+  await withPrintStudio([printstudioLot("spoolman-7", "spoolman")], async (fake, run) => {
+    const result = await run(
+      [
+        "--spoolio",
+        path.join(directory, "spoolio.json"),
+        "--create-in",
+        "printstudio",
+        "--resolve",
+        "remainingWeight=spoolio",
+        "--apply",
+        "--no-rollback",
+        "--json",
+      ],
+      { PRINTSTUDIO_OPERATOR_ID: "web-ops" },
+    );
+    const report = JSON.parse(result.stdout);
+    expect(result.code).toBe(1);
+    const messages = report.applied.map((entry: { message: string }) => entry.message).join(" ");
+    expect(messages).toContain("Created local lot local-1");
+    expect(messages).toContain("managed by PrintStudio's spoolman sync");
+    expect(fake.store.get("spoolman-7")?.["quantityOnHand"]).toBe(800);
+    expect(fake.store.get("local-1")).toMatchObject({ sourceSystem: "local", brand: "Other" });
+    expect(
+      fake.requests.filter((request) => request.method !== "GET").map((request) => request.path),
+    ).toEqual(["/api/materials"]);
+  });
+});
 
 test("version works without inputs and matches the package metadata", () => {
   for (const flag of ["--version", "-V"]) {

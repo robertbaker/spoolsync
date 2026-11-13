@@ -141,6 +141,41 @@ describe("CLI arguments", () => {
     );
   });
 
+  test("--printstudio-url loads PrintStudio over its API and can be applied", () => {
+    const options = parseArgs([
+      "--printstudio-url",
+      "http://127.0.0.1:8787",
+      "--printstudio-operator",
+      "web-ops",
+      "--spoolio",
+      "a.json",
+      "--create-in",
+      "printstudio",
+      "--apply",
+    ]);
+    expect(options.printstudioUrl).toBe("http://127.0.0.1:8787");
+    expect(options.printstudioOperator).toBe("web-ops");
+    expect(options.apply).toBe(true);
+    expect(
+      parseArgs(["--printstudio", "lots.json", "--spoolio", "a.json"]).inputs.has("printstudio"),
+    ).toBe(true);
+    expect(() => parseArgs(["--printstudio-url", "http://x", "--printstudio", "p.json"])).toThrow(
+      "either --printstudio-url or --printstudio",
+    );
+    expect(() => parseArgs(["--printstudio-operator", "k", "--printstudio", "p.json"])).toThrow(
+      "--printstudio-operator requires --printstudio-url",
+    );
+    expect(() => parseArgs(["--printstudio-url", "http://u:p@x", "--spoolio", "a.json"])).toThrow(
+      "cannot include credentials",
+    );
+    expect(() => parseArgs(["--printstudio", "p.json", "--spoolio", "a.json", "--apply"])).toThrow(
+      "--printstudio-url",
+    );
+    expect(() =>
+      parseArgs(["--printstudio-url", "http://x", "--spoolio", "a.json", "--watch"]),
+    ).toThrow("--watch only watches files");
+  });
+
   test("--quiet only applies with --watch", () => {
     const fileInputs = ["--spoolio", "a.json", "--spoolkeep", "b.json"];
     expect(parseArgs([...fileInputs, "--watch", "--quiet"]).quiet).toBe(true);

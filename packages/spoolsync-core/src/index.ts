@@ -15,6 +15,7 @@ export * as spoolio from "./adapters/spoolio";
 export * as tigertag from "./adapters/tigertag";
 export * as threeDfp from "./adapters/threeDfp";
 export * as bambuddy from "./adapters/bambuddy";
+export * as printstudio from "./adapters/printstudio";
 export * as filameter from "./adapters/filameter";
 export * as filadex from "./adapters/filadex";
 export * as filamentdb from "./adapters/filamentdb";

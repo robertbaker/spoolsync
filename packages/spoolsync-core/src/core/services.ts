@@ -227,6 +227,20 @@ export const SERVICES = {
     cliFlag: "--spoolkeep",
     tagline: "Mac and iOS app that counts spools rather than weighing them.",
   },
+  printstudio: {
+    name: "PrintStudio",
+    fullName: "PrintStudio",
+    platforms: ["self-hosted", "desktop"],
+    capabilities: ["file-import", "file-export", "api-import", "api-export"],
+    readFormats: ["json"],
+    writeFormats: ["json"],
+    apiClients: ["cli"],
+    writeNote:
+      "the import file creates new lots only; the API also edits lots made in PrintStudio, never lots it synced from Spoolman, Spoolstock or InvenTree",
+    cliFlag: "--printstudio",
+    cliApiFlag: "--printstudio-url",
+    tagline: "Print farm and storefront operations suite with a material lot inventory.",
+  },
 } as const satisfies Record<SourceId, ServiceInfo>;
 
 export type ServiceRegistry = typeof SERVICES;

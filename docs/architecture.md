@@ -426,6 +426,20 @@ and logs it; each adapter supplies how to write a change and the wording of its 
   stops AMS sync. Loads and writes are refused when Spoolman holds the inventory, since Bambuddy's
   own spool table is then out of date (`usesSpoolman`). Extra gradient colors keep the stored token
   (alpha and case) when unchanged, and an unchanged color list sends no update.
+- PrintStudio follows the Bambuddy layout (`types`, `map`, `load`, `client`, `api`, `payload`,
+  `apply`, `export`, plus an in-memory `fake-server` for tests). Loading reads `GET /materials` (the
+  list lives outside `/api`) with the trusted operator id in `x-operator-id`, or a saved JSON file;
+  only `family: "filament"`, `unit: "g"` lots become spools and the rest are warnings. A lot holds a
+  quantity on hand and a price per gram, so only brand, material, color name, colors and remaining
+  weight are compared; initial weight and price stay unknown. A `spoolman-<n>` lot from the Spoolman
+  source system sets `crossIds.spoolmanId`, so it matches automatically. PrintStudio owns the lots it
+  synced: `applyToPrintStudio` creates local lots (`POST /api/materials`) and edits only lots whose
+  `sourceSystem` is `local` (`PUT /api/materials/{id}`, `PATCH .../details` to clear brand or
+  material, `POST /materials/{id}/adjust-stock` for the quantity), refusing everything else per
+  change. The import file (`exportPrintStudio`) is `{ materials }` for PrintStudio's
+  `POST /api/materials/import`, which validates every lot and creates them all-or-nothing; it carries
+  creations only, and its placeholder `id`/`sourceSystem` are ignored by PrintStudio and exist so
+  SpoolSync can read the file back. Only the CLI is wired for the API (`apiClients: ["cli"]`).
 - Filadex separates file loading, common-model mapping, record mutation, export assembly, and API
   loading. File exports and API writes use the same record mutation functions. API writes accept
   the narrow `FiladexWriteClient` interface. `printTemp` can end in a bed temperature

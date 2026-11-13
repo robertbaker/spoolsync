@@ -135,6 +135,12 @@ export const SERVICE_WEB = {
     summary: "JSON backup from the Mac and iOS app",
     creditBy: "SpoolKeep",
   },
+  printstudio: {
+    icon: "material-symbols:inventory-2-outline",
+    kind: "JSON lots",
+    how: "Save the response of PrintStudio's GET /materials as JSON, then choose or drop the file here. Only filament lots counted in grams load as spools. Fetching and writing happen in the CLI (--printstudio-url), which creates and edits only lots made in PrintStudio.",
+    summary: "Material lots JSON, or the CLI over the API",
+  },
 } as const satisfies Record<SourceId, ServiceWeb>;
 
 const EXTENSIONS: Record<FileFormat, string> = {

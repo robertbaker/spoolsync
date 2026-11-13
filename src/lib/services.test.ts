@@ -90,7 +90,7 @@ test("name lists read as sentences", () => {
   expect(joinNames(["a"])).toBe("a");
   expect(joinNames(["a", "b"])).toBe("a and b");
   expect(joinNames(["a", "b", "c"], "or")).toBe("a, b, or c");
-  expect(allServiceNames()).toContain("and SpoolKeep");
+  expect(allServiceNames()).toContain("and PrintStudio");
   expect(allServiceNames(undefined, "or", ["Bambu Lab"]).endsWith("or Bambu Lab")).toBe(true);
   expect(serviceNamesShort(3)).toBe(`Spoolman, Spoolstock, Spoolio, and ${SERVICE_COUNT - 3} more`);
 });

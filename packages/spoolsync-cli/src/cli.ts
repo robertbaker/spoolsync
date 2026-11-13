@@ -32,6 +32,7 @@ const output: CliOutput = {
 const TOKEN_FLAGS = new Set([
   "--spoolman-token",
   "--bambuddy-token",
+  "--printstudio-operator",
   "--filamentdb-token",
   "--filament-db-token",
 ]);
@@ -41,6 +42,7 @@ const URL_FLAGS = new Set([
   "--filamentdb-url",
   "--filament-db-url",
   "--bambuddy-url",
+  "--printstudio-url",
   "--filadex-url",
 ]);
 

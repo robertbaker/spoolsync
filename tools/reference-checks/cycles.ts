@@ -6,7 +6,7 @@ import type { ReferenceReporter } from "./reporter";
 
 export async function auditCycles(
   name: string,
-  source: Exclude<WritableSourceId, "bambuddy">,
+  source: Exclude<WritableSourceId, "bambuddy" | "printstudio">,
   loaded: LoadResult,
   reporter: Pick<ReferenceReporter, "passed">,
 ): Promise<void> {

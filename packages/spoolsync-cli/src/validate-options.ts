@@ -18,6 +18,7 @@ function isLoaded(options: Options, source: SourceId): boolean {
     (source === "filamentdb" && !!options.filamentdbUrl) ||
     (source === "filamentDbApp" && !!options.filamentDbUrl) ||
     (source === "bambuddy" && !!options.bambuddyUrl) ||
+    (source === "printstudio" && !!options.printstudioUrl) ||
     (source === "filadex" && !!options.filadexUrl)
   );
 }
@@ -30,6 +31,7 @@ function inventoryCount(options: Options): number {
     (options.filamentdbUrl ? 1 : 0) +
     (options.filamentDbUrl ? 1 : 0) +
     (options.bambuddyUrl ? 1 : 0) +
+    (options.printstudioUrl ? 1 : 0) +
     (options.filadexUrl ? 1 : 0)
   );
 }
@@ -110,6 +112,8 @@ export function validateOptions(options: Options): void {
     filamentDbToken,
     bambuddyUrl,
     bambuddyToken,
+    printstudioUrl,
+    printstudioOperator,
     filadexUrl,
     filadexUser,
     apply,
@@ -144,6 +148,10 @@ export function validateOptions(options: Options): void {
   if (bambuddyUrl && inputs.has("bambuddy"))
     throw new Error("Use either --bambuddy-url or --bambuddy <file>, not both.");
   if (bambuddyToken && !bambuddyUrl) throw new Error("--bambuddy-token requires --bambuddy-url.");
+  if (printstudioUrl && inputs.has("printstudio"))
+    throw new Error("Use either --printstudio-url or --printstudio <file>, not both.");
+  if (printstudioOperator && !printstudioUrl)
+    throw new Error("--printstudio-operator requires --printstudio-url.");
   if (filadexUrl && inputs.has("filadex"))
     throw new Error("Use either --filadex-url or --filadex <file>, not both.");
   if (!!filadexUrl !== !!filadexUser)
@@ -153,6 +161,7 @@ export function validateOptions(options: Options): void {
     ["--filamentdb-url", filamentdbUrl],
     ["--filament-db-url", filamentDbUrl],
     ["--bambuddy-url", bambuddyUrl],
+    ["--printstudio-url", printstudioUrl],
     ["--filadex-url", filadexUrl],
   ] as const) {
     if (!url) continue;
@@ -170,9 +179,17 @@ export function validateOptions(options: Options): void {
         `${flag} cannot include credentials in the URL (${credential}). Pass a token flag or environment variable instead.`,
       );
   }
-  if (apply && !spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
+  if (
+    apply &&
+    !spoolmanUrl &&
+    !filamentdbUrl &&
+    !filamentDbUrl &&
+    !bambuddyUrl &&
+    !printstudioUrl &&
+    !filadexUrl
+  )
     throw new Error(
-      "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url; file inputs are never written to a service.",
+      "--apply requires --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url, or --filadex-url; file inputs are never written to a service.",
     );
   for (const source of empty)
     if (
@@ -181,6 +198,7 @@ export function validateOptions(options: Options): void {
       (source === "filamentdb" && filamentdbUrl) ||
       (source === "filamentDbApp" && filamentDbUrl) ||
       (source === "bambuddy" && bambuddyUrl) ||
+      (source === "printstudio" && printstudioUrl) ||
       (source === "filadex" && filadexUrl)
     )
       throw new Error(`Use either --empty ${source} or a file/API input for ${source}, not both.`);
@@ -194,7 +212,14 @@ export function validateOptions(options: Options): void {
       throw new Error(
         "--watch cannot be combined with --apply: writing to a service on every file change is too easy to do by accident. Run --apply once, on its own.",
       );
-    if (spoolmanUrl || filamentdbUrl || filamentDbUrl || bambuddyUrl || filadexUrl)
+    if (
+      spoolmanUrl ||
+      filamentdbUrl ||
+      filamentDbUrl ||
+      bambuddyUrl ||
+      printstudioUrl ||
+      filadexUrl
+    )
       throw new Error("--watch only watches files, so it cannot be used with --*-url inventories.");
     if (!inputs.size) throw new Error("--watch needs at least one file input to watch.");
   }
@@ -239,9 +264,16 @@ export function validateOptions(options: Options): void {
       throw new Error(
         `--restore-rollback puts back one service's values, so it cannot be combined with ${others.join(", ")}.`,
       );
-    if (!spoolmanUrl && !filamentdbUrl && !filamentDbUrl && !bambuddyUrl && !filadexUrl)
+    if (
+      !spoolmanUrl &&
+      !filamentdbUrl &&
+      !filamentDbUrl &&
+      !bambuddyUrl &&
+      !printstudioUrl &&
+      !filadexUrl
+    )
       throw new Error(
-        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url.",
+        "--restore-rollback needs the connection of the service it restores: --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url, or --filadex-url.",
       );
     return;
   }

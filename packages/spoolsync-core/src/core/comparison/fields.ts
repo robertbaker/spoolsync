@@ -146,6 +146,15 @@ const BASE_SOURCE_FIELDS: Record<SourceId, ReadonlySet<ComparableField>> = {
     "purchasedOn",
     "archived",
   ),
+  // A PrintStudio lot holds a quantity on hand and a price per gram, so only the names, colours and
+  // remaining weight can be compared; it has no archived flag.
+  printstudio: new Set<ComparableField>([
+    "vendor",
+    "material",
+    "name",
+    "colors",
+    "remainingWeight",
+  ]),
 };
 
 export const SOURCE_FIELDS = Object.fromEntries(

@@ -12,6 +12,8 @@ export type Options = {
   filamentDbToken?: string;
   bambuddyUrl?: string;
   bambuddyToken?: string;
+  printstudioUrl?: string;
+  printstudioOperator?: string;
   filadexUrl?: string;
   filadexUser?: string;
   apply: boolean;

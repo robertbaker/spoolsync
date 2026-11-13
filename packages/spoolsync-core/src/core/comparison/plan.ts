@@ -98,6 +98,7 @@ export const LINKABLE_IDS: Record<SourceId, ReadonlyArray<keyof CrossIds>> = {
   spoolhoarder: [],
   spoolapp: [],
   spoolkeep: [],
+  printstudio: [],
 };
 
 /** Cross-ids the target can hold but does not have yet. */

@@ -17,6 +17,7 @@ export const CREDENTIAL_ENVIRONMENT_VARIABLES = [
   "FILAMENT_DB_API_KEY",
   "FILAMENTDB_API_KEY",
   "BAMBUDDY_API_KEY",
+  "PRINTSTUDIO_OPERATOR_ID",
   "FILADEX_PASSWORD",
 ] as const;
 
@@ -30,6 +31,7 @@ const SOURCE_KEYS = [
   "tigertag",
   "three-dfp",
   "bambuddy",
+  "printstudio",
   "filameter",
   "filadex",
   "filamentdb",
@@ -52,6 +54,7 @@ const URL_KEYS = new Set([
   "filamentdb-url",
   "filament-db-url",
   "bambuddy-url",
+  "printstudio-url",
   "filadex-url",
 ]);
 const STRING_KEYS = new Set<string>([...PATH_KEYS, "format", ...URL_KEYS, "filadex-user"]);
@@ -122,6 +125,7 @@ const INPUT_KEYS = new Set<string>([
   "filamentdb-url",
   "filament-db-url",
   "bambuddy-url",
+  "printstudio-url",
   "filadex-url",
 ]);
 

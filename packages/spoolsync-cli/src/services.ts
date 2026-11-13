@@ -2,9 +2,11 @@ import { loadBambuddyApi } from "@spoolsync/core/adapters/bambuddy";
 import { loadFiladex } from "@spoolsync/core/adapters/filadex";
 import { loadFilamentDb } from "@spoolsync/core/adapters/filamentdb";
 import { loadFilamentDbApp } from "@spoolsync/core/adapters/filamentDbApp";
+import { loadPrintStudioApi } from "@spoolsync/core/adapters/printstudio";
 import { loadSpoolman } from "@spoolsync/core/adapters/spoolman";
 import {
   applyAndReloadBambuddy,
+  applyAndReloadPrintStudio,
   applyAndReloadFiladex,
   applyAndReloadFilamentDb,
   applyAndReloadFilamentDbApp,
@@ -102,6 +104,21 @@ export function* remoteServices(
       load: () => loadBambuddyApi(connection),
       apply: async (changes, progress) =>
         (await applyAndReloadBambuddy(connection, changes, progress)).log,
+    };
+  }
+  if (options.printstudioUrl) {
+    const operatorId = options.printstudioOperator ?? environment["PRINTSTUDIO_OPERATOR_ID"];
+    if (!operatorId)
+      throw new Error(
+        "Set PRINTSTUDIO_OPERATOR_ID (or pass --printstudio-operator) to the trusted operator id of PrintStudio.",
+      );
+    const connection = { baseUrl: options.printstudioUrl, operatorId };
+    yield {
+      source: "printstudio",
+      label: "PrintStudio",
+      load: () => loadPrintStudioApi(connection),
+      apply: async (changes, progress) =>
+        (await applyAndReloadPrintStudio(connection, changes, progress)).log,
     };
   }
   if (options.filadexUrl && options.filadexUser) {

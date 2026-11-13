@@ -36,7 +36,7 @@ const editedValues: SpoolValues = {
 
 export async function auditEdits(
   name: string,
-  source: Exclude<WritableSourceId, "bambuddy">,
+  source: Exclude<WritableSourceId, "bambuddy" | "printstudio">,
   loaded: LoadResult,
   reporter: Pick<ReferenceReporter, "passed">,
 ): Promise<void> {

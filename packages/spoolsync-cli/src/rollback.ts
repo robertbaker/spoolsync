@@ -129,7 +129,7 @@ export async function runRestore(
     if (candidate.source === document.source && candidate.apply) service = candidate;
   if (!service?.apply || !isWritableSource(service.source))
     throw new Error(
-      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : document.source === "filamentDbApp" ? "--filament-db-url" : document.source === "bambuddy" ? "--bambuddy-url" : "--filadex-url"} <address>.`,
+      `The rollback file is for ${document.service}. Give its connection to restore it, for example ${document.source === "spoolman" ? "--spoolman-url" : document.source === "filamentdb" ? "--filamentdb-url" : document.source === "filamentDbApp" ? "--filament-db-url" : document.source === "bambuddy" ? "--bambuddy-url" : document.source === "printstudio" ? "--printstudio-url" : "--filadex-url"} <address>.`,
     );
   const inventory = await service.load();
   const plan = planRollback(document, inventory);

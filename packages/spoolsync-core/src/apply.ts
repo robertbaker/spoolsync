@@ -10,6 +10,9 @@ import { FilamentDbClient } from "./adapters/filamentdb/client";
 import { loadFilamentDbApp, type FilamentDbAppConnection } from "./adapters/filamentDbApp";
 import { applyToFilamentDbApp } from "./adapters/filamentDbApp/apply";
 import { FilamentDbAppClient } from "./adapters/filamentDbApp/client";
+import { loadPrintStudioApi, type PrintStudioConnection } from "./adapters/printstudio";
+import { applyToPrintStudio } from "./adapters/printstudio/apply";
+import { PrintStudioClient } from "./adapters/printstudio/client";
 import { loadSpoolman } from "./adapters/spoolman";
 import { applyToSpoolman } from "./adapters/spoolman/apply";
 import { SpoolmanClient, type SpoolmanConnection } from "./adapters/spoolman/client";
@@ -104,4 +107,14 @@ export async function applyAndReloadFiladex(
 ): Promise<ApplyAndReloadResult> {
   const log = await applyToFiladex(new FiladexClient(connection), changes, onProgress);
   return reloadAfterApply("Filadex", log, () => loadFiladex(connection));
+}
+
+/** Applies the plan to PrintStudio (local lots only) and fetches a fresh snapshot. */
+export async function applyAndReloadPrintStudio(
+  connection: PrintStudioConnection,
+  changes: PlannedChange[],
+  onProgress?: (done: number, total: number) => void,
+): Promise<ApplyAndReloadResult> {
+  const log = await applyToPrintStudio(new PrintStudioClient(connection), changes, onProgress);
+  return reloadAfterApply("PrintStudio", log, () => loadPrintStudioApi(connection));
 }

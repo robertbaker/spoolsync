@@ -109,6 +109,10 @@ export async function exportInventory(
         warnings: result.warnings,
       };
     }
+    case "printstudio": {
+      const result = (await import("../adapters/printstudio")).exportPrintStudio(changes);
+      return jsonExport(source, { ...result, total: result.created });
+    }
     case "filameter": {
       const result = (await import("../adapters/filameter")).exportFilameter(
         loaded as import("../adapters/filameter").FilameterLoadResult,

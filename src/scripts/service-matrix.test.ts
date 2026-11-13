@@ -18,6 +18,7 @@ test("filters narrow the list and search narrows it further", () => {
     "filadex",
     "filamentdb",
     "filamentDbApp",
+    "printstudio",
   ]);
 });
 

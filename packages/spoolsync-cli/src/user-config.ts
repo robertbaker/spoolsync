@@ -17,6 +17,7 @@ export const SOURCE_KEYS: Record<SourceId, string> = {
   tigertag: "tigertag",
   threeDfp: "three-dfp",
   bambuddy: "bambuddy",
+  printstudio: "printstudio",
   filameter: "filameter",
   filadex: "filadex",
   filamentdb: "filamentdb",
@@ -85,6 +86,7 @@ export function savableSettings(options: Options): Record<string, unknown> {
     ["filamentdb-url", options.filamentdbUrl],
     ["filament-db-url", options.filamentDbUrl],
     ["bambuddy-url", options.bambuddyUrl],
+    ["printstudio-url", options.printstudioUrl],
     ["filadex-url", options.filadexUrl],
   ] as const) {
     if (!url) continue;

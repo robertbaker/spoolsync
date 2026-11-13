@@ -2,6 +2,7 @@
   "name": "@spoolsync/core",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -18,6 +19,7 @@
     "./adapters/spoolio/*": "./src/adapters/spoolio/*.ts",
     "./adapters/threeDfp/*": "./src/adapters/threeDfp/*.ts",
     "./adapters/bambuddy/*": "./src/adapters/bambuddy/*.ts",
+    "./adapters/printstudio/*": "./src/adapters/printstudio/*.ts",
     "./adapters/filameter/*": "./src/adapters/filameter/*.ts",
     "./adapters/filadex/*": "./src/adapters/filadex/*.ts",
     "./adapters/filamentdb/*": "./src/adapters/filamentdb/*.ts",

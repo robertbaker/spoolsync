@@ -29,7 +29,7 @@ export async function runReferenceChecks(dependencies: ReferenceDependencies) {
         `${name}: ${loaded.spools.length} spools, ${loaded.warnings.length} import warnings`,
       );
       await auditConversions(name, loaded, reporter);
-      if (isWritableSource(source) && source !== "bambuddy") {
+      if (isWritableSource(source) && source !== "bambuddy" && source !== "printstudio") {
         await auditEdits(name, source, loaded, reporter);
         await auditCycles(name, source, loaded, reporter);
       }

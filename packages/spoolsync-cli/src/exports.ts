@@ -20,6 +20,7 @@ function outputBase(source: WritableSourceId): string {
     tigertag: "tigertag-spoolsync.ttag",
     threeDfp: "3dfilamentprofiles.json",
     bambuddy: "bambuddy.csv",
+    printstudio: "printstudio.json",
     filameter: "filameter.json",
     filadex: "filadex.json",
     filamentdb: "filamentdb-spools.json",

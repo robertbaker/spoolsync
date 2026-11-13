@@ -81,6 +81,8 @@ async function parseInventoryFile(
       return (await import("../adapters/spoolhoarder")).loadSpoolHoarderCsv(text);
     case "spoolapp":
       return (await import("../adapters/spoolapp")).loadSpoolAppJson(text);
+    case "printstudio":
+      return (await import("../adapters/printstudio")).loadPrintStudioFile(text);
     case "spoolkeep":
       return (await import("../adapters/spoolkeep")).loadSpoolKeepJson(text);
     case "spoolmaster":
@@ -98,6 +100,7 @@ export async function createEmptyInventory(source: SourceId): Promise<LoadResult
     tigertag: "{}",
     threeDfp: "[]",
     bambuddy: "[]",
+    printstudio: "[]",
     filameter: '{"regular":[]}',
     filadex: "[]",
     filamentDbApp: "[]",

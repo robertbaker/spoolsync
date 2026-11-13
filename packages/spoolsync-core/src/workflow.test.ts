@@ -38,7 +38,10 @@ test("exports reject duplicate creations before generating duplicate spools", as
   );
 });
 
-for (const source of WRITABLE_SOURCE_IDS.filter((id) => id !== "filamentDbApp")) {
+for (const source of WRITABLE_SOURCE_IDS.filter(
+  // Filament DB has its own tests.
+  (id) => id !== "filamentDbApp",
+)) {
   test(`creates a usable empty ${source} inventory and exports a new spool`, async () => {
     const loaded = await createEmptyInventory(source);
     expect(loaded).toMatchObject({ source, spools: [], warnings: [], origin: "file" });

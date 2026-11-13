@@ -47,6 +47,11 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     kind: "file",
   },
   {
+    flag: "--printstudio",
+    description: "PrintStudio material lots JSON",
+    kind: "file",
+  },
+  {
     flag: "--filameter",
     description: "FilaMeter backup JSON or CSV export",
     kind: "file",
@@ -258,6 +263,16 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     kind: "text",
   },
   { flag: "--bambuddy-token", description: "Bambuddy API key", kind: "text" },
+  {
+    flag: "--printstudio-url",
+    description: "Load PrintStudio directly",
+    kind: "text",
+  },
+  {
+    flag: "--printstudio-operator",
+    description: "PrintStudio trusted operator id",
+    kind: "text",
+  },
   { flag: "--filadex-url", description: "Load Filadex directly", kind: "text" },
   { flag: "--filadex-user", description: "Filadex username", kind: "text" },
   {

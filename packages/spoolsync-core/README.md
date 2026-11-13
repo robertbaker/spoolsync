@@ -1,7 +1,7 @@
 # Shared inventory sync package
 
 `@spoolsync/core` supplies the inventory model, adapters, matching, and planning used by the
-SpoolSync browser app and CLI. It is a private TypeScript workspace package.
+SpoolSync browser app and CLI. It is a TypeScript workspace package licensed under the MIT License (see [LICENSE](LICENSE)); the rest of the SpoolSync repository stays under the AGPL.
 
 Use `loadInventoryFile(source, text)` to read files. It handles UTF-8 byte-order marks, empty
 files, and duplicate native IDs before matching. `createEmptyInventory(source)` creates a

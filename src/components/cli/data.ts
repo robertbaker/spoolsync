@@ -45,6 +45,11 @@ export const inputs = [
     desc: "Load Bambuddy directly; --apply creates, updates and archives spools (key via --bambuddy-token or BAMBUDDY_API_KEY, with the Manage inventory scope to write).",
   },
   {
+    flag: "--printstudio-url <url>",
+    copy: "--printstudio-url",
+    desc: "Load PrintStudio directly (operator id via --printstudio-operator or PRINTSTUDIO_OPERATOR_ID); --apply creates and edits only lots made in PrintStudio, never lots it synced from Spoolman, Spoolstock or InvenTree.",
+  },
+  {
     flag: "--filadex-url <url> --filadex-user <name>",
     copy: "--filadex-url",
     desc: "Load Filadex directly; password from FILADEX_PASSWORD.",
@@ -203,7 +208,7 @@ export const output = [
   {
     flag: "--restore-rollback <file>",
     copy: "--restore-rollback",
-    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
+    desc: "Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url or --filadex-url. Fields changed since are left alone, and nothing is written without --apply.",
   },
   {
     flag: "--export-csv <file>",

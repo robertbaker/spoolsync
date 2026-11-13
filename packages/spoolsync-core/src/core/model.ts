@@ -21,6 +21,7 @@ export const SOURCE_IDS = [
   "spoolhoarder",
   "spoolapp",
   "spoolkeep",
+  "printstudio",
 ] as const;
 export type SourceId = (typeof SOURCE_IDS)[number];
 
@@ -91,6 +92,7 @@ export interface CrossIds {
   spoolhoarderId?: string;
   spoolappId?: string;
   spoolkeepId?: string;
+  printstudioId?: string;
 }
 
 /** The cross-id field that holds each service's own id for a spool. */
@@ -109,6 +111,7 @@ export const NATIVE_CROSS_ID = {
   spoolhoarder: "spoolhoarderId",
   spoolapp: "spoolappId",
   spoolkeep: "spoolkeepId",
+  printstudio: "printstudioId",
 } as const satisfies Record<SourceId, keyof CrossIds>;
 
 export interface CommonSpool {

@@ -14,6 +14,7 @@ Inputs (provide at least two):
   --tigertag <file>       TigerTag .ttag or JSON export
   --three-dfp <file>      3DFilamentProfiles CSV or JSON export
   --bambuddy <file>       Bambuddy inventory CSV or API response JSON
+  --printstudio <file>    PrintStudio material lots JSON (GET /materials)
   --filameter <file>      FilaMeter backup JSON or CSV export
   --filadex <file>        Filadex JSON or CSV export
   --filamentdb <file>     FilamentDB ZIP export or spools JSON
@@ -31,6 +32,8 @@ Inputs (provide at least two):
   --filament-db-token <key> API key if the server sets one (or set FILAMENT_DB_API_KEY, else FILAMENTDB_API_KEY)
   --bambuddy-url <url>    Load Bambuddy directly instead of from a file
   --bambuddy-token <key>  Bambuddy API key (or set BAMBUDDY_API_KEY); --apply needs the Manage inventory scope
+  --printstudio-url <url> Load PrintStudio directly instead of from a file
+  --printstudio-operator <id> PrintStudio trusted operator id (or set PRINTSTUDIO_OPERATOR_ID); --apply creates and edits only local lots
   --filadex-url <url>     Load Filadex directly instead of from a file
   --filadex-user <name>   Filadex username; the password comes from FILADEX_PASSWORD
 
@@ -70,9 +73,9 @@ Output:
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
   --rollback-dir <dir>    Where --apply saves the rollback file it makes before writing (default: a rollbacks folder beside the settings file)
   --no-rollback           With --apply, write without saving a rollback file first
-  --restore-rollback <file> Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, or --filadex-url;
+  --restore-rollback <file> Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url, or --filadex-url;
                           fields changed since are left alone, and nothing is written without --apply
-  --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, Filament DB, Bambuddy, or Filadex inventories
+  --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, Filament DB, Bambuddy, PrintStudio, or Filadex inventories
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)
   --json                  Same as --format json
   -V, --version           Show the installed CLI version (supports --json)

@@ -29,6 +29,7 @@ const sourceFlags: Record<string, SourceId> = {
   "--three-dfp": "threeDfp",
   "--3dfp": "threeDfp",
   "--bambuddy": "bambuddy",
+  "--printstudio": "printstudio",
   "--filameter": "filameter",
   "--filadex": "filadex",
   "--filamentdb": "filamentdb",
@@ -88,6 +89,8 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--filament-db-token",
   "--bambuddy-url",
   "--bambuddy-token",
+  "--printstudio-url",
+  "--printstudio-operator",
   "--filadex-url",
   "--filadex-user",
   ...Object.keys(sourceFlags),
@@ -112,6 +115,8 @@ const SINGLETON_FLAGS: string[] = [
   "--filament-db-token",
   "--bambuddy-url",
   "--bambuddy-token",
+  "--printstudio-url",
+  "--printstudio-operator",
   "--filadex-url",
   "--filadex-user",
 ];
@@ -141,6 +146,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let filamentDbToken: string | undefined;
   let bambuddyUrl: string | undefined;
   let bambuddyToken: string | undefined;
+  let printstudioUrl: string | undefined;
+  let printstudioOperator: string | undefined;
   let filadexUrl: string | undefined;
   let filadexUser: string | undefined;
   let apply = false;
@@ -254,6 +261,10 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       bambuddyUrl = value(arg);
     } else if (arg === "--bambuddy-token") {
       bambuddyToken = value(arg);
+    } else if (arg === "--printstudio-url") {
+      printstudioUrl = value(arg);
+    } else if (arg === "--printstudio-operator") {
+      printstudioOperator = value(arg);
     } else if (arg === "--filadex-url") {
       filadexUrl = value(arg);
     } else if (arg === "--filadex-user") {
@@ -340,6 +351,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(filamentDbToken ? { filamentDbToken } : {}),
     ...(bambuddyUrl ? { bambuddyUrl } : {}),
     ...(bambuddyToken ? { bambuddyToken } : {}),
+    ...(printstudioUrl ? { printstudioUrl } : {}),
+    ...(printstudioOperator ? { printstudioOperator } : {}),
     ...(filadexUrl ? { filadexUrl } : {}),
     ...(filadexUser ? { filadexUser } : {}),
     apply,

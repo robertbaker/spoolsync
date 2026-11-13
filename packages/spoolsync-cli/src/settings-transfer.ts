@@ -16,6 +16,7 @@ const SAVABLE_PATH_KEYS = new Set([
   "tigertag",
   "three-dfp",
   "bambuddy",
+  "printstudio",
   "filameter",
   "filadex",
   "filamentdb",
@@ -44,6 +45,7 @@ const SAVABLE_KEYS = new Set([
   "filamentdb-url",
   "filament-db-url",
   "bambuddy-url",
+  "printstudio-url",
   "filadex-url",
   "filadex-user",
 ]);

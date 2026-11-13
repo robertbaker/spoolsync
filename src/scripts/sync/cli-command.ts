@@ -23,6 +23,7 @@ const INPUT_FLAGS: Record<SourceId, string> = {
   spoolhoarder: "--spoolhoarder",
   spoolapp: "--spool",
   spoolkeep: "--spoolkeep",
+  printstudio: "--printstudio",
 };
 
 /** Services the CLI can read directly, with the options and environment variable it uses. */

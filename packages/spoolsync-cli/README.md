@@ -2,7 +2,7 @@
 
 Compare and sync filament inventories from your terminal. `spoolsync` uses the same matching,
 planning, and export adapters as the [SpoolSync web app](https://spoolsync.com), and works across
-<!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, Filament DB, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep<!-- services:cli-names-inline:end -->.
+<!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, Filament DB, SpoolMaster, Spool Hoarder, Spool, SpoolKeep, and PrintStudio<!-- services:cli-names-inline:end -->.
 
 > <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end --> For a walkthrough of the browser
 >
@@ -27,6 +27,7 @@ Each service has its own input option:
 | Spool Hoarder                    | `--spoolhoarder` | None                | CSV         |
 | Spool (Mac and iOS app)          | `--spool`        | None                | JSON        |
 | SpoolKeep                        | `--spoolkeep`    | None                | JSON        |
+| PrintStudio                      | `--printstudio`  | `--printstudio-url` | JSON        |
 <!-- services:cli-inputs:end -->
 
 ## Install
@@ -127,7 +128,7 @@ spoolsync --config spoolsync.json
 ```
 
 Tokens and passwords are rejected in config files (they tend to be committed); use the
-`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, `FILAMENT_DB_API_KEY`, `FILAMENTDB_API_KEY`, `BAMBUDDY_API_KEY`, and `FILADEX_PASSWORD` environment variables. For the same
+`SPOOLMAN_TOKEN`, `FILAMENTDB_TOKEN`, `FILAMENT_DB_API_KEY`, `FILAMENTDB_API_KEY`, `BAMBUDDY_API_KEY`, `PRINTSTUDIO_OPERATOR_ID`, and `FILADEX_PASSWORD` environment variables. For the same
 reason a service URL with credentials in it (`http://user:pass@host`, or `?token=...`, `?api_key=...`
 and similar) is rejected, on the command line too. `"apply"` is rejected in any config, saved-settings
 or imported-settings file (the error names the file, so delete that key from it): writing to a service is turned on only by `--apply` on the command line.
@@ -319,6 +320,26 @@ spoolsync --spoolman-url http://spoolman.local --spoolstock spoolstock.csv --app
 Directly loaded Spoolman inventories also support `--resolve material=spoolman` and
 `--create-in spoolman`.
 
+### PrintStudio
+
+`--printstudio-url` reads PrintStudio's material lots (`GET /materials`) and sends its trusted
+operator id, from `--printstudio-operator` or `PRINTSTUDIO_OPERATOR_ID`, in the `x-operator-id` header.
+`--printstudio <file>` reads the same list from a saved JSON file. Only filament lots counted in
+grams become spools; ink, substrate, packaging and parts are listed as warnings. A lot PrintStudio
+imported from Spoolman (`spoolman-<id>`) carries that Spoolman id, so it matches the Spoolman spool
+without a suggestion.
+
+```sh
+PRINTSTUDIO_OPERATOR_ID=... spoolsync --printstudio-url http://127.0.0.1:8787   --spoolman-url http://spoolman.local:7912
+```
+
+`--apply` writes only lots created in PrintStudio (source system `local`): new spools are created
+as local lots, and existing local lots update their brand, material, color name, colors and
+remaining weight (the weight goes through adjust-stock, so PrintStudio's stock history records
+it). Lots PrintStudio synced from Spoolman, Spoolstock or InvenTree belong to that sync, so changes
+planned for them fail with a clear message and nothing is written to them. `--output-dir` also writes `printstudio.json`, the body for PrintStudio's
+`POST /api/materials/import` (new lots only; updates are omitted with a warning).
+
 ### FilamentDB and Filadex
 
 Both can be loaded and written the same way:
@@ -359,12 +380,12 @@ targets. Spoolman is written only with `--apply`. Read-only sources can provide 
 a write target.
 
 <!-- services:cli-writing:start -->
-| Inventory source                                                | How it receives changes       |
-| --------------------------------------------------------------- | ----------------------------- |
-| File inventory                                                  | Output file in `--output-dir` |
-| `--empty` target                                                | Output file in `--output-dir` |
-| Direct Spoolman, Bambuddy, Filadex, FilamentDB, and Filament DB | `--apply`                     |
-| Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep    | Read-only                     |
+| Inventory source                                                             | How it receives changes       |
+| ---------------------------------------------------------------------------- | ----------------------------- |
+| File inventory                                                               | Output file in `--output-dir` |
+| `--empty` target                                                             | Output file in `--output-dir` |
+| Direct Spoolman, Bambuddy, Filadex, FilamentDB, Filament DB, and PrintStudio | `--apply`                     |
+| Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep                 | Read-only                     |
 <!-- services:cli-writing:end -->
 
 `--output-dir` requires a writable file inventory or `--empty` target. A directly loaded Spoolman
