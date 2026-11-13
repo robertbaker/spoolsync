@@ -71,6 +71,7 @@ export const SERVICE_WEB = {
     kind: "CSV or JSON",
     how: "Export your My Spools list as CSV or JSON from 3DFilamentProfiles, then choose or drop the file here.",
     summary: "My Spools CSV or JSON export",
+    creditBy: "3DFilamentProfiles",
   },
   bambuddy: {
     icon: "material-symbols:inventory-2-outline",
@@ -111,24 +112,28 @@ export const SERVICE_WEB = {
     kind: "Excel (.xlsx)",
     how: "SpoolMaster (Mac and iOS) is export-only here. Export your stock as an Excel workbook, then choose or drop the .xlsx file. The Stock sheet is read; the Shopping List sheet is ignored. SpoolMaster does not accept imports.",
     summary: "Excel (.xlsx) export of the Stock sheet",
+    creditBy: "SpoolMaster",
   },
   spoolhoarder: {
     icon: "material-symbols:inventory-2-outline",
     kind: "CSV",
     how: "Export your inventory CSV from Spool Hoarder (Mac and iOS), or its HueForge library export, then choose or drop the file here. Spool Hoarder does not accept imports from SpoolSync.",
     summary: "Inventory CSV or HueForge library CSV",
+    creditBy: "Spool Hoarder",
   },
   spoolapp: {
     icon: "material-symbols:backup-outline",
     kind: "JSON backup",
     how: "In the Spool app (Mac and iOS), create a JSON backup, then choose or drop the file here. Only the spools list is read; prints, printers, and business records are ignored. The app does not accept imports from SpoolSync.",
     summary: "JSON backup from the Mac and iOS app",
+    creditBy: "Spool",
   },
   spoolkeep: {
     icon: "material-symbols:backup-outline",
     kind: "JSON backup",
     how: "Export a JSON backup from SpoolKeep (Mac and iOS), then choose or drop the file here. SpoolKeep counts spools instead of weighing them, so each counted spool loads with an unknown remaining weight. SpoolKeep does not accept imports from SpoolSync.",
     summary: "JSON backup from the Mac and iOS app",
+    creditBy: "SpoolKeep",
   },
 } as const satisfies Record<SourceId, ServiceWeb>;
 

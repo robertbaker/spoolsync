@@ -5,6 +5,7 @@ import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 import ServiceMark from "~/components/ServiceMark.astro";
 import { SERVICE_VIEWS, allServiceNames } from "~/lib/services";
+import { serviceLogoSrc } from "~/lib/service-logos";
 import { Icon } from "astro-icon/components";
 ---
 
@@ -122,12 +123,24 @@ import { Icon } from "astro-icon/components";
         <ul class="mt-3 grid gap-2.5 sm:grid-cols-2" role="list">
           {
             SERVICE_VIEWS.map((service) => {
-              const hasBrandLogo = Boolean(service.creditBy);
-              const attribution = service.creditBy
-                ? `Logo courtesy of ${service.creditBy}`
-                : service.id === "threeDfp"
-                  ? "Spool icon by Oleksandr Panasovskyi (CC BY 3.0)"
+              const hasRasterLogo = Boolean(serviceLogoSrc(service.id));
+              const isVendorSvg = service.icon.startsWith("vendor/");
+              const hasAppIcon = hasRasterLogo || isVendorSvg || Boolean(service.creditBy);
+              const isApp = ["spoolmaster", "spoolhoarder", "spoolapp", "spoolkeep", "spoolstock"].includes(service.id);
+
+              const attribution = service.id === "threeDfp"
+                ? "Spool icon by Oleksandr Panasovskyi (Noun Project, CC BY 3.0)"
+                : service.creditBy
+                  ? (isApp ? `App icon courtesy of ${service.creditBy}` : `Logo courtesy of ${service.creditBy}`)
                   : "Generic interface mark (Material Symbols)";
+
+              const badgeLabel = !hasAppIcon
+                ? "Generic mark"
+                : service.id === "threeDfp"
+                  ? "Noun Project"
+                  : isApp
+                    ? "App icon"
+                    : "Brand logo";
 
               return (
                 <li class="modern-card flex items-center justify-between gap-3 rounded-xl border bg-card/90 p-3 shadow-2xs backdrop-blur-xs transition-colors hover:border-primary/40">
@@ -165,12 +178,12 @@ import { Icon } from "astro-icon/components";
                   <span
                     class:list={[
                       "shrink-0 self-start sm:self-center rounded-md px-1.5 py-0.5 text-[0.65rem] font-medium",
-                      hasBrandLogo
+                      hasAppIcon
                         ? "bg-primary/10 text-primary-text font-semibold"
                         : "bg-muted text-muted-foreground",
                     ]}
                   >
-                    {hasBrandLogo ? "Brand mark" : "Generic mark"}
+                    {badgeLabel}
                   </span>
                 </li>
               );
