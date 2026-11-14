@@ -34,7 +34,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
         data-step="1"
         class="step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-primary-text bg-background shadow-xs ring-1 ring-primary/30"
       >
-        <span class="step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-white">1</span>
+        <span class="step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-primary-foreground">1</span>
         <span>Ingest</span>
       </button>
 
@@ -381,7 +381,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
         if (isMatch) {
           tab.className = "step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-primary-text bg-background shadow-xs ring-1 ring-primary/30";
           if (numSpan) {
-            numSpan.className = "step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-white";
+            numSpan.className = "step-num flex size-5 items-center justify-center rounded-full bg-primary text-[0.65rem] font-black text-primary-foreground";
           }
         } else {
           tab.className = "step-tab group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-bold transition-all sm:text-sm text-muted-foreground hover:text-foreground hover:bg-background/50";

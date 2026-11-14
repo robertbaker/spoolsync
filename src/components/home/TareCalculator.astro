@@ -32,10 +32,10 @@ import { KNOWN_TARES } from "~/lib/weigh-in";
 
         <!-- Brand Tare Selection Buttons -->
         <div class="mt-6">
-          <label class="block text-xs font-bold uppercase tracking-wider text-foreground mb-2">
+          <span id="label-spool-brand" class="block text-xs font-bold uppercase tracking-wider text-foreground mb-2">
             1. Select Spool Brand (Tare Weight)
-          </label>
-          <div class="flex flex-wrap gap-2" id="tare-brands" role="radiogroup" aria-label="Spool brand tare">
+          </span>
+          <div class="flex flex-wrap gap-2" id="tare-brands" role="radiogroup" aria-labelledby="label-spool-brand">
             {KNOWN_TARES.slice(0, 6).map((tare, index) => (
               <button
                 type="button"
