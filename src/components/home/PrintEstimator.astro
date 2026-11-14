@@ -1,0 +1,343 @@
+---
+/**
+ * Interactive Print Estimator & Material Cost Calculator.
+ * Calculates exact filament length, material cost, and spool runout safety
+ * based on polymer density (PLA, PETG, ABS, TPU, PC, PA-CF).
+ */
+import { Icon } from "astro-icon/components";
+import Button from "~/components/starwind/controls/Button/Button.astro";
+
+interface PolymerDensity {
+  id: string;
+  name: string;
+  density: number; // g/cm³
+  typicalPrice: number; // $ per 1kg
+  benchyWeight: number; // typical grams for a standard 3DBenchy
+}
+
+const polymers: readonly PolymerDensity[] = [
+  { id: "pla", name: "PLA / PLA+", density: 1.24, typicalPrice: 19.99, benchyWeight: 13.5 },
+  { id: "petg", name: "PETG", density: 1.27, typicalPrice: 21.99, benchyWeight: 13.8 },
+  { id: "abs", name: "ABS / ASA", density: 1.04, typicalPrice: 22.99, benchyWeight: 11.3 },
+  { id: "tpu", name: "TPU (95A)", density: 1.21, typicalPrice: 28.99, benchyWeight: 13.2 },
+  { id: "pacf", name: "PA-CF (Nylon)", density: 1.14, typicalPrice: 44.99, benchyWeight: 12.4 },
+  { id: "pc", name: "Polycarbonate", density: 1.20, typicalPrice: 34.99, benchyWeight: 13.1 },
+];
+---
+
+<section class="mt-20 scroll-mt-20" id="print-estimator-section">
+  <div class="glass-surface relative overflow-hidden rounded-3xl border border-primary/25 bg-card/95 p-6 sm:p-10 shadow-layered">
+    <!-- Ambient glow behind estimator -->
+    <div class="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-primary/10 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -bottom-20 -left-20 size-64 rounded-full bg-orange-500/10 blur-3xl" aria-hidden="true"></div>
+
+    <div class="relative z-10 grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
+      <div>
+        <div class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-0.5 text-xs font-semibold text-primary-text mb-3">
+          <Icon name="material-symbols:calculate-outline" class="size-4" />
+          Slicer to Spool Intelligence
+        </div>
+        <h2 class="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+          Print cost & length, <br class="hidden sm:inline" />
+          <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">
+            calculated instantly
+          </span>
+        </h2>
+        <p class="mt-3 text-muted-foreground text-sm sm:text-base leading-relaxed">
+          Planning a long print? Convert slicer estimates into exact material costs and meters, and check whether your remaining spool will finish the job without running out.
+        </p>
+
+        <!-- Polymer Selection -->
+        <div class="mt-6">
+          <span id="label-polymer" class="block text-xs font-bold uppercase tracking-wider text-foreground mb-2">
+            1. Select Material & Density
+          </span>
+          <div class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="label-polymer" id="estimator-polymers">
+            {polymers.map((poly, index) => (
+              <button
+                type="button"
+                role="radio"
+                aria-checked={index === 0 ? "true" : "false"}
+                tabindex={index === 0 ? 0 : -1}
+                data-density={poly.density}
+                data-price={poly.typicalPrice}
+                data-benchy={poly.benchyWeight}
+                data-name={poly.name}
+                class:list={[
+                  "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                  index === 0
+                    ? "border-primary bg-primary/15 text-primary-text ring-1 ring-primary/40 shadow-xs"
+                    : "border-border bg-background text-foreground hover:border-primary/40",
+                ]}
+              >
+                <span>{poly.name}</span>
+                <span class="ml-1 text-[0.68rem] font-mono text-muted-foreground">({poly.density} g/cm³)</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <!-- Print Parameters: Weight & Spool Remaining Sliders -->
+        <div class="mt-6 space-y-4">
+          <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between text-xs font-semibold">
+              <label for="input-print-weight" class="text-foreground">Print Slicer Estimate</label>
+              <span class="font-mono text-base font-bold text-foreground">
+                <span id="val-print-weight">95</span> g
+              </span>
+            </div>
+            <input
+              id="input-print-weight"
+              type="range"
+              min="5"
+              max="500"
+              step="5"
+              value="95"
+              class="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+              aria-label="Print weight estimate in grams"
+            />
+            <div class="flex justify-between text-[0.68rem] text-muted-foreground mt-1 font-mono">
+              <span>5 g (sample / clip)</span>
+              <span>250 g</span>
+              <span>500 g (large helmet / vase)</span>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between text-xs font-semibold">
+              <label for="input-spool-remaining" class="text-foreground">Spool Remaining on Rack</label>
+              <span class="font-mono text-base font-bold text-foreground">
+                <span id="val-spool-remaining">240</span> g
+              </span>
+            </div>
+            <input
+              id="input-spool-remaining"
+              type="range"
+              min="10"
+              max="1000"
+              step="10"
+              value="240"
+              class="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+              aria-label="Remaining filament on spool in grams"
+            />
+            <div class="flex justify-between text-[0.68rem] text-muted-foreground mt-1 font-mono">
+              <span>10 g</span>
+              <span>500 g (half)</span>
+              <span>1,000 g (full spool)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Calculation Telemetry Card -->
+      <div class="rounded-3xl border border-border/80 bg-background/90 p-6 sm:p-7 shadow-layered">
+        <div class="flex items-center justify-between border-b border-border/60 pb-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Print Job Telemetry</span>
+            <h3 class="text-xl font-black text-foreground">Job Cost & Safety</h3>
+          </div>
+          <span class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
+            <Icon name="material-symbols:payments-outline" class="size-6" />
+          </span>
+        </div>
+
+        <!-- Big Cost Display -->
+        <div class="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center">
+          <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estimated Material Cost</span>
+          <p class="mt-1 font-mono text-4xl font-black text-foreground tracking-tight">
+            $<span id="out-print-cost">1.90</span>
+          </p>
+          <span class="mt-1 block text-xs text-muted-foreground">
+            Based on <span id="out-cost-per-kg" class="font-semibold text-foreground">$19.99</span> / kg (<span id="out-cost-per-g" class="font-semibold text-foreground">$0.020</span> / g)
+          </span>
+        </div>
+
+        <!-- Stat Grid: Length & Benchy Equiv -->
+        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+          <div class="rounded-xl border border-border/60 bg-muted/30 p-3">
+            <span class="text-[0.68rem] text-muted-foreground font-medium block">Filament Length (1.75mm)</span>
+            <span class="text-base font-extrabold text-foreground font-mono mt-0.5 block">
+              <span id="out-length-meters">31.8</span> m
+            </span>
+          </div>
+          <div class="rounded-xl border border-border/60 bg-muted/30 p-3">
+            <span class="text-[0.68rem] text-muted-foreground font-medium block">Benchy Benchmark</span>
+            <span class="text-base font-extrabold text-foreground font-mono mt-0.5 block">
+              ~<span id="out-benchy-count">7.0</span> prints
+            </span>
+          </div>
+        </div>
+
+        <!-- Runout Safety Status Box -->
+        <div class="mt-4 rounded-xl border p-3.5 transition-all" id="out-safety-box">
+          <div class="flex items-start gap-2.5">
+            <Icon name="material-symbols:check-circle-outline-rounded" class="size-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" id="safety-icon-ok" />
+            <Icon name="material-symbols:warning-outline-rounded" class="size-5 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400 hidden" id="safety-icon-warn" />
+            <div>
+              <p class="text-xs font-bold leading-tight" id="safety-title">Safe to Print</p>
+              <p class="text-[0.72rem] text-muted-foreground mt-0.5 leading-snug" id="safety-desc">
+                145g safety buffer left over after this print completes.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Post-Print Spool Progress Bar -->
+        <div class="mt-4">
+          <div class="flex justify-between text-xs text-muted-foreground mb-1.5">
+            <span>Spool Capacity Remaining After Job</span>
+            <span class="font-mono font-bold text-foreground" id="out-remaining-percent">14.5%</span>
+          </div>
+          <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              class="h-full rounded-full bg-primary transition-all duration-300"
+              id="out-progress-bar"
+              style="width: 14.5%;"
+            ></div>
+          </div>
+        </div>
+
+        <div class="mt-6 border-t border-border/60 pt-4">
+          <Button
+            href="/load"
+            color="primary"
+            size="md"
+            icon="material-symbols:arrow-forward"
+            iconPosition="right"
+            class="w-full justify-center shadow-xs"
+          >
+            Manage Your Spool Inventory
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function initPrintEstimator() {
+    const root = document.getElementById("print-estimator-section");
+    if (!root) return;
+
+    let currentDensity = 1.24; // PLA default
+    let currentPricePerKg = 19.99;
+    let currentBenchyGrams = 13.5;
+
+    const polyButtons = root.querySelectorAll<HTMLButtonElement>(".estimator-poly-btn");
+    const weightSlider = root.querySelector<HTMLInputElement>("#input-print-weight");
+    const spoolSlider = root.querySelector<HTMLInputElement>("#input-spool-remaining");
+
+    const valPrintWeight = root.querySelector("#val-print-weight");
+    const valSpoolRemaining = root.querySelector("#val-spool-remaining");
+
+    const outPrintCost = root.querySelector("#out-print-cost");
+    const outCostPerKg = root.querySelector("#out-cost-per-kg");
+    const outCostPerG = root.querySelector("#out-cost-per-g");
+    const outLengthMeters = root.querySelector("#out-length-meters");
+    const outBenchyCount = root.querySelector("#out-benchy-count");
+
+    const safetyBox = root.querySelector("#out-safety-box");
+    const safetyIconOk = root.querySelector("#safety-icon-ok");
+    const safetyIconWarn = root.querySelector("#safety-icon-warn");
+    const safetyTitle = root.querySelector("#safety-title");
+    const safetyDesc = root.querySelector("#safety-desc");
+
+    const outRemainingPercent = root.querySelector("#out-remaining-percent");
+    const outProgressBar = root.querySelector<HTMLElement>("#out-progress-bar");
+
+    function calculate() {
+      const printGrams = Number(weightSlider?.value) || 95;
+      const spoolGrams = Number(spoolSlider?.value) || 240;
+
+      if (valPrintWeight) valPrintWeight.textContent = String(printGrams);
+      if (valSpoolRemaining) valSpoolRemaining.textContent = String(spoolGrams);
+
+      // Cost calculation
+      const costPerGram = currentPricePerKg / 1000;
+      const totalCost = printGrams * costPerGram;
+
+      if (outPrintCost) outPrintCost.textContent = totalCost.toFixed(2);
+      if (outCostPerKg) outCostPerKg.textContent = `$${currentPricePerKg.toFixed(2)}`;
+      if (outCostPerG) outCostPerG.textContent = `$${costPerGram.toFixed(3)}`;
+
+      // Length calculation for 1.75mm filament:
+      // Area = pi * (0.175/2)^2 = 0.02405 cm^2
+      // Volume = length(cm) * Area
+      // Mass = Volume * Density
+      // Length(m) = Mass(g) / (Density * Area * 100) = Mass / (Density * 2.40528)
+      const gramsPerMeter = currentDensity * 2.40528;
+      const meters = printGrams / gramsPerMeter;
+      if (outLengthMeters) outLengthMeters.textContent = meters.toFixed(1);
+
+      // Benchy equivalent
+      const benchies = printGrams / currentBenchyGrams;
+      if (outBenchyCount) outBenchyCount.textContent = benchies.toFixed(1);
+
+      // Remaining spool after print
+      const remainingAfter = spoolGrams - printGrams;
+      const remainingPercent = Math.max(0, Math.min(100, (remainingAfter / 1000) * 100));
+
+      if (outRemainingPercent) outRemainingPercent.textContent = `${remainingPercent.toFixed(1)}%`;
+      if (outProgressBar) {
+        outProgressBar.style.width = `${remainingPercent}%`;
+        if (remainingAfter <= 0) {
+          outProgressBar.className = "h-full rounded-full bg-rose-500 transition-all duration-300";
+        } else if (remainingAfter < 50) {
+          outProgressBar.className = "h-full rounded-full bg-amber-500 transition-all duration-300";
+        } else {
+          outProgressBar.className = "h-full rounded-full bg-primary transition-all duration-300";
+        }
+      }
+
+      // Safety status verdict
+      if (remainingAfter >= 50) {
+        // Safe buffer
+        if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 transition-all text-emerald-800 dark:text-emerald-300";
+        safetyIconOk?.classList.remove("hidden");
+        safetyIconWarn?.classList.add("hidden");
+        if (safetyTitle) safetyTitle.textContent = "Safe to Print";
+        if (safetyDesc) safetyDesc.textContent = `${remainingAfter}g safety buffer left over after this print finishes.`;
+      } else if (remainingAfter >= 0) {
+        // Low margin
+        if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 transition-all text-amber-800 dark:text-amber-300";
+        safetyIconOk?.classList.remove("hidden");
+        safetyIconWarn?.classList.add("hidden");
+        if (safetyTitle) safetyTitle.textContent = "Tight Margin";
+        if (safetyDesc) safetyDesc.textContent = `Only ${remainingAfter}g remaining. Monitor print progress or prepare a backup spool.`;
+      } else {
+        // Runout risk!
+        const shortage = Math.abs(remainingAfter);
+        if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 transition-all text-rose-800 dark:text-rose-300";
+        safetyIconOk?.classList.add("hidden");
+        safetyIconWarn?.classList.remove("hidden");
+        if (safetyTitle) safetyTitle.textContent = "Spool Runout Warning";
+        if (safetyDesc) safetyDesc.textContent = `Short by ${shortage}g! Spool will run out mid-job unless auto-refilled.`;
+      }
+    }
+
+    polyButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        polyButtons.forEach((b) => {
+          b.setAttribute("aria-checked", "false");
+          b.className = "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-border bg-background text-foreground hover:border-primary/40";
+        });
+
+        btn.setAttribute("aria-checked", "true");
+        btn.className = "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-primary bg-primary/15 text-primary-text ring-1 ring-primary/40 shadow-xs";
+
+        currentDensity = Number(btn.dataset.density) || 1.24;
+        currentPricePerKg = Number(btn.dataset.price) || 19.99;
+        currentBenchyGrams = Number(btn.dataset.benchy) || 13.5;
+        calculate();
+      });
+    });
+
+    weightSlider?.addEventListener("input", calculate);
+    spoolSlider?.addEventListener("input", calculate);
+
+    calculate();
+  }
+
+  initPrintEstimator();
+  document.addEventListener("astro:page-load", initPrintEstimator);
+</script>
