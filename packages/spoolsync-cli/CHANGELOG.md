@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.7.0...spoolsync-cli-v0.8.0) (2026-11-14)
+
+### Features
+
+* add PrintStudio as a supported service ([e6dcc53](https://github.com/robertbaker/spoolsync/commit/e6dcc5350cbb449d7026f8c64cd696914f0e7703))
+
 ## [0.7.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.6.0...spoolsync-cli-v0.7.0) (2026-11-12)
 
 ### Features
