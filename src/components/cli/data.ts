@@ -338,7 +338,7 @@ export const sampleOutput = `6 spools in 2 inventories; 5 groups, 1 match sugges
   spoolman: 2 updates, 0 creates
   spoolio: 1 update, 1 create
 1 field conflict remains unresolved; those values will be left as-is.
-Dry run only. Add --output-dir <dir> to write inventory files, or --apply with --spoolman-url to write to Spoolman.`;
+Dry run only. Add --output-dir <dir> to write inventory files, or --apply with a direct API connection to write to the service.`;
 
 export const sections = [
   { href: "#quick-start", label: "Quick start" },
@@ -356,7 +356,7 @@ export const safety = [
   {
     icon: "material-symbols:shield-outline",
     title: "Source files stay untouched",
-    body: "--apply requires --spoolman-url. Export files are only written to your --output-dir.",
+    body: `--apply writes to connected API services (${CLI_APPLY_NAMES}). Export files are only written to your --output-dir.`,
   },
   {
     icon: "material-symbols:rule",

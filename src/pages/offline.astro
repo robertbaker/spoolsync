@@ -1,6 +1,8 @@
 ---
+import Badge from "~/components/starwind/controls/Badge/Badge.astro";
 import Button from "~/components/starwind/controls/Button/Button.astro";
 import Container from "~/components/starwind/controls/Container/Container.astro";
+import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import { SITE_TITLE } from "~/config";
 ---
@@ -13,19 +15,25 @@ import { SITE_TITLE } from "~/config";
   <div class="relative isolate overflow-hidden">
     <div class="hero-glow-backdrop" aria-hidden="true"></div>
 
-    <Container class="relative z-10 py-20 text-center sm:py-28">
-      <div class="mx-auto flex max-w-2xl flex-col items-center">
-        <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">
+    <Container class="relative z-10 py-16 text-center sm:py-24">
+      <div class="glass-surface mx-auto flex max-w-xl flex-col items-center rounded-3xl border border-dashed border-primary/25 p-8 sm:p-12 text-center shadow-layered">
+        <div class="animate-subtle-pulse">
+          <IconAvatar icon="material-symbols:wifi-off-rounded" color="warning" containerSize="xl" size="xl" rounded="full" />
+        </div>
+        <Badge color="warning" style="soft" shape="pill" class="mt-6 uppercase tracking-wider">Local Mode</Badge>
+        <h1 class="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl text-balance">
           You are <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">offline</span>
         </h1>
-        <p class="mt-4 text-lg text-muted-foreground">
-          This page was not saved on this device, so it cannot open without a connection. The main
-          pages are saved, and loading files and comparing inventories works offline. Fetching from a
-          service on your network needs that service to be reachable.
+        <p class="mt-4 text-base text-muted-foreground leading-relaxed">
+          This page was not cached on this device, so it cannot open without an active connection. Your loaded spool files, offline inventory calculations, and comparisons remain fully functional in your browser.
         </p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
-          <Button href="/" color="primary" size="lg" class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all">Home</Button>
-          <Button href="/load" variant="outline" size="lg" class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5">Inventory</Button>
+          <Button href="/" color="primary" size="lg" icon="material-symbols:home-outline" iconPosition="left" class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all">
+            Return home
+          </Button>
+          <Button href="/load" variant="outline" size="lg" icon="material-symbols:inventory-2-outline-rounded" iconPosition="left" class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5">
+            Load spools
+          </Button>
         </div>
       </div>
     </Container>

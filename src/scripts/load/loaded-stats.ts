@@ -30,7 +30,10 @@ export function renderLoadedStats(
     return [
       h(
         "div",
-        { class: "rounded-xl border bg-muted/20 p-3" },
+        {
+          class:
+            "modern-card relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-4 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-md",
+        },
         h(
           "p",
           { class: "text-xs font-medium uppercase tracking-wide text-muted-foreground" },

@@ -14,7 +14,10 @@ export function createSummaryView(state: SyncSession) {
     const stat = (label: string, value: number, hint: string) =>
       h(
         "div",
-        { class: "modern-card rounded-2xl border bg-card p-5 shadow-xs" },
+        {
+          class:
+            "modern-card relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-md",
+        },
         h(
           "p",
           { class: "text-xs font-semibold uppercase tracking-wider text-muted-foreground" },
