@@ -16,13 +16,9 @@ export function createSummaryView(state: SyncSession) {
         "div",
         {
           class:
-            "modern-card relative overflow-hidden rounded-2xl border border-border/80 bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-md",
+            "sync-metric relative overflow-hidden rounded-xl border border-border/80 bg-card/90 p-4 shadow-xs sm:p-5",
         },
-        h(
-          "p",
-          { class: "text-xs font-semibold uppercase tracking-wider text-muted-foreground" },
-          label,
-        ),
+        h("p", { class: "text-xs font-semibold tracking-wide text-muted-foreground" }, label),
         h("p", { class: "mt-2 text-3xl font-extrabold tracking-tight" }, String(value)),
         h("p", { class: "mt-1.5 text-xs text-muted-foreground" }, hint),
       );
@@ -35,9 +31,9 @@ export function createSummaryView(state: SyncSession) {
           .map((s) => `${SOURCE_LABELS[s]} ${state.loaded.get(s)!.spools.length}`)
           .join(" · "),
       ),
-      stat("Linked across services", linked, "Matched by IDs or your confirmation"),
+      stat("Linked groups", linked, "Matched by IDs or your confirmation"),
       stat(
-        "Open conflicts",
+        "Unresolved fields",
         open,
         suggested
           ? `${suggested} possible match${suggested === 1 ? "" : "es"} to review`

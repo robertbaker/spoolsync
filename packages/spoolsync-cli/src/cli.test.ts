@@ -229,7 +229,7 @@ test("--summary reports counts per inventory without planning changes", async ()
   const text = await run("--spoolkeep", path.join(directory, "keep.json"), "--summary");
   expect(text.code).toBe(0);
   expect(text.stdout).toContain(
-    "spoolkeep: 3 spools (1 archived), 2 brands, 2 materials, 0 g remaining (3 spools without a known weight)",
+    "spoolkeep: 3 spools (1 archived)\n  2 brands, 2 materials\n  0 g remaining (3 spools without a known weight)",
   );
   expect(text.stdout).not.toContain("Dry run");
 
@@ -465,7 +465,7 @@ test("--summary flags spools that are running low", async () => {
   const [stdout, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
   expect(code).toBe(0);
   expect(stdout).toContain(
-    "spoolio: 3 spools, 2 brands, 2 materials, 1,150 g remaining; 2 running low",
+    "spoolio: 3 spools\n  2 brands, 2 materials\n  1,150 g remaining\n  2 running low (at or below 20% of full weight)",
   );
 });
 

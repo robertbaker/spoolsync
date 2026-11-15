@@ -7,7 +7,18 @@ export function help(): void {
 Usage:
   spoolsync [options]
 
-Inputs (provide at least two):
+Quick start:
+  Inspect one inventory:
+    spoolsync --spoolman inventory.json --summary
+  Preview a comparison without writing:
+    spoolsync --spoolman inventory.json --spoolio backup.json
+  Save updated import files:
+    spoolsync --spoolman inventory.json --spoolio backup.json --output-dir ./updated
+
+  Start with a preview, review conflicts and possible matches, then choose where to write.
+  No remote service is modified unless --apply is set.
+
+File inputs (two inventories for comparison; one for reports or CSV export):
   --spoolman <file>       Spoolman JSON or CSV export
   --spoolstock <file>     Spoolstock CSV export (read-only source)
   --spoolio <file>        Spoolio JSON export
@@ -24,6 +35,8 @@ Inputs (provide at least two):
   --spool <file>          Spool app JSON backup (read-only source)
   --spoolkeep <file>      SpoolKeep JSON backup (read-only source)
   --empty <sources>      Start empty writable inventories (comma-separated; repeatable)
+
+Direct API inputs:
   --spoolman-url <url>    Load Spoolman directly instead of from a file
   --spoolman-token <token> API token (or set SPOOLMAN_TOKEN)
   --filamentdb-url <url>  Load FilamentDB directly instead of from a file
@@ -44,15 +57,15 @@ Planning:
   --reject <pair>         Reject a suggested pair (source:id,source:id); repeatable
   --create-in <sources>   Create missing spools in loaded writable sources (not read-only sources)
 
-Output:
+Files and automation:
   --output-dir <dir>      Write updated import files for loaded file sources (not read-only sources)
-  --config <file>         Read default options from a JSON file (command-line options replace them)
   --completion <shell>    Print a shell completion script (bash, zsh, or fish)
   --watch                 Run again whenever an input file changes (not with --apply or --*-url)
   --quiet                 With --watch, print a run only when its output differs from the last
                           Each --watch run after the first also lists what changed since the previous run
-  --low-threshold <pct>   With --summary or --reorder, the percent of full weight at or under which a spool is low (default 20)
-  --reorder               Print a shopping list of spools that are running low
+
+Saved settings:
+  --config <file>         Read default options from a JSON file (command-line options replace them)
   --save-config           Save the given options (and inventory paths) as defaults in your settings file
   --no-user-config        Ignore the settings file for this run
   --export-settings <file> Write your saved settings to a file (the browser can import it too)
@@ -60,7 +73,11 @@ Output:
   --show-config           Show what the settings file, --config, and the command line each supply
   --config-path           Print where the settings file lives
   --clear-config          Delete the settings file
+
+Reports and data quality:
   --summary               Print counts for each loaded inventory instead of planning changes
+  --reorder               Print a shopping list of spools that are running low
+  --low-threshold <pct>   With --summary or --reorder, the percent of full weight at or under which a spool is low (default 20)
   --cleanup[=<rules>]     Apply safe data cleanups (whitespace, casing, color codes, number formats) to the plan
                           before comparing; changes that need a person to look are listed, not applied.
                           <rules> is a comma list of: ${CLEANUP_RULE_IDS.join(", ")} (or all, -rule to leave one out)
@@ -71,11 +88,15 @@ Output:
   --fail-on-mismatch      With --reference or --reference-report, exit with code 1 when a spool's value or color differs from the reference
                           (for a scheduled check; fills for empty fields do not count)
   --export-csv <file>     Write every loaded spool to one CSV file (works with a single inventory)
+
+Remote writes and recovery:
   --rollback-dir <dir>    Where --apply saves the rollback file it makes before writing (default: a rollbacks folder beside the settings file)
   --no-rollback           With --apply, write without saving a rollback file first
   --restore-rollback <file> Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url, or --filadex-url;
                           fields changed since are left alone, and nothing is written without --apply
   --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, Filament DB, Bambuddy, PrintStudio, or Filadex inventories
+
+Display:
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)
   --json                  Same as --format json
   -V, --version           Show the installed CLI version (supports --json)

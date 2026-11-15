@@ -11,7 +11,7 @@ import SourceTile from "~/components/SourceTile.astro";
 import SpoolmanConnectionForm from "~/components/connections/SpoolmanConnectionForm.astro";
 import SpoolmanSetupHelp from "~/components/connections/SpoolmanSetupHelp.astro";
 import TigertagConnectionForm from "~/components/connections/TigertagConnectionForm.astro";
-import { SERVICE_COUNT_WORD, SERVICE_VIEWS, acceptAllFiles, extensionList, serviceView } from "~/lib/services";
+import { SERVICE_COUNT_WORD, SERVICE_VIEWS, acceptAllFiles, serviceView } from "~/lib/services";
 import { serviceLogoSrc } from "~/lib/service-logos";
 
 // Every panel except Spoolman (which has its own settings block) comes from the services registry.
@@ -42,23 +42,19 @@ const spoolman = serviceView("spoolman");
     <Container class="relative z-10 py-10 sm:py-14">
       <FlowSteps current="load" class="mb-6" />
       <PageHeader
-        eyebrow="Step 1 of 3"
         title="Load inventories"
-        description="Drop your export files or open a service to fetch from it. Nothing is modified yet. Loaded inventories and API keys clear when you close this tab; your Spoolman address, match answers and history stay on this device."
+        description="Bring your filament inventory into SpoolSync from a file export or a connected server."
       />
 
-      <section id="tour-drop" class="app-card mt-8 backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-md" aria-labelledby="smart-heading">
-        <h2 id="smart-heading" class="text-xl font-bold">Drop your exports</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Drop files from any of the {SERVICE_COUNT_WORD} supported services. SpoolSync works out which service each one belongs to; if a file could be
-          from several, it asks.
-        </p>
-        <label id="smart-drop" for="smart-file" class="dropzone group mt-4">
-          <span class="flex size-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 text-primary-text mb-1 transition-transform group-hover:scale-105">
-            <Icon name="material-symbols:upload-file-outline-rounded" class="size-7" aria-hidden="true" />
-          </span>
-          <span class="font-semibold text-foreground text-base">Choose export files</span>
-          <span class="text-xs text-muted-foreground">or drop several at once ({extensionList()})</span>
+      <section id="tour-drop" class="load-drop-section mt-7" aria-labelledby="smart-heading">
+        <h2 id="smart-heading" class="sr-only">Drop your exports</h2>
+        <p class="sr-only">Drop files from any of the {SERVICE_COUNT_WORD} supported services. SpoolSync detects the service and asks if a file could match more than one.</p>
+        <label id="smart-drop" for="smart-file" class="dropzone load-dropzone group">
+          <span class="load-dropzone__icon" aria-hidden="true"><Icon name="material-symbols:upload-file-outline-rounded" class="size-8" /></span>
+          <span class="font-semibold text-foreground text-lg">Drop your export files here</span>
+          <span class="text-sm text-muted-foreground">or choose files from your computer</span>
+          <span class="load-dropzone__button">Choose export files</span>
+          <span class="text-xs text-muted-foreground">You can add several at once</span>
           <div class="mt-2 flex flex-wrap justify-center gap-1.5" aria-hidden="true">
             <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">JSON</span>
             <span class="rounded bg-muted/90 px-2 py-0.5 text-[0.68rem] font-mono font-bold text-foreground border border-border/60">CSV</span>

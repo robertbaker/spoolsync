@@ -42,6 +42,16 @@ Requires Node.js 22 or later. Use `spoolsync --version --json` to read the insta
 
 ## Quick start
 
+Text comparisons separate planned changes, unresolved fields, possible matches, and results.
+The plan table shows loaded spool counts and proposed updates/creations per source. Unresolved
+fields list their group, field name, and competing source values; `--resolve field=source` chooses that source for the field
+across all groups. Possible matches stay separate until you confirm them. Apply and restore
+results list each operation as `OK` or `FAILED`, including completed work after a partial failure.
+Use `--json` for scripts; its report schema is independent of the text layout.
+Next steps distinguish file exports from direct API writes and name the eligible loaded sources.
+A CSV export reports the file it wrote without calling the run a dry run. Inventory summaries
+separate counts, known remaining weight, and low-stock counts, including the selected threshold.
+
 Provide at least two inventories (targets started with `--empty` count). Run a plan without writing
 anything:
 

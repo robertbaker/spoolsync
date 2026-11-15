@@ -19,6 +19,7 @@ import {
 
 import { ExecutionError } from "./execution";
 import type { Options } from "./options";
+import { applyResults } from "./presentation";
 import type { CliDependencies, CliOutput } from "./runtime";
 import type { RemoteService } from "./services";
 import { userConfigPath, writeTextAtomic } from "./user-config";
@@ -214,7 +215,7 @@ export async function runRestore(
       );
       for (const creation of plan.creations) output.log(`  ${creation.label}`);
     }
-    if (applied) output.log("Apply results:", applied);
+    if (applied) output.log(applyResults(applied));
     else if (plan.changes.length) output.log("Dry run only. Add --apply to put these values back.");
     if (rollbackFile) output.log(`Rollback file for this restore: ${rollbackFile}`);
   }

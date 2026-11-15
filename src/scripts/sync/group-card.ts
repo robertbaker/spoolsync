@@ -47,7 +47,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
     if (!status) return;
     const open = openConflicts(group, state.resolutionFor(group)).length;
     status.textContent = open ? `${open} to resolve` : "Ready";
-    status.className = `rounded-full px-2 py-0.5 text-xs font-medium ${open ? "bg-warning/15 text-warning-text" : "bg-success/15 text-success-text"}`;
+    status.className = `rounded-full border px-2.5 py-1 text-xs font-semibold ${open ? "border-warning/30 bg-warning/15 text-warning-text" : "border-success/30 bg-success/15 text-success-text"}`;
   }
 
   /** Whether a group has differences or missing services worth showing, without building its card. */
@@ -81,7 +81,9 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
       "span",
       {
         "data-status-for": group.id,
-        class: `rounded-full px-2 py-0.5 text-xs font-medium ${open ? "bg-warning/15 text-warning-text" : "bg-success/15 text-success-text"}`,
+        role: "status",
+        "aria-live": "polite",
+        class: `rounded-full border px-2.5 py-1 text-xs font-semibold ${open ? "border-warning/30 bg-warning/15 text-warning-text" : "border-success/30 bg-success/15 text-success-text"}`,
       },
       open ? `${open} to resolve` : "Ready",
     );
@@ -90,12 +92,15 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
       "article",
       {
         class:
-          "modern-card rounded-2xl border bg-card shadow-xs transition-colors hover:border-primary/40 overflow-hidden",
+          "modern-card overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs transition-colors hover:border-primary/40",
         "data-group": group.id,
       },
       h(
         "header",
-        { class: "flex flex-wrap items-center justify-between gap-2 p-4 sm:p-5" },
+        {
+          class:
+            "flex flex-wrap items-center justify-between gap-3 border-l-2 border-l-primary/60 p-4 sm:p-5",
+        },
         h(
           "div",
           {},
@@ -104,7 +109,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
             {
               for: selectId,
               class:
-                "touch-target mb-1 flex w-fit cursor-pointer items-center gap-2 text-xs text-muted-foreground",
+                "touch-target mb-1 flex w-fit cursor-pointer items-center gap-2 rounded-md text-xs text-muted-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-primary",
             },
             select,
             "Select for bulk edit",
@@ -134,10 +139,10 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
           { class: "overflow-x-auto border-t" },
           h(
             "table",
-            { class: "w-full text-sm" },
+            { class: "sync-comparison-table w-full text-sm" },
             h(
               "thead",
-              { class: "text-muted-foreground" },
+              { class: "bg-muted/50 text-muted-foreground" },
               h(
                 "tr",
                 {},
@@ -152,7 +157,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
                 h(
                   "th",
                   { class: "px-3 py-2", scope: "col" },
-                  h("span", { class: "sr-only" }, "No change"),
+                  h("span", { class: "sr-only" }, "Leave as is"),
                 ),
               ),
             ),
@@ -173,7 +178,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
       card.append(
         h(
           "div",
-          { class: "flex flex-wrap items-center gap-4 border-t p-4 text-sm" },
+          { class: "flex flex-wrap items-center gap-3 border-t bg-muted/20 p-4 text-sm" },
           pending
             ? h(
                 "p",

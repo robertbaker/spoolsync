@@ -18,10 +18,10 @@ import { SITE_TITLE } from "~/config";
     <Container class="relative z-10 py-10 sm:py-14">
     <FlowSteps current="sync" class="mb-6" />
     <PageHeader
-      eyebrow="Steps 2 and 3 of 3"
-      title="Sync"
+      eyebrow="Step 2 of 3 · Review"
+      title="Review & sync"
       titleId="tour-sync"
-      description="Spools are matched across your loaded inventories. Pick a value wherever services disagree, then apply or download your changes."
+      description="Check possible matches, resolve differences, then apply or download the changes for each service. Nothing is written until you choose Apply."
     />
 
     <!-- Neutral placeholder, same footprint as the empty state, until the script knows what is loaded. -->
@@ -65,19 +65,30 @@ import { SITE_TITLE } from "~/config";
       <div id="match-answers" class="mt-6" hidden></div>
 
       <section id="suggestions-section" class="mt-12 scroll-mt-24" aria-labelledby="suggestions-heading" hidden>
-        <h2 id="suggestions-heading" class="text-2xl">Possible matches</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          These spools look similar but don't share an ID. Confirm or reject each pair—SpoolSync remembers your choice.
-        </p>
+        <div class="sync-section-heading">
+          <span class="sync-section-heading__step" aria-hidden="true">1</span>
+          <div>
+            <h2 id="suggestions-heading" class="text-2xl">Possible matches</h2>
+            <p class="mt-1 text-sm text-muted-foreground">
+              These spools look similar but don't share an ID. Confirm or reject each pair—SpoolSync remembers your choice.
+            </p>
+          </div>
+        </div>
         <div id="review-controls" class="mt-4 flex flex-wrap items-center gap-3"></div>
         <div id="suggestions-bulk" class="mt-4 flex flex-wrap items-center gap-2" aria-live="polite"></div>
         <div id="suggestions" class="mt-4 grid gap-4"></div>
       </section>
 
       <section id="tour-differences" class="mt-12" aria-labelledby="differences-heading">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="differences-heading" class="text-2xl">Differences</h2>
-          <div id="filters" class="flex flex-wrap gap-2" role="group" aria-label="Show"></div>
+        <div class="sync-section-heading">
+          <span class="sync-section-heading__step" aria-hidden="true">2</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="differences-heading" class="text-2xl">Differences</h2>
+              <div id="filters" class="flex flex-wrap gap-2" role="group" aria-label="Show"></div>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">Choose which service value to keep for each field that differs.</p>
+          </div>
         </div>
         <input
           id="group-search"
@@ -91,7 +102,13 @@ import { SITE_TITLE } from "~/config";
       </section>
 
       <section id="tour-apply" class="app-card mt-12 scroll-mt-24" aria-labelledby="apply-heading">
-        <h2 id="apply-heading" class="text-2xl">Apply</h2>
+        <div class="sync-section-heading">
+          <span class="sync-section-heading__step" aria-hidden="true">3</span>
+          <div>
+            <h2 id="apply-heading" class="text-2xl">Apply changes</h2>
+            <p class="mt-1 text-sm text-muted-foreground">Review the plan for each service, then write changes or download an export.</p>
+          </div>
+        </div>
         <div id="apply" class="mt-4 grid gap-6"></div>
       </section>
       <div

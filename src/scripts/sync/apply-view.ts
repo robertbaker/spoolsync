@@ -302,8 +302,11 @@ export function createApplyView(
       );
       sections.push(
         h(
-          "div",
-          {},
+          "section",
+          {
+            class: "apply-service rounded-xl border border-border/80 bg-card/70 p-4 sm:p-5",
+            "aria-label": `${SOURCE_LABELS[source]} changes`,
+          },
           h(
             "div",
             { class: "flex flex-wrap items-center justify-between gap-2" },
@@ -319,7 +322,13 @@ export function createApplyView(
             ),
             action,
           ),
-          note ? h("p", { class: "mt-1 text-xs text-muted-foreground" }, note) : null,
+          note
+            ? h(
+                "p",
+                { class: "mt-2 max-w-4xl text-sm leading-relaxed text-muted-foreground" },
+                note,
+              )
+            : null,
           changes.length ? changeList(changes) : null,
           (fullPlan.get(source) ?? []).length
             ? renderPreview(

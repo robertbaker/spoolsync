@@ -83,3 +83,59 @@
     transform: none !important;
   }
 }
+
+/* Make the three review decisions read as a sequence while keeping the data area open. */
+.sync-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.sync-section-heading__step {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  margin-top: 0.15rem;
+  border: 1px solid color-mix(in oklch, var(--primary) 32%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+  color: var(--primary-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#tour-apply {
+  border-color: color-mix(in oklch, var(--primary) 22%, var(--border));
+  background: color-mix(in oklch, var(--primary) 2%, var(--card));
+}
+
+@media (max-width: 40rem) {
+  .sync-section-heading {
+    gap: 0.65rem;
+  }
+}
+
+.sync-metric {
+  border-top: 2px solid color-mix(in oklch, var(--primary) 52%, var(--border));
+}
+
+.sync-metric p:nth-child(2) {
+  font-variant-numeric: tabular-nums;
+}
+
+#sync-summary {
+  gap: 0.75rem;
+}
+
+@media (max-width: 40rem) {
+  #sync-summary {
+    gap: 0.5rem;
+  }
+
+  .sync-metric {
+    padding: 0.85rem;
+  }
+}

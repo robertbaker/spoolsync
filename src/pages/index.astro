@@ -5,7 +5,6 @@ import Container from "~/components/starwind/controls/Container/Container.astro"
 import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
 import StepTimeline from "~/components/StepTimeline.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
-import ServiceMark from "~/components/ServiceMark.astro";
 import ServiceMatrix from "~/components/home/ServiceMatrix.astro";
 import HeroShowcase from "~/components/home/HeroShowcase.astro";
 import SyncVisualizer from "~/components/home/SyncVisualizer.astro";
@@ -15,7 +14,7 @@ import PrintEstimator from "~/components/home/PrintEstimator.astro";
 import DryingGuide from "~/components/home/DryingGuide.astro";
 import FaqSection from "~/components/home/FaqSection.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
-import { SERVICE_VIEWS, SERVICE_COUNT_WORD } from "~/lib/services";
+import { SERVICE_COUNT_WORD } from "~/lib/services";
 
 import { steps, highlights } from "~/components/home/data";
 
@@ -28,29 +27,11 @@ import { steps, highlights } from "~/components/home/data";
     <Container class="relative z-10 py-12 sm:py-16">
       <div class="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_26rem]">
         <div class="max-w-3xl" id="tour-overview">
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary-text shadow-xs backdrop-blur-xs animate-shimmer">
-              <span class="relative flex size-2">
-                <span class="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-success opacity-75"></span>
-                <span class="relative inline-flex size-2 rounded-full bg-success"></span>
-              </span>
-              Runs 100% in your browser
-            </div>
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-xs">
-              <Icon name="material-symbols:shield-outline" class="size-3.5 text-primary-text" />
-              Zero accounts · Zero tracking
-            </span>
-          </div>
-
-          <h1 class="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-balance">
-            Compare & sync <br class="hidden sm:inline" />
-            <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">
-              every spool list
-            </span>
+          <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl text-balance">
+            Bring your spool lists together.
           </h1>
-          <p class="mt-4 text-lg sm:text-xl text-muted-foreground leading-relaxed">{SITE_DESCRIPTION}</p>
-          <p class="mt-3 text-muted-foreground leading-relaxed">
-            Drop export files from any supported tool, or connect directly to Spoolman on your local network. Everything is read right in your browser. There is no server and no account.
+          <p class="mt-4 max-w-2xl text-lg sm:text-xl text-muted-foreground leading-relaxed">
+            Compare filament inventories across {SERVICE_COUNT_WORD} tools, decide what to keep, then apply or download your changes.
           </p>
 
           <div class="mt-8 flex flex-wrap items-center gap-3">
@@ -65,14 +46,14 @@ import { steps, highlights } from "~/components/home/data";
               Load inventories
             </Button>
             <Button
-              href="/load"
+              href="/load?sample=1"
               variant="outline"
               size="lg"
               icon="material-symbols:play-circle-outline-rounded"
               iconPosition="left"
               class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5"
             >
-              Try sample data
+              Explore sample inventory
             </Button>
             <Button
               href="/cli"
@@ -82,27 +63,17 @@ import { steps, highlights } from "~/components/home/data";
               iconPosition="left"
               class="text-muted-foreground hover:text-foreground"
             >
-              CLI docs
+              Use the CLI
             </Button>
           </div>
 
-          <div class="mt-8 flex flex-wrap items-center gap-2 pt-4 border-t text-xs text-muted-foreground">
+          <div class="mt-7 flex flex-wrap items-center gap-3 border-t pt-4 text-sm text-muted-foreground">
             <span class="font-semibold text-foreground flex items-center gap-1.5">
               <Icon name="material-symbols:grid-view-rounded" class="size-3.5 text-primary-text" />
-              Supported tools:
+              Works with {SERVICE_COUNT_WORD} tools
             </span>
-            {
-              SERVICE_VIEWS.map((service) => (
-                <a
-                  href="#supported-tools"
-                  class="inline-flex items-center gap-1.5 rounded-md bg-muted/80 px-2 py-0.5 font-medium text-foreground transition-colors hover:bg-primary/10 hover:text-primary-text"
-                >
-                  <ServiceMark id={service.id} class="size-3.5" /> {service.name}
-                </a>
-              ))
-            }
-            <a href="#supported-tools" class="inline-flex min-h-11 items-center px-1 font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-              Compare capabilities →
+            <a href="#supported-tools" class="inline-flex min-h-11 items-center font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              See supported tools and formats <Icon name="material-symbols:arrow-forward-rounded" class="ml-1 size-4" />
             </a>
           </div>
         </div>

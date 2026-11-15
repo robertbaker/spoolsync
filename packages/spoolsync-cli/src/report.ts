@@ -1,6 +1,8 @@
 import { ApplyReloadError } from "@spoolsync/core/apply";
+import { compareGroup, formatValue } from "@spoolsync/core/core/compare";
 import {
   SOURCE_IDS,
+  isWritableSource,
   type ApplyLogEntry,
   type LoadResult,
   type SourceId,
@@ -25,6 +27,7 @@ import {
   type PendingMatch,
 } from "./json-report";
 import type { createCliPlan } from "./planning";
+import { applyResults, textTable } from "./presentation";
 import { referenceLines, referenceSection, type ReferenceOutcome } from "./reference";
 import type { CliOutput } from "./runtime";
 
@@ -89,22 +92,46 @@ export function reportWorkflow(
     } as CompareReport;
     output.log(JSON.stringify(report, null, 2));
   } else {
+    output.log("\nComparison");
     output.log(
       `${spools.length} spool${spools.length === 1 ? "" : "s"} in ${loaded.size} inventories; ${matches.groups.length} group${matches.groups.length === 1 ? "" : "s"}, ${matches.suggestions.length} match suggestion${matches.suggestions.length === 1 ? "" : "s"}.`,
     );
-    for (const source of SOURCE_IDS) {
-      if (!loaded.has(source)) continue;
-      const counts = summary.changes[source];
-      const updates = counts?.updates ?? 0;
-      const creates = counts?.creates ?? 0;
-      output.log(
-        `  ${source}: ${updates} update${updates === 1 ? "" : "s"}, ${creates} create${creates === 1 ? "" : "s"}`,
-      );
-    }
-    if (summary.unresolved.length)
+    output.log("\nPlanned changes");
+    output.log(
+      textTable(
+        ["Source", "Spools", "Updates", "Creates"],
+        SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [
+          source,
+          String(loaded.get(source)!.spools.length),
+          String(summary.changes[source]?.updates ?? 0),
+          String(summary.changes[source]?.creates ?? 0),
+        ]),
+      ),
+    );
+    if (!Object.values(summary.changes).some((counts) => counts.updates || counts.creates))
+      output.log("  No updates or creations planned.");
+    if (summary.unresolved.length) {
+      output.log("\nUnresolved fields");
       output.log(
         `${summary.unresolved.length} field conflict${summary.unresolved.length === 1 ? " remains" : "s remain"} unresolved; those values will be left as-is.`,
       );
+      const unresolved = new Set(
+        summary.unresolved.map(({ group, field }) => JSON.stringify([group, field])),
+      );
+      for (const group of matches.groups) {
+        for (const comparison of compareGroup(group)) {
+          if (!unresolved.has(JSON.stringify([group.id, comparison.field]))) continue;
+          output.log(`  ${group.id}: ${comparison.field}`);
+          for (const option of comparison.options)
+            output.log(
+              `    ${option.sources.join(", ")}: ${JSON.stringify(formatValue(comparison.field, option.value))}`,
+            );
+        }
+      }
+      output.log(
+        "Use --resolve <field=source> to choose a loaded source for a field across all groups.",
+      );
+    }
     if (planning.cleanup) {
       const text = cleanupLines(planning.cleanup, options);
       output.log(text.lines.join("\n"));
@@ -115,6 +142,7 @@ export function reportWorkflow(
       output.log(text.lines.join("\n"));
       for (const warning of text.warnings) output.warn(warning);
     }
+    if (matches.suggestions.length) output.log("\nPossible matches (not linked automatically)");
     for (const suggestion of matches.suggestions)
       output.log(
         `Match suggestion: ${suggestion.pair.join(",")} (score ${suggestion.score}; ${suggestion.reasons.join("; ")})`,
@@ -128,17 +156,36 @@ export function reportWorkflow(
     for (const problem of matches.problems) output.warn(`Warning: ${problem}`);
     for (const warning of exportWarnings)
       output.warn(`Export warning (${warning.source}): ${warning.message}`);
+    output.log("\nResults");
     if (inventoryFiles.length)
       output.log(
         `Wrote ${inventoryFiles.length} updated inventory file${inventoryFiles.length === 1 ? "" : "s"}:\n${inventoryFiles.map((file) => `  ${file}`).join("\n")}`,
       );
     if (csvFile && written.includes(csvFile))
       output.log(`Exported ${spools.length} spool${spools.length === 1 ? "" : "s"} to ${csvFile}`);
-    if (!options.apply && !inventoryFiles.length)
+    if (options.apply) output.log(applyResults(applied ?? []));
+    else
       output.log(
-        "Dry run only. Add --output-dir <dir> to write inventory files, or --apply with a direct API connection to write to the service.",
+        written.length
+          ? "No remote services were modified."
+          : "Dry run only. No files or remote services were modified.",
       );
-    else if (options.apply) output.log("Apply results:", applied);
+    const fileTargets = SOURCE_IDS.filter(
+      (source) =>
+        isWritableSource(source) && (options.inputs.has(source) || options.empty.includes(source)),
+    );
+    const apiTargets = SOURCE_IDS.filter(
+      (source) => isWritableSource(source) && loaded.get(source)?.origin === "api",
+    );
+    if ((!options.outputDir && fileTargets.length) || (!options.apply && apiTargets.length)) {
+      output.log("\nNext steps");
+      if (!options.outputDir && fileTargets.length)
+        output.log(
+          `  Add --output-dir <dir> to write inventory files for: ${fileTargets.join(", ")}.`,
+        );
+      if (!options.apply && apiTargets.length)
+        output.log(`  Add --apply to write planned changes to: ${apiTargets.join(", ")}.`);
+    }
     if (rollbackFiles.length)
       output.log(
         `Rollback ${rollbackFiles.length === 1 ? "file" : "files"} (keep ${rollbackFiles.length === 1 ? "it" : "them"} to take this back with --restore-rollback):\n${rollbackFiles.map((file) => `  ${file}`).join("\n")}`,
@@ -198,20 +245,24 @@ export function reportInventoryOnly(
   }
   for (const [source, result] of loaded)
     for (const warning of result.warnings) output.warn(`Warning (${source}): ${warning}`);
-  if (options.summary)
+  if (options.summary) {
+    output.log("\nInventory summary");
     for (const summary of summaries) {
       const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
       output.log(
         `${summary.source}: ${plural(summary.spools, "spool")}` +
           (summary.archived ? ` (${summary.archived} archived)` : "") +
-          `, ${plural(summary.brands, "brand")}, ${plural(summary.materials, "material")}, ` +
-          `${summary.remainingGrams.toLocaleString("en-US")} g remaining` +
+          `\n  ${plural(summary.brands, "brand")}, ${plural(summary.materials, "material")}` +
+          `\n  ${summary.remainingGrams.toLocaleString("en-US")} g remaining` +
           (summary.unknownWeights
             ? ` (${plural(summary.unknownWeights, "spool")} without a known weight)`
             : "") +
-          (summary.runningLow ? `; ${summary.runningLow} running low` : ""),
+          (summary.runningLow
+            ? `\n  ${summary.runningLow} running low (at or below ${options.lowThreshold ?? 20}% of full weight)`
+            : ""),
       );
     }
+  }
   if (options.reorder) output.log(formatReorderList(reorder));
   if (cleanup) {
     const text = cleanupLines(cleanup, options);
@@ -252,13 +303,16 @@ export function reportError(error: unknown, json: boolean, output: CliOutput): v
   } else {
     output.error(`spoolsync: ${message}`);
     if (error instanceof ExecutionError) {
-      if (error.applied) output.error("Apply results:", error.applied);
-      if (error.written.length) output.error("Files already replaced:", error.written);
+      if (error.applied) output.error(applyResults(error.applied));
+      if (error.written.length)
+        output.error(
+          `Files already replaced:\n${error.written.map((file) => `  ${file}`).join("\n")}`,
+        );
       if (error.rollbackFiles.length)
         output.error(
           `Rollback ${error.rollbackFiles.length === 1 ? "file" : "files"}:\n${error.rollbackFiles.map((file) => `  ${file}`).join("\n")}`,
         );
-    } else if (error instanceof ApplyReloadError) output.error("Apply results:", error.log);
+    } else if (error instanceof ApplyReloadError) output.error(applyResults(error.log));
     output.error('Run "spoolsync --help" for usage.');
   }
   output.setExitCode(1);

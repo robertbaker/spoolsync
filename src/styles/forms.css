@@ -173,3 +173,68 @@ select.field-input {
   -webkit-mask: url("/logo-mark.svg") center / contain no-repeat;
   mask: url("/logo-mark.svg") center / contain no-repeat;
 }
+
+/* Load page: one unmistakable entry point, with service choices kept secondary. */
+.load-drop-section {
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+}
+
+.load-dropzone {
+  min-height: 17rem;
+  gap: 0.55rem;
+  border-color: color-mix(in oklch, var(--primary) 48%, var(--border));
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--primary) 2%, var(--card));
+}
+
+.load-dropzone:hover,
+.load-dropzone[data-dragging="true"] {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+
+.load-dropzone__icon {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.4rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--primary) 12%, var(--card));
+  color: var(--primary-text);
+}
+
+.load-dropzone__button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.65rem;
+  padding-inline: 1.4rem;
+  border-radius: 0.7rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px color-mix(in oklch, var(--primary) 20%, transparent);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.load-dropzone:hover .load-dropzone__button {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px color-mix(in oklch, var(--primary) 28%, transparent);
+}
+
+#tour-services {
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .load-dropzone {
+    min-height: 15rem;
+    padding: 1.5rem 1rem;
+  }
+}

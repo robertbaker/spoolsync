@@ -21,11 +21,12 @@ const { id, label, kind, icon, image, api = false, readonly = false, compact = f
   type="button"
   data-tile={id}
   data-compact={compact ? "true" : undefined}
+  data-api={api ? "true" : undefined}
   aria-expanded="false"
   aria-controls={id === "spoolman" ? "tour-load" : `${id}-panel`}
   class:list={[
-    "group flex min-w-0 items-center border border-border/80 bg-card/90 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-expanded:border-primary/60 aria-expanded:bg-primary/10 aria-expanded:ring-1 aria-expanded:ring-primary/30",
-    compact ? "gap-2 rounded-full py-1 pl-1.5 pr-3" : "gap-2.5 rounded-xl px-3 py-2.5",
+    "source-tile group flex min-w-0 items-center border border-border/80 bg-card/90 text-left transition-all hover:border-primary/50 hover:bg-card hover:shadow-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-expanded:border-primary/60 aria-expanded:bg-primary/10 aria-expanded:ring-1 aria-expanded:ring-primary/30",
+    compact ? "source-tile--compact gap-2 rounded-xl px-2.5 py-2" : "gap-2.5 rounded-xl px-3 py-2.5",
   ]}
 >
   {
@@ -41,7 +42,9 @@ const { id, label, kind, icon, image, api = false, readonly = false, compact = f
     compact ? (
       <>
         <span class="whitespace-nowrap text-sm font-medium">{label}</span>
-        {readonly && <span class="sr-only">Read-only</span>}
+        <span class="sr-only">
+          {api ? "API connection" : "File import"}{readonly ? ", read-only" : ""}
+        </span>
       </>
     ) : (
       <span class="min-w-0 flex-1">
@@ -55,3 +58,32 @@ const { id, label, kind, icon, image, api = false, readonly = false, compact = f
   }
   <span data-tile-status class={compact ? "shrink-0 empty:hidden" : "shrink-0 self-start empty:hidden"}></span>
 </button>
+
+<style>
+  .source-tile {
+    min-height: 2.75rem;
+  }
+
+  .source-tile--compact {
+    background: var(--card);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
+  }
+
+  .source-tile--compact:hover {
+    transform: translateY(-1px);
+  }
+
+  .source-tile[data-api="true"]:not([data-compact]) {
+    min-height: 4rem;
+  }
+
+  .source-tile[data-tile-busy] {
+    cursor: progress;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .source-tile--compact:hover {
+      transform: none;
+    }
+  }
+</style>
