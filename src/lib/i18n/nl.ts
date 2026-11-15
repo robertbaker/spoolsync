@@ -35,12 +35,13 @@ export const nl: Catalogue = {
   "wizard.choose.legend": "Apps die u gebruikt",
   "wizard.guide.title": "Exporteren uit {app}",
   "wizard.guide.fileType": "Bestandstype: {kind}",
-  "wizard.load.title": "Laad uw bestanden",
+  "wizard.load.title": "Laad een inventaris",
   "wizard.load.hintSome":
-    "Kies {count, plural, one {de export} other {de exports}} die u zojuist uit {apps} hebt gemaakt. U kunt meerdere bestanden tegelijk kiezen; SpoolSync bepaalt bij welke app elk bestand hoort.",
+    "Kies {count, plural, one {de export} other {de exports}} die u zojuist uit {apps} hebt gemaakt, of bekijk de verbindingsopties om direct vanaf een server te laden.",
   "wizard.load.hintNone":
-    "Kies uw exportbestanden. U kunt er meerdere tegelijk kiezen; SpoolSync bepaalt bij welke app elk bestand hoort.",
+    "Kies exportbestanden uit uw apps of bekijk de verbindingsopties om direct vanaf een server te laden.",
   "wizard.load.choose": "Exportbestanden kiezen",
+  "wizard.load.connect": "Verbindingsopties bekijken",
   "wizard.load.privacy":
     "Bestanden worden in deze browser gelezen en niet geüpload. U kunt ze ook op de pagina neerzetten.",
   "wizard.noPicker": "De bestandskiezer is op deze pagina niet beschikbaar.",

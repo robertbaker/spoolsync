@@ -42,12 +42,13 @@ export const en = {
   "wizard.choose.legend": "Apps you use",
   "wizard.guide.title": "Export from {app}",
   "wizard.guide.fileType": "File type: {kind}",
-  "wizard.load.title": "Load your files",
+  "wizard.load.title": "Load an inventory",
   "wizard.load.hintSome":
-    "Choose {count, plural, one {the export} other {the exports}} you just made from {apps}. You can pick several files at once; SpoolSync works out which app each belongs to.",
+    "Choose {count, plural, one {the export} other {the exports}} you just made from {apps}, or browse connections to load directly from a server.",
   "wizard.load.hintNone":
-    "Choose your export files. You can pick several at once; SpoolSync works out which app each belongs to.",
+    "Choose export files from your apps, or browse connections to load directly from a server.",
   "wizard.load.choose": "Choose export files",
+  "wizard.load.connect": "Browse connection options",
   "wizard.load.privacy":
     "Files are read in this browser and are not uploaded. You can also drop them on the page.",
   "wizard.noPicker": "The file picker is not available on this page.",

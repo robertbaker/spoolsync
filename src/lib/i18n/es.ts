@@ -35,12 +35,13 @@ export const es: Catalogue = {
   "wizard.choose.legend": "Aplicaciones que usa",
   "wizard.guide.title": "Exportar desde {app}",
   "wizard.guide.fileType": "Tipo de archivo: {kind}",
-  "wizard.load.title": "Cargue sus archivos",
+  "wizard.load.title": "Cargue un inventario",
   "wizard.load.hintSome":
-    "Elija {count, plural, one {la exportación que acaba de hacer} other {las exportaciones que acaba de hacer}} desde {apps}. Puede elegir varios archivos a la vez; SpoolSync averigua a qué aplicación pertenece cada uno.",
+    "Elija {count, plural, one {la exportación que acaba de hacer} other {las exportaciones que acaba de hacer}} desde {apps}, o explore las conexiones para cargar directamente desde un servidor.",
   "wizard.load.hintNone":
-    "Elija sus archivos de exportación. Puede elegir varios a la vez; SpoolSync averigua a qué aplicación pertenece cada uno.",
+    "Elija archivos de exportación de sus aplicaciones o explore las conexiones para cargar directamente desde un servidor.",
   "wizard.load.choose": "Elegir archivos de exportación",
+  "wizard.load.connect": "Ver opciones de conexión",
   "wizard.load.privacy":
     "Los archivos se leen en este navegador y no se suben. También puede arrastrarlos a la página.",
   "wizard.noPicker": "El selector de archivos no está disponible en esta página.",

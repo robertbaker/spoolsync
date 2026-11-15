@@ -137,6 +137,21 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
       // Opened in the same click so the browser still treats it as a user action.
       picker.click();
     });
+    const connect = h(
+      "button",
+      { type: "button", class: `${BUTTON} mt-4`, id: "setup-browse-services" },
+      t("wizard.load.connect"),
+    );
+    connect.addEventListener("click", () => {
+      const firstService = document.querySelector<HTMLButtonElement>(
+        '#tour-services [data-tile][data-api="true"]',
+      );
+      if (firstService) opener = firstService;
+      dismissSetup();
+      close();
+      firstService?.scrollIntoView({ block: "center" });
+      firstService?.focus({ preventScroll: true });
+    });
     return [
       heading(t("wizard.load.title")),
       h(
@@ -150,6 +165,7 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
           : t("wizard.load.hintNone"),
       ),
       h("div", { class: "mt-4" }, choose),
+      connect,
       h("p", { class: "mt-3 text-xs text-muted-foreground" }, t("wizard.load.privacy")),
     ];
   }

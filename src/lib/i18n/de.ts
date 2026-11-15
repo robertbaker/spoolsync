@@ -34,12 +34,13 @@ export const de: Catalogue = {
   "wizard.choose.legend": "Von Ihnen genutzte Apps",
   "wizard.guide.title": "Export aus {app}",
   "wizard.guide.fileType": "Dateityp: {kind}",
-  "wizard.load.title": "Dateien laden",
+  "wizard.load.title": "Inventar laden",
   "wizard.load.hintSome":
-    "Wählen Sie {count, plural, one {den Export} other {die Exporte}}, den Sie gerade aus {apps} erstellt haben. Sie können mehrere Dateien gleichzeitig auswählen; SpoolSync erkennt, zu welcher App jede gehört.",
+    "Wählen Sie {count, plural, one {den Export} other {die Exporte}}, den Sie gerade aus {apps} erstellt haben, oder öffnen Sie die Verbindungsoptionen, um direkt von einem Server zu laden.",
   "wizard.load.hintNone":
-    "Wählen Sie Ihre Exportdateien. Sie können mehrere gleichzeitig auswählen; SpoolSync erkennt, zu welcher App jede gehört.",
+    "Wählen Sie Exportdateien aus Ihren Apps oder öffnen Sie die Verbindungsoptionen, um direkt von einem Server zu laden.",
   "wizard.load.choose": "Exportdateien wählen",
+  "wizard.load.connect": "Verbindungsoptionen ansehen",
   "wizard.load.privacy":
     "Dateien werden in diesem Browser gelesen und nicht hochgeladen. Sie können sie auch auf die Seite ziehen.",
   "wizard.noPicker": "Die Dateiauswahl ist auf dieser Seite nicht verfügbar.",
