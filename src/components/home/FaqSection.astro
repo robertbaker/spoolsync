@@ -1,37 +1,35 @@
 ---
 /**
- * Maker FAQ & Architecture Section.
- * Answers the most common questions regarding local-first execution,
- * non-destructive field preservation, and cross-ecosystem synchronization.
+ * Answers common questions about browser storage, imports, matching, and weigh-ins.
  */
 import { Icon } from "astro-icon/components";
 import { SERVICE_COUNT_WORD } from "~/lib/services";
 
 const faqs = [
   {
-    question: "How does SpoolSync connect to Spoolman without a backend server?",
+    question: "How does SpoolSync connect to Spoolman?",
     answer:
-      "SpoolSync runs 100% client-side inside your browser tab. When you connect Spoolman, your browser dispatches direct HTTP/REST requests across your local area network (LAN) straight to your server. No proxy, cloud server, or middleman is involved, keeping your homelab completely private.",
+      "The website has no inventory backend. When you connect to Spoolman, your browser sends requests directly to the server address you enter. The connection still depends on your browser, network, and Spoolman's access settings.",
   },
   {
     question: "Are custom or vendor-specific fields preserved when syncing?",
     answer:
-      "Yes. SpoolSync follows strict non-destructive synchronization rules. If a tool includes proprietary fields (like Bambu AMS RFID tags, custom notes, or unique vendor IDs), those fields are preserved untouched during reconciliation and export. SpoolSync never discards fields it doesn't recognize.",
+      "SpoolSync keeps source data it does not edit when the target format allows it. Some formats cannot represent every field; when an export would omit supported data, SpoolSync reports a warning. Check the export warnings before importing a file.",
   },
   {
     question: "Can I use SpoolSync offline in my workshop without internet?",
     answer:
-      "Yes! SpoolSync is built as an offline-ready Progressive Web App (PWA). Once loaded in your browser, the matching engine, density tables, tare calculator, and reference catalogs remain cached and fully operational even if your internet connection goes down.",
+      "You can compare inventories already loaded in the browser when the site is available offline. Loading a page for the first time, fetching an online catalog, or connecting to a service still needs a network connection.",
   },
   {
     question: `How does SpoolSync match spools across all ${SERVICE_COUNT_WORD} supported tools?`,
     answer:
-      "SpoolSync uses a multi-tier deterministic matching algorithm: first linking identical shared hardware IDs and serials, then computing fuzzy confidence scores based on normalized vendor names, polymer types (PLA, PETG, ASA, TPU), filament diameters, and perceptual color hex distances. You always retain manual approval over ambiguous matches.",
+      "SpoolSync links records with shared service IDs first. It can also suggest possible matches based on spool details; you review those suggestions before records are combined.",
   },
   {
     question: "How does the empty spool tare calculator work?",
     answer:
-      "Every brand's empty spool has a distinct tare weight (e.g. 250g for Bambu Lab, 200g for Prusament, 140g for Polymaker). By subtracting the empty spool tare from the gross scale reading, SpoolSync calculates the exact net filament, converts it to remaining length in meters, and syncs the verified weight directly to your inventories.",
+      "Enter the scale reading and the empty-spool weight, then SpoolSync subtracts the tare. The brand values are typical estimates, so weigh an empty spool for a more accurate result. The homepage calculator is a demo; it does not change your inventory.",
   },
 ];
 ---
@@ -43,18 +41,18 @@ const faqs = [
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-border/70 pb-6">
       <div>
-        <p class="text-xs font-bold uppercase tracking-wider text-primary-text">Maker Knowledge Base</p>
+        <p class="text-xs font-bold uppercase tracking-wider text-primary-text">Help</p>
         <h2 class="mt-1 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
           Frequently asked questions
         </h2>
         <p class="mt-2 text-sm text-muted-foreground sm:text-base max-w-xl">
-          Everything you need to know about SpoolSync's local-first architecture, field preservation, and offline capabilities.
+          How inventory data is handled, how matches work, and what you can do offline.
         </p>
       </div>
       <div class="shrink-0 mt-3 sm:mt-0">
         <span class="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-text">
           <Icon name="material-symbols:help-outline" class="size-4" />
-          Zero Telemetry Guaranteed
+          No analytics
         </span>
       </div>
     </div>

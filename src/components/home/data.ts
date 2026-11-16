@@ -41,7 +41,7 @@ export const highlights = [
   {
     icon: "material-symbols:lock-outline",
     title: "Local to your browser",
-    body: "Your inventory stays in this tab. No backend server, no account, and no telemetry.",
+    body: "Inventory files are read and compared in your browser. SpoolSync has no account or inventory database.",
   },
   {
     icon: "material-symbols:compare-arrows",
@@ -51,6 +51,6 @@ export const highlights = [
   {
     icon: "material-symbols:inventory-2-outline",
     title: `${titleCase(SERVICE_COUNT_WORD)} tools, one table`,
-    body: `Compare inventories across all ${SERVICE_COUNT_WORD} services. Write updates back via API or import files where a service accepts them.`,
+    body: `Compare inventories across ${SERVICE_COUNT_WORD} services. Apply changes through an API or download files where the service supports imports.`,
   },
 ];

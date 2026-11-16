@@ -20,3 +20,5 @@ public/reference/
 .claude/worktrees/
 
 .ref/
+
+.playwright-mcp/

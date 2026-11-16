@@ -5,11 +5,10 @@
  * 1. Multi-Tool Ingest
  * 2. Smart Fuzzy Match
  * 3. Side-by-Side Resolution
- * 4. Zero-Loss Sync & Export
+ * 4. Apply changes or export files
  */
 import { Icon } from "astro-icon/components";
 import ServiceMark from "~/components/ServiceMark.astro";
-import { SERVICE_COUNT_WORD } from "~/lib/services";
 ---
 
 <div class="sync-visualizer glass-surface relative overflow-hidden rounded-3xl border border-primary/25 bg-card/95 shadow-layered mt-8" id="sync-visualizer">
@@ -94,14 +93,14 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-            <Icon name="material-symbols:download-rounded" class="size-3.5" /> Stage 1: Zero-Install Local Ingest
+            <Icon name="material-symbols:download-rounded" class="size-3.5" /> Step 1: Load inventories
           </span>
-          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Connect Direct or Drop Any File</h3>
-          <p class="text-sm text-muted-foreground">Every inventory format across all {SERVICE_COUNT_WORD} supported tools is normalized in memory. No network server ever sees your data.</p>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Load files or connect to a service</h3>
+          <p class="text-sm text-muted-foreground">SpoolSync reads supported exports in your browser. When you connect to a service, your browser sends requests to that service.</p>
         </div>
         <div class="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
           <span class="size-2 rounded-full bg-emerald-500 motion-safe:animate-pulse"></span>
-          Pure In-Browser RAM
+          Compared in your browser
         </div>
       </div>
 
@@ -166,10 +165,10 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-            <Icon name="material-symbols:link-rounded" class="size-3.5" /> Stage 2: Smart Link & Fuzzy Match
+            <Icon name="material-symbols:link-rounded" class="size-3.5" /> Step 2: Match spools
           </span>
-          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Automatic Cross-System Linking</h3>
-          <p class="text-sm text-muted-foreground">SpoolSync compares material, vendor, diameter, color hex distance, and weights.</p>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Review linked and possible matches</h3>
+          <p class="text-sm text-muted-foreground">Shared IDs link records. SpoolSync also suggests possible matches based on spool details for you to review.</p>
         </div>
         <div class="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary-text">
           <Icon name="material-symbols:verified-rounded" class="size-4" />
@@ -228,14 +227,14 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-            <Icon name="material-symbols:balance-rounded" class="size-3.5" /> Stage 3: Conflict Resolution Studio
+            <Icon name="material-symbols:balance-rounded" class="size-3.5" /> Step 3: Resolve differences
           </span>
           <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">You Choose Which Value Wins</h3>
-          <p class="text-sm text-muted-foreground">Interactive side-by-side reconciliation. Click a value to test resolving fields!</p>
+          <p class="text-sm text-muted-foreground">Compare values side by side and choose which one to keep for each field.</p>
         </div>
         <div class="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
           <Icon name="material-symbols:edit-note" class="size-4" />
-          Interactive Demo
+          Choose a value
         </div>
       </div>
 
@@ -307,7 +306,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       </div>
 
       <p class="text-xs text-muted-foreground">
-        <strong class="text-foreground">Preservation guarantee:</strong> Unresolved fields stay untouched; unknown vendor-specific metadata is preserved 1:1.
+        Unresolved fields are left unchanged. Export warnings identify data the target format cannot represent.
       </p>
     </div>
 
@@ -321,14 +320,14 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
-            <Icon name="material-symbols:publish-rounded" class="size-3.5" /> Stage 4: Zero-Loss Sync & Write
+            <Icon name="material-symbols:publish-rounded" class="size-3.5" /> Step 4: Apply changes
           </span>
-          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Preview Staging & Safe Commit</h3>
-          <p class="text-sm text-muted-foreground">All changes are prepared and verified before any remote writes occur.</p>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Review, then write or export</h3>
+          <p class="text-sm text-muted-foreground">Review the planned changes before applying them to a connected service or downloading updated files.</p>
         </div>
         <div class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
           <Icon name="material-symbols:shield-outline" class="size-4" />
-          Pre-Flight Staging Check
+          Review the plan first
         </div>
       </div>
 
@@ -339,7 +338,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
             <span>Direct API Writes</span>
           </div>
           <p class="mt-2 text-xs text-muted-foreground">
-            Spoolman receives atomic PATCH requests for confirmed field differences. Failed requests leave the previous state intact.
+            Confirmed changes are sent to the connected service. The apply log reports successful and failed operations.
           </p>
           <div class="mt-3 font-mono text-[0.7rem] bg-muted/60 p-2 rounded-lg text-foreground">
             PATCH /api/v1/spool/42 {"{remaining_weight: 740}"}
@@ -352,7 +351,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
             <span>Updated File Exports</span>
           </div>
           <p class="mt-2 text-xs text-muted-foreground">
-            Download updated JSON or CSV exports tailored for Bambuddy or TigerTag, with full vendor schema parity.
+            Download updated files in formats supported by each service. Warnings explain when a format cannot carry a field.
           </p>
           <div class="mt-3 font-mono text-[0.7rem] bg-muted/60 p-2 rounded-lg text-foreground">
             bambuddy-synchronized.json ready for import
