@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.8.0...spoolsync-cli-v0.9.0) (2026-11-16)
+
+### Features
+
+* **cli:** enhance help formatting and resilience ([515a336](https://github.com/robertbaker/spoolsync/commit/515a33634a43fe5dbe02c84bf6aeb380772d7bd6))
+* **ui:** add slicer print job and material cost estimator ([650195d](https://github.com/robertbaker/spoolsync/commit/650195d6ab1e8a085c51e3e6af04f08342edac40))
+* **ui:** clarify first-run inventory setup ([2df7506](https://github.com/robertbaker/spoolsync/commit/2df7506ae33c560b8a6c4f952666b04f8186e8d0))
+* **ui:** elevate offline experience and stats cards ([e5d05ee](https://github.com/robertbaker/spoolsync/commit/e5d05eedc1c49fd7c474d5ba3d7aa5f15694381a))
+* **ui:** improve inventory workflow experience ([5abd0d9](https://github.com/robertbaker/spoolsync/commit/5abd0d9bf08634aa96921834fc81b7da29336595))
+
+### Bug Fixes
+
+* **a11y:** improve TareCalculator semantics and step number contrast ([39026fe](https://github.com/robertbaker/spoolsync/commit/39026fe92111f5bbd3abb72e213b9289fb2f6316))
+
 ## [0.8.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.7.0...spoolsync-cli-v0.8.0) (2026-11-14)
 
 ### Features
