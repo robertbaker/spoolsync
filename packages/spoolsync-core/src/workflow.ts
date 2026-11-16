@@ -60,6 +60,25 @@ export {
   type HealthScore,
 } from "./workflow/health-score";
 export {
+  KNOWN_TARES,
+  MAX_STORED_TARES,
+  MAX_SCALE_GRAMS,
+  MAX_TARE_GRAMS,
+  NO_BRAND_KEY,
+  brandKey,
+  knownTare,
+  parseScaleInput,
+  resolveTare,
+  sanitizeTares,
+  isTareWeight,
+  weighIn,
+  type KnownTare,
+  type ResolvedTare,
+  type TareOrigin,
+  type WeighInResult,
+  type WeighInSuccess,
+} from "./workflow/weigh-in";
+export {
   diffFingerprints,
   fingerprintSpools,
   hasChanges as hasFingerprintChanges,
@@ -69,6 +88,22 @@ export {
 } from "./workflow/inventory-changes";
 export { spoolKey } from "./workflow/spool-key";
 export { costPerKg, type CostBreakdown, type CostGrouping, type CostShare } from "./workflow/cost";
+export {
+  NO_BRAND,
+  NO_MATERIAL,
+  buildInventoryReport,
+  reportCsv,
+  reportDate,
+  reportFilename,
+  reportMarkdown,
+  reportNotes,
+  summaryLines,
+  type InventoryReport,
+  type LowRow,
+  type ReportFormat,
+  type ReportOptions,
+  type ReportRow,
+} from "./workflow/inventory-report";
 export {
   buildImportReport,
   importReportCsv,

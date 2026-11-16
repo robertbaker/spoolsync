@@ -12,7 +12,8 @@ as Cloudflare Workers static assets; inventory processing runs in the browser.
 | `src/lib/browser/`                              | Browser session and preference storage                                 |
 | `packages/spoolsync-core/src/core/`             | Common inventory model, normalization, comparison, and matching        |
 | `packages/spoolsync-core/src/adapters/`         | Service formats, field mapping, and supported API clients              |
-| `packages/spoolsync-core/src/workflow.ts`       | File loading, empty targets, and export orchestration                  |
+| `packages/spoolsync-core/src/workflow/`         | Inventory workflows, reporting, health, weigh-in, mapper, and exports  |
+| `packages/spoolsync-core/src/workflow.ts`       | Public workflow entry point                                            |
 | `packages/spoolsync-core/src/planner.ts`        | Resolutions and planned updates or creations                           |
 | `packages/spoolsync-core/src/apply.ts`          | Remote writes and inventory refresh                                    |
 | `packages/spoolsync-cli/src/`                   | Arguments, reports, output staging, and CLI execution                  |
@@ -1230,22 +1231,24 @@ instead of guessed; anything else stays ordinary filter text. Enter in the filte
 acts on it.
 
 **Weigh-in calculator.** The spool drawer has a "Weigh in" section (`load/weigh-in-panel.ts`, pure rules
-in `lib/weigh-in.ts`). The visitor types the scale reading and the empty-spool weight (both in the
-display unit, converted with `units.ts`); the result is the remaining grams, the percentage of the
+in `packages/spoolsync-core/src/workflow/weigh-in.ts`). The visitor types the scale reading and the
+empty-spool weight (both in the display unit, converted with `core/weight-units.ts`); the result is the remaining grams, the percentage of the
 full weight, and the difference from the recorded weight, with a warning above the full weight. The
 empty weight starts from the visitor's saved value for the brand, then the empty weight the
 inventory records for the spool, then a typical value from a small brand table (`KNOWN_TARES`,
-rounded and labelled as typical). Saved values live under `spoolsync:weigh-in` as `{ tares: {
-brandKey: grams } }`, validated by `sanitizeTares`. "Stage as edit for Sync" calls
+rounded and labelled as typical). Browser persistence remains in `src/lib/weigh-in.ts`; saved values
+live under `spoolsync:weigh-in` as `{ tares: { brandKey: grams } }`, validated by core's
+`sanitizeTares`. "Stage as edit for Sync" calls
 `stageBulkEdit` (`storage/bulk-edits.ts`), which merges `{ remainingWeight }` into the session-stored
 bulk edit of the spool's match group (`SpoolDetail.groupId`); the Sync page then plans it like any
 bulk edit. The button is disabled when no member is in a service that stores a remaining weight
 (`SpoolDetail.canStageWeight`). Nothing is written to a service from the Load page.
 
-**Inventory report.** `lib/inventory-report.ts` builds the report from `uniqueSpools` (a spool linked
-across services counts once): totals, percent left, a split by material and by brand, spools running
-low under the current threshold, and spend and remaining value from recorded prices (no currency
-conversion). Weights and money are formatted through an injected `ReportFormat` built from
+**Inventory report.** `packages/spoolsync-core/src/workflow/inventory-report.ts` builds the report
+from `uniqueSpools` (a spool linked across services counts once): totals, percent left, a split by
+material and by brand, spools running low under the current threshold, and spend and remaining value
+from recorded prices (no currency conversion). Markdown and CSV serialization live there too.
+Weights and money are formatted through an injected `ReportFormat` built from
 `units.ts`, and the CSV names its unit in the headers and defuses formula cells. `load/report-panel.ts`
 adds an "Inventory report" button beside the combined CSV button, a dialog preview, and print (a
 body-level `#inventory-report-sheet` shown only under `body.printing-report`, like the label sheet),

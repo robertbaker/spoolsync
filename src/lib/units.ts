@@ -1,10 +1,10 @@
+import { gramsToUnit, unitToGrams, type WeightUnit } from "@spoolsync/core/core/weight-units";
+
 import { local, read, write } from "./browser/storage/access";
 import { getLocale } from "./i18n";
 
 const KEY = "spoolsync:display";
-const GRAMS_PER_OUNCE = 28.349523125;
-
-export type WeightUnit = "g" | "oz";
+export type { WeightUnit };
 
 export const CURRENCIES = [
   "",
@@ -62,13 +62,7 @@ export function updateDisplaySettings(patch: Partial<DisplaySettings>): DisplayS
   return next;
 }
 
-export function gramsToUnit(grams: number, unit: WeightUnit): number {
-  return unit === "oz" ? grams / GRAMS_PER_OUNCE : grams;
-}
-
-export function unitToGrams(value: number, unit: WeightUnit): number {
-  return unit === "oz" ? value * GRAMS_PER_OUNCE : value;
-}
+export { gramsToUnit, unitToGrams };
 
 /** "250 g" or "8.8 oz"; null, undefined and non-finite values give an en dash. */
 export function formatWeight(

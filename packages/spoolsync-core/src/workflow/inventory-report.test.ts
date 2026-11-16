@@ -1,9 +1,8 @@
 import { expect, test } from "bun:test";
 
-import { DEFAULT_LOW_STOCK } from "@spoolsync/core/core/stock";
-import { makeSpool } from "@spoolsync/core/core/testing";
-import type { UniqueSpool } from "@spoolsync/core/workflow";
-
+import { DEFAULT_LOW_STOCK } from "../core/stock";
+import { makeSpool } from "../core/testing";
+import type { UniqueSpool } from "./breakdown";
 import {
   buildInventoryReport,
   reportCsv,
