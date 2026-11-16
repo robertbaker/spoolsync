@@ -34,6 +34,14 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     return text;
   }
 
+  function matchingGroups(): SpoolGroup[] {
+    const needle = query.trim().toLowerCase();
+    return state
+      .visibleGroups()
+      .filter((group) => !needle || searchText(group).includes(needle))
+      .filter(hasContent);
+  }
+
   function renderGroups(): void {
     if (state.filter !== lastFilter) {
       lastFilter = state.filter;
@@ -139,5 +147,8 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     }
   });
 
-  return renderGroups;
+  return {
+    render: renderGroups,
+    selectableGroupIds: () => matchingGroups().map((group) => group.id),
+  };
 }

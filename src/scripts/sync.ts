@@ -90,19 +90,24 @@ const renderApply = createApplyView(loaded, renderAll, {
     renderBulk();
   },
 });
-const renderGroups = createGroupsView(state, () => {
+const groupsView = createGroupsView(state, () => {
   renderSummary();
   renderApply(state.match, state.resolutions);
   // A pick is an undoable change, so the Undo and Redo buttons must reflect it.
   renderBulk();
 });
+const renderGroups = groupsView.render;
 const { renderFilters, renderBulk, undoOrRedo } = createControlsView(
   state,
   renderAll,
   renderGroups,
 );
 
-const renderBulkEdit = createBulkEditView(state, { renderAll, renderGroups: () => renderGroups() });
+const renderBulkEdit = createBulkEditView(state, {
+  renderAll,
+  renderGroups: () => renderGroups(),
+  selectableGroupIds: groupsView.selectableGroupIds,
+});
 
 // Ctrl or Cmd + Z undoes a change to the plan; adding Shift (or pressing Y) redoes it.
 document.addEventListener("keydown", (event) => {

@@ -19,6 +19,8 @@ export interface BulkEditDependencies {
   renderAll(): void;
   /** Redraws the Differences cards only (selection changed). */
   renderGroups(): void;
+  /** Returns spool groups matching the active filter and search, including unrendered pages. */
+  selectableGroupIds(): string[];
 }
 
 function field(id: string, label: string, input: HTMLElement, hint: string): HTMLElement {
@@ -93,11 +95,8 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
     dependencies.renderGroups();
     update();
   });
-  const selectAll = button("Select all in list", () => {
-    state.setSelected(
-      state.visibleGroups().map((group) => group.id),
-      true,
-    );
+  const selectAll = button("Select all matching", () => {
+    state.setSelected(dependencies.selectableGroupIds(), true);
     dependencies.renderGroups();
     update();
   });

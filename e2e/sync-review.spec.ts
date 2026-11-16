@@ -145,6 +145,24 @@ async function prepareApply(page: Page) {
 }
 
 test.describe("plan preview", () => {
+  test("bulk selection follows the active spool search", async ({ page }) => {
+    await openSample(page);
+    await page.getByLabel("Filter spools").fill("Galaxy Black");
+    const groups = page.locator("#groups [data-group]");
+    await expect(groups).toHaveCount(2);
+
+    await page.locator("#bulk-edit summary").click();
+    await page.getByRole("button", { name: "Select all matching" }).click();
+    await expect(page.locator("#bulk-edit")).toContainText("2 selected");
+    await expect(groups.locator("[data-select-group]").nth(0)).toBeChecked();
+    await expect(groups.locator("[data-select-group]").nth(1)).toBeChecked();
+
+    // Clearing the search reveals the full list; only the matching spool stays selected.
+    await page.getByLabel("Filter spools").clear();
+    expect(await groups.count()).toBeGreaterThan(1);
+    await expect(page.locator("#groups [data-select-group]:checked")).toHaveCount(2);
+  });
+
   test("lists what will be written, excludes one change undoably and honors it in downloads", async ({
     page,
   }) => {
