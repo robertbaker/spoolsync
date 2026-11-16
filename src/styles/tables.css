@@ -1,8 +1,8 @@
 /* Modern Responsive Table Styles */
 .spool-table-wrapper {
-  overflow-x: auto;
+  overflow-inline: auto;
   max-inline-size: 100%;
-  max-block-size: min(640px, 75vh);
+  max-block-size: min(640px, 75dvb);
   container-type: inline-size;
   /* The sticky, blurred header paints beyond the scroller in Chromium and widens the page on phones. */
   contain: paint;
@@ -12,10 +12,10 @@
 }
 
 .spool-table-wrapper table {
-  width: 100%;
+  inline-size: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  text-align: left;
+  text-align: start;
 }
 
 .spool-table-wrapper thead {
@@ -25,7 +25,7 @@
   background-color: color-mix(in oklch, var(--card) 92%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  border-block-end: 1px solid var(--border);
 }
 
 .spool-table-wrapper thead th {
@@ -35,12 +35,12 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
+  border-block-end: 1px solid var(--border);
   white-space: nowrap;
 }
 
 .spool-table-wrapper tbody tr {
-  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  border-block-end: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
   transition: background-color 0.15s ease;
 }
 
@@ -51,7 +51,7 @@
 .spool-table-wrapper tbody td {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+  border-block-end: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
 
 /*

@@ -6,18 +6,27 @@ import { ExportCommitError, type StagedOutput } from "./output";
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 export class ExecutionError extends Error {
+  readonly applied: ApplyLogEntry[] | undefined;
+  readonly written: string[];
+  readonly cleanupError?: unknown;
+  readonly rollbackFiles: readonly string[];
+
   constructor(
     cause: unknown,
-    readonly applied: ApplyLogEntry[] | undefined,
-    readonly written: string[],
-    readonly cleanupError?: unknown,
-    readonly rollbackFiles: readonly string[] = [],
+    applied: ApplyLogEntry[] | undefined,
+    written: string[],
+    cleanupError?: unknown,
+    rollbackFiles: readonly string[] = [],
   ) {
     super(
       `${message(cause)}${cleanupError === undefined ? "" : ` Staging cleanup also failed: ${message(cleanupError)}`}`,
       { cause },
     );
     this.name = "ExecutionError";
+    this.applied = applied;
+    this.written = written;
+    this.cleanupError = cleanupError;
+    this.rollbackFiles = rollbackFiles;
   }
 }
 

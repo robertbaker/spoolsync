@@ -1,10 +1,10 @@
 export class TigertagCloudError extends Error {
-  constructor(
-    message: string,
-    readonly code?: string,
-  ) {
+  readonly code?: string;
+
+  constructor(message: string, code?: string) {
     super(message);
     this.name = "TigertagCloudError";
+    this.code = code;
   }
 }
 

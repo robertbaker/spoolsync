@@ -192,13 +192,21 @@ export class ReferenceController {
   private choices: Map<string, string>;
   private undoStack: Checkpoint[] = [];
   private restored = false;
+  private readonly results: ReadonlyMap<SourceId, LoadResult>;
+  private readonly store: ReferenceStore;
+  private readonly io: ReferenceIO;
+  private readonly snapshots: ReferenceSnapshots | null;
 
   constructor(
-    private readonly results: ReadonlyMap<SourceId, LoadResult>,
-    private readonly store: ReferenceStore,
-    private readonly io: ReferenceIO,
-    private readonly snapshots: ReferenceSnapshots | null = null,
+    results: ReadonlyMap<SourceId, LoadResult>,
+    store: ReferenceStore,
+    io: ReferenceIO,
+    snapshots: ReferenceSnapshots | null = null,
   ) {
+    this.results = results;
+    this.store = store;
+    this.io = io;
+    this.snapshots = snapshots;
     this.settings = store.loadSettings();
     this.stored = store.loadAccepted();
     this.choices = store.loadChoices();

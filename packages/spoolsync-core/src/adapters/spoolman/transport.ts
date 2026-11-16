@@ -61,15 +61,19 @@ export class HttpSpoolmanTransport implements SpoolmanTransport {
   readonly baseUrl: URL;
   private readonly token: string | undefined;
   private readonly timeoutMs: number;
+  private readonly fetchImpl: FetchLike;
+  private readonly pageProtocol: string | undefined;
 
   constructor(
     connection: SpoolmanConnection,
-    private readonly fetchImpl: FetchLike = (input, init) => fetch(input, init),
-    private readonly pageProtocol: string | undefined = globalThis.location?.protocol,
+    fetchImpl: FetchLike = (input, init) => fetch(input, init),
+    pageProtocol: string | undefined = globalThis.location?.protocol,
   ) {
     this.baseUrl = normalizeBaseUrl(connection.baseUrl);
     this.token = connection.token?.trim() || undefined;
     this.timeoutMs = connection.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.fetchImpl = fetchImpl;
+    this.pageProtocol = pageProtocol;
   }
 
   /** Builds an `/api/v1` URL under the base, keeping any path prefix (e.g. a reverse proxy). */

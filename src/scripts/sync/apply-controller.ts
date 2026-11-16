@@ -81,20 +81,36 @@ export interface ApplyContext {
 export class ApplyController {
   readonly logs = new Map<SourceId, ApplyLogEntry[]>();
   private applying = false;
+  private readonly services: Partial<Record<SourceId, ApplyService>>;
+  private readonly context: ApplyContext;
+  private readonly saveInventory: (inventory: LoadResult) => void;
+  private readonly confirmWrite: (
+    message: string,
+    details: WriteDetails,
+  ) => boolean | Promise<boolean>;
+  private readonly record?: (entry: SyncHistoryRecord) => void;
+  private readonly rollback?: RollbackHook;
 
   constructor(
-    private readonly services: Partial<Record<SourceId, ApplyService>>,
-    private readonly context: ApplyContext,
-    private readonly saveInventory: (inventory: LoadResult) => void,
-    private readonly confirmWrite: (
+    services: Partial<Record<SourceId, ApplyService>>,
+    context: ApplyContext,
+    saveInventory: (inventory: LoadResult) => void,
+    confirmWrite: (
       message: string,
       details: WriteDetails,
     ) => boolean | Promise<boolean> = confirmWriteDialog,
     /** Called once per attempted write run, after it finishes (including failed runs). */
-    private readonly record?: (entry: SyncHistoryRecord) => void,
+    record?: (entry: SyncHistoryRecord) => void,
     /** Called after the write is confirmed and before anything is sent. */
-    private readonly rollback?: RollbackHook,
-  ) {}
+    rollback?: RollbackHook,
+  ) {
+    this.services = services;
+    this.context = context;
+    this.saveInventory = saveInventory;
+    this.confirmWrite = confirmWrite;
+    this.record = record;
+    this.rollback = rollback;
+  }
 
   private remember(
     source: SourceId,

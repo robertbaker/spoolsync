@@ -25,11 +25,13 @@ export class PwaController {
   private waiting: WaitingWorker | null = null;
   /** True once the visitor chose to update, so the next controller change reloads the page. */
   applying = false;
+  private readonly view: PwaView;
+  private readonly isInstalled: () => boolean;
 
-  constructor(
-    private readonly view: PwaView,
-    private readonly isInstalled: () => boolean,
-  ) {}
+  constructor(view: PwaView, isInstalled: () => boolean) {
+    this.view = view;
+    this.isInstalled = isInstalled;
+  }
 
   /** Keeps the browser's prompt for later and offers an Install button instead of the mini-bar. */
   beforeInstallPrompt(event: InstallPromptEvent): void {

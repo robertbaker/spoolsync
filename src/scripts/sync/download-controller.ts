@@ -24,7 +24,11 @@ export interface DownloadButtonOptions {
 
 /** Shared export/download lifecycle; format-specific copy is supplied by presentation metadata. */
 export class DownloadController {
-  constructor(private readonly dependencies: DownloadDependencies) {}
+  private readonly dependencies: DownloadDependencies;
+
+  constructor(dependencies: DownloadDependencies) {
+    this.dependencies = dependencies;
+  }
 
   button(
     source: WritableSourceId,

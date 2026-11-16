@@ -26,10 +26,18 @@
 
   .app-card {
     @apply bg-card/90 border-border/80 rounded-2xl border p-5 shadow-xs backdrop-blur-xs sm:p-6;
+    corner-shape: squircle;
   }
 
   .dropzone {
     @apply border-border/80 bg-muted/20 text-muted-foreground hover:border-primary/60 hover:bg-primary/5 focus-within:border-primary focus-within:bg-primary/5 data-[dragging=true]:border-primary data-[dragging=true]:bg-primary/10 data-[dragging=true]:ring-primary/20 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center text-sm shadow-xs transition-all duration-200 data-[dragging=true]:ring-4;
+    corner-shape: squircle;
+  }
+
+  textarea.field-input {
+    field-sizing: content;
+    min-block-size: 5rem;
+    max-block-size: 18rem;
   }
 }
 

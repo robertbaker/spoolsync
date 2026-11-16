@@ -33,11 +33,12 @@ export interface ApplyAndReloadResult {
   inventory: LoadResult;
 }
 
-async function reloadAfterApply(
+async function runApplyAndReload(
   service: ApplyServiceName,
-  log: ApplyLogEntry[],
+  apply: () => Promise<ApplyLogEntry[]>,
   reload: () => Promise<LoadResult>,
 ): Promise<ApplyAndReloadResult> {
+  const log = await apply();
   try {
     return { log, inventory: await reload() };
   } catch (error) {
@@ -46,75 +47,95 @@ async function reloadAfterApply(
 }
 
 /** Applies the plan to Spoolman and fetches a fresh snapshot for the next render. */
-export async function applyAndReloadSpoolman(
+export function applyAndReloadSpoolman(
   connection: SpoolmanConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const client = new SpoolmanClient(connection);
-  const log = await applyToSpoolman(client, changes, onProgress);
-  return reloadAfterApply("Spoolman", log, () => loadSpoolman(connection));
+  return runApplyAndReload(
+    "Spoolman",
+    () => applyToSpoolman(new SpoolmanClient(connection), changes, onProgress),
+    () => loadSpoolman(connection),
+  );
 }
 
 /** Applies the plan to TigerTag, refreshing tokens through the supplied session callback. */
-export async function applyAndReloadTigertag(
+export function applyAndReloadTigertag(
   session: TigertagSession,
   changes: PlannedChange[],
   onFreshSession: (session: TigertagSession) => void,
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
   const cloud = new TigertagCloud(session, onFreshSession);
-  const log = await applyToTigertagCloud(cloud, changes, onProgress);
-  return reloadAfterApply("TigerTag", log, () => loadTigertagCloud(cloud));
+  return runApplyAndReload(
+    "TigerTag",
+    () => applyToTigertagCloud(cloud, changes, onProgress),
+    () => loadTigertagCloud(cloud),
+  );
 }
 
 /** Applies the plan to FilamentDB and fetches a fresh snapshot. */
-export async function applyAndReloadFilamentDb(
+export function applyAndReloadFilamentDb(
   connection: FilamentDbConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
   const client = new FilamentDbClient(connection);
-  const log = await applyToFilamentDb(client, changes, onProgress);
-  return reloadAfterApply("FilamentDB", log, () => loadFilamentDb(connection, client));
+  return runApplyAndReload(
+    "FilamentDB",
+    () => applyToFilamentDb(client, changes, onProgress),
+    () => loadFilamentDb(connection, client),
+  );
 }
 
 /** Applies spool-level changes to Filament DB and fetches a fresh snapshot. */
-export async function applyAndReloadFilamentDbApp(
+export function applyAndReloadFilamentDbApp(
   connection: FilamentDbAppConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const log = await applyToFilamentDbApp(new FilamentDbAppClient(connection), changes, onProgress);
-  return reloadAfterApply("Filament DB", log, () => loadFilamentDbApp(connection));
+  return runApplyAndReload(
+    "Filament DB",
+    () => applyToFilamentDbApp(new FilamentDbAppClient(connection), changes, onProgress),
+    () => loadFilamentDbApp(connection),
+  );
 }
 
 /** Applies the plan to Bambuddy through its inventory API and fetches a fresh snapshot. */
-export async function applyAndReloadBambuddy(
+export function applyAndReloadBambuddy(
   connection: BambuddyConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const log = await applyToBambuddy(new BambuddyClient(connection), changes, onProgress);
-  return reloadAfterApply("Bambuddy", log, () => loadBambuddyApi(connection));
+  return runApplyAndReload(
+    "Bambuddy",
+    () => applyToBambuddy(new BambuddyClient(connection), changes, onProgress),
+    () => loadBambuddyApi(connection),
+  );
 }
 
 /** Applies the plan to Filadex (Node only; it needs a cookie login) and fetches a fresh snapshot. */
-export async function applyAndReloadFiladex(
+export function applyAndReloadFiladex(
   connection: FiladexConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const log = await applyToFiladex(new FiladexClient(connection), changes, onProgress);
-  return reloadAfterApply("Filadex", log, () => loadFiladex(connection));
+  return runApplyAndReload(
+    "Filadex",
+    () => applyToFiladex(new FiladexClient(connection), changes, onProgress),
+    () => loadFiladex(connection),
+  );
 }
 
 /** Applies the plan to PrintStudio (local lots only) and fetches a fresh snapshot. */
-export async function applyAndReloadPrintStudio(
+export function applyAndReloadPrintStudio(
   connection: PrintStudioConnection,
   changes: PlannedChange[],
   onProgress?: (done: number, total: number) => void,
 ): Promise<ApplyAndReloadResult> {
-  const log = await applyToPrintStudio(new PrintStudioClient(connection), changes, onProgress);
-  return reloadAfterApply("PrintStudio", log, () => loadPrintStudioApi(connection));
+  return runApplyAndReload(
+    "PrintStudio",
+    () => applyToPrintStudio(new PrintStudioClient(connection), changes, onProgress),
+    () => loadPrintStudioApi(connection),
+  );
 }

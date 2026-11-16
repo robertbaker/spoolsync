@@ -69,13 +69,14 @@ export type FetchErrorKind =
   | "bad-next-link";
 
 export class ReferenceFetchError extends Error {
-  constructor(
-    readonly kind: FetchErrorKind,
-    message: string,
-    readonly status?: number,
-  ) {
+  readonly kind: FetchErrorKind;
+  readonly status?: number;
+
+  constructor(kind: FetchErrorKind, message: string, status?: number) {
     super(message);
     this.name = "ReferenceFetchError";
+    this.kind = kind;
+    this.status = status;
   }
 }
 

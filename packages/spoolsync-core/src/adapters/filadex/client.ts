@@ -37,8 +37,10 @@ export class FiladexClient {
   private cookie: string | undefined;
   private readonly timeoutMs: number;
   private readonly fetchImpl: FetchLike;
+  private readonly connection: FiladexConnection;
 
-  constructor(private readonly connection: FiladexConnection) {
+  constructor(connection: FiladexConnection) {
+    this.connection = connection;
     this.baseUrl = normalizeFiladexUrl(connection.baseUrl);
     this.timeoutMs = connection.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchImpl = connection.fetchImpl ?? ((input, init) => fetch(input, init));

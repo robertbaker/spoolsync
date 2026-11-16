@@ -13,13 +13,14 @@ export interface SpoolmanConnection {
 export type SpoolmanErrorKind = "invalid-url" | "network" | "timeout" | "http" | "auth" | "parse";
 
 export class SpoolmanError extends Error {
-  constructor(
-    readonly kind: SpoolmanErrorKind,
-    message: string,
-    readonly status?: number,
-  ) {
+  readonly kind: SpoolmanErrorKind;
+  readonly status?: number;
+
+  constructor(kind: SpoolmanErrorKind, message: string, status?: number) {
     super(message);
     this.name = "SpoolmanError";
+    this.kind = kind;
+    this.status = status;
   }
 }
 

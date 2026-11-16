@@ -23,8 +23,11 @@ export class SwipeTracker {
   private startY = 0;
   private current: SwipeState = "idle";
   private dx = 0;
+  private readonly options: SwipeOptions;
 
-  constructor(private readonly options: SwipeOptions = DEFAULT_SWIPE) {}
+  constructor(options: SwipeOptions = DEFAULT_SWIPE) {
+    this.options = options;
+  }
 
   get state(): SwipeState {
     return this.current;

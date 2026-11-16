@@ -23,11 +23,15 @@ export function currentTourIndex(href: string, count: number): number | null {
 
 /** Navigation and lifecycle without browser globals; the view owns dialogs and highlighting. */
 export class TourController {
-  constructor(
-    private readonly steps: readonly TourStep[],
-    private readonly navigation: TourNavigation,
-    private readonly view: TourView,
-  ) {}
+  private readonly steps: readonly TourStep[];
+  private readonly navigation: TourNavigation;
+  private readonly view: TourView;
+
+  constructor(steps: readonly TourStep[], navigation: TourNavigation, view: TourView) {
+    this.steps = steps;
+    this.navigation = navigation;
+    this.view = view;
+  }
 
   start(): void {
     const index = currentTourIndex(this.navigation.href(), this.steps.length);

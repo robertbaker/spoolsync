@@ -128,15 +128,15 @@ export interface OutputFile {
 }
 
 export class ExportCommitError extends Error {
-  constructor(
-    readonly written: string[],
-    cause: unknown,
-  ) {
+  readonly written: string[];
+
+  constructor(written: string[], cause: unknown) {
     super(
       `Could not finish writing exports. Files already replaced: ${written.length ? written.join(", ") : "none"}. ${cause instanceof Error ? cause.message : String(cause)}`,
       { cause },
     );
     this.name = "ExportCommitError";
+    this.written = written;
   }
 }
 

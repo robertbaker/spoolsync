@@ -192,11 +192,13 @@ export function formatBits(mask: number): number {
 }
 
 class Matrix {
+  readonly version: number;
   readonly size: number;
   readonly modules: boolean[][];
   readonly functionModules: boolean[][];
 
-  constructor(readonly version: number) {
+  constructor(version: number) {
+    this.version = version;
     this.size = version * 4 + 17;
     const grid = () =>
       Array.from({ length: this.size }, () =>

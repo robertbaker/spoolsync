@@ -58,12 +58,14 @@ export class FilamentCatalog {
    * range.
    */
   private ranges = false;
+  private readonly client: Pick<SpoolmanWriteClient, "createVendor" | "createFilament">;
 
   constructor(
-    private readonly client: Pick<SpoolmanWriteClient, "createVendor" | "createFilament">,
+    client: Pick<SpoolmanWriteClient, "createVendor" | "createFilament">,
     vendors: SpoolmanVendor[],
     filaments: SpoolmanFilament[],
   ) {
+    this.client = client;
     this.vendorsByName = new Map(vendors.map((vendor) => [norm(vendor.name), vendor]));
     for (const filament of filaments) this.rememberFilament(filament);
   }

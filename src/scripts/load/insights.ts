@@ -56,11 +56,12 @@ export class LoadInsights {
   watched: Set<string>;
   private filter: InsightFilter | null = null;
   private readonly listeners = new Set<() => void>();
+  private readonly results: ReadonlyMap<SourceId, LoadResult>;
+  private readonly storage: InsightsStorage;
 
-  constructor(
-    private readonly results: ReadonlyMap<SourceId, LoadResult>,
-    private readonly storage: InsightsStorage,
-  ) {
+  constructor(results: ReadonlyMap<SourceId, LoadResult>, storage: InsightsStorage) {
+    this.results = results;
+    this.storage = storage;
     this.watched = new Set(storage.readWatchlist());
   }
 

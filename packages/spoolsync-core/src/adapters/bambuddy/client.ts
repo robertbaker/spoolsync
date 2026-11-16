@@ -62,11 +62,15 @@ export function normalizeBambuddyUrl(input: string): string {
 
 export class BambuddyClient implements BambuddyWriteClient {
   readonly baseUrl: string;
+  private readonly connection: BambuddyConnection;
+  private readonly fetchImpl: BambuddyFetch;
 
   constructor(
-    private readonly connection: BambuddyConnection,
-    private readonly fetchImpl: BambuddyFetch = (input, init) => fetch(input, init),
+    connection: BambuddyConnection,
+    fetchImpl: BambuddyFetch = (input, init) => fetch(input, init),
   ) {
+    this.connection = connection;
+    this.fetchImpl = fetchImpl;
     this.baseUrl = normalizeBambuddyUrl(connection.baseUrl);
   }
 

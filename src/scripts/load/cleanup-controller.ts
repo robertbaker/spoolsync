@@ -72,12 +72,18 @@ export class CleanupController {
   private restored = false;
   /** How many saved choices were dropped at the last refresh because the data changed. */
   dropped = 0;
+  private readonly results: ReadonlyMap<SourceId, LoadResult>;
+  private readonly store: CleanupStore;
+  private readonly today: () => string;
 
   constructor(
-    private readonly results: ReadonlyMap<SourceId, LoadResult>,
-    private readonly store: CleanupStore,
-    private readonly today: () => string,
+    results: ReadonlyMap<SourceId, LoadResult>,
+    store: CleanupStore,
+    today: () => string,
   ) {
+    this.results = results;
+    this.store = store;
+    this.today = today;
     this.settings = store.loadSettings();
     this.stored = store.loadAccepted();
   }

@@ -19,12 +19,20 @@ export class TigertagCloud implements TigertagInventoryClient {
   private refreshing: Promise<void> | undefined;
   /** Each document as loaded: its version and typed fields, so writes can detect and preserve. */
   private loaded = new Map<string, LoadedDocument>();
+  private session: TigertagSession;
+  private readonly onSession: (session: TigertagSession) => void;
+  private readonly fetchImpl: FetchLike;
+
   constructor(
-    private session: TigertagSession,
+    session: TigertagSession,
     /** Called whenever the session is refreshed, so the caller can store the new tokens. */
-    private readonly onSession: (session: TigertagSession) => void = () => {},
-    private readonly fetchImpl: FetchLike = defaultFetch,
-  ) {}
+    onSession: (session: TigertagSession) => void = () => {},
+    fetchImpl: FetchLike = defaultFetch,
+  ) {
+    this.session = session;
+    this.onSession = onSession;
+    this.fetchImpl = fetchImpl;
+  }
 
   get uid(): string {
     return this.session.uid;

@@ -24,8 +24,11 @@ export class LoadState {
   private readonly foreignRevisions = new Map<SourceId, number>();
   private readonly fileReads = new Map<SourceId, number>();
   private readonly storedFileReads = new Map<SourceId, number>();
+  private readonly storage: InventoryStorage;
 
-  constructor(private readonly storage: InventoryStorage) {}
+  constructor(storage: InventoryStorage) {
+    this.storage = storage;
+  }
 
   restore(source: SourceId): void {
     const previous = this.storage.readLoadResult(source);

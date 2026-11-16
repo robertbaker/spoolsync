@@ -147,6 +147,7 @@
 .cl-chips {
   display: flex;
   flex-wrap: wrap;
+  flex-wrap: balance;
   gap: 0.375rem;
 }
 

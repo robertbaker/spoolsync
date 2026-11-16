@@ -47,11 +47,15 @@ async function errorDetail(response: Response): Promise<string> {
 
 export class PrintStudioClient implements PrintStudioWriteClient {
   readonly baseUrl: string;
+  private readonly connection: PrintStudioConnection;
+  private readonly fetchImpl: PrintStudioFetch;
 
   constructor(
-    private readonly connection: PrintStudioConnection,
-    private readonly fetchImpl: PrintStudioFetch = (input, init) => fetch(input, init),
+    connection: PrintStudioConnection,
+    fetchImpl: PrintStudioFetch = (input, init) => fetch(input, init),
   ) {
+    this.connection = connection;
+    this.fetchImpl = fetchImpl;
     this.baseUrl = normalizePrintStudioUrl(connection.baseUrl);
     if (!connection.operatorId.trim()) throw new Error("Enter the PrintStudio operator id.");
   }

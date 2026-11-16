@@ -58,14 +58,25 @@ export interface SyncPersistence {
 export class SyncSession {
   match: MatchResult = { groups: [], suggestions: [], problems: [] };
   filter: "all" | "open" | "missing" = "all";
+  readonly loaded: Map<SourceId, LoadResult>;
+  private decisions: MatchDecisions;
+  public resolutions: Map<string, GroupResolution>;
+  private readonly persistence: SyncPersistence;
+  private edits: Map<string, BulkEdit>;
 
   constructor(
-    readonly loaded: Map<SourceId, LoadResult>,
-    private decisions: MatchDecisions,
-    public resolutions: Map<string, GroupResolution>,
-    private readonly persistence: SyncPersistence,
-    private edits: Map<string, BulkEdit> = new Map(),
-  ) {}
+    loaded: Map<SourceId, LoadResult>,
+    decisions: MatchDecisions,
+    resolutions: Map<string, GroupResolution>,
+    persistence: SyncPersistence,
+    edits: Map<string, BulkEdit> = new Map(),
+  ) {
+    this.loaded = loaded;
+    this.decisions = decisions;
+    this.resolutions = resolutions;
+    this.persistence = persistence;
+    this.edits = edits;
+  }
 
   loadedSources() {
     return SOURCE_IDS.filter((source) => this.loaded.has(source));
