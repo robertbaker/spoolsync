@@ -6,7 +6,7 @@ import { noteGroups, sourceNames, resolvableFields } from "./data";
 ---
 
     <section class="mt-20 scroll-mt-24" id="notes">
-      <SectionHeader align="left" eyebrow="Good to know" title="Notes" subtitle="Rules, guarantees, and names worth knowing before a real run." />
+      <SectionHeader align="left" eyebrow="Good to know" title="Notes" subtitle="Behavior to know before running a comparison or applying changes." />
       <div class="mt-8 grid gap-5 lg:grid-cols-2">
         {
           noteGroups.map((group) => (
@@ -57,7 +57,7 @@ import { noteGroups, sourceNames, resolvableFields } from "./data";
           <IconAvatar icon="material-symbols:web-asset" color="primary" />
           <div>
             <h3 class="text-base font-semibold">Prefer a visual interface?</h3>
-            <p class="text-sm text-muted-foreground">The web app runs the exact same sync engine in your browser.</p>
+            <p class="text-sm text-muted-foreground">The web app uses the same matching and planning code in your browser.</p>
           </div>
         </div>
         <Button href="/load" variant="outline">Open the web app</Button>

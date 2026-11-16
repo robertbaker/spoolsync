@@ -24,12 +24,13 @@ function wrapWords(text: string, indent: string, width: number): string {
 
 function colorizeHelpLine(line: string, palette: Palette): string {
   const trimmed = line.trimStart();
+  if (trimmed === "SpoolSync CLI") return palette.bold(palette.cyan(line));
   if (trimmed.startsWith("spoolsync ")) {
     const indent = line.slice(0, line.length - trimmed.length);
     return `${indent}${palette.green(trimmed)}`;
   }
   if (/^[A-Z][^:]*:\s*$/.test(trimmed)) return palette.bold(palette.cyan(line));
-  const flagLine = /^(\s{2})((?:-[hV], )?--\S+)(\s+<[^>]+>)?$/.exec(line);
+  const flagLine = /^(\s{2})((?:-[A-Za-z0-9], )?--\S+)(\s+<[^>]+>)?$/.exec(line);
   if (flagLine) {
     const [, indent, flag, arg] = flagLine;
     return `${indent}${palette.cyan(flag!)}${arg ? palette.dim(arg) : ""}`;
@@ -45,7 +46,7 @@ export function formatHelp(text: string, columns: number, color = false): string
     .map((line) => {
       // Examples must remain on one line so copying them preserves the command.
       if (line.trimStart().startsWith("spoolsync ")) return line;
-      const option = /^  ((?:-[hV], )?--\S+(?: <[^>]+>)?)\s+(.+)$/.exec(line);
+      const option = /^  ((?:-[A-Za-z0-9], )?--\S+(?: <[^>]+>)?)\s+(.+)$/.exec(line);
       if (option) return `  ${option[1]}\n${wrapWords(option[2]!, "      ", width)}`;
       const indent = line.match(/^\s*/)?.[0] ?? "";
       return line.trim() ? wrapWords(line, indent.length > 6 ? "      " : indent, width) : "";

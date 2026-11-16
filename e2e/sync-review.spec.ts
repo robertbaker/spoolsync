@@ -107,20 +107,26 @@ test.describe("side-by-side comparison", () => {
     await openSample(page);
     const tables = page.locator("#suggestions table.pair-table");
     await expect(tables).toHaveCount(3);
-    const table = tables.first();
+    const comparison = page.locator('#suggestions details:has(tr[data-differs="true"])').first();
+    const table = comparison.locator("table.pair-table");
+    await expect(comparison.locator("summary")).toHaveText("Compare all 8 fields");
+    await expect(table).toBeHidden();
+    await comparison.locator("summary").click();
+    await expect(comparison).toHaveAttribute("open", "");
     await expect(table).toBeVisible();
     await expect(table.getByRole("columnheader")).toHaveCount(4);
     for (const label of ["Brand", "Material", "Color", "Name", "Remaining (g)", "Net weight (g)"])
       await expect(table.getByRole("rowheader", { name: label })).toBeVisible();
     // Differences are stated in text, not by color alone.
-    const differing = tables.locator('tr[data-differs="true"]');
+    const differing = table.locator('tr[data-differs="true"]');
     expect(await differing.count()).toBeGreaterThan(0);
-    await expect(differing.first().getByRole("cell").last()).toContainText("Differs");
-    await expect(tables.locator('tr[data-differs="false"]').first()).not.toContainText("Differs");
+    await expect(differing.first().locator("td:last-child")).toContainText("Differs");
+    await expect(table.locator('tr[data-differs="false"]').first()).not.toContainText("Differs");
   });
 
   test("differing rows keep a visible mark in forced colors and print", async ({ page }) => {
     await openSample(page);
+    await page.locator('#suggestions details:has(tr[data-differs="true"]) summary').first().click();
     const row = page.locator("#suggestions .pair-table tr[data-differs='true'] th").first();
     for (const media of [{ forcedColors: "active" as const }, { media: "print" as const }]) {
       await page.emulateMedia(media);

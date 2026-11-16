@@ -13,8 +13,10 @@ test("help wraps prose while preserving copyable commands and option syntax", ()
       expect(line.length).toBeLessThanOrEqual(width);
     }
     expect(help).toContain("  --resolve <field=source>\n");
+    expect(help).toContain("  -i, --interactive\n      Prompt interactively");
     expect(help).toContain("  --cleanup[=<rules>]\n");
     expect(help).toContain("  -h, --help\n");
+    expect(help.startsWith("SpoolSync CLI\nCompare inventory exports")).toBe(true);
     expect(help).toContain(
       "spoolsync --spoolman inventory.json --spoolio backup.json --output-dir ./updated",
     );

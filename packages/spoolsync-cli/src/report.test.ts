@@ -65,6 +65,10 @@ test("text comparisons expose unresolved fields and distinguish plans from resul
   reportWorkflow(options, report, text.output);
   const rendered = text.stdout.flat().join("\n");
   expect(rendered).toContain("Planned changes");
+  expect(rendered).toContain("Spoolman (spoolman)");
+  expect(rendered).toContain("Spoolio (spoolio)");
+  expect(rendered).toContain("Preview; add --output-dir");
+  expect(rendered).toContain("Write target");
   expect(rendered).toContain("Unresolved fields");
   expect(rendered).toContain(`${planning.summary.unresolved[0]!.group}: material`);
   expect(rendered).toContain("across all groups");
@@ -92,6 +96,7 @@ test("text comparisons expose unresolved fields and distinguish plans from resul
     api.output,
   );
   const apiText = api.stdout.flat().join("\n");
+  expect(apiText).toContain("Preview; add --apply");
   expect(apiText).toContain("Add --apply to write planned changes to: spoolman.");
   expect(apiText).toContain("write inventory files for: spoolio.");
   const json = capture();

@@ -1,7 +1,7 @@
 # SpoolSync
 
-Compare filament spool inventories across <!-- services:list-inline:start -->**Spoolman / Spoolman-NG**, **Spoolstock**, **Spoolio**, **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, **FilamentDB**, **Filament DB (hyiger/filament-db)**, **SpoolMaster**, **Spool Hoarder**, **Spool (Mac and iOS app)**, **SpoolKeep**, and **PrintStudio**<!-- services:list-inline:end -->, then sync changes to the services that accept them. SpoolSync runs entirely in your browser at
-<https://www.spoolsync.com>—no server, no account, and no database of its own.
+Compare filament spool inventories across <!-- services:list-inline:start -->**Spoolman / Spoolman-NG**, **Spoolstock**, **Spoolio**, **TigerTag**, **3DFilamentProfiles**, **Bambuddy**, **FilaMeter**, **Filadex**, **FilamentDB**, **Filament DB (hyiger/filament-db)**, **SpoolMaster**, **Spool Hoarder**, **Spool (Mac and iOS app)**, **SpoolKeep**, and **PrintStudio**<!-- services:list-inline:end -->, then sync changes to the services that accept them. The web app at
+<https://www.spoolsync.com> processes inventory in your browser. SpoolSync does not require an account or store your inventory on its servers; when you connect to a service, your browser communicates with that service directly.
 
 > ☕ **Enjoying SpoolSync?** It's free and open source. [Support development on Ko-fi](https://ko-fi.com/spool_sync).
 

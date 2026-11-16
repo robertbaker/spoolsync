@@ -682,7 +682,12 @@ test("the chart can group by brand and also appears on Sync", async ({ page }) =
 
   // The same chart, with the same remembered view, sits above the plan on Sync.
   await page.goto("/sync");
+  const overview = page.locator("#sync-overview");
+  const overviewSummary = overview.locator(":scope > summary");
+  await expect(overviewSummary).toContainText("Inventory overview");
   const syncChart = page.locator("#sync-chart");
+  await expect(syncChart).toBeHidden();
+  await overviewSummary.click();
   await expect(syncChart).toBeVisible();
   await expect(syncChart).toContainText("Remaining filament by brand");
   await expect(syncChart.getByRole("img").first()).toHaveAccessibleName(/^Prusament: 2,880 g/);
@@ -910,6 +915,8 @@ test("the low-stock threshold can be changed, and is remembered", async ({ page 
 
 test("the chart can group by storage location", async ({ page }) => {
   await page.goto("/load");
+  await page.locator('[data-tile="filameter"]').click();
+  await expect(page.locator('details[data-panel="filameter"]')).toHaveAttribute("open", "");
   const entry = (id: string, location: string, used: number) => ({
     _id: id,
     filament: id,

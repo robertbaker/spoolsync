@@ -16,6 +16,7 @@ function fakePrompts(
     confirms?: Array<boolean | symbol>;
     texts?: Array<string | symbol>;
   } = {},
+  messages: string[] = [],
 ): InteractivePrompts {
   const selects = [...(answers.selects ?? [])];
   const multiselects = [...(answers.multiselects ?? [])];
@@ -25,7 +26,9 @@ function fakePrompts(
   return {
     intro() {},
     outro() {},
-    note() {},
+    note(message, title) {
+      messages.push(`${title ?? ""}\n${message}`);
+    },
     cancel() {},
     info() {},
     async select() {
@@ -34,7 +37,8 @@ function fakePrompts(
     async multiselect() {
       return (multiselects.shift() ?? []) as never;
     },
-    async confirm() {
+    async confirm(options) {
+      messages.push(options.message);
       return confirms.shift() ?? false;
     },
     async text() {
@@ -88,17 +92,21 @@ test("interactive mode confirms match suggestions and resolves field conflicts",
   const initialPlan = createCliPlan(options, loaded);
   expect(initialPlan.matches.suggestions).toHaveLength(1);
 
+  const messages: string[] = [];
   const result = await runInteractiveChoices(
     options,
     loaded,
     initialPlan,
     undefined,
-    fakePrompts({
-      selects: ["confirm", "spoolman"],
-      multiselects: [[]],
-      confirms: [true],
-      texts: ["./updated"],
-    }),
+    fakePrompts(
+      {
+        selects: ["confirm", "spoolman"],
+        multiselects: [[]],
+        confirms: [true],
+        texts: ["./updated"],
+      },
+      messages,
+    ),
   );
 
   expect(result.cancelled).toBe(false);
@@ -107,6 +115,12 @@ test("interactive mode confirms match suggestions and resolves field conflicts",
   expect(result.options.outputDir).toBe("./updated");
   expect(result.planning.summary.unresolved).toHaveLength(0);
   expect(result.planning.summary.changes["spoolio"]?.updates).toBe(1);
+  expect(messages).toContain(
+    "Loaded inventories\nSpoolman (spoolman)  1 spool\nSpoolio (spoolio)  1 spool",
+  );
+  const exportNote = messages.find((message) => message.startsWith("Planned file exports\n"));
+  expect(exportNote).toBeDefined();
+  expect(exportNote).toMatch(/\d+ updates?, \d+ creates?/);
 });
 
 test("interactive mode cancels cleanly without writing", async () => {

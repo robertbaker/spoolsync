@@ -21,6 +21,7 @@ import {
   type SourceId,
   type WritableSourceId,
 } from "@spoolsync/core/core/model";
+import { listServices } from "@spoolsync/core/core/services";
 
 import type { Options } from "./args";
 import { createCliPlan } from "./planning";
@@ -102,8 +103,21 @@ export async function runInteractiveChoices(
   };
   let planning = initialPlanning;
   let dirty = false;
+  const sourceLabels = new Map(
+    listServices(SOURCE_IDS).map(({ id, info }) => [id, `${info.name} (${id})`]),
+  );
+  const label = (source: SourceId) => sourceLabels.get(source) ?? source;
 
   prompts.intro("SpoolSync Interactive");
+  prompts.note(
+    SOURCE_IDS.filter((source) => loaded.has(source))
+      .map((source) => {
+        const count = loaded.get(source)!.spools.length;
+        return `${label(source)}  ${count.toLocaleString("en-US")} ${count === 1 ? "spool" : "spools"}`;
+      })
+      .join("\n"),
+    "Loaded inventories",
+  );
 
   // 1. Match suggestions
   if (planning.matches.suggestions.length) {
@@ -191,7 +205,7 @@ export async function runInteractiveChoices(
         options: [
           ...SOURCE_IDS.filter((source) => sourceValues.has(source)).map((source) => ({
             value: source,
-            label: `Use ${source}`,
+            label: `Use ${label(source)}`,
             hint: `e.g. ${[...sourceValues.get(source)!].slice(0, 2).join(", ")}`,
           })),
           {
@@ -230,8 +244,8 @@ export async function runInteractiveChoices(
         "Create missing spools in any loaded writable sources? (Space to select, Enter to continue)",
       options: writableLoaded.map((source) => ({
         value: source,
-        label: source,
-        hint: `${loaded.get(source)!.spools.length} loaded`,
+        label: label(source),
+        hint: `${loaded.get(source)!.spools.length.toLocaleString("en-US")} spools loaded`,
       })),
       required: false,
     });
@@ -253,8 +267,13 @@ export async function runInteractiveChoices(
       (planning.plan.get(source)?.length ?? 0) > 0,
   );
   if (fileTargets.length && !options.outputDir) {
+    const fileSummary = fileTargets.map((source) => {
+      const counts = planning.summary.changes[source]!;
+      return `${label(source)}: ${counts.updates} update${counts.updates === 1 ? "" : "s"}, ${counts.creates} create${counts.creates === 1 ? "" : "s"}`;
+    });
+    prompts.note(fileSummary.join("\n"), "Planned file exports");
     const shouldExport = await prompts.confirm({
-      message: `Write updated inventory files for ${fileTargets.join(", ")}?`,
+      message: "Write these updated inventory files?",
       initialValue: false,
     });
     if (prompts.isCancel(shouldExport)) {
@@ -285,13 +304,13 @@ export async function runInteractiveChoices(
   if (apiTargets.length) {
     const summaryLines = apiTargets.map((source) => {
       const counts = planning.summary.changes[source]!;
-      return `${source}: ${counts.updates} update${counts.updates === 1 ? "" : "s"}, ${counts.creates} create${counts.creates === 1 ? "" : "s"}`;
+      return `${label(source)}: ${counts.updates} update${counts.updates === 1 ? "" : "s"}, ${counts.creates} create${counts.creates === 1 ? "" : "s"}`;
     });
     prompts.note(summaryLines.join("\n"), "Planned remote writes");
     const shouldApply = await prompts.confirm({
       message: options.apply
-        ? `Proceed with applying these changes to ${apiTargets.join(", ")}?`
-        : `Apply these planned changes to ${apiTargets.join(", ")} now?`,
+        ? `Proceed with applying these changes to ${apiTargets.map(label).join(", ")}?`
+        : `Apply these planned changes to ${apiTargets.map(label).join(", ")} now?`,
       initialValue: options.apply,
     });
     if (prompts.isCancel(shouldApply) || (options.apply && !shouldApply)) {

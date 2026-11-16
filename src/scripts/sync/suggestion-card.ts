@@ -106,6 +106,66 @@ export function pairTable(a: CommonSpool, b: CommonSpool): HTMLElement {
   );
 }
 
+/** Leads with the mismatches that matter for a decision; the full record stays one click away. */
+function pairSummary(a: CommonSpool, b: CommonSpool): HTMLElement {
+  const rows = comparePair(a, b);
+  const same = rows.filter((row) => row.status === "same").length;
+  const differences = rows.filter((row) => row.status === "differs");
+  const unsupported = rows.filter((row) => row.status === "unsupported").length;
+  const summary = [
+    differences.length
+      ? `${differences.length} ${differences.length === 1 ? "field differs" : "fields differ"}`
+      : "No differing fields",
+    `${same} ${same === 1 ? "field matches" : "fields match"}`,
+    ...(unsupported ? [`${unsupported} not comparable`] : []),
+  ].join(" · ");
+
+  return h(
+    "div",
+    { class: "mt-3 rounded-lg border bg-background/50 p-3" },
+    h("p", { class: "text-xs font-semibold text-muted-foreground" }, summary),
+    differences.length
+      ? h(
+          "ul",
+          { class: "mt-2 grid list-none gap-2 p-0 sm:grid-cols-2" },
+          ...differences.map((row) =>
+            h(
+              "li",
+              { class: "min-w-0 rounded-md bg-muted/40 px-3 py-2 text-sm" },
+              h("p", { class: "font-medium" }, row.label),
+              h(
+                "p",
+                { class: "mt-1 break-words text-muted-foreground" },
+                h("span", { class: "font-medium text-foreground" }, SOURCE_LABELS[a.source]),
+                ` ${row.left}`,
+                row.field === "colors" && a.colors.length ? ` ` : "",
+                row.field === "colors" && a.colors.length ? swatches(a.colors) : null,
+              ),
+              h(
+                "p",
+                { class: "mt-1 break-words text-muted-foreground" },
+                h("span", { class: "font-medium text-foreground" }, SOURCE_LABELS[b.source]),
+                ` ${row.right}`,
+                row.field === "colors" && b.colors.length ? ` ` : "",
+                row.field === "colors" && b.colors.length ? swatches(b.colors) : null,
+              ),
+            ),
+          ),
+        )
+      : null,
+    h(
+      "details",
+      { class: "mt-2 rounded-md border bg-card px-3" },
+      h(
+        "summary",
+        { class: "cursor-pointer py-2 text-sm font-medium" },
+        `Compare all ${rows.length} fields`,
+      ),
+      pairTable(a, b),
+    ),
+  );
+}
+
 export interface CardActions {
   same(): void;
   different(): void;
@@ -166,7 +226,7 @@ export function suggestionCard(
         ),
       ),
     ),
-    members.length === 2 ? pairTable(members[0]!, members[1]!) : null,
+    members.length === 2 ? pairSummary(members[0]!, members[1]!) : null,
     h(
       "p",
       { class: "mt-3 text-xs text-muted-foreground" },

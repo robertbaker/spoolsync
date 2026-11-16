@@ -21,7 +21,8 @@ export function helpText(columns = 80, color = false): string {
   );
   const writableApis = apiServices.filter(({ id }) => canWriteViaApi(id));
   return formatHelp(
-    `SpoolSync CLI — compare inventory exports and write updates to supported services.
+    `SpoolSync CLI
+Compare inventory exports and plan safe updates across supported services.
 
 Usage:
   spoolsync [options]

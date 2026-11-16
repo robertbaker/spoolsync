@@ -95,13 +95,27 @@ export function reportWorkflow(
   } else {
     const color = Boolean(output.isTTY);
     const palette = createPalette(color);
+    const serviceNames = new Map(listServices(SOURCE_IDS).map(({ id, info }) => [id, info.name]));
     const heading = (title: string) => `\n${palette.bold(palette.cyan(title))}`;
-    const changeRows = SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => [
-      source,
-      String(loaded.get(source)!.spools.length),
-      String(summary.changes[source]?.updates ?? 0),
-      String(summary.changes[source]?.creates ?? 0),
-    ]);
+    const changeRows = SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => {
+      const result = loaded.get(source)!;
+      const target = !isWritableSource(source)
+        ? "Read only"
+        : result.origin === "api"
+          ? options.apply
+            ? "Remote API"
+            : "Preview; add --apply"
+          : options.outputDir
+            ? "File export"
+            : "Preview; add --output-dir";
+      return [
+        `${serviceNames.get(source) ?? source} (${source})`,
+        String(result.spools.length),
+        String(summary.changes[source]?.updates ?? 0),
+        String(summary.changes[source]?.creates ?? 0),
+        target,
+      ];
+    });
     const totals = changeRows.reduce(
       (total, row) => {
         total.spools += Number(row[1]);
@@ -118,10 +132,10 @@ export function reportWorkflow(
     output.log(heading("Planned changes"));
     output.log(
       textTable(
-        ["Source", "Spools", "Updates", "Creates"],
+        ["Inventory", "Spools", "Updates", "Creates", "Write target"],
         [
           ...changeRows,
-          ["Total", String(totals.spools), String(totals.updates), String(totals.creates)],
+          ["Total", String(totals.spools), String(totals.updates), String(totals.creates), ""],
         ],
         [1, 2, 3],
         color,
