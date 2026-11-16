@@ -1,7 +1,6 @@
-import { beforeEach, expect, test } from "bun:test";
+import { expect, test } from "bun:test";
 
-import { loadSpoolmanFile } from "@spoolsync/core/adapters/spoolman/file-load";
-
+import { loadSpoolmanFile } from "../adapters/spoolman/file-load";
 import {
   convertToSpoolmanCsv,
   parseFlag,
@@ -9,7 +8,7 @@ import {
   parseLooseNumber,
   parseSourceTable,
   sampleValues,
-} from "./convert";
+} from "./import-mapper/convert";
 import {
   headerSignature,
   mappingForHeaders,
@@ -17,20 +16,8 @@ import {
   suggestMapping,
   validateMapping,
   type ColumnMapping,
-} from "./fields";
-import { dryRunConversion } from "./report";
-import {
-  COLUMN_MAPS_KEY,
-  MAX_SAVED_MAPS,
-  forgetColumnMapping,
-  readColumnMaps,
-  readSavedMapping,
-  sanitizeColumnMaps,
-  saveColumnMapping,
-} from "./store";
-
-beforeEach(() => localStorage.clear());
-
+} from "./import-mapper/fields";
+import { dryRunConversion } from "./import-mapper/report";
 const SHEET = [
   "Brand,Type,Colour,Colour hex,Weight (g),Net weight,Price,Shelf,Notes,Finished,Other",
   "Prusament,PLA,Galaxy Black,#1a1a1a,640,1000,24.99,A1,first,no,",
@@ -330,55 +317,4 @@ test("sample values are distinct, trimmed, and capped", () => {
   const table = parseSourceTable("A\nx\nx\n\ny\nz\nw\n");
   expect(sampleValues(table, "A")).toEqual(["x", "y", "z"]);
   expect(sampleValues(table, "Missing")).toEqual([]);
-});
-
-test("mappings are remembered per layout, validated, and capped", () => {
-  const signature = headerSignature(["Brand", "Type"]);
-  expect(readSavedMapping(signature)).toBeNull();
-  expect(saveColumnMapping(signature, { vendor: "Brand", material: "Type" }, "oz")).toBe(true);
-  expect(readSavedMapping(signature)).toMatchObject({
-    mapping: { vendor: "Brand", material: "Type" },
-    unit: "oz",
-  });
-  forgetColumnMapping(signature);
-  expect(readSavedMapping(signature)).toBeNull();
-  expect(localStorage.getItem(COLUMN_MAPS_KEY)).toBeNull();
-  expect(saveColumnMapping("not-a-signature", { vendor: "Brand" }, "g")).toBe(false);
-
-  for (let index = 0; index < MAX_SAVED_MAPS + 5; index++)
-    saveColumnMapping(
-      headerSignature([`Column ${index}`]),
-      { vendor: `Column ${index}` },
-      "g",
-      new Date(Date.UTC(2026, 0, 1) + index * 1000),
-    );
-  const maps = readColumnMaps();
-  expect(Object.keys(maps)).toHaveLength(MAX_SAVED_MAPS);
-  // The oldest were dropped.
-  expect(maps[headerSignature(["Column 0"])]).toBeUndefined();
-  expect(maps[headerSignature([`Column ${MAX_SAVED_MAPS + 4}`])]).toBeDefined();
-});
-
-test("damaged or hostile stored mappings are cleaned or dropped", () => {
-  const good = headerSignature(["Brand"]);
-  const clean = sanitizeColumnMaps({
-    [good]: {
-      mapping: { vendor: "Brand", bogus: "x", material: 7, name: "", price: "p".repeat(500) },
-      unit: "stone",
-      savedAt: "2026-01-01T00:00:00Z",
-    },
-    "1-zzzzzzzz": { mapping: { vendor: "x" }, savedAt: "2026-01-01T00:00:00Z" },
-    [headerSignature(["Other"])]: { mapping: {}, savedAt: "2026-01-01T00:00:00Z" },
-    [headerSignature(["Third"])]: { mapping: { vendor: "x" }, savedAt: "yesterday" },
-  });
-  expect(Object.keys(clean)).toEqual([good]);
-  expect(clean[good]).toEqual({
-    mapping: { vendor: "Brand" },
-    unit: "g",
-    savedAt: "2026-01-01T00:00:00.000Z",
-  });
-  expect(sanitizeColumnMaps("nope")).toEqual({});
-  expect(sanitizeColumnMaps([1, 2])).toEqual({});
-  localStorage.setItem(COLUMN_MAPS_KEY, "{broken");
-  expect(readColumnMaps()).toEqual({});
 });

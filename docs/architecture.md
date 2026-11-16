@@ -1339,15 +1339,19 @@ ids (the same filament and vendor share one id), text cells that a spreadsheet w
 formula carry Spoolman's leading apostrophe, and `used_weight` is folded into `remaining_weight`
 because the importer rejects an empty `used_weight` cell.
 
-Modules (`src/lib/import-mapper/`): `fields.ts` (field list, header aliases, `suggestMapping`,
-`headerSignature`, `validateMapping`; no parser, so it is safe on every page), `store.ts`
-(`spoolsync:column-maps`, mappings per header signature, capped at 20, sanitised on read), `convert.ts`
-(`parseSourceTable`, `parseLooseNumber`, `parseHexColor`, `convertToSpoolmanCsv`; the only module
-that imports papaparse, loaded on demand), and `report.ts`. A column layout is recognised again by
-`headerSignature` (sorted, lower-cased, de-duplicated headers hashed with FNV-1a), whatever the
-column order. A mapping is valid when every mapped header exists, no header feeds two fields (the UI
-also moves a field when another column takes it), and brand, material or name is mapped. A bad
-mapping cannot produce a file: `convertToSpoolmanCsv` throws and the download stays disabled.
+The conversion rules live in `packages/spoolsync-core/src/workflow/import-mapper/`: `fields.ts`
+(field vocabulary, header aliases, `suggestMapping`, `headerSignature`, `validateMapping`),
+`mappings.ts` (validation and size limits for portable saved mappings), `convert.ts`
+(`parseSourceTable`, `parseLooseNumber`, `parseHexColor`, `convertToSpoolmanCsv`) and `report.ts`.
+The package exports narrow `@spoolsync/core/import-mapper/*` entry points; the old
+`src/lib/import-mapper/{fields,convert,report}.ts` paths remain compatibility re-exports. The
+browser-only `store.ts` owns localStorage reads and writes, while `scripts/load/import-mapper.ts`
+owns dialog and file input behavior. `convert.ts` is imported only when conversion is needed, so
+papaparse is not loaded on every page. A column layout is recognised again by `headerSignature`
+(sorted, lower-cased, de-duplicated headers hashed with FNV-1a), whatever the column order. A mapping
+is valid when every mapped header exists, no header feeds two fields (the UI also moves a field when
+another column takes it), and brand, material or name is mapped. A bad mapping cannot produce a file:
+`convertToSpoolmanCsv` throws and the download stays disabled.
 
 **Dry run.** After every change the converted CSV is read back with the real `loadSpoolmanFile`, and
 `mapperImportReport` merges the converter's skipped rows and adjusted values with the importer's
