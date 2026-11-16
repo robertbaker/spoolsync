@@ -112,6 +112,10 @@ test("compares versions numerically and finds releases newer than the last one s
   expect(compareVersions("1.2.0-alpha.1", "1.2.0-beta")).toBeLessThan(0);
   expect(compareVersions("1.2.0-1", "1.2.0-alpha")).toBeLessThan(0);
   expect(compareVersions("1.2.0+build.5", "1.2.0")).toBe(0);
+  expect(compareVersions("1.9007199254740993", "1.9007199254740992")).toBeGreaterThan(0);
+  expect(
+    compareVersions("1.2.0-alpha.9007199254740993", "1.2.0-alpha.9007199254740992"),
+  ).toBeGreaterThan(0);
   const releases = parseChangelog(sample);
   expect(releasesSince(releases, "0.2.0").map((release) => release.version)).toEqual(["0.3.0"]);
   expect(releasesSince(releases, "0.3.0")).toEqual([]);

@@ -104,19 +104,26 @@ export function findRelease(
 
 /** Negative when `a` is older than `b`, positive when newer, zero when equal. Numeric per part. */
 export function compareVersions(a: string, b: string): number {
+  const compareDigits = (left: string, right: string): number => {
+    const normalizedLeft = left.replace(/^0+(?=\d)/, "");
+    const normalizedRight = right.replace(/^0+(?=\d)/, "");
+    if (normalizedLeft.length !== normalizedRight.length)
+      return normalizedLeft.length - normalizedRight.length;
+    return normalizedLeft === normalizedRight ? 0 : normalizedLeft < normalizedRight ? -1 : 1;
+  };
   // `1.2.0-beta.1+build` is the core `1.2.0`, the pre-release `beta.1`, and build data to ignore.
   const parse = (text: string) => {
     const [version = ""] = text.trim().replace(/^v/i, "").split("+");
     const dash = version.indexOf("-");
     const core = dash < 0 ? version : version.slice(0, dash);
     return {
-      core: core.split(".").map((part) => Number.parseInt(part, 10) || 0),
+      core: core.split(".").map((part) => /^\d+/.exec(part)?.[0] ?? "0"),
       pre: dash < 0 ? [] : version.slice(dash + 1).split("."),
     };
   };
   const [left, right] = [parse(a), parse(b)];
   for (let index = 0; index < Math.max(left.core.length, right.core.length); index++) {
-    const difference = (left.core[index] ?? 0) - (right.core[index] ?? 0);
+    const difference = compareDigits(left.core[index] ?? "0", right.core[index] ?? "0");
     if (difference) return difference;
   }
   // A pre-release comes before the release it leads up to.
@@ -128,7 +135,7 @@ export function compareVersions(a: string, b: string): number {
     if (y === undefined) return 1;
     const [xNumeric, yNumeric] = [/^\d+$/.test(x), /^\d+$/.test(y)];
     if (xNumeric && yNumeric) {
-      const difference = Number(x) - Number(y);
+      const difference = compareDigits(x, y);
       if (difference) return difference;
     } else if (xNumeric !== yNumeric) return xNumeric ? -1 : 1;
     else if (x !== y) return x < y ? -1 : 1;
