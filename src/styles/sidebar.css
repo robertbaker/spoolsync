@@ -103,7 +103,8 @@ body.has-sidebar {
 }
 
 .app-sidebar:focus-visible {
-  outline: none;
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
 @media (min-width: 768px) {

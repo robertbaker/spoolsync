@@ -38,7 +38,7 @@ export const en = {
   "wizard.progress": "Step {current} of {total}",
   "wizard.choose.title": "Which apps do you use?",
   "wizard.choose.hint":
-    "Tick every app that holds spools. Next, you will see where to find each one's export.",
+    "Select the apps you want export instructions for, or skip this and connect to a server on the next screen.",
   "wizard.choose.legend": "Apps you use",
   "wizard.guide.title": "Export from {app}",
   "wizard.guide.fileType": "File type: {kind}",
@@ -55,7 +55,7 @@ export const en = {
   "wizard.back": "Back",
   "wizard.next": "Next",
   "wizard.done": "Done",
-  "wizard.skipToLoad": "Skip to loading files",
+  "wizard.skipToLoad": "Skip to loading options",
   "wizard.dontShow": "Don't show again",
   "wizard.spoolman.heading": "Or connect to your server",
   "wizard.spoolman.hint":

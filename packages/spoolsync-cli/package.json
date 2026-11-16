@@ -38,7 +38,9 @@
     "test:dist": "bun run build && SPOOLSYNC_CLI_PATH=./dist/cli.js bun test ./src/cli.test.ts"
   },
   "dependencies": {
+    "@clack/prompts": "^1.9.0",
     "papaparse": "^5.7.1",
+    "picocolors": "^1.1.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {

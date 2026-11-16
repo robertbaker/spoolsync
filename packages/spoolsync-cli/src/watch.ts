@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type { InventorySnapshot } from "@spoolsync/core/workflow";
 
+import { createPalette } from "./presentation";
 import type { CliOutput } from "./runtime";
 
 export interface FileWatcher {
@@ -239,9 +240,12 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
     clearTimeout(graceTimer);
     return interrupted;
   }
+  const palette = createPalette(Boolean(output.stderrIsTTY));
   function abandon(): WatchResult {
     output.error(
-      `The run in progress did not finish within ${graceMs / 1000} seconds of stopping; giving up on it.`,
+      palette.yellow(
+        `The run in progress did not finish within ${graceMs / 1000} seconds of stopping; giving up on it.`,
+      ),
     );
     // A run that never finished has no code of its own: keep an earlier failure, else report one.
     output.setExitCode(failureCode || 1);
@@ -274,7 +278,9 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
   }
 
   output.error(
-    `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C (or type q and press Enter) to stop.`,
+    palette.cyan(
+      `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C (or type q and press Enter) to stop.`,
+    ),
   );
 
   const watchers = [...targets].map(([directory, names]) =>

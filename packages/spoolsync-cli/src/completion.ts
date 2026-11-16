@@ -127,6 +127,11 @@ export const OPTION_SPECS: readonly OptionSpec[] = [
     kind: "flag",
   },
   {
+    flag: "--interactive",
+    description: "Prompt interactively for match suggestions, field conflicts, and remote writes",
+    kind: "flag",
+  },
+  {
     flag: "--low-threshold",
     description: "Percent of full weight that counts as low",
     kind: "text",

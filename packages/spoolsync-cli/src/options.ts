@@ -57,5 +57,7 @@ export type Options = {
   watch: boolean;
   /** With --watch, print a run only when its output changed. */
   quiet: boolean;
+  /** Prompt interactively for match suggestions, field conflicts, and remote writes. */
+  interactive?: boolean;
   json: boolean;
 };

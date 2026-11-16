@@ -30,7 +30,7 @@ export const de: Catalogue = {
   "wizard.progress": "Schritt {current} von {total}",
   "wizard.choose.title": "Welche Apps nutzen Sie?",
   "wizard.choose.hint":
-    "Haken Sie jede App an, die Spulen verwaltet. Danach sehen Sie, wo Sie den Export der jeweiligen App finden.",
+    "Wählen Sie Apps aus, für die Sie Exportanleitungen möchten, oder überspringen Sie diesen Schritt und verbinden Sie auf der nächsten Seite einen Server.",
   "wizard.choose.legend": "Von Ihnen genutzte Apps",
   "wizard.guide.title": "Export aus {app}",
   "wizard.guide.fileType": "Dateityp: {kind}",
@@ -47,7 +47,7 @@ export const de: Catalogue = {
   "wizard.back": "Zurück",
   "wizard.next": "Weiter",
   "wizard.done": "Fertig",
-  "wizard.skipToLoad": "Direkt zum Laden der Dateien",
+  "wizard.skipToLoad": "Zu den Ladeoptionen",
   "wizard.dontShow": "Nicht mehr anzeigen",
   "wizard.spoolman.heading": "Oder mit Ihrem Server verbinden",
   "wizard.spoolman.hint":

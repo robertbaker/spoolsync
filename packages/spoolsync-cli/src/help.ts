@@ -10,10 +10,11 @@ import {
 import { formatHelp } from "./presentation";
 
 export function help(): void {
-  console.log(helpText(process.stdout.isTTY ? process.stdout.columns : 80));
+  const color = Boolean(process.stdout.isTTY && !process.env["NO_COLOR"]);
+  console.log(helpText(process.stdout.isTTY ? process.stdout.columns : 80, color));
 }
 
-export function helpText(columns = 80): string {
+export function helpText(columns = 80, color = false): string {
   const services = listServices(SOURCE_IDS);
   const apiServices = services.filter(
     ({ info }) => info.cliApiFlag && info.apiClients.includes("cli"),
@@ -52,6 +53,7 @@ API credentials:
   --filadex-user <name>   Filadex username; the password comes from FILADEX_PASSWORD
 
 Planning:
+  -i, --interactive       Prompt interactively for match suggestions, field conflicts, and remote writes
   --resolve <field=source> Resolve a conflicting field from the named source; repeatable
                           Choose one source per field (see valid names below)
   --confirm <pair>        Confirm a suggested pair (source:id,source:id); repeatable
@@ -112,5 +114,6 @@ Source names:
 Options with values also accept --option=value.
 Without --output-dir, no updated inventory files are written. --export-csv writes a combined CSV independently. No remote service is modified unless --apply is set.`,
     columns,
+    color,
   );
 }

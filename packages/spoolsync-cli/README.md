@@ -62,6 +62,12 @@ anything:
 spoolsync --spoolman spoolman.json --spoolstock spoolstock.csv --spoolio spoolio.json
 ```
 
+Or run interactively (`-i` / `--interactive`) to step through match suggestions, conflicting fields, and remote write confirmations in your terminal:
+
+```sh
+spoolsync --spoolman spoolman.json --spoolio spoolio.json --interactive
+```
+
 Resolve conflicting values, create missing records in a target, and write updated files:
 
 ```sh
@@ -192,6 +198,11 @@ spoolsync --completion zsh > ~/.zfunc/_spoolsync   # zsh, with ~/.zfunc on your 
   `--spoolman-token` requires `--spoolman-url`.
 - **`--resolve`:** choose one source per field; conflicting repeated resolutions are rejected.
   Run `spoolsync --help` for valid fields and source names.
+- **`-i, --interactive`:** prompt interactively in a terminal to confirm or reject match suggestions,
+  resolve conflicting fields, choose `--create-in` targets, set an `--output-dir` for file exports,
+  and confirm `--apply` writes. Requires an interactive TTY and cannot be combined with `--json`,
+  `--watch`, `--restore-rollback`, or report-only options (`--summary`, `--reorder`,
+  `--cleanup-report`, `--reference-report`).
 - **`--empty`:** accepts comma-separated writable source names and can be repeated. Pair it with
   `--create-in` to copy missing spools into those targets. Empty inventories take part in dry runs
   and file exports, but cannot also be loaded from a file or API in the same run.

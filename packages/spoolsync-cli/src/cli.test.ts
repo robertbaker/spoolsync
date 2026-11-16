@@ -246,8 +246,10 @@ test("--summary reports counts per inventory without planning changes", async ()
   };
   const text = await run("--spoolkeep", path.join(directory, "keep.json"), "--summary");
   expect(text.code).toBe(0);
+  expect(text.stdout).toContain("Inventory summary — 3 spools across 1 inventory");
+  expect(text.stdout).toContain("SpoolKeep (spoolkeep)");
   expect(text.stdout).toContain(
-    "spoolkeep: 3 spools (1 archived)\n  2 brands, 2 materials\n  0 g remaining (3 spools without a known weight)",
+    "3 spools · 1 archived spool · 2 brands · 2 materials\n  0 g remaining · 3 spools without known weight",
   );
   expect(text.stdout).not.toContain("Dry run");
 
@@ -330,7 +332,7 @@ test("--config supplies defaults that the command line can override", async () =
   };
   const fromConfig = await run("--config", path.join(directory, "conf", "spoolsync.json"));
   expect(fromConfig).toMatchObject({ code: 0, stderr: "" });
-  expect(fromConfig.stdout).toContain("spoolkeep: 1 spool");
+  expect(fromConfig.stdout).toContain("SpoolKeep (spoolkeep)");
 
   const secret = path.join(directory, "conf", "secret.json");
   await writeFile(secret, JSON.stringify({ "spoolman-token": "abc" }));
@@ -386,7 +388,7 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
   };
   try {
     await until(() => stderr.includes("Watching 1 file"), "the first run");
-    expect(stdout).toContain("spoolkeep: 1 spool");
+    expect(stdout).toContain("SpoolKeep (spoolkeep)");
 
     // Save by replacing the file, as many editors do.
     const replacement = path.join(directory, "keep.json.tmp");
@@ -398,7 +400,7 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
       ]),
     );
     await rename(replacement, keep);
-    await until(() => stdout.includes("spoolkeep: 3 spools"), "the second run");
+    await until(() => stdout.includes("Inventory summary — 3 spools"), "the second run");
     expect(stderr).toContain("keep.json changed; running again");
 
     // A broken save is reported and watching continues.
@@ -409,7 +411,9 @@ test("--watch re-runs when an input file is saved and stops cleanly on SIGINT", 
       JSON.stringify([{ id: "k9", brand: "Z", family: "PLA", newQuantity: 1 }]),
     );
     await until(
-      () => stdout.includes("spoolkeep: 1 spool") && stdout.match(/^spoolkeep: /gm)!.length > 2,
+      () =>
+        stdout.includes("SpoolKeep (spoolkeep)") &&
+        stdout.match(/SpoolKeep \(spoolkeep\)/g)!.length > 2,
       "recovery",
     );
   } finally {
@@ -448,15 +452,15 @@ test("--watch --quiet stays silent when a save does not change the result", asyn
     }
   };
   try {
-    await until(() => stdout.includes("spoolkeep: 1 spool"), "the first run");
+    await until(() => stdout.includes("SpoolKeep (spoolkeep)"), "the first run");
     // Same content, rewritten: the run happens but prints nothing.
     await writeFile(keep, JSON.stringify(spools, null, 2));
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    expect(stdout.split("spoolkeep:").length).toBe(2);
+    expect(stdout.match(/Inventory summary —/g)).toHaveLength(1);
     expect(stderr).not.toContain("changed; running again");
     // A real change is printed.
     await writeFile(keep, JSON.stringify([...spools, { id: "k2", brand: "B", family: "PETG" }]));
-    await until(() => stdout.includes("spoolkeep: 2 spools"), "the changed result");
+    await until(() => stdout.includes("Inventory summary — 2 spools"), "the changed result");
     expect(stderr).toContain("keep.json changed; running again");
   } finally {
     stopWatching(child);
@@ -482,9 +486,9 @@ test("--summary flags spools that are running low", async () => {
   );
   const [stdout, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
   expect(code).toBe(0);
-  expect(stdout).toContain(
-    "spoolio: 3 spools\n  2 brands, 2 materials\n  1,150 g remaining\n  2 running low (at or below 20% of full weight)",
-  );
+  expect(stdout).toContain("Inventory summary — 3 spools across 1 inventory");
+  expect(stdout).toContain("Spoolio (spoolio)");
+  expect(stdout).toContain("1,150 g remaining · 2 spools running low (threshold: 20%)");
 });
 
 test("--reorder prints a shopping list of spools that are running low", async () => {
@@ -587,12 +591,12 @@ test("--low-threshold changes what --summary and --reorder call low", async () =
     return { stdout, stderr, code };
   };
   const file = path.join(directory, "thr.json");
-  expect((await run("--spoolio", file, "--summary")).stdout).toContain("1 running low");
+  expect((await run("--spoolio", file, "--summary")).stdout).toContain("1 spool running low");
   expect((await run("--spoolio", file, "--summary", "--low-threshold", "30")).stdout).toContain(
-    "2 running low",
+    "2 spools running low",
   );
   expect((await run("--spoolio", file, "--summary", "--low-threshold", "5")).stdout).not.toContain(
-    "running low",
+    "spools running low",
   );
   const reorder = await run("--spoolio", file, "--reorder", "--low-threshold", "30");
   expect(reorder.stdout).toContain("Running low (2):");
@@ -634,7 +638,7 @@ test("saved settings are remembered between runs and can be overridden, ignored,
   // A bare run now uses the saved inventory and threshold, and says so on stderr only.
   const remembered = await run("--summary");
   expect(remembered.code).toBe(0);
-  expect(remembered.stdout).toContain("spoolkeep: 1 spool");
+  expect(remembered.stdout).toContain("SpoolKeep (spoolkeep)");
   expect(remembered.stderr).toContain("Using the inventories saved in");
 
   // --show-config says which layer supplies what.
@@ -652,7 +656,7 @@ test("saved settings are remembered between runs and can be overridden, ignored,
 
   // Naming an inventory means the saved set is left out.
   const other = await run("--spoolio", "spoolio.json", "--summary");
-  expect(other.stdout).toContain("spoolio: 0 spools");
+  expect(other.stdout).toContain("Spoolio (spoolio)");
   expect(other.stdout).not.toContain("spoolkeep");
 
   const ignored = await run("--no-user-config", "--summary");

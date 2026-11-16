@@ -78,6 +78,7 @@ export const KNOWN_OPTIONS: readonly string[] = [
   "--restore-rollback",
   "--watch",
   "--quiet",
+  "--interactive",
   "--apply",
   "--json",
   "--format",
@@ -166,6 +167,7 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
   let lowThreshold: number | undefined;
   let watch = false;
   let quiet = false;
+  let interactive = false;
   let json = false;
   let format: OutputFormat | undefined;
   const singletonFlags = new Set<string>();
@@ -324,6 +326,8 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
       watch = true;
     } else if (arg === "--quiet") {
       quiet = true;
+    } else if (arg === "--interactive" || arg === "-i") {
+      interactive = true;
     } else {
       const suggestion = closestOption(arg, KNOWN_OPTIONS);
       throw new Error(`Unknown option: ${arg}${suggestion ? `. Did you mean ${suggestion}?` : ""}`);
@@ -371,6 +375,7 @@ export function parseArgs(argv: string[], settings?: ConfigSettings): Options {
     ...(lowThreshold !== undefined ? { lowThreshold } : {}),
     watch,
     quiet,
+    ...(interactive ? { interactive } : {}),
     ...(outputDir ? { outputDir } : {}),
     ...(exportCsv ? { exportCsv } : {}),
     json,

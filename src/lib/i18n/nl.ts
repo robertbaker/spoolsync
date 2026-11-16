@@ -31,7 +31,7 @@ export const nl: Catalogue = {
   "wizard.progress": "Stap {current} van {total}",
   "wizard.choose.title": "Welke apps gebruikt u?",
   "wizard.choose.hint":
-    "Vink elke app aan die spoelen bijhoudt. Daarna ziet u waar u de export van elke app vindt.",
+    "Selecteer apps waarvoor u exportinstructies wilt, of sla deze stap over en verbind op het volgende scherm een server.",
   "wizard.choose.legend": "Apps die u gebruikt",
   "wizard.guide.title": "Exporteren uit {app}",
   "wizard.guide.fileType": "Bestandstype: {kind}",
@@ -48,7 +48,7 @@ export const nl: Catalogue = {
   "wizard.back": "Terug",
   "wizard.next": "Volgende",
   "wizard.done": "Klaar",
-  "wizard.skipToLoad": "Direct naar bestanden laden",
+  "wizard.skipToLoad": "Naar laadopties",
   "wizard.dontShow": "Niet meer tonen",
   "wizard.spoolman.heading": "Of verbind met je server",
   "wizard.spoolman.hint":

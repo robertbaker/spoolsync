@@ -12,6 +12,7 @@ import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/
 import { duplicatesAfterCleanup } from "@spoolsync/core/workflow";
 
 import type { Options } from "./options";
+import { createPalette } from "./presentation";
 
 /** What a cleanup run decided: nothing here has been written anywhere. */
 export interface CleanupOutcome {
@@ -136,24 +137,28 @@ const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ?
 export function cleanupLines(
   outcome: CleanupOutcome,
   options: Options,
+  color = false,
 ): { lines: string[]; warnings: string[] } {
+  const palette = createPalette(color);
   const { summary, result } = outcome;
   const lines: string[] = [];
   const applied = new Set(outcome.applied.map((proposal) => proposal.id));
   const heading = options.cleanup
     ? `Cleanup: ${plural(summary.total, "proposal")}; ${applied.size} safe ${applied.size === 1 ? "change" : "changes"} added to the plan, ${summary.review} to review, ${summary.total - summary.applicable} not applicable to their service.`
     : `Cleanup: ${plural(summary.total, "proposal")} (${summary.safe} safe, ${summary.review} to review, ${summary.total - summary.applicable} not applicable to their service). Nothing is changed.`;
-  lines.push(heading);
+  lines.push(palette.bold(palette.cyan(heading)));
   const listed = options.cleanupReport
     ? result.proposals
     : result.proposals.filter((proposal) => applied.has(proposal.id));
   for (const proposal of listed) lines.push(line(proposal));
   if (options.cleanup && !options.cleanupReport && summary.total > applied.size)
     lines.push(
-      "Run with --cleanup-report to list the proposals that were not applied, or --cleanup=<rules> to choose rules.",
+      palette.dim(
+        "Run with --cleanup-report to list the proposals that were not applied, or --cleanup=<rules> to choose rules.",
+      ),
     );
   for (const group of outcome.newDuplicates)
-    lines.push(`Possible duplicates after cleanup: ${group.join(", ")}`);
+    lines.push(palette.yellow(`Possible duplicates after cleanup: ${group.join(", ")}`));
   return {
     lines,
     warnings: result.warnings.map(

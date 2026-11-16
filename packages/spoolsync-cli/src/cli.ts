@@ -7,6 +7,7 @@ import { parseArgs } from "./args";
 import { checkConfig, expandConfig } from "./config";
 import { help } from "./help";
 import { requestsJson } from "./json-report";
+import { createPalette } from "./presentation";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
 import { buildExportDocument, parseImportDocument } from "./settings-transfer";
@@ -28,6 +29,8 @@ const output: CliOutput = {
   setExitCode: (code) => {
     process.exitCode = code;
   },
+  isTTY: Boolean(process.stdout.isTTY && !process.env["NO_COLOR"]),
+  stderrIsTTY: Boolean(process.stderr.isTTY && !process.env["NO_COLOR"]),
 };
 
 const TOKEN_FLAGS = new Set([
@@ -128,35 +131,49 @@ try {
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
         }
         await writeTextAtomic(target, buildExportDocument(saved));
-        output.log(`Exported ${saved ? Object.keys(saved).length : 0} settings to ${target}`);
+        const palette = createPalette(Boolean(output.isTTY));
+        output.log(
+          palette.green(`Exported ${saved ? Object.keys(saved).length : 0} settings to ${target}`),
+        );
       } else {
         const { settings, skipped } = parseImportDocument(await readFile(target, "utf8"), target);
         await saveUserConfig(configFile, settings);
-        output.log(`Imported ${Object.keys(settings).length} settings into ${configFile}`);
+        const palette = createPalette(Boolean(output.isTTY));
+        output.log(
+          palette.green(`Imported ${Object.keys(settings).length} settings into ${configFile}`),
+        );
         if (skipped.length)
           output.error(
-            `Skipped ${skipped.length} settings the CLI does not use: ${skipped.join(", ")}`,
+            palette.yellow(
+              `Skipped ${skipped.length} settings the CLI does not use: ${skipped.join(", ")}`,
+            ),
           );
       }
     } else if (args.includes("--show-config")) {
+      const palette = createPalette(Boolean(output.isTTY));
       const lines: Record<string, string[]> = {};
       expandConfig(redactArgs(args.filter((arg) => arg !== "--show-config")), undefined, {
         userConfig: { path: configFile },
         trace: ({ layer, option }) => (lines[layer] ??= []).push(option),
       });
       output.log(
-        `Settings file: ${configFile}${args.includes("--no-user-config") ? " (ignored by --no-user-config)" : ""}`,
+        `${palette.bold("Settings file:")} ${palette.cyan(configFile)}${args.includes("--no-user-config") ? palette.dim(" (ignored by --no-user-config)") : ""}`,
       );
       for (const layer of ["settings file", "--config file", "command line"] as const) {
-        output.log(`\n${layer}:`);
+        output.log(`\n${palette.bold(palette.cyan(`${layer}:`))}`);
         for (const option of lines[layer] ?? []) output.log(`  ${option}`);
-        if (!lines[layer]?.length) output.log("  (nothing)");
+        if (!lines[layer]?.length) output.log(`  ${palette.dim("(nothing)")}`);
       }
     } else if (args.includes("--clear-config")) {
       const extra = args.find((arg) => arg !== "--clear-config");
       if (extra) throw new Error(`--clear-config cannot be combined with ${extra}`);
       const removed = await clearUserConfig(configFile);
-      output.log(removed ? `Removed ${configFile}` : `No saved settings at ${configFile}`);
+      const palette = createPalette(Boolean(output.isTTY));
+      output.log(
+        removed
+          ? palette.green(`Removed ${configFile}`)
+          : palette.dim(`No saved settings at ${configFile}`),
+      );
     } else {
       const options = parseArgs(args, {
         userConfig: { path: configFile },
@@ -167,8 +184,11 @@ try {
       if (options.saveConfig) {
         const settings = savableSettings(options);
         await saveUserConfig(configFile, settings);
+        const palette = createPalette(Boolean(output.isTTY));
         output.log(
-          `Saved ${Object.keys(settings).length} ${Object.keys(settings).length === 1 ? "setting" : "settings"} to ${configFile}`,
+          palette.green(
+            `Saved ${Object.keys(settings).length} ${Object.keys(settings).length === 1 ? "setting" : "settings"} to ${configFile}`,
+          ),
         );
       } else if (options.watch) {
         const stop = new AbortController();

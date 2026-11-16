@@ -133,6 +133,8 @@ export function validateOptions(options: Options): void {
     lowThreshold,
     watch,
     quiet,
+    interactive,
+    json,
   } = options;
   if (spoolmanUrl && inputs.has("spoolman"))
     throw new Error("Use either --spoolman-url or --spoolman <file>, not both.");
@@ -207,6 +209,14 @@ export function validateOptions(options: Options): void {
     throw new Error(
       "--quiet only applies with --watch, where it hides runs that print the same thing.",
     );
+  if (interactive) {
+    if (json) throw new Error("--interactive cannot be combined with --json or --format json.");
+    if (watch) throw new Error("--interactive cannot be combined with --watch.");
+    if (summary || reorder || (cleanupReport && !cleanup) || (referenceReport && !reference))
+      throw new Error("--interactive cannot be combined with report-only options.");
+    if (restoreRollback)
+      throw new Error("--interactive cannot be combined with --restore-rollback.");
+  }
   if (watch) {
     if (apply)
       throw new Error(

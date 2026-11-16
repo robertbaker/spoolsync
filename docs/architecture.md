@@ -319,6 +319,10 @@ the column's button after redrawing. The chart's "By color" view groups by `colo
 
 CLI JSON reports are typed in `json-report.ts` and described by
 `packages/spoolsync-cli/schema/report.schema.json`; `--format json` and `--json` are one setting.
+Interactive terminal presentation uses `picocolors` (in `presentation.ts`, gated on TTY and
+`NO_COLOR`) for colored tables, headings, and status badges, and `@clack/prompts` for stderr
+progress spinners (`progress.ts`) and `-i`/`--interactive` match, conflict, and apply prompts
+(`interactive.ts`); non-TTY and JSON runs stay plain and machine-readable.
 `core/workflow/changes.ts` holds the pure rule behind the `--watch` "what changed" output
 (`snapshotInventory`, `diffSnapshots`, `formatChanges`), so a browser can reuse it. `runWorkflow`
 returns each run's snapshot, and `runWatch` hands the last successful one to the next run.

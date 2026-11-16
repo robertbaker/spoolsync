@@ -17,11 +17,13 @@ export async function loadInputs(
     CliDependencies,
     "readText" | "readBytes" | "createEmptyInventory" | "loadInventoryFile" | "remoteServices"
   >,
+  onProgress?: (message: string) => void,
 ) {
   const loaded = new Map<SourceId, LoadResult>();
   for (const source of options.empty)
     loaded.set(source, await dependencies.createEmptyInventory(source));
   for (const [source, filename] of options.inputs) {
+    onProgress?.(`Loading ${SOURCE_LABELS[source]} from ${filename}…`);
     try {
       const file = isBinarySource(source)
         ? await dependencies.readBytes(filename)
@@ -35,6 +37,7 @@ export async function loadInputs(
   }
   const services: RemoteService[] = [];
   for (const service of dependencies.remoteServices(options)) {
+    onProgress?.(`Loading ${service.label}…`);
     loaded.set(service.source, await service.load());
     services.push(service);
   }

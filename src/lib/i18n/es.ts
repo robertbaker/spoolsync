@@ -31,7 +31,7 @@ export const es: Catalogue = {
   "wizard.progress": "Paso {current} de {total}",
   "wizard.choose.title": "¿Qué aplicaciones usa?",
   "wizard.choose.hint":
-    "Marque cada aplicación que guarde bobinas. A continuación verá dónde encontrar la exportación de cada una.",
+    "Seleccione las aplicaciones para las que quiere instrucciones de exportación, o sáltese este paso y conecte un servidor en la siguiente pantalla.",
   "wizard.choose.legend": "Aplicaciones que usa",
   "wizard.guide.title": "Exportar desde {app}",
   "wizard.guide.fileType": "Tipo de archivo: {kind}",
@@ -48,7 +48,7 @@ export const es: Catalogue = {
   "wizard.back": "Atrás",
   "wizard.next": "Siguiente",
   "wizard.done": "Hecho",
-  "wizard.skipToLoad": "Ir directo a cargar archivos",
+  "wizard.skipToLoad": "Ir a las opciones de carga",
   "wizard.dontShow": "No volver a mostrar",
   "wizard.spoolman.heading": "O conéctate a tu servidor",
   "wizard.spoolman.hint":

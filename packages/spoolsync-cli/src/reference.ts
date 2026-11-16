@@ -18,6 +18,7 @@ import {
 } from "@spoolsync/core/core/reference";
 
 import type { Options } from "./options";
+import { createPalette } from "./presentation";
 import type { CliDependencies } from "./runtime";
 
 /** What a reference run decided: nothing here has been written anywhere. */
@@ -265,23 +266,31 @@ const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ?
 export function referenceLines(
   outcome: ReferenceOutcome,
   options: Options,
+  color = false,
 ): { lines: string[]; warnings: string[] } {
+  const palette = createPalette(color);
   const { summary, items, proposals } = outcome.analysis;
   const lines: string[] = [];
   const applied = new Set(outcome.applied.map((proposal) => proposal.id));
   const where = `Reference (${outcome.file}, ${plural(outcome.parsed.filaments.length, "record")}; ${outcome.parsed.attribution}${outcome.parsed.license ? `; license: ${outcome.parsed.license}` : ""})`;
   const matches = `${summary.matched} of ${plural(summary.spools, "spool")} matched, ${summary.ambiguous} ambiguous, ${summary.suggested} only suggested, ${summary.unmatched} unmatched`;
   lines.push(
-    options.reference
-      ? `${where}: ${matches}; ${plural(applied.size, "safe fill")} added to the plan, ${proposals.length - applied.size} to review or not applicable.`
-      : `${where}: ${matches}; ${plural(proposals.length, "proposal")} (${summary.safe} safe, ${summary.review} to review). Nothing is changed.`,
+    palette.bold(
+      palette.cyan(
+        options.reference
+          ? `${where}: ${matches}; ${plural(applied.size, "safe fill")} added to the plan, ${proposals.length - applied.size} to review or not applicable.`
+          : `${where}: ${matches}; ${plural(proposals.length, "proposal")} (${summary.safe} safe, ${summary.review} to review). Nothing is changed.`,
+      ),
+    ),
   );
   if (options.failOnMismatch) {
     const mismatches = referenceMismatches(outcome);
     lines.push(
       mismatches.total
-        ? `Reference check failed: ${mismatches.values} differing ${mismatches.values === 1 ? "value" : "values"} and ${mismatches.colors} color ${mismatches.colors === 1 ? "mismatch" : "mismatches"}.`
-        : "Reference check passed: nothing differs from the reference.",
+        ? palette.red(
+            `Reference check failed: ${mismatches.values} differing ${mismatches.values === 1 ? "value" : "values"} and ${mismatches.colors} color ${mismatches.colors === 1 ? "mismatch" : "mismatches"}.`,
+          )
+        : palette.green("Reference check passed: nothing differs from the reference."),
     );
   }
   const listed = options.referenceReport ? proposals : proposals.filter((p) => applied.has(p.id));
@@ -304,7 +313,7 @@ export function referenceLines(
               : `difference ${item.color.deltaE.toFixed(1)} (${item.color.verdict})`),
         );
   } else if (options.reference && proposals.length > applied.size) {
-    lines.push("Run with --reference-report to list what was not applied.");
+    lines.push(palette.dim("Run with --reference-report to list what was not applied."));
   }
   return {
     lines,

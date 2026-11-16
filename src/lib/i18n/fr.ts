@@ -30,7 +30,7 @@ export const fr: Catalogue = {
   "wizard.progress": "Étape {current} sur {total}",
   "wizard.choose.title": "Quelles applications utilisez-vous ?",
   "wizard.choose.hint":
-    "Cochez chaque application qui contient des bobines. Vous verrez ensuite où trouver l'export de chacune.",
+    "Sélectionnez les applications dont vous souhaitez les instructions d'export, ou passez cette étape et connectez un serveur à l'écran suivant.",
   "wizard.choose.legend": "Applications utilisées",
   "wizard.guide.title": "Exporter depuis {app}",
   "wizard.guide.fileType": "Type de fichier : {kind}",
@@ -47,7 +47,7 @@ export const fr: Catalogue = {
   "wizard.back": "Retour",
   "wizard.next": "Suivant",
   "wizard.done": "Terminé",
-  "wizard.skipToLoad": "Passer au chargement des fichiers",
+  "wizard.skipToLoad": "Passer aux options de chargement",
   "wizard.dontShow": "Ne plus afficher",
   "wizard.spoolman.heading": "Ou connectez-vous à votre serveur",
   "wizard.spoolman.hint":
