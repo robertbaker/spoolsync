@@ -52,8 +52,11 @@ export function snapshotInventory(
       byKey.set(key, { key, label: labelOf(spool), remainingGrams: spool.remainingWeight });
   }
   return {
-    spools: [...byKey.values()].sort((a, b) => byText(a.key, b.key)),
-    pendingMatches: [...new Set(pendingMatches)].sort(byText),
+    spools: byKey
+      .values()
+      .toArray()
+      .toSorted((a, b) => byText(a.key, b.key)),
+    pendingMatches: [...new Set(pendingMatches)].toSorted(byText),
   };
 }
 

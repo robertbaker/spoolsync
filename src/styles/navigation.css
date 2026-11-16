@@ -43,6 +43,7 @@
   .site-body,
   .min-h-screen {
     min-height: 100dvh;
+    min-block-size: 100dvb;
   }
 }
 
@@ -206,6 +207,7 @@
   padding: 1rem;
   border: 1px solid var(--border);
   border-radius: 0.875rem;
+  corner-shape: squircle;
   background: var(--card);
 }
 

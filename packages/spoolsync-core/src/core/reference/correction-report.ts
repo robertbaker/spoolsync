@@ -83,12 +83,17 @@ export function correctionRecords(items: readonly ReferenceItem[]): CorrectionRe
     if (item.color && item.color.verdict === "mismatch" && !item.color.countDiffers)
       note(reference, "color", hash(item.color.referenceHex), hash(item.color.spoolHex));
   }
-  return [...records.values()]
+  return records
+    .values()
+    .toArray()
     .map(({ reference, points }) => ({
       reference,
-      points: [...points.values()].sort((a, b) => FIELD_COLLATOR.compare(a.field, b.field)),
+      points: points
+        .values()
+        .toArray()
+        .toSorted((a, b) => FIELD_COLLATOR.compare(a.field, b.field)),
     }))
-    .sort(
+    .toSorted(
       (a, b) =>
         TITLE_COLLATOR.compare(title(a.reference), title(b.reference)) ||
         (a.reference.id < b.reference.id ? -1 : 1),
