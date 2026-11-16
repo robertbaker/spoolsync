@@ -1,5 +1,7 @@
 import { loadSpoolmanConnection, loadTigertagSession } from "~/lib/browser/storage";
 
+import { wirePasswordToggle } from "../connections/presentation";
+
 type Service = "spoolman" | "tigertag";
 
 /**
@@ -8,6 +10,8 @@ type Service = "spoolman" | "tigertag";
  */
 export function wireConnectionPanels(): void {
   const wired = new Set<Service>();
+  wirePasswordToggle("toggle-spoolman-token", "spoolman-token");
+  wirePasswordToggle("toggle-tigertag-password", "tigertag-password");
 
   async function wire(service: Service): Promise<void> {
     if (wired.has(service)) return;
@@ -21,10 +25,18 @@ export function wireConnectionPanels(): void {
       early = true;
     };
     form?.addEventListener("submit", hold);
-    const { wireSpoolmanForm, wireTigertagForm } = await import("../connections/wire");
-    if (service === "spoolman") wireSpoolmanForm();
-    else wireTigertagForm();
-    form?.removeEventListener("submit", hold);
+    try {
+      const { wireSpoolmanForm, wireTigertagForm } = await import("../connections/wire");
+      if (service === "spoolman") wireSpoolmanForm();
+      else wireTigertagForm();
+    } catch {
+      // The connection code could not be fetched (offline, or a deploy replaced the chunk). Leave
+      // the form unwired so opening the panel again retries, instead of holding submits forever.
+      wired.delete(service);
+      early = false;
+    } finally {
+      form?.removeEventListener("submit", hold);
+    }
     if (early && form instanceof HTMLFormElement) form.requestSubmit();
   }
 
@@ -48,8 +60,23 @@ export function wireConnectionPanels(): void {
     const panel = details.closest("details[data-panel]");
     if (panel instanceof HTMLDetailsElement) panel.open = true;
     details.open = true;
-    void wire(service).then(() => {
-      details.querySelector<HTMLInputElement>("input:not([type=hidden]):not([hidden])")?.focus();
+    void wire(service);
+    requestAnimationFrame(() => {
+      const focusField = () =>
+        details.querySelector<HTMLInputElement>("input:not([type=hidden]):not([hidden])")?.focus();
+      const disclosures = panel instanceof HTMLDetailsElement ? [panel, details] : [details];
+      const animations = disclosures.flatMap((element) =>
+        element
+          .getAnimations({ subtree: true })
+          .filter((animation) => animation.playState !== "finished"),
+      );
+      if (animations.length === 0) {
+        focusField();
+        return;
+      }
+      void Promise.all(
+        animations.map((animation) => animation.finished.catch(() => undefined)),
+      ).then(focusField);
     });
   }
 

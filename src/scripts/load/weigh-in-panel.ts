@@ -145,7 +145,7 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
       !(resolved?.origin === "custom" && Math.abs(resolved.grams - typedTare) < 0.05);
     remember.disabled = !canSave;
     remember.textContent = `Remember for ${brandLabel}`;
-    forget.hidden = saved[brandKey(brand) || NO_BRAND_KEY] === undefined;
+    forget.hidden = !Object.hasOwn(saved, brandKey(brand) || NO_BRAND_KEY);
 
     const state = reading();
     outcome.textContent = "";

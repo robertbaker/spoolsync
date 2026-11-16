@@ -187,8 +187,12 @@ export function readTares(): Record<string, number> {
 /** Remembers an empty-spool weight for a brand. Returns false when it is invalid or cannot be kept. */
 export function saveTare(vendor: string | null | undefined, grams: number): boolean {
   if (!isTare(grams)) return false;
-  const tares = readTares();
-  tares[brandKey(vendor) || NO_BRAND_KEY] = Math.round(grams * 10) / 10;
+  const key = brandKey(vendor) || NO_BRAND_KEY;
+  const { [key]: _replaced, ...others } = readTares();
+  // The newest value goes last. When the list is full the oldest entry makes room, so the cap in
+  // `sanitizeTares` never drops the value being saved while this still reports success.
+  const kept = Object.entries(others).slice(-(MAX_STORED_TARES - 1));
+  const tares = Object.fromEntries([...kept, [key, Math.round(grams * 10) / 10]]);
   return write(local, WEIGH_IN_KEY, JSON.stringify({ tares: sanitizeTares(tares) }));
 }
 

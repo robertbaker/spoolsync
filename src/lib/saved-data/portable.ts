@@ -116,5 +116,46 @@ export const portableKeys = () =>
     (group) => group.keys,
   );
 
+/** Applies validated portable values without leaving a half-restored settings set on failure. */
+export function writePortableEntries(
+  storage: Storage,
+  entries: ReadonlyMap<string, string>,
+  replace: boolean,
+  subject: "backup" | "settings export",
+): string[] {
+  const keys = replace ? portableKeys() : [...entries.keys()];
+  const previous = new Map(keys.map((key) => [key, storage.getItem(key)]));
+  const removed: string[] = [];
+  try {
+    if (replace)
+      for (const key of keys)
+        if (!entries.has(key) && previous.get(key) !== null) {
+          storage.removeItem(key);
+          removed.push(key);
+        }
+    for (const [key, value] of entries) storage.setItem(key, value);
+  } catch {
+    // Undo only what this call changed, one key at a time: a key that was never touched must not be
+    // removed first, or storage that keeps refusing writes would lose it too. New keys go first so
+    // the space they took is free again before the earlier values are written back.
+    let restored = true;
+    const undo = (key: string, value: string | null): void => {
+      try {
+        if (storage.getItem(key) === value) return;
+        if (value === null) storage.removeItem(key);
+        else storage.setItem(key, value);
+      } catch {
+        restored = false;
+      }
+    };
+    for (const [key, value] of previous) if (value === null) undo(key, value);
+    for (const [key, value] of previous) if (value !== null) undo(key, value);
+    throw new Error(
+      `Browser storage refused the ${subject}. It may be full or blocked.${restored ? " No settings were changed." : " Some previous settings may not have been restored."}`,
+    );
+  }
+  return removed;
+}
+
 /** Bounds that keep a hostile or damaged file from filling browser storage. */
 export const BACKUP_LIMITS = { entries: 60, entryBytes: 1_000_000, totalBytes: 4_000_000 } as const;

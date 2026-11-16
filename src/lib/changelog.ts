@@ -104,15 +104,34 @@ export function findRelease(
 
 /** Negative when `a` is older than `b`, positive when newer, zero when equal. Numeric per part. */
 export function compareVersions(a: string, b: string): number {
-  const numbers = (text: string) =>
-    text
-      .replace(/^v/i, "")
-      .split(/[.-]/)
-      .map((part) => Number.parseInt(part, 10) || 0);
-  const [left, right] = [numbers(a), numbers(b)];
-  for (let index = 0; index < Math.max(left.length, right.length); index++) {
-    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+  // `1.2.0-beta.1+build` is the core `1.2.0`, the pre-release `beta.1`, and build data to ignore.
+  const parse = (text: string) => {
+    const [version = ""] = text.trim().replace(/^v/i, "").split("+");
+    const dash = version.indexOf("-");
+    const core = dash < 0 ? version : version.slice(0, dash);
+    return {
+      core: core.split(".").map((part) => Number.parseInt(part, 10) || 0),
+      pre: dash < 0 ? [] : version.slice(dash + 1).split("."),
+    };
+  };
+  const [left, right] = [parse(a), parse(b)];
+  for (let index = 0; index < Math.max(left.core.length, right.core.length); index++) {
+    const difference = (left.core[index] ?? 0) - (right.core[index] ?? 0);
     if (difference) return difference;
+  }
+  // A pre-release comes before the release it leads up to.
+  if (!left.pre.length || !right.pre.length) return right.pre.length - left.pre.length;
+  for (let index = 0; index < Math.max(left.pre.length, right.pre.length); index++) {
+    const [x, y] = [left.pre[index], right.pre[index]];
+    // With every shared part equal, the longer pre-release is the newer one.
+    if (x === undefined) return -1;
+    if (y === undefined) return 1;
+    const [xNumeric, yNumeric] = [/^\d+$/.test(x), /^\d+$/.test(y)];
+    if (xNumeric && yNumeric) {
+      const difference = Number(x) - Number(y);
+      if (difference) return difference;
+    } else if (xNumeric !== yNumeric) return xNumeric ? -1 : 1;
+    else if (x !== y) return x < y ? -1 : 1;
   }
   return 0;
 }

@@ -240,6 +240,10 @@ select.field-input {
   padding-top: 0.5rem;
 }
 
+.load-service-filters {
+  flex-wrap: balance;
+}
+
 @media (max-width: 640px) {
   .load-dropzone {
     min-height: 15rem;

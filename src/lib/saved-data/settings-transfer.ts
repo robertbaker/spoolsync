@@ -5,6 +5,7 @@ import {
   EXPORT_VERSION,
   isValidEntry,
   portableKeys,
+  writePortableEntries,
 } from "./portable";
 
 /** The portable settings as a JSON document. Credentials and loaded inventories are never included. */
@@ -49,6 +50,7 @@ export function importSettings(text: string): ImportResult {
   if (!storage) throw new Error("Browser storage is unavailable, so settings cannot be imported.");
   const allowed = new Set(portableKeys());
   const result: ImportResult = { imported: [], skipped: [] };
+  const accepted = new Map<string, string>();
   let total = 0;
   for (const [key, value] of Object.entries(document.entries as Record<string, unknown>)) {
     if (
@@ -59,9 +61,10 @@ export function importSettings(text: string): ImportResult {
       isValidEntry(key, value)
     ) {
       total += value.length;
-      storage.setItem(key, value);
+      accepted.set(key, value);
       result.imported.push(key);
     } else result.skipped.push(key);
   }
+  writePortableEntries(storage, accepted, false, "settings export");
   return result;
 }

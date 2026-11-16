@@ -319,6 +319,84 @@ test("merge keeps other settings while replace makes storage match the backup", 
   expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("40");
 });
 
+test("a failed replace restore leaves existing portable settings intact", () => {
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  const backup = JSON.stringify({
+    format: BACKUP_FORMAT,
+    version: 1,
+    entries: { "spoolsync:low-stock-percent": "40" },
+  });
+  const storage = localStorage;
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage")!;
+  let failOnce = true;
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      get length() {
+        return storage.length;
+      },
+      key: storage.key.bind(storage),
+      getItem: storage.getItem.bind(storage),
+      removeItem: storage.removeItem.bind(storage),
+      setItem(key: string, value: string) {
+        if (failOnce) {
+          failOnce = false;
+          throw new DOMException("Storage is full", "QuotaExceededError");
+        }
+        storage.setItem(key, value);
+      },
+      clear: storage.clear.bind(storage),
+    },
+  });
+  try {
+    expect(() => restoreBackup(backup, "replace")).toThrow("No settings were changed");
+    expect(storage.getItem("spoolsync:chart-view")).toBe("brand");
+    expect(storage.getItem("spoolsync:low-stock-percent")).toBeNull();
+  } finally {
+    Object.defineProperty(globalThis, "localStorage", descriptor);
+  }
+});
+
+test("a restore that storage keeps refusing leaves untouched settings in place", () => {
+  localStorage.setItem("spoolsync:low-stock-percent", "30");
+  localStorage.setItem("spoolsync:cost-view", "vendor");
+  const backup = JSON.stringify({
+    format: BACKUP_FORMAT,
+    version: 1,
+    entries: { "spoolsync:chart-view": "brand", "spoolsync:low-stock-percent": "40" },
+  });
+  const storage = localStorage;
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage")!;
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      get length() {
+        return storage.length;
+      },
+      key: storage.key.bind(storage),
+      getItem: storage.getItem.bind(storage),
+      removeItem: storage.removeItem.bind(storage),
+      setItem() {
+        throw new DOMException("Storage is full", "QuotaExceededError");
+      },
+      clear: storage.clear.bind(storage),
+    },
+  });
+  try {
+    // Merge changes nothing before the first refused write, so nothing is lost.
+    expect(() => restoreBackup(backup, "merge")).toThrow("No settings were changed");
+    expect(storage.getItem("spoolsync:low-stock-percent")).toBe("30");
+    expect(storage.getItem("spoolsync:cost-view")).toBe("vendor");
+    // Replace had already removed the setting the backup lacks and cannot write it back, but the
+    // setting it had not reached yet keeps its value.
+    expect(() => restoreBackup(backup, "replace")).toThrow("may not have been restored");
+    expect(storage.getItem("spoolsync:low-stock-percent")).toBe("30");
+    expect(storage.getItem("spoolsync:chart-view")).toBeNull();
+  } finally {
+    Object.defineProperty(globalThis, "localStorage", descriptor);
+  }
+});
+
 test("backups round trip, and the older settings export is accepted too", () => {
   localStorage.setItem("spoolsync:weigh-in", '{"tares":{"esun":240}}');
   const text = createBackup();

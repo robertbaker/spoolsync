@@ -5,6 +5,7 @@ import {
   EXPORT_VERSION,
   isValidEntry,
   portableKeys,
+  writePortableEntries,
 } from "./portable";
 
 /**
@@ -143,18 +144,7 @@ export function restoreBackup(text: string, mode: "merge" | "replace" = "merge")
   const storage = store("local");
   if (!storage)
     throw new Error("Browser storage is unavailable, so the backup cannot be restored.");
-  const removed: string[] = [];
-  try {
-    if (mode === "replace")
-      for (const key of portableKeys())
-        if (!accepted.has(key) && storage.getItem(key) !== null) {
-          storage.removeItem(key);
-          removed.push(key);
-        }
-    for (const [key, value] of accepted) storage.setItem(key, value);
-  } catch {
-    throw new Error("Browser storage refused the backup. It may be full or blocked.");
-  }
+  const removed = writePortableEntries(storage, accepted, mode === "replace", "backup");
   return { ...inspection, removed };
 }
 

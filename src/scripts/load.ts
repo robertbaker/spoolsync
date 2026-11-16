@@ -344,7 +344,16 @@ document.getElementById("copy-reorder")?.addEventListener("click", async () => {
 
 const thresholdSelect = document.getElementById("low-threshold") as HTMLSelectElement | null;
 if (thresholdSelect) {
-  thresholdSelect.value = String(loadLowStockPercent());
+  // A restored backup or imported settings can hold any valid percentage, not only the listed
+  // choices; without an option for it the picker would show blank while that threshold applies.
+  const savedPercent = String(loadLowStockPercent());
+  if (![...thresholdSelect.options].some((option) => option.value === savedPercent)) {
+    const before = [...thresholdSelect.options].find(
+      (option) => Number(option.value) > Number(savedPercent),
+    );
+    thresholdSelect.insertBefore(new Option(`${savedPercent}%`, savedPercent), before ?? null);
+  }
+  thresholdSelect.value = savedPercent;
   thresholdSelect.addEventListener("change", () => {
     saveLowStockPercent(Number(thresholdSelect.value));
     render();

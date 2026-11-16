@@ -86,7 +86,7 @@ const spoolman = serviceView("spoolman");
           aria-keyshortcuts="/"
           class="field-input mt-0 w-full py-1.5 text-sm sm:w-56"
         />
-        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter services">
+        <div class="load-service-filters flex flex-wrap gap-1.5" role="group" aria-label="Filter services">
           {
             [
               ["all", "All"],
@@ -98,7 +98,7 @@ const spoolman = serviceView("spoolman");
                 type="button"
                 data-source-filter={value}
                 aria-pressed={value === "all"}
-                class="min-h-9 rounded-full border px-3.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary-text"
+                class="min-h-11 rounded-full border px-3.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted aria-pressed:border-primary/50 aria-pressed:bg-primary/15 aria-pressed:text-primary-text"
               >
                 {label}
               </button>

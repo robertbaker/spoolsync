@@ -120,9 +120,18 @@ test("numbers are read the way people write them", () => {
   expect(parseLooseNumber("1,234.50")).toBe(1234.5);
   expect(parseLooseNumber("12,5")).toBe(12.5);
   expect(parseLooseNumber("0,125")).toBe(0.125);
+  expect(parseLooseNumber(".5")).toBe(0.5);
+  expect(parseLooseNumber("1.")).toBe(1);
   expect(parseLooseNumber("1,234")).toBe(1234);
   expect(parseLooseNumber("1 234,5")).toBe(1234.5);
   expect(parseLooseNumber("1.234.567")).toBe(1234567);
+  expect(parseLooseNumber("1,234,567.89")).toBe(1234567.89);
+  expect(parseLooseNumber("1 234 567,89")).toBe(1234567.89);
+  expect(parseLooseNumber("1’234’567.89")).toBe(1234567.89);
+  expect(parseLooseNumber("1,23,4")).toBeNull();
+  expect(parseLooseNumber("12 34")).toBeNull();
+  expect(parseLooseNumber("1.23.4")).toBeNull();
+  expect(parseLooseNumber("1,23.4")).toBeNull();
   expect(parseLooseNumber("-3")).toBe(-3);
   expect(parseLooseNumber("1e3")).toBeNull();
   expect(parseLooseNumber("abc")).toBeNull();

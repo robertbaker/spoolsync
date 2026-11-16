@@ -103,6 +103,15 @@ test("compares versions numerically and finds releases newer than the last one s
   expect(compareVersions("0.10.0", "0.9.0")).toBeGreaterThan(0);
   expect(compareVersions("v1.0", "1.0.0")).toBe(0);
   expect(compareVersions("0.2.0", "0.3.0")).toBeLessThan(0);
+  // A pre-release is older than its release, and pre-releases order among themselves.
+  expect(compareVersions("1.2.0-beta.1", "1.2.0")).toBeLessThan(0);
+  expect(compareVersions("1.2.0", "1.2.0-rc.1")).toBeGreaterThan(0);
+  expect(compareVersions("1.2.0-beta.1", "1.1.9")).toBeGreaterThan(0);
+  expect(compareVersions("1.2.0-beta.2", "1.2.0-beta.10")).toBeLessThan(0);
+  expect(compareVersions("1.2.0-alpha", "1.2.0-alpha.1")).toBeLessThan(0);
+  expect(compareVersions("1.2.0-alpha.1", "1.2.0-beta")).toBeLessThan(0);
+  expect(compareVersions("1.2.0-1", "1.2.0-alpha")).toBeLessThan(0);
+  expect(compareVersions("1.2.0+build.5", "1.2.0")).toBe(0);
   const releases = parseChangelog(sample);
   expect(releasesSince(releases, "0.2.0").map((release) => release.version)).toEqual(["0.3.0"]);
   expect(releasesSince(releases, "0.3.0")).toEqual([]);

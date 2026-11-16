@@ -180,28 +180,51 @@ export function parseLooseNumber(raw: string): number | null {
     .replace(/^[^\d+\-.,]+/, "")
     .replace(/[^\d]+$/, "");
   if (!text || !/^[+-]?[\d.,\s'’]+$/.test(text)) return null;
-  text = text.replace(/[\s'’]/g, "");
   const sign = text.startsWith("-") ? -1 : 1;
   text = text.replace(/^[+-]/, "");
   const lastDot = text.lastIndexOf(".");
   const lastComma = text.lastIndexOf(",");
-  let normalized: string;
+  let decimal: "." | "," | undefined;
+  let grouping: "." | "," | undefined;
   if (lastDot >= 0 && lastComma >= 0) {
-    const decimal = lastDot > lastComma ? "." : ",";
-    const thousands = decimal === "." ? "," : ".";
-    normalized = text.split(thousands).join("").replace(decimal, ".");
+    decimal = lastDot > lastComma ? "." : ",";
+    grouping = decimal === "." ? "," : ".";
+    if (text.indexOf(decimal) !== text.lastIndexOf(decimal)) return null;
   } else if (lastComma >= 0) {
     const parts = text.split(",");
     const last = parts.at(-1)!;
     // "1,234" reads as a thousands group; "0,125" and "12,5" are decimals.
     const thousands =
-      parts.length > 2 || (last.length === 3 && parts[0] !== "0" && parts[0]!.length <= 3);
-    normalized = thousands ? parts.join("") : `${parts.slice(0, -1).join("")}.${last}`;
+      parts.length > 1 && last.length === 3 && parts[0] !== "0" && parts[0]!.length <= 3;
+    if (parts.length > 2) grouping = ",";
+    else if (thousands) grouping = ",";
+    else decimal = ",";
   } else {
     const parts = text.split(".");
-    normalized = parts.length > 2 ? parts.join("") : text;
+    if (parts.length > 2) grouping = ".";
+    else if (parts.length === 2) decimal = ".";
   }
-  if (!/^\d*\.?\d+$|^\d+\.$/.test(normalized)) return null;
+
+  const decimalAt = decimal ? text.lastIndexOf(decimal) : -1;
+  const integerText = decimal ? text.slice(0, decimalAt) : text;
+  const fractionText = decimal ? text.slice(decimalAt + 1) : "";
+  if (decimal && ((!integerText && !fractionText) || (fractionText && !/^\d+$/.test(fractionText))))
+    return null;
+
+  const integerSource = integerText || (decimal ? "0" : "");
+  const groupMarks = [...integerSource.matchAll(/[\s'’]|[.,]/g)].map(([mark]) => mark);
+  const punctuationMarks = groupMarks.filter((mark) => mark === "." || mark === ",");
+  const textMarks = groupMarks.filter((mark) => mark !== "." && mark !== ",");
+  if (punctuationMarks.some((mark) => mark !== grouping)) return null;
+  if (punctuationMarks.length && textMarks.length) return null;
+  if (textMarks.some((mark) => mark !== textMarks[0])) return null;
+
+  const separator = grouping ?? textMarks[0];
+  const groups = separator ? integerSource.split(separator) : [integerSource];
+  if (!groups.length || groups.some((part) => !/^\d+$/.test(part))) return null;
+  if (groups.length > 1 && (groups[0]!.length > 3 || groups[0]!.startsWith("0"))) return null;
+  if (groups.slice(1).some((part) => part.length !== 3)) return null;
+  const normalized = `${groups.join("")}${decimal ? `.${fractionText}` : ""}`;
   const value = Number(normalized) * sign;
   return Number.isFinite(value) ? value : null;
 }

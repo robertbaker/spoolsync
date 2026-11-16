@@ -16,14 +16,12 @@ import {
 
 import { wireCorsHelp } from "./cors";
 import { announceConnectionChange } from "./events";
-import { wirePasswordToggle } from "./presentation";
 import { wireSpoolmanConnection } from "./spoolman";
 import { wireTigertagConnection } from "./tigertag";
 
 /** Wires whichever connection forms and help blocks exist on the current page. */
 export function wireSpoolmanForm(): void {
   if (document.getElementById("cors-line")) wireCorsHelp();
-  wirePasswordToggle("toggle-spoolman-token", "spoolman-token");
   wireSpoolmanConnection({
     browserEnvironment,
     diagnoseConnection,
@@ -41,7 +39,6 @@ export function wireSpoolmanForm(): void {
 }
 
 export function wireTigertagForm(): void {
-  wirePasswordToggle("toggle-tigertag-password", "tigertag-password");
   wireTigertagConnection({
     signIn,
     clearTigertagSession: () => {
