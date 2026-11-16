@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.9.0...spoolsync-cli-v0.10.0) (2026-11-16)
+
+### Features
+
+* **cli:** introduce interactive mode for guided operations ([f0a6fbe](https://github.com/robertbaker/spoolsync/commit/f0a6fbeb26ce6cf3f33bf2c995b78d58ec7f4fac))
+
 ## [0.9.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.8.0...spoolsync-cli-v0.9.0) (2026-11-16)
 
 ### Features
