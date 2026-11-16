@@ -41,6 +41,24 @@ const compiled = process.env["SPOOLSYNC_CLI_PATH"];
 const cli = compiled ? path.resolve(compiled) : path.join(import.meta.dir, "cli.ts");
 const runtime = compiled ? "node" : process.execPath;
 
+test("standalone help works even when saved settings are invalid", async () => {
+  const settingsDir = path.join(directory, ".settings");
+  await mkdir(settingsDir, { recursive: true });
+  await writeFile(path.join(settingsDir, "config.json"), "invalid json");
+  for (const flag of ["--help", "-h"]) {
+    const child = spawnIsolated([runtime, cli, flag], { stdout: "pipe", stderr: "pipe" });
+    const [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    expect(code).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("Quick start:");
+    expect(stdout).toContain("--no-user-config");
+  }
+});
+
 test("a spool deleted after planning cannot modify a surviving spool's filament", async () => {
   const filament = { id: 10, material: "PLA", name: "Blue", density: 1.24, diameter: 1.75 };
   const fake = createFakeSpoolman({

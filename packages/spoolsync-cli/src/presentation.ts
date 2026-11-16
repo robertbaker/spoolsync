@@ -1,5 +1,36 @@
 import type { ApplyLogEntry } from "@spoolsync/core/core/model";
 
+/** Wrap prose without splitting flags, paths, or other copyable tokens. */
+function wrapWords(text: string, indent: string, width: number): string {
+  const lines: string[] = [];
+  let line = indent;
+  for (const word of text.trim().split(/\s+/)) {
+    if (line.length > indent.length && line.length + word.length + 1 > width) {
+      lines.push(line);
+      line = indent;
+    }
+    line += (line.length === indent.length ? "" : " ") + word;
+  }
+  lines.push(line);
+  return lines.join("\n");
+}
+
+/** Stacked options leave room for descriptions even in narrow terminals. */
+export function formatHelp(text: string, columns: number): string {
+  const width = Math.max(40, Math.min(100, columns || 80));
+  return text
+    .split("\n")
+    .map((line) => {
+      // Examples must remain on one line so copying them preserves the command.
+      if (line.trimStart().startsWith("spoolsync ")) return line;
+      const option = /^  ((?:-[hV], )?--\S+(?: <[^>]+>)?)\s+(.+)$/.exec(line);
+      if (option) return `  ${option[1]}\n${wrapWords(option[2]!, "      ", width)}`;
+      const indent = line.match(/^\s*/)?.[0] ?? "";
+      return line.trim() ? wrapWords(line, indent.length > 6 ? "      " : indent, width) : "";
+    })
+    .join("\n");
+}
+
 /** Plain text stays readable in terminals, redirected logs, and watch comparisons. */
 export function textTable(headers: string[], rows: string[][]): string {
   const widths = headers.map((header, index) =>

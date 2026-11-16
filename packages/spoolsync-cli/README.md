@@ -39,6 +39,9 @@ spoolsync --version
 ```
 
 Requires Node.js 22 or later. Use `spoolsync --version --json` to read the installed version in scripts.
+Help wraps descriptions to the terminal width (80 columns when redirected), while keeping example
+commands intact for copying. File options, aliases, and available API inputs follow the service
+registry. Standalone `--help` and `-h` work even when your saved settings file is invalid.
 
 ## Quick start
 

@@ -1,8 +1,26 @@
 import { CLEANUP_RULE_IDS } from "@spoolsync/core/core/cleanup";
 import { COMPARABLE_FIELDS, SOURCE_IDS } from "@spoolsync/core/core/model";
+import {
+  canWrite,
+  canWriteViaApi,
+  formatPhrase,
+  listServices,
+} from "@spoolsync/core/core/services";
+
+import { formatHelp } from "./presentation";
 
 export function help(): void {
-  console.log(`SpoolSync CLI — compare inventory exports and write updates to supported services.
+  console.log(helpText(process.stdout.isTTY ? process.stdout.columns : 80));
+}
+
+export function helpText(columns = 80): string {
+  const services = listServices(SOURCE_IDS);
+  const apiServices = services.filter(
+    ({ info }) => info.cliApiFlag && info.apiClients.includes("cli"),
+  );
+  const writableApis = apiServices.filter(({ id }) => canWriteViaApi(id));
+  return formatHelp(
+    `SpoolSync CLI — compare inventory exports and write updates to supported services.
 
 Usage:
   spoolsync [options]
@@ -19,35 +37,18 @@ Quick start:
   No remote service is modified unless --apply is set.
 
 File inputs (two inventories for comparison; one for reports or CSV export):
-  --spoolman <file>       Spoolman JSON or CSV export
-  --spoolstock <file>     Spoolstock CSV export (read-only source)
-  --spoolio <file>        Spoolio JSON export
-  --tigertag <file>       TigerTag .ttag or JSON export
-  --three-dfp <file>      3DFilamentProfiles CSV or JSON export
-  --bambuddy <file>       Bambuddy inventory CSV or API response JSON
-  --printstudio <file>    PrintStudio material lots JSON (GET /materials)
-  --filameter <file>      FilaMeter backup JSON or CSV export
-  --filadex <file>        Filadex JSON or CSV export
-  --filamentdb <file>     FilamentDB ZIP export or spools JSON
-  --filament-db <file>    Filament DB snapshot JSON or CSV export
-  --spoolmaster <file>    SpoolMaster Excel (.xlsx) export (read-only source)
-  --spoolhoarder <file>   Spool Hoarder inventory or HueForge CSV (read-only source)
-  --spool <file>          Spool app JSON backup (read-only source)
-  --spoolkeep <file>      SpoolKeep JSON backup (read-only source)
+${services.map(({ id, info }) => `  ${info.cliFlag} <file>  ${info.name} ${formatPhrase(info.readFormats)} export${canWrite(id) ? "" : " (read-only source)"}${info.cliAliases?.length ? `; aliases: ${info.cliAliases.join(", ")}` : ""}`).join("\n")}
   --empty <sources>      Start empty writable inventories (comma-separated; repeatable)
 
 Direct API inputs:
-  --spoolman-url <url>    Load Spoolman directly instead of from a file
+${apiServices.map(({ info }) => `  ${info.cliApiFlag} <url>  Load ${info.name} directly instead of from a file`).join("\n")}
+
+API credentials:
   --spoolman-token <token> API token (or set SPOOLMAN_TOKEN)
-  --filamentdb-url <url>  Load FilamentDB directly instead of from a file
   --filamentdb-token <token> Session token for installs with user management (or set FILAMENTDB_TOKEN)
-  --filament-db-url <url> Load Filament DB directly instead of from a file
   --filament-db-token <key> API key if the server sets one (or set FILAMENT_DB_API_KEY, else FILAMENTDB_API_KEY)
-  --bambuddy-url <url>    Load Bambuddy directly instead of from a file
   --bambuddy-token <key>  Bambuddy API key (or set BAMBUDDY_API_KEY); --apply needs the Manage inventory scope
-  --printstudio-url <url> Load PrintStudio directly instead of from a file
   --printstudio-operator <id> PrintStudio trusted operator id (or set PRINTSTUDIO_OPERATOR_ID); --apply creates and edits only local lots
-  --filadex-url <url>     Load Filadex directly instead of from a file
   --filadex-user <name>   Filadex username; the password comes from FILADEX_PASSWORD
 
 Planning:
@@ -92,9 +93,9 @@ Reports and data quality:
 Remote writes and recovery:
   --rollback-dir <dir>    Where --apply saves the rollback file it makes before writing (default: a rollbacks folder beside the settings file)
   --no-rollback           With --apply, write without saving a rollback file first
-  --restore-rollback <file> Put back the values a rollback file recorded in the service named by --spoolman-url, --filamentdb-url, --filament-db-url, --bambuddy-url, --printstudio-url, or --filadex-url;
+  --restore-rollback <file> Put back the values a rollback file recorded in the service named by ${writableApis.map(({ info }) => info.cliApiFlag).join(", ")};
                           fields changed since are left alone, and nothing is written without --apply
-  --apply                 Apply planned changes to directly loaded Spoolman, FilamentDB, Filament DB, Bambuddy, PrintStudio, or Filadex inventories
+  --apply                 Apply planned changes to directly loaded ${writableApis.map(({ info }) => info.name).join(", ")} inventories
 
 Display:
   --format <text|json>    Output format; json prints one versioned report on stdout (see schema/report.schema.json)
@@ -109,5 +110,7 @@ Source names:
   ${SOURCE_IDS.join(", ")}
 
 Options with values also accept --option=value.
-Without --output-dir, no export files are written. No remote service is modified unless --apply is set.`);
+Without --output-dir, no updated inventory files are written. --export-csv writes a combined CSV independently. No remote service is modified unless --apply is set.`,
+    columns,
+  );
 }

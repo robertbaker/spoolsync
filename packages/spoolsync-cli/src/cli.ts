@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { version } from "../package.json";
 import { parseArgs } from "./args";
 import { checkConfig, expandConfig } from "./config";
+import { help } from "./help";
 import { requestsJson } from "./json-report";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
@@ -75,7 +76,10 @@ const args = process.argv.slice(2);
 let jsonMode = requestsJson(args);
 
 try {
-  if (args.some((arg) => arg === "--version" || arg === "-V")) {
+  if (args.length === 1 && (args[0] === "--help" || args[0] === "-h")) {
+    // Help must remain available even when saved settings cannot be read.
+    help();
+  } else if (args.some((arg) => arg === "--version" || arg === "-V")) {
     const rest = args.filter((arg, index) => {
       if (arg === "--version" || arg === "-V" || arg === "--json" || arg === "--format=json")
         return false;
