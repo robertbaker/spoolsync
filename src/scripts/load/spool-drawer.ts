@@ -5,10 +5,11 @@ import {
   type SourceId,
 } from "@spoolsync/core/core/model";
 import { spoolKey } from "@spoolsync/core/workflow";
+import { findSpoolDetail } from "@spoolsync/core/workflow/spool-detail";
 
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { LOCALE_CHANGED, t } from "~/lib/i18n";
-import { OPEN_SPOOL_EVENT, findSpoolDetail } from "~/lib/spool-detail";
+import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
 import { h, showToast } from "../dom";

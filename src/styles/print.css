@@ -5,7 +5,7 @@
 @media print {
   header,
   footer,
-  nav,
+  nav:not(#sync-summary),
   .app-sidebar,
   .app-bottom-nav,
   button,

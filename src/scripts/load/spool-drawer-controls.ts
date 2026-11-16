@@ -1,5 +1,11 @@
+import {
+  markDifferent,
+  recordTitle,
+  type Candidate,
+  type SpoolDetail,
+} from "@spoolsync/core/workflow/spool-detail";
+
 import { loadMatchDecisions, saveMatchDecisions } from "~/lib/browser/storage";
-import { markDifferent, recordTitle, type Candidate, type SpoolDetail } from "~/lib/spool-detail";
 
 import { h, showToast } from "../dom";
 import type { LoadInsights } from "./insights";

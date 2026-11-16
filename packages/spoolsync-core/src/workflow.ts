@@ -127,3 +127,19 @@ export {
   type StockHistory,
   type StockPoint,
 } from "./workflow/stock-trend";
+export {
+  CROSS_ID_LABELS,
+  TRAIL_LENGTH,
+  detailRows,
+  findSpoolDetail,
+  linkedIds,
+  markDifferent,
+  recordTitle,
+  spoolHistory,
+  type Candidate,
+  type CandidateReason,
+  type DetailKind,
+  type DetailRow,
+  type SpoolDetail,
+  type SpoolHistory,
+} from "./workflow/spool-detail";

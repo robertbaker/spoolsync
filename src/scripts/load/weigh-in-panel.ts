@@ -1,5 +1,6 @@
+import type { SpoolDetail } from "@spoolsync/core/workflow/spool-detail";
+
 import { stageBulkEdit } from "~/lib/browser/storage/bulk-edits";
-import type { SpoolDetail } from "~/lib/spool-detail";
 import { formatWeight, gramsToUnit, readDisplaySettings, type WeightUnit } from "~/lib/units";
 import {
   NO_BRAND_KEY,

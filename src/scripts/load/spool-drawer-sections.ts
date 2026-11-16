@@ -1,7 +1,5 @@
 import { SOURCE_LABELS } from "@spoolsync/core/core/model";
 import type { WeightChange } from "@spoolsync/core/workflow";
-
-import { readStockHistory } from "~/lib/browser/storage/stock-history";
 import {
   detailRows,
   linkedIds,
@@ -9,7 +7,9 @@ import {
   spoolHistory,
   type DetailRow,
   type SpoolDetail,
-} from "~/lib/spool-detail";
+} from "@spoolsync/core/workflow/spool-detail";
+
+import { readStockHistory } from "~/lib/browser/storage/stock-history";
 import { formatMoney, formatWeight } from "~/lib/units";
 
 import { h } from "../dom";

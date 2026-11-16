@@ -11,7 +11,7 @@ export function createSummaryView(state: SyncSession) {
     const unresolved = groups.filter((g) => openConflicts(g, state.resolutionFor(g)).length).length;
     const steps = [
       {
-        href: "#suggestions-section",
+        href: suggested ? "#suggestions-section" : "#tour-differences",
         number: "1",
         title: "Confirm matches",
         detail: suggested ? `${suggested} to review` : "No matches to review",
@@ -19,7 +19,7 @@ export function createSummaryView(state: SyncSession) {
         current: suggested > 0,
       },
       {
-        href: "#tour-differences",
+        href: unresolved ? "#tour-differences" : "#tour-apply",
         number: "2",
         title: "Resolve differences",
         detail: unresolved

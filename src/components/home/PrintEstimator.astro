@@ -166,15 +166,15 @@ const polymers: readonly PolymerDensity[] = [
           </div>
         </div>
 
-        <!-- Runout Safety Status Box -->
+        <!-- Estimated spool margin -->
         <div class="mt-4 rounded-xl border p-3.5 transition-all" id="out-safety-box">
           <div class="flex items-start gap-2.5">
             <Icon name="material-symbols:check-circle-outline-rounded" class="size-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" id="safety-icon-ok" />
             <Icon name="material-symbols:warning-outline-rounded" class="size-5 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400 hidden" id="safety-icon-warn" />
             <div>
-              <p class="text-xs font-bold leading-tight" id="safety-title">Safe to Print</p>
+              <p class="text-xs font-bold leading-tight" id="safety-title">Estimated buffer</p>
               <p class="text-[0.72rem] text-muted-foreground mt-0.5 leading-snug" id="safety-desc">
-                145g safety buffer left over after this print completes.
+                About 145 g left after the print, based on these estimates.
               </p>
             </div>
           </div>
@@ -293,8 +293,8 @@ const polymers: readonly PolymerDensity[] = [
         if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 transition-all text-emerald-800 dark:text-emerald-300";
         safetyIconOk?.classList.remove("hidden");
         safetyIconWarn?.classList.add("hidden");
-        if (safetyTitle) safetyTitle.textContent = "Safe to Print";
-        if (safetyDesc) safetyDesc.textContent = `${remainingAfter}g safety buffer left over after this print finishes.`;
+        if (safetyTitle) safetyTitle.textContent = "Estimated buffer";
+        if (safetyDesc) safetyDesc.textContent = `About ${remainingAfter} g left after the print, based on these estimates.`;
       } else if (remainingAfter >= 0) {
         // Low margin
         if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 transition-all text-amber-800 dark:text-amber-300";
@@ -308,8 +308,8 @@ const polymers: readonly PolymerDensity[] = [
         if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 transition-all text-rose-800 dark:text-rose-300";
         safetyIconOk?.classList.add("hidden");
         safetyIconWarn?.classList.remove("hidden");
-        if (safetyTitle) safetyTitle.textContent = "Spool Runout Warning";
-        if (safetyDesc) safetyDesc.textContent = `Short by ${shortage}g! Spool will run out mid-job unless auto-refilled.`;
+        if (safetyTitle) safetyTitle.textContent = "Estimated shortfall";
+        if (safetyDesc) safetyDesc.textContent = `The estimate is short by ${shortage} g. Check the slicer weight and spool amount before printing.`;
       }
     }
 

@@ -780,7 +780,7 @@ assets default, `public, max-age=0, must-revalidate`. `/_astro/*` and the self-h
 
 ## Spool drawer, saved views, and reorder list
 
-**Spool detail drawer** (`load/spool-drawer.ts`, logic in `lib/spool-detail.ts`). Clicking a table row,
+**Spool detail drawer** (`load/spool-drawer.ts`, domain logic in `core/workflow/spool-detail.ts`). Clicking a table row,
 or its name button for keyboard users, dispatches `spoolsync:open-spool` on `document` with
 `{ key }` (a `spoolKey`); anything else, such as a command palette, can dispatch the same event.
 The drawer is a native modal `<dialog>` docked right, so focus is trapped, Esc closes it, and focus
