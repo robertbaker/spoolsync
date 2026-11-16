@@ -66,13 +66,13 @@ const bottomLinks = links.slice(0, 4);
     </button>
   </div>
 
-  <ul class="sb-list" role="list">
+  <ul class="sb-list sb-nav-list" role="list">
     {
       links.map((link) => {
         const current = isNavCurrent(link, pathname);
         const isInventory = Boolean(link.matchPaths?.length);
         return (
-          <li class="sb-item">
+          <li class:list={["sb-item", isInventory && "sb-item--workflow"]}>
             <a
               href={link.href}
               class="sb-link"
@@ -157,6 +157,19 @@ const bottomLinks = links.slice(0, 4);
         <button
           type="button"
           class="sb-link"
+          data-open-shortcuts
+          data-sb-action
+          aria-keyshortcuts="?"
+          title="Keyboard shortcuts"
+        >
+          <Icon name="material-symbols:keyboard-outline" class="sb-icon" aria-hidden="true" />
+          <span class="sb-label">Keyboard shortcuts</span>
+        </button>
+      </li>
+      <li class="sb-item">
+        <button
+          type="button"
+          class="sb-link"
           data-open-changelog
           data-sb-action
           data-version={version}
@@ -167,25 +180,6 @@ const bottomLinks = links.slice(0, 4);
           <span class="sb-label" aria-hidden="true">Changelog</span>
           <span class="sb-badge sb-badge--new" data-sb-changelog-new hidden aria-hidden="true">New</span>
           <span class="sb-version" aria-hidden="true">v{version}</span>
-        </button>
-      </li>
-      <li class="sb-item">
-        <button type="button" class="sb-link" data-open-saved-data data-sb-action title="Saved settings">
-          <Icon name="material-symbols:settings-outline" class="sb-icon" aria-hidden="true" />
-          <span class="sb-label">Saved settings</span>
-        </button>
-      </li>
-      <li class="sb-item">
-        <button
-          type="button"
-          class="sb-link"
-          data-open-shortcuts
-          data-sb-action
-          aria-keyshortcuts="?"
-          title="Keyboard shortcuts"
-        >
-          <Icon name="material-symbols:keyboard-outline" class="sb-icon" aria-hidden="true" />
-          <span class="sb-label">Keyboard shortcuts</span>
         </button>
       </li>
       <li class="sb-item">
@@ -205,6 +199,11 @@ const bottomLinks = links.slice(0, 4);
   </div>
 
   <div class="sb-foot">
+    <p class="sb-group__title" id="sb-preferences-title">Preferences</p>
+    <button type="button" class="sb-link" data-open-saved-data data-sb-action title="Saved settings">
+      <Icon name="material-symbols:settings-outline" class="sb-icon" aria-hidden="true" />
+      <span class="sb-label">Saved settings</span>
+    </button>
     <div class="sb-row">
       <span class="sb-label sb-row__label" id="sb-palette-label">Theme</span>
       <div class="sb-row__controls">

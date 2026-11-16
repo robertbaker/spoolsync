@@ -14,7 +14,6 @@ export const SOCIAL_LINKS: Record<string, string> = {};
  * a single "Inventory" entry that stays active on both pages.
  */
 export const NAV_LINKS = [
-  { href: "/", label: "Home", text: "Home", icon: "material-symbols:home-outline-rounded" },
   {
     href: "/load",
     label: "Inventory",
@@ -22,13 +21,14 @@ export const NAV_LINKS = [
     icon: "material-symbols:inventory-2-outline",
     matchPaths: ["/load", "/sync", "/inventory"],
   },
-  { href: "/cli", label: "CLI", text: "CLI", icon: "material-symbols:terminal" },
+  { href: "/", label: "Home", text: "Home", icon: "material-symbols:home-outline-rounded" },
   {
     href: "/resources",
     label: "Resources",
     text: "Resources",
     icon: "material-symbols:article-outline",
   },
+  { href: "/cli", label: "CLI", text: "CLI", icon: "material-symbols:terminal" },
 ];
 
 /** The three steps of the inventory workflow and the page each lives on. */
