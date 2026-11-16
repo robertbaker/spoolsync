@@ -6,7 +6,7 @@ import {
 } from "@spoolsync/core/core/model";
 import { summarizeInventory } from "@spoolsync/core/workflow";
 
-import { currentLowStockRule } from "~/lib/low-stock";
+import { loadLowStockPolicy } from "~/lib/low-stock";
 import { formatWeight } from "~/lib/units";
 
 import { h } from "../dom";
@@ -17,7 +17,7 @@ export function renderLoadedStats(
   container: HTMLElement,
   results: ReadonlyMap<SourceId, LoadResult>,
 ): void {
-  const rule = currentLowStockRule();
+  const rule = loadLowStockPolicy();
   const cards = SOURCE_IDS.flatMap((source) => {
     const result = results.get(source);
     if (!result) return [];

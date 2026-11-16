@@ -5,7 +5,7 @@ import { reorderItems } from "@spoolsync/core/workflow";
 import { programsOf, type BuyLink } from "~/lib/affiliates";
 import { loadMatchDecisions } from "~/lib/browser/storage";
 import { local, write } from "~/lib/browser/storage/access";
-import { currentLowStockRule } from "~/lib/low-stock";
+import { loadLowStockPolicy } from "~/lib/low-stock";
 import {
   groupByBrand,
   itemLabel,
@@ -142,7 +142,7 @@ export function wireReorderPanel(
   root.replaceChildren(details);
 
   const lowRecordCount = (): number => {
-    const rule = currentLowStockRule();
+    const rule = loadLowStockPolicy();
     let count = 0;
     for (const result of results.values())
       for (const spool of result.spools) if (isRunningLow(spool, rule)) count += 1;
@@ -153,11 +153,7 @@ export function wireReorderPanel(
     let groups: BrandGroup[];
     let total: number;
     try {
-      const items = reorderItems(
-        [...results.values()],
-        loadMatchDecisions(),
-        currentLowStockRule(),
-      );
+      const items = reorderItems([...results.values()], loadMatchDecisions(), loadLowStockPolicy());
       groups = groupByBrand(items);
       total = items.length;
     } catch {

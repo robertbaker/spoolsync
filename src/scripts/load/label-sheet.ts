@@ -17,7 +17,7 @@ import {
   type LabelSelection,
 } from "~/lib/labels/labels";
 import { qrSvgPath, smallestVersion } from "~/lib/labels/qr";
-import { currentLowStockRule } from "~/lib/low-stock";
+import { loadLowStockPolicy } from "~/lib/low-stock";
 
 import { h } from "../dom";
 import { plural } from "./presentation";
@@ -151,7 +151,7 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
     return selectLabelSpools(spools, {
       mode: options.selection,
       visible: visibleSpools(),
-      rule: currentLowStockRule(),
+      rule: loadLowStockPolicy(),
       ...(options.oncePerSpool ? { linked: uniqueSpools(loaded, loadMatchDecisions()) } : {}),
     });
   };

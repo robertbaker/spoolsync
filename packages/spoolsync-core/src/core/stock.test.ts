@@ -1,6 +1,14 @@
 import { expect, test } from "bun:test";
 
-import { DEFAULT_LOW_STOCK, isLowStockPercent, isRunningLow, lowStockRule } from "./stock";
+import {
+  DEFAULT_LOW_STOCK,
+  isLowStockPercent,
+  isRunningLow,
+  lowStockPercentFor,
+  lowStockRule,
+  sanitizeLowStockOverrides,
+} from "./stock";
+import { makeSpool } from "./testing";
 
 const spool = (remainingWeight: number | null, initialWeight: number | null, archived = false) => ({
   remainingWeight,
@@ -43,4 +51,52 @@ test("only whole percentages from 1 to 90 are accepted", () => {
   for (const bad of [0, 91, 12.5, -5, Number.NaN, "20", null])
     expect(isLowStockPercent(bad)).toBe(false);
   expect(() => lowStockRule(0)).toThrow("whole number from 1 to 90");
+});
+
+test("low-stock overrides apply from spool to material to brand to default", () => {
+  const sample = makeSpool("spoolio", "A1", { vendor: " Prusament ", material: "PLA" });
+  const policy = {
+    defaultPercent: 20,
+    overrides: {
+      brands: { prusament: 30 },
+      materials: { pla: 40 },
+      spools: { "spoolio:A1": 50 },
+    },
+  };
+
+  expect(lowStockPercentFor(sample, policy)).toBe(50);
+  expect(
+    lowStockPercentFor(sample, {
+      ...policy,
+      overrides: { ...policy.overrides, spools: {} },
+    }),
+  ).toBe(40);
+  expect(
+    lowStockPercentFor(sample, {
+      ...policy,
+      overrides: { ...policy.overrides, materials: {}, spools: {} },
+    }),
+  ).toBe(30);
+  expect(
+    lowStockPercentFor(sample, {
+      ...policy,
+      overrides: { brands: {}, materials: {}, spools: {} },
+    }),
+  ).toBe(20);
+  expect(isRunningLow({ ...sample, remainingWeight: 250 }, policy)).toBe(true);
+  expect(isRunningLow({ ...sample, remainingWeight: 550 }, policy)).toBe(false);
+});
+
+test("saved low-stock overrides discard invalid entries", () => {
+  expect(
+    sanitizeLowStockOverrides({
+      brands: { " Prusament ": 35, blank: 0, poison: "50", [" "]: 30 },
+      materials: { PLA: 25 },
+      spools: { "spoolio:A1": 45, "unknown:A1": 20, "spoolio:": 25 },
+    }),
+  ).toEqual({
+    brands: { prusament: 35 },
+    materials: { pla: 25 },
+    spools: { "spoolio:A1": 45 },
+  });
 });

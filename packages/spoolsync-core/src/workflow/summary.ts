@@ -1,5 +1,5 @@
 import type { LoadResult, SourceId } from "../core/model";
-import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
+import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockThreshold } from "../core/stock";
 
 export interface InventorySummary {
   source: SourceId;
@@ -19,7 +19,7 @@ export interface InventorySummary {
 /** Headline numbers for one loaded inventory, for dry-run output and quick checks. */
 export function summarizeInventory(
   result: LoadResult,
-  rule: LowStockRule = DEFAULT_LOW_STOCK,
+  rule: LowStockThreshold = DEFAULT_LOW_STOCK,
 ): InventorySummary {
   const brands = new Set<string>();
   const materials = new Set<string>();

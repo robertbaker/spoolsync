@@ -9,7 +9,7 @@ import { isRunningLow } from "@spoolsync/core/core/stock";
 import { HEALTH_ISSUES, spoolKey } from "@spoolsync/core/workflow";
 
 import { t, type MessageKey } from "~/lib/i18n";
-import { currentLowStockRule } from "~/lib/low-stock";
+import { loadLowStockPolicy } from "~/lib/low-stock";
 import { readPreferences, updatePreferences, type SortKey } from "~/lib/preferences";
 import {
   EMPTY_VIEW,
@@ -250,7 +250,7 @@ export function createInventoryTable(
       return;
     }
 
-    const rule = currentLowStockRule();
+    const rule = loadLowStockPolicy();
     const isLow = (spool: CommonSpool) => isRunningLow(spool, rule);
     const lowCount = all.filter(isLow).length;
     if (lowCount === 0) lowOnly = false;

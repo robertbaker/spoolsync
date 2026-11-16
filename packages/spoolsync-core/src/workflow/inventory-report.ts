@@ -1,5 +1,5 @@
 import { SOURCE_LABELS, type CommonSpool, type SourceId } from "../core/model";
-import { isRunningLow, type LowStockRule } from "../core/stock";
+import { isRunningLow, type LowStockThreshold } from "../core/stock";
 import { gramsToUnit, type WeightUnit } from "../core/weight-units";
 import type { UniqueSpool } from "./breakdown";
 
@@ -93,7 +93,7 @@ function ranked(rows: Map<string, ReportRow>): ReportRow[] {
 
 export function buildInventoryReport(
   unique: readonly UniqueSpool[],
-  rule: LowStockRule,
+  rule: LowStockThreshold,
   now: Date = new Date(),
   options: ReportOptions = {},
 ): InventoryReport {

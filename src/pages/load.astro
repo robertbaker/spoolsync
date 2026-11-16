@@ -299,6 +299,16 @@ const spoolman = serviceView("spoolman");
           </label>
           <button
             type="button"
+            id="low-stock-rules-toggle"
+            hidden
+            aria-expanded="false"
+            aria-controls="low-stock-rules-panel"
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Custom rules
+          </button>
+          <button
+            type="button"
             id="low-only"
             hidden
             aria-pressed="false"
@@ -311,15 +321,26 @@ const spoolman = serviceView("spoolman");
           <Button type="button" variant="outline" color="neutral" size="sm" id="download-combined" hidden>Download all as CSV</Button>
           <Button type="button" variant="outline" color="error" size="sm" class="sm:ml-auto" id="unload-all" hidden>Unload all</Button>
         <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
-          <input
-            id="spool-search-input"
-            type="search"
-            placeholder="Filter loaded spools..."
-            class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
-            aria-label="Filter loaded spools"
-          />
+          <div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <input
+              id="spool-search-input"
+              type="search"
+              placeholder="Filter loaded spools..."
+              class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
+              aria-label="Filter loaded spools"
+            />
+            <button
+              type="button"
+              id="scan-spool-camera"
+              aria-haspopup="dialog"
+              class="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Scan with camera
+            </button>
+          </div>
         </div>
         </div>
+      <div id="low-stock-rules-panel" class="mt-3" hidden></div>
       </div>
       <div id="loaded-stats" class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" hidden></div>
       <section id="health-dashboard" class="mt-5 rounded-xl border p-4" aria-labelledby="health-dashboard-heading" hidden></section>

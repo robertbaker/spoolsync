@@ -13,7 +13,7 @@ import {
   type ReportFormat,
   type ReportRow,
 } from "~/lib/inventory-report";
-import { currentLowStockRule } from "~/lib/low-stock";
+import { loadLowStockPolicy } from "~/lib/low-stock";
 import { DISPLAY_CHANGED, formatMoney, formatWeight, readDisplaySettings } from "~/lib/units";
 
 import { h, showToast } from "../dom";
@@ -182,7 +182,7 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
   const build = (): InventoryReport =>
     buildInventoryReport(
       uniqueSpools([...results.values()], loadMatchDecisions()),
-      currentLowStockRule(),
+      loadLowStockPolicy(),
       new Date(),
       { includeArchived: archivedBox.checked },
     );

@@ -1,5 +1,5 @@
 import type { CommonSpool } from "@spoolsync/core/core/model";
-import { isRunningLow, type LowStockRule } from "@spoolsync/core/core/stock";
+import { isRunningLow, type LowStockThreshold } from "@spoolsync/core/core/stock";
 
 import { encodeQr, type QrCode } from "./qr";
 
@@ -52,7 +52,7 @@ export interface SelectionOptions {
   mode: LabelSelection;
   /** The spools the table shows, used for "filtered". */
   visible: readonly CommonSpool[];
-  rule: LowStockRule;
+  rule: LowStockThreshold;
   /** Groups of records that are the same spool; when given, only one label is made per group. */
   linked?: ReadonlyArray<{ members: readonly CommonSpool[] }>;
 }

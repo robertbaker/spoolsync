@@ -1,5 +1,5 @@
 import { isProviderId, sanitizeReferenceSettings } from "@spoolsync/core/core/reference";
-import { isLowStockPercent } from "@spoolsync/core/core/stock";
+import { isLowStockPercent, sanitizeLowStockOverrides } from "@spoolsync/core/core/stock";
 
 import { sanitizeFileHistory } from "../browser/storage/file-history";
 import { sanitizeHealthHistory } from "../browser/storage/health-history";
@@ -47,6 +47,10 @@ export function isValidEntry(key: string, text: string): boolean {
         return sanitizeWatchlist(JSON.parse(text)).length > 0;
       case "spoolsync:low-stock-percent":
         return isLowStockPercent(Number(text));
+      case "spoolsync:low-stock-rules": {
+        const clean = sanitizeLowStockOverrides(JSON.parse(text));
+        return Object.values(clean).some((scope) => Object.keys(scope).length > 0);
+      }
       case "spoolsync:display": {
         const clean = sanitizeDisplaySettings(JSON.parse(text));
         return clean.weightUnit !== "g" || clean.currency !== "";

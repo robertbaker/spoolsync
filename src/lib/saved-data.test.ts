@@ -87,6 +87,10 @@ test("sizes are shown in plain units", () => {
 test("exports portable settings only, never credentials or loaded inventories", () => {
   localStorage.setItem("spoolsync:prefs", '{"lowOnly":true}');
   localStorage.setItem("spoolsync:low-stock-percent", "30");
+  localStorage.setItem(
+    "spoolsync:low-stock-rules",
+    '{"brands":{"prusament":40},"materials":{},"spools":{}}',
+  );
   localStorage.setItem("spoolsync:chart-view", "brand");
   localStorage.setItem("spoolsync:match-decisions", '{"confirmed":["a|b"],"rejected":[]}');
   localStorage.setItem("spoolsync:spoolman-connection", '{"baseUrl":"http://secret.local"}');
@@ -103,6 +107,7 @@ test("exports portable settings only, never credentials or loaded inventories", 
   expect(Object.keys(document.entries).sort()).toEqual([
     "spoolsync:chart-view",
     "spoolsync:low-stock-percent",
+    "spoolsync:low-stock-rules",
     "spoolsync:match-decisions",
     "spoolsync:prefs",
   ]);
@@ -129,6 +134,7 @@ test("import skips credentials, unknown keys, and invalid values, and names them
       version: 1,
       entries: {
         "spoolsync:low-stock-percent": "30",
+        "spoolsync:low-stock-rules": '{"brands":{"prusament":40},"materials":{},"spools":{}}',
         "spoolsync:spoolman-token": "planted",
         "spoolsync:tigertag-session": "planted",
         "spoolsync:chart-view": "pie",
@@ -139,7 +145,10 @@ test("import skips credentials, unknown keys, and invalid values, and names them
       },
     }),
   );
-  expect(result.imported).toEqual(["spoolsync:low-stock-percent"]);
+  expect(result.imported.sort()).toEqual([
+    "spoolsync:low-stock-percent",
+    "spoolsync:low-stock-rules",
+  ]);
   expect(result.skipped.sort()).toEqual([
     "other-app",
     "spoolsync:chart-view",

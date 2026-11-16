@@ -22,3 +22,7 @@ public/reference/
 .ref/
 
 .playwright-mcp/
+
+.lighthouseci/
+
+.tmp-lhci/

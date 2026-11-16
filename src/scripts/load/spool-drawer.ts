@@ -31,7 +31,7 @@ interface Inputs {
  * its linked ids, what is remembered about its weight, and quick actions.
  */
 export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
-  open(key: string): boolean;
+  open(key: string, options?: { focusWeighIn?: boolean }): boolean;
   update(): void;
 } {
   let dialog: HTMLDialogElement | undefined;
@@ -161,7 +161,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
     return element;
   }
 
-  function open(key: string): boolean {
+  function open(key: string, options: { focusWeighIn?: boolean } = {}): boolean {
     if (!allSpools(results.values()).some((spool) => spoolKey(spool) === key)) return false;
     dialog ??= build();
     if (!dialog.open) {
@@ -174,14 +174,21 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
       currentKey = key;
       render();
     }
-    dialog.querySelector<HTMLElement>("[data-drawer-title]")?.focus();
+    const gross = options.focusWeighIn
+      ? dialog.querySelector<HTMLInputElement>("#weigh-in-gross")
+      : null;
+    const focus = gross ?? dialog.querySelector<HTMLElement>("[data-drawer-title]");
+    focus?.focus();
+    gross?.select();
     return true;
   }
 
   document.addEventListener(OPEN_SPOOL_EVENT, (event) => {
-    const key = (event as CustomEvent<{ key?: unknown } | null>).detail?.key;
+    const detail = (event as CustomEvent<{ key?: unknown; focusWeighIn?: unknown } | null>).detail;
+    const key = detail?.key;
     if (typeof key !== "string" || !key) return;
-    if (!open(key)) showToast("That spool is not loaded.", "warning");
+    if (!open(key, { focusWeighIn: detail?.focusWeighIn === true }))
+      showToast("That spool is not loaded.", "warning");
   });
   // Weights follow the display unit chosen elsewhere on the page.
   document.addEventListener(DISPLAY_CHANGED, () => {

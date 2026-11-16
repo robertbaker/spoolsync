@@ -310,9 +310,11 @@ across the whole repository (not just the CLI), is listed with its scope and com
 `--export-settings` and `--import-settings` read and write the same `spoolsync-settings` document
 as the browser (`settings-transfer.ts`).
 
-The threshold is a `LowStockRule` (share of full weight, plus fallback grams that scale with it) that
-every caller can pass; the web app saves the visitor's choice (`lib/low-stock.ts`, 10 to 50 percent)
-and the CLI takes `--low-threshold` or a numeric `low-threshold` config key. The chart also groups by
+The threshold is a `LowStockRule` (share of full weight, plus fallback grams that scale with it) or a
+`LowStockPolicy` (global percentage with per-brand, material, and spool overrides) that every caller
+can pass. The web app saves the global choice and local rules (`lib/low-stock.ts`; each override wins
+from spool to material to brand), while the CLI takes `--low-threshold` or a numeric `low-threshold`
+config key. The chart also groups by
 storage location, which spools without one fold into "No location". The loaded-spools table sorts by column (ascending, descending,
 loaded order) with `aria-sort`, keeps blanks last in both directions, and returns keyboard focus to
 the column's button after redrawing. The chart's "By color" view groups by `colorFamily`

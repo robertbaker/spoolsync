@@ -39,6 +39,37 @@ test.describe("Load page tools", () => {
     await expect(page.locator("dialog[open]")).toHaveCount(0);
   });
 
+  test("camera scanning opens the matching spool with weigh-in ready", async ({ page }) => {
+    await page.addInitScript(() => {
+      class MockBarcodeDetector {
+        static getSupportedFormats() {
+          return Promise.resolve(["qr_code"]);
+        }
+        detect() {
+          return Promise.resolve([{ rawValue: "spoolio:sample-spoolio-1" }]);
+        }
+      }
+      Object.defineProperty(window, "BarcodeDetector", { value: MockBarcodeDetector });
+      Object.defineProperty(HTMLVideoElement.prototype, "readyState", {
+        configurable: true,
+        get: () => HTMLMediaElement.HAVE_CURRENT_DATA,
+      });
+      Object.defineProperty(HTMLMediaElement.prototype, "play", {
+        configurable: true,
+        value: () => Promise.resolve(),
+      });
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        value: { getUserMedia: () => Promise.resolve(new MediaStream()) },
+      });
+    });
+    await page.goto("/load?sample=1");
+    await expect(page.locator("#loaded-table tbody tr").first()).toBeVisible();
+    await page.getByRole("button", { name: "Scan with camera" }).click();
+    await expect(page.locator("#spool-drawer[open]")).toBeVisible();
+    await expect(page.locator("#weigh-in-gross")).toBeFocused();
+  });
+
   test("the label dialog explains how to find a spool from its label", async ({ page }) => {
     await page.goto("/load?sample=1");
     await page

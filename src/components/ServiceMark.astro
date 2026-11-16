@@ -1,8 +1,9 @@
 ---
-/** A tool's logo: its bundled raster image when it has one, otherwise its icon. Decorative. */
+/** A tool's logo: an optimized raster image when available, otherwise its icon. Decorative. */
+import { Image } from "astro:assets";
 import { Icon } from "astro-icon/components";
 import type { SourceId } from "@spoolsync/core/core/model";
-import { serviceLogoSrc } from "~/lib/service-logos";
+import { serviceLogoAsset } from "~/lib/service-logos";
 import { serviceView } from "~/lib/services";
 
 interface Props {
@@ -11,13 +12,22 @@ interface Props {
 }
 
 const { id, class: className = "size-5" } = Astro.props;
-const src = serviceLogoSrc(id);
+const logo = serviceLogoAsset(id);
 const icon = serviceView(id).icon;
 ---
 
 {
-  src ? (
-    <img src={src} alt="" class:list={["shrink-0 object-contain", className]} loading="lazy" decoding="async" />
+  logo ? (
+    <Image
+      src={logo}
+      alt=""
+      width={48}
+      height={48}
+      format={logo.format === "svg" ? "svg" : "avif"}
+      class:list={["shrink-0 object-contain", className]}
+      loading="lazy"
+      decoding="async"
+    />
   ) : (
     <Icon name={icon} class:list={["shrink-0", className]} aria-hidden="true" />
   )

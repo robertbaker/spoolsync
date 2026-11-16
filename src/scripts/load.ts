@@ -14,7 +14,7 @@ import {
 import { recordStockPoint } from "~/lib/browser/storage/stock-history";
 import { LOCALE_CHANGED } from "~/lib/i18n";
 import { readScan } from "~/lib/labels/scan";
-import { currentLowStockRule, loadLowStockPercent, saveLowStockPercent } from "~/lib/low-stock";
+import { loadLowStockPercent, loadLowStockPolicy, saveLowStockPercent } from "~/lib/low-stock";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 import { applySampleParam, sampleLink } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
@@ -24,6 +24,7 @@ import { announceConnectionChange, CONNECTION_CHANGED } from "./connections/even
 import { h, notice, showToast } from "./dom";
 import { createActionBar } from "./load/action-bar";
 import { wireApiSources } from "./load/api-sources";
+import { wireCameraScanner } from "./load/camera-scanner";
 import { wireCleanupPanel } from "./load/cleanup-view";
 import { handleConnectionChange } from "./load/connection-change";
 import { wireConnectionPanels } from "./load/connection-panels";
@@ -38,6 +39,7 @@ import { createInventoryTable } from "./load/inventory-table";
 import { wireLazyLabelPrinting } from "./load/label-lazy";
 import { renderLoadedChart } from "./load/loaded-chart";
 import { renderLoadedStats } from "./load/loaded-stats";
+import { wireLowStockRules } from "./load/low-stock-rules";
 import { wireLazyReferencePanel } from "./load/reference-lazy";
 import { wireReorderPanel } from "./load/reorder-panel";
 import { wireInventoryReport } from "./load/report-panel";
@@ -75,6 +77,14 @@ const loadedChart = document.getElementById("loaded-chart");
 const insightsRoot = document.getElementById("loaded-insights");
 const loadedTrend = document.getElementById("loaded-trend");
 const loadedCost = document.getElementById("loaded-cost");
+const lowStockRulesToggle = document.getElementById(
+  "low-stock-rules-toggle",
+) as HTMLButtonElement | null;
+const lowStockRulesPanel = document.getElementById("low-stock-rules-panel");
+const lowStockRules =
+  lowStockRulesToggle && lowStockRulesPanel
+    ? wireLowStockRules(lowStockRulesToggle, lowStockRulesPanel, state.results, () => render())
+    : null;
 const labels = wireLazyLabelPrinting({
   results: state.results,
   visibleSpools: () => renderTable.visibleSpools(),
@@ -119,6 +129,7 @@ const drying = dryingRoot
   : null;
 const inventoryReport = wireInventoryReport(state.results);
 const sinceVisit = wireSinceVisit(state.results, insights);
+const cameraButton = document.getElementById("scan-spool-camera") as HTMLButtonElement | null;
 // A label scanner types the code and presses Enter, so Enter in the filter box opens that spool.
 const filterBox = document.getElementById("spool-search-input") as HTMLInputElement | null;
 filterBox?.addEventListener("keydown", (event) => {
@@ -136,6 +147,18 @@ filterBox?.addEventListener("keydown", (event) => {
     showToast(`No loaded spool has the code ${scan.code}. Load that service first.`, "info");
   }
 });
+
+if (cameraButton)
+  wireCameraScanner(cameraButton, {
+    read: (code) => readScan(code, allSpools(state.results.values())),
+    open: (spool) => {
+      if (filterBox) {
+        filterBox.value = "";
+        filterBox.dispatchEvent(new Event("input"));
+      }
+      drawer.open(spoolKey(spool), { focusWeighIn: true });
+    },
+  });
 // `dataChanged` is false when only how things are shown changed (weight unit, price symbol,
 // language): the reports and the cleanup suggestions are computed from the spools alone, so they
 // are kept and only redrawn. Anything that can change a spool takes the full path.
@@ -161,6 +184,7 @@ const pageViews: ReadonlyArray<{ update(dataChanged: boolean): void } | null> = 
   drawnInto(loadedStats, (root) => renderLoadedStats(root, state.results)),
   drawnInto(loadedChart, (root) => renderLoadedChart(root, state.results)),
   drawnInto(loadedTrend, (root) => renderTrendChart(root, state.results.size > 0)),
+  lowStockRules,
   drawnInto(loadedCost, (root) => renderCostChart(root, state.results)),
   labels,
   { update: () => panels.refresh() },
@@ -174,6 +198,11 @@ const draw = (dataChanged: boolean) => {
   if (downloadCombined) downloadCombined.hidden = state.results.size === 0;
   const thresholdWrap = document.getElementById("low-threshold-wrap");
   if (thresholdWrap) thresholdWrap.hidden = state.results.size === 0;
+  if (lowStockRulesToggle) lowStockRulesToggle.hidden = state.results.size === 0;
+  if (!state.results.size && lowStockRulesPanel) {
+    lowStockRulesPanel.hidden = true;
+    lowStockRulesToggle?.setAttribute("aria-expanded", "false");
+  }
   // Sample data would replace real inventories in the same services, so offer it only when empty.
   const samplePrompt = document.getElementById("sample-prompt");
   if (samplePrompt) samplePrompt.hidden = state.results.size > 0;
@@ -329,7 +358,7 @@ document.getElementById("copy-reorder")?.addEventListener("click", async () => {
   const items = reorderItems(
     [...state.results.values()],
     loadMatchDecisions(),
-    currentLowStockRule(),
+    loadLowStockPolicy(),
   );
   try {
     await navigator.clipboard.writeText(formatReorderList(items));

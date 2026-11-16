@@ -1,6 +1,6 @@
 import type { MatchDecisions } from "../core/match";
 import type { CommonSpool, LoadResult } from "../core/model";
-import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockRule } from "../core/stock";
+import { DEFAULT_LOW_STOCK, isRunningLow, type LowStockThreshold } from "../core/stock";
 import { uniqueSpools } from "./breakdown";
 
 /** Same ordering as `localeCompare` with defaults, without per-call setup. */
@@ -16,7 +16,7 @@ export interface ReorderItem {
 export function reorderItems(
   results: readonly LoadResult[],
   decisions: MatchDecisions,
-  rule: LowStockRule = DEFAULT_LOW_STOCK,
+  rule: LowStockThreshold = DEFAULT_LOW_STOCK,
 ): ReorderItem[] {
   const items: ReorderItem[] = [];
   for (const { spool, members } of uniqueSpools(results, decisions)) {
