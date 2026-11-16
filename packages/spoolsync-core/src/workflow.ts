@@ -46,6 +46,20 @@ export {
   type HealthReport,
 } from "./workflow/health";
 export {
+  HEALTH_FACTOR_IDS,
+  HEALTH_WEIGHTS,
+  computeHealthScore,
+  countCleanupSpools,
+  countMissingPrice,
+  gradeFor,
+  missingPriceKeys,
+  type HealthFactor,
+  type HealthFactorId,
+  type HealthGrade,
+  type HealthInputs,
+  type HealthScore,
+} from "./workflow/health-score";
+export {
   diffFingerprints,
   fingerprintSpools,
   hasChanges as hasFingerprintChanges,

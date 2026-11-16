@@ -1290,7 +1290,8 @@ holds the report, weigh-in and since-visit styles. The new storage keys (`spools
 ## Data health dashboard
 
 `#health-dashboard` (Load page, above the charts) turns the existing checks into one score and a
-to-do list. `lib/health-score.ts` is pure: `computeHealthScore` takes counts (the eight
+to-do list. `packages/spoolsync-core/src/workflow/health-score.ts` is pure:
+`computeHealthScore` takes counts (the eight
 `HEALTH_ISSUES`, spools without a price, spools in a possible duplicate group, spools with an
 applicable cleanup suggestion) and returns a 0 to 100 score, a grade (excellent from 90, good from
 75, fair from 50, poor below), and the factors that cost points. Each factor costs

@@ -7,6 +7,7 @@ import {
   duplicateKeys,
   findDuplicateSpools,
   fingerprintSpools,
+  missingPriceKeys,
   spoolKey,
   type DuplicateGroup,
   type HealthIssue,
@@ -16,7 +17,6 @@ import {
 } from "@spoolsync/core/workflow";
 
 import type { InventorySnapshot } from "~/lib/browser/storage";
-import { missingPriceKeys } from "~/lib/health-score";
 
 /** The browser storage the insights need, injected so tests and pages can supply their own. */
 export interface InsightsStorage {

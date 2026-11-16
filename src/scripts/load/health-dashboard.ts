@@ -1,4 +1,10 @@
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import {
+  computeHealthScore,
+  type HealthFactorId,
+  type HealthInputs,
+  type HealthScore,
+} from "@spoolsync/core/workflow";
 
 import {
   readHealthHistory,
@@ -6,12 +12,6 @@ import {
   healthTrend,
   type HealthPoint,
 } from "~/lib/browser/storage/health-history";
-import {
-  computeHealthScore,
-  type HealthFactorId,
-  type HealthInputs,
-  type HealthScore,
-} from "~/lib/health-score";
 import { formatDate, t, type MessageKey } from "~/lib/i18n";
 import { formatWeight } from "~/lib/units";
 

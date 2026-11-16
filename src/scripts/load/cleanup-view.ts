@@ -1,5 +1,6 @@
 import { ruleById } from "@spoolsync/core/core/cleanup";
 import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { countCleanupSpools } from "@spoolsync/core/workflow";
 
 import {
   loadAcceptedCleanups,
@@ -7,7 +8,6 @@ import {
   saveAcceptedCleanups,
   saveCleanupSettings,
 } from "~/lib/browser/storage/cleanup";
-import { countCleanupSpools } from "~/lib/health-score";
 
 import { h, setChildren, showToast } from "../dom";
 import type { CleanupContext, CleanupState } from "./cleanup-context";
