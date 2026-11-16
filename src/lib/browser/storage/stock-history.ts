@@ -1,4 +1,5 @@
 import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
+import type { StockHistory, StockPoint } from "@spoolsync/core/workflow";
 
 import { local, read, write } from "./access";
 
@@ -9,15 +10,7 @@ export const MAX_HISTORY_POINTS = 120;
 const UNCHANGED_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /** What was loaded at one moment. Totals only: never names, ids, or other spool details. */
-export interface StockPoint {
-  /** ISO timestamp of the load. */
-  at: string;
-  /** Sum of known remaining weights, in grams. */
-  totalGrams: number;
-  spoolCount: number;
-}
-
-export type StockHistory = Partial<Record<SourceId, StockPoint[]>>;
+export type { StockHistory, StockPoint };
 
 const isCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1e9;

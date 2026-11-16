@@ -111,3 +111,19 @@ export {
   type ImportReport,
   type ImportReportEntry,
 } from "./workflow/import-report";
+export {
+  MAX_LISTED,
+  currentVisits,
+  sanitizeVisits,
+  summarizeVisit,
+  visitHasChanges,
+  visitText,
+  visitTotals,
+  type VisitSummary,
+} from "./workflow/since-visit";
+export {
+  combinedTrend,
+  trendChange,
+  type StockHistory,
+  type StockPoint,
+} from "./workflow/stock-trend";

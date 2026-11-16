@@ -1,15 +1,14 @@
 import { SOURCE_LABELS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
-
 import {
   currentVisits,
-  readVisits,
   summarizeVisit,
   visitHasChanges,
   visitText,
   visitTotals,
-  writeVisits,
   type VisitSummary,
-} from "~/lib/since-visit";
+} from "@spoolsync/core/workflow";
+
+import { readVisits, writeVisits } from "~/lib/since-visit";
 import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { formatWeight } from "~/lib/units";
 

@@ -126,16 +126,111 @@
   font-variant-numeric: tabular-nums;
 }
 
-#sync-summary {
-  gap: 0.75rem;
+.sync-workflow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid var(--border);
+}
+
+.sync-workflow__step {
+  display: flex;
+  min-width: 0;
+  min-height: 5.25rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem;
+  color: var(--foreground);
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.sync-workflow__step + .sync-workflow__step {
+  border-inline-start: 1px solid var(--border);
+}
+
+.sync-workflow__step:hover,
+.sync-workflow__step:focus-visible {
+  background: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+
+.sync-workflow__step[aria-current="step"] {
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+}
+
+.sync-workflow__number {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--foreground) 30%, var(--border));
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sync-workflow__step[aria-current="step"] .sync-workflow__number {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.sync-workflow__step[data-complete="true"] .sync-workflow__number {
+  border-color: color-mix(in oklch, var(--success) 60%, var(--border));
+  color: var(--success);
+}
+
+.sync-workflow__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.sync-workflow__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.sync-workflow__detail,
+.sync-workflow__inventory {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+.sync-workflow__arrow {
+  margin-inline-start: auto;
+  color: var(--muted-foreground);
+}
+
+.sync-workflow__inventory {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.65rem 1rem;
+  border-block-start: 1px solid var(--border);
 }
 
 @media (max-width: 40rem) {
-  #sync-summary {
-    gap: 0.5rem;
+  .sync-workflow {
+    grid-template-columns: 1fr;
   }
 
-  .sync-metric {
-    padding: 0.85rem;
+  .sync-workflow__step {
+    min-height: 4.25rem;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .sync-workflow__step + .sync-workflow__step {
+    border-block-start: 1px solid var(--border);
+    border-inline-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-workflow__step {
+    transition: none;
   }
 }

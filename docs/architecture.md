@@ -739,8 +739,9 @@ from either theme. The last size and selection are remembered under `spoolsync:l
 Each file or API load records `(timestamp, totalGrams, spoolCount)` per service in
 `spoolsync:stock-history` (`lib/browser/storage/stock-history.ts`). Entries are validated on every
 read, capped at 120 points per service, and an unchanged total is not repeated within six hours.
-Sample data is not recorded. `lib/stock-trend.ts` sums each service's latest point at every moment, so
-a spool listed in several services counts in each, as in the by-service chart. The history is a
+Sample data is not recorded. `packages/spoolsync-core/src/workflow/stock-trend.ts` sums each
+service's latest point at every moment, so a spool listed in several services counts in each, as in
+the by-service chart. `src/lib/browser/storage/stock-history.ts` owns persistence. The history is a
 "Stock history" group in `lib/saved-data.ts`, so it can be forgotten, exported, and imported with the
 other portable settings (imports are validated).
 
@@ -1255,8 +1256,9 @@ body-level `#inventory-report-sheet` shown only under `body.printing-report`, li
 HTML (the same DOM serialized into a standalone document), Markdown and CSV downloads.
 
 **Since your last visit.** `LoadInsights.fileLoaded` already diffs a freshly loaded file against the
-snapshot of the previous one. `lib/since-visit.ts` turns that diff into a compact `VisitSummary` per
-service (counts plus up to 40 listed spools), keeps it under `spoolsync:since-visit` so the panel
+snapshot of the previous one. `packages/spoolsync-core/src/workflow/since-visit.ts` turns that diff
+into a compact `VisitSummary` per service (counts plus up to 40 listed spools). Browser persistence
+in `src/lib/since-visit.ts` keeps it under `spoolsync:since-visit` so the panel
 survives a reload, and drops it as soon as the service holds a different inventory than the one it
 describes (`currentVisits`). `load/since-visit-panel.ts` draws the panel above the insights: filament
 used or added back, the biggest movers (opening the spool drawer), additions and removals, and a
