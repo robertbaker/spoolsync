@@ -338,6 +338,40 @@ test("quiet mode prints a run only when its output differs from the previous run
   await done;
 });
 
+test("quiet mode ignores changes-since-last-run details when comparing output", async () => {
+  const h = harness();
+  const logged: string[] = [];
+  h.output.log = (...values) => logged.push(values.join(" "));
+  let runCount = 0;
+  const done = runWatch({
+    files: ["/d/a.json"],
+    run: async (output) => {
+      runCount += 1;
+      const report =
+        runCount === 1
+          ? { plan: "same" }
+          : { plan: "same", changesSinceLastRun: { run: runCount } };
+      output.log(JSON.stringify(report, null, 2));
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+    quiet: true,
+  });
+
+  await wait(20);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+  h.handlers.get(abs("/d"))!("a.json");
+  await wait(30);
+
+  expect(runCount).toBe(3);
+  expect(logged).toHaveLength(1);
+
+  h.stop.abort();
+  await done;
+});
+
 test("each run receives the snapshot of the last successful run", async () => {
   const h = harness();
   const seen: Array<InventorySnapshot | undefined> = [];
