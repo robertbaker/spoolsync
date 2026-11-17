@@ -87,6 +87,17 @@ test("low-stock overrides apply from spool to material to brand to default", () 
   expect(isRunningLow({ ...sample, remainingWeight: 550 }, policy)).toBe(false);
 });
 
+test("inherited object properties are not treated as low-stock overrides", () => {
+  const sample = makeSpool("spoolio", "A1", { vendor: "toString", material: "valueOf" });
+  const policy = {
+    defaultPercent: 20,
+    overrides: { brands: {}, materials: {}, spools: {} },
+  };
+
+  expect(lowStockPercentFor(sample, policy)).toBe(20);
+  expect(isRunningLow({ ...sample, remainingWeight: 200 }, policy)).toBe(true);
+});
+
 test("saved low-stock overrides discard invalid entries", () => {
   expect(
     sanitizeLowStockOverrides({

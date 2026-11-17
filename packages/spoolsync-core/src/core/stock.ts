@@ -114,12 +114,17 @@ export function lowStockPercentFor(
 ): number {
   const name = lowStockNameKey(spool.vendor);
   const material = lowStockNameKey(spool.material);
+  const override = (rules: Record<string, number>, key: string | null): number | undefined =>
+    key !== null && Object.hasOwn(rules, key) ? rules[key] : undefined;
   return (
     (spool.source !== undefined && spool.sourceId !== undefined
-      ? policy.overrides.spools[lowStockSpoolKey(spool as Pick<CommonSpool, "source" | "sourceId">)]
+      ? override(
+          policy.overrides.spools,
+          lowStockSpoolKey(spool as Pick<CommonSpool, "source" | "sourceId">),
+        )
       : undefined) ??
-    (material ? policy.overrides.materials[material] : undefined) ??
-    (name ? policy.overrides.brands[name] : undefined) ??
+    override(policy.overrides.materials, material) ??
+    override(policy.overrides.brands, name) ??
     policy.defaultPercent
   );
 }
