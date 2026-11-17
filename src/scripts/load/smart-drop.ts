@@ -175,6 +175,17 @@ export function wireSmartDrop(context: LoadContext): void {
             `${SOURCE_LABELS[match.source]} (${plural(match.spoolCount, "spool")})`,
           );
           button.addEventListener("click", () => {
+            const previous = assigned.get(match.source);
+            if (previous) {
+              question.replaceWith(
+                line(
+                  "warning",
+                  `${file.name} is also ${SOURCE_LABELS[match.source]}, which ${previous} already filled. Load one at a time to replace it.`,
+                ),
+              );
+              return;
+            }
+            assigned.set(match.source, file.name);
             question
               .querySelectorAll("button")
               .forEach((other) => ((other as HTMLButtonElement).disabled = true));
