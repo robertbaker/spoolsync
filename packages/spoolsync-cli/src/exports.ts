@@ -34,7 +34,7 @@ export async function prepareExports(
   plan: ReadonlyMap<SourceId, PlannedChange[]>,
   dependencies: Pick<
     CliDependencies,
-    "exportInventory" | "validateOutputPaths" | "stageOutputFiles"
+    "exportInventory" | "validateOutputPaths" | "stageOutputFiles" | "protectedPaths"
   >,
 ) {
   // Serialize all exports before any filesystem or remote writes.

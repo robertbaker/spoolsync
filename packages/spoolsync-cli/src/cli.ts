@@ -125,7 +125,7 @@ try {
         } catch (error) {
           if (
             error instanceof Error &&
-            error.message.startsWith("Output would overwrite an input inventory:")
+            error.message.startsWith("Output would overwrite an input inventory")
           )
             throw new Error(
               `--export-settings cannot overwrite the settings file "${configFile}".`,
