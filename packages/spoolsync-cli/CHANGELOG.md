@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.10.0...spoolsync-cli-v0.11.0) (2026-11-17)
+
+### Features
+
+* **health:** implement inventory data health score ([e05ce6c](https://github.com/robertbaker/spoolsync/commit/e05ce6cc622fb618ebfb10c7f2b117b0400fd5ec))
+* **stock:** introduce low-stock policies and granular overrides ([da7338e](https://github.com/robertbaker/spoolsync/commit/da7338e9a4d5bca77ab0a6caee29471b3f8865c8))
+* **sync:** link bulk selection to active filter criteria ([621853b](https://github.com/robertbaker/spoolsync/commit/621853bddb7e20dafe53c8ba743d5469f17a7a65))
+* **workflow:** introduce generic column mapper ([9728797](https://github.com/robertbaker/spoolsync/commit/9728797df3db6bc7114e62901d8bd7506b0b4eb9))
+
 ## [0.10.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.9.0...spoolsync-cli-v0.10.0) (2026-11-16)
 
 ### Features
