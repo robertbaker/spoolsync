@@ -168,27 +168,39 @@ export function parseRollback(content: string): RollbackDocument {
     throw new Error("The rollback file has no usable list of changes.");
 
   const updates: RollbackUpdate[] = [];
+  const sourceIds = new Set<string>();
   for (const item of raw["updates"]) {
     if (!isObject(item) || typeof item["sourceId"] !== "string" || !item["sourceId"]) continue;
     if (!Array.isArray(item["changes"])) continue;
     const changes: RollbackFieldChange[] = [];
+    const fields = new Set<ComparableField>();
     for (const change of item["changes"].slice(0, MAX_CHANGES_PER_SPOOL)) {
       if (!isObject(change)) continue;
       const field = change["field"];
       if (!(COMPARABLE_FIELDS as readonly unknown[]).includes(field)) continue;
       if (!isFieldValue(change["before"]) || !isFieldValue(change["after"])) continue;
+      if (fields.has(field as ComparableField))
+        throw new Error(
+          `The rollback file contains a duplicate field for spool ${item["sourceId"]}.`,
+        );
+      fields.add(field as ComparableField);
       changes.push({
         field: field as ComparableField,
         before: change["before"],
         after: change["after"],
       });
     }
-    if (changes.length)
+    if (changes.length) {
+      const sourceId = item["sourceId"].slice(0, 200);
+      if (sourceIds.has(sourceId))
+        throw new Error(`The rollback file contains a duplicate spool id: ${sourceId}.`);
+      sourceIds.add(sourceId);
       updates.push({
-        sourceId: item["sourceId"].slice(0, 200),
+        sourceId,
         label: text(item["label"]) || `Spool ${item["sourceId"]}`,
         changes,
       });
+    }
   }
   const creations = Array.isArray(raw["creations"])
     ? raw["creations"]

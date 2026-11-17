@@ -1,4 +1,4 @@
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { SOURCE_IDS, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
 
 /** Fired on `document` when an inventory is stored or unloaded; the workflow stepper listens. */
 export const INVENTORIES_CHANGED_EVENT = "spoolsync:inventories-changed";
@@ -129,6 +129,18 @@ export class LoadState {
     this.storage.clearLoadResult(source);
     this.results.delete(source);
     announceChange();
+  }
+
+  /** Unloads current inventories and invalidates requests for every service. */
+  unloadAll(): SourceId[] {
+    const unloaded = [...this.results.keys()];
+    for (const source of SOURCE_IDS) {
+      this.nextRevision(source);
+      this.storage.clearLoadResult(source);
+      this.results.delete(source);
+    }
+    announceChange();
+    return unloaded;
   }
 }
 

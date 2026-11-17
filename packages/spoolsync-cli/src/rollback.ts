@@ -118,7 +118,9 @@ export async function runRestore(
   const file = options.restoreRollback as string;
   let document: RollbackDocument;
   try {
-    document = parseRollback(await dependencies.readText(file));
+    // Text editors on Windows may save JSON with a UTF-8 BOM. Other CLI JSON inputs accept it,
+    // so a valid rollback document should remain readable after the same round trip.
+    document = parseRollback((await dependencies.readText(file)).replace(/^\uFEFF/, ""));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT")
       throw new Error(

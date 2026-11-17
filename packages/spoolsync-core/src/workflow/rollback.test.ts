@@ -126,6 +126,21 @@ describe("parseRollback", () => {
     const parsed = parseRollback(JSON.stringify(raw));
     expect(parsed.updates.map((item) => item.sourceId)).toEqual(["1", "7"]);
   });
+
+  test("refuses duplicate spool entries that could request conflicting restores", () => {
+    const raw = JSON.parse(serializeRollback(good()));
+    raw.updates.push({
+      sourceId: "1",
+      label: "duplicate",
+      changes: [{ field: "density", before: 2.7, after: 1.24 }],
+    });
+
+    expect(() => parseRollback(JSON.stringify(raw))).toThrow("duplicate spool id");
+
+    const repeatedField = JSON.parse(serializeRollback(good()));
+    repeatedField.updates[0].changes.push({ field: "density", before: 2.7, after: 1.24 });
+    expect(() => parseRollback(JSON.stringify(repeatedField))).toThrow("duplicate field");
+  });
 });
 
 describe("planRollback", () => {

@@ -3,7 +3,7 @@ import type { SpoolGroup } from "../matching/types";
 import { isBroaderMaterial } from "../material";
 import { SOURCE_IDS, COMPARABLE_FIELDS, type ComparableField, type SourceId } from "../model";
 import { SOURCE_FIELDS } from "./fields";
-import type { RecordEdits } from "./record-edits";
+import { strictValuesEqual, type RecordEdits } from "./record-edits";
 import type {
   FieldValue,
   FieldOption,
@@ -26,24 +26,45 @@ export function compareGroup(group: SpoolGroup): FieldComparison[] {
   const sources = presentSources(group);
   if (sources.length < 2) return [];
   // The Sync page asks about the same group many times per render. Matching rebuilds groups, so an
-  // answer is reused while the group's member records are the same objects. Callers must treat the
-  // result as read-only.
+  // answer is reused while the group's member records and comparable fields stay unchanged.
   const members = sources.map((source) => group.members[source]);
+  const values = sources.map((source) =>
+    COMPARABLE_FIELDS.map((field) => {
+      const value = group.members[source]![field];
+      return Array.isArray(value) ? [...value] : value;
+    }),
+  );
+  const unavailable = sources.map((source) => [...(group.members[source]!.unavailable ?? [])]);
   const cached = comparisonCache.get(group);
   if (
     cached &&
     cached.members.length === members.length &&
-    cached.members.every((member, index) => member === members[index])
+    cached.members.every((member, index) => member === members[index]) &&
+    cached.values.every((oldValues, sourceIndex) =>
+      oldValues.every((value, fieldIndex) =>
+        strictValuesEqual(value, values[sourceIndex]![fieldIndex]!),
+      ),
+    ) &&
+    cached.unavailable.every(
+      (oldFields, sourceIndex) =>
+        oldFields.length === unavailable[sourceIndex]!.length &&
+        oldFields.every((field, index) => field === unavailable[sourceIndex]![index]),
+    )
   )
     return cached.comparisons;
   const comparisons = compareMembers(group, sources);
-  comparisonCache.set(group, { members, comparisons });
+  comparisonCache.set(group, { members, values, unavailable, comparisons });
   return comparisons;
 }
 
 const comparisonCache = new WeakMap<
   SpoolGroup,
-  { members: unknown[]; comparisons: FieldComparison[] }
+  {
+    members: unknown[];
+    values: FieldValue[][];
+    unavailable: ComparableField[][];
+    comparisons: FieldComparison[];
+  }
 >();
 
 function compareMembers(group: SpoolGroup, sources: SourceId[]): FieldComparison[] {

@@ -106,6 +106,7 @@ describe("normalizeHex, normalizeDate, normalizeBarcode", () => {
     expect(normalizeDate("03/25/2024")?.date).toBe("2024-03-25");
     expect(normalizeDate("03/04/2024")).toBeNull();
     expect(normalizeDate("2024-02-31")).toBeNull();
+    expect(normalizeDate("2024-03-05T99:99:99Z")).toBeNull();
   });
 
   test("barcodes", () => {

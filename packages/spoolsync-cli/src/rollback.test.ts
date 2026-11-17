@@ -72,6 +72,18 @@ test("any restore failure names the rollback file that was saved before writing"
   });
 });
 
+test("restore accepts a UTF-8 BOM before the rollback JSON", async () => {
+  const f = fixture(new Error("not used in a dry run"));
+  const readText = f.dependencies.readText;
+  f.dependencies.readText = async (filename) => `\uFEFF${await readText(filename)}`;
+  f.options.apply = false;
+  const reports: string[] = [];
+  f.output.log = (...values) => reports.push(values.join(" "));
+
+  expect(runRestore(f.options, f.dependencies, f.output)).resolves.toHaveLength(1);
+  expect(JSON.parse(reports[0]!).report).toBe("rollback");
+});
+
 test("rollback files with the same source and timestamp do not overwrite each other", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "spoolsync-rollbacks-"));
   try {

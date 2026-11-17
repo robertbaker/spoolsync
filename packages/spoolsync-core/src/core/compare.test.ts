@@ -46,6 +46,17 @@ describe("valuesEqual", () => {
 });
 
 describe("compareGroup", () => {
+  test("recomputes comparisons when a member changes in place", () => {
+    const group = linkedGroup();
+    expect(compareGroup(group).some((comparison) => comparison.field === "material")).toBe(false);
+
+    group.members.spoolstock!.material = "PETG";
+
+    expect(compareGroup(group)).toContainEqual(
+      expect.objectContaining({ field: "material", kind: "conflict" }),
+    );
+  });
+
   test("a chain of temperatures within tolerance gives the same options in any member order", () => {
     const sources = ["spoolstock", "spoolio", "tigertag"] as const;
     const temps = [215, 215.5, 216];

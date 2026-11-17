@@ -56,6 +56,22 @@ test("bumping a revision without unloading rejects in-flight loads and keeps res
   expect(state.results.get("spoolman")).toBe(inventory);
 });
 
+test("unload all invalidates a pending load for a service with no inventory yet", () => {
+  const cleared: string[] = [];
+  const state = new LoadState({
+    readLoadResult: () => null,
+    saveLoadResult: () => true,
+    clearLoadResult: (source) => void cleared.push(source),
+  });
+  state.store(inventory);
+  const pending = state.nextRevision("spoolio");
+
+  expect(state.unloadAll()).toEqual(["spoolman"]);
+  expect(state.isCurrent("spoolio", pending, "api")).toBe(false);
+  expect(state.results.size).toBe(0);
+  expect(cleared).toContain("spoolio");
+});
+
 test("invalidating the API rejects server loads in flight but not file loads", () => {
   const state = new LoadState({
     readLoadResult: () => null,

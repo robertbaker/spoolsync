@@ -262,6 +262,7 @@ export function normalizeDate(input: string): NormalizedDate | null {
   if (match) {
     const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
     if (!isRealDate(year, month, day)) return null;
+    if (text.length > 10 && Number.isNaN(Date.parse(text))) return null;
     return { date: `${match[1]}-${pad(month)}-${pad(day)}`, ambiguous: false };
   }
   match = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(text);

@@ -300,9 +300,8 @@ unloadAll?.addEventListener("click", async () => {
   });
   if (!confirmed) return;
   // Read again: a fetch may have finished while the question was open.
-  const sources = [...state.results.keys()];
-  for (const source of sources) {
-    state.unload(source);
+  const sources = state.unloadAll();
+  for (const source of SOURCE_IDS) {
     setStatus(source);
     document.getElementById(`${source}-message`)?.replaceChildren();
   }
