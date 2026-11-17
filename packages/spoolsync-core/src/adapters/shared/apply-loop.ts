@@ -16,6 +16,9 @@ export interface ChangeWriter {
 export const changedFieldNames = (change: PlannedUpdate): string[] =>
   change.changes.map((fieldChange) => FIELD_LABELS[fieldChange.field].toLowerCase());
 
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 /**
  * Writes each change on its own, in order, and logs it, so one failure does not stop the rest and a
  * partial run is always reported in full.
@@ -45,7 +48,7 @@ export async function applyEachChange(
       log.push({
         groupId: change.groupId,
         ok: false,
-        message: `Failed on ${writer.subject(change)}: ${(error as Error).message}${noted}${writer.partialWrite?.() ?? ""}`,
+        message: `Failed on ${writer.subject(change)}: ${errorMessage(error)}${noted}${writer.partialWrite?.() ?? ""}`,
       });
     }
     onProgress?.(++done, changes.length);

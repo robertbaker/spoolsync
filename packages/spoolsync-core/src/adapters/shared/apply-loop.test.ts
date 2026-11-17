@@ -57,6 +57,20 @@ test("a failure reports what was already written and keeps notes", async () => {
   );
 });
 
+test("a non-Error rejection is reported without stopping later changes", async () => {
+  const log = await applyEachChange([update("1"), update("2")], {
+    async write(change) {
+      if (change.groupId === "group-1") throw null;
+      return `Wrote ${change.groupId}`;
+    },
+    subject: (change) => `spool ${change.groupId}`,
+  });
+  expect(log).toEqual([
+    { groupId: "group-1", ok: false, message: "Failed on spool group-1: null" },
+    { groupId: "group-2", ok: true, message: "Wrote group-2" },
+  ]);
+});
+
 test("changed field names use the lower-case field labels", () => {
   const change = update("1");
   if (change.kind !== "update") throw new Error("expected an update");
