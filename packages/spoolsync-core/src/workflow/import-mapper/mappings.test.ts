@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { headerSignature } from "./fields";
+import { headerSignature, mappingForHeaders } from "./fields";
 import { sanitizeColumnMaps } from "./mappings";
 
 test("damaged or hostile saved mappings are cleaned or dropped", () => {
@@ -23,4 +23,17 @@ test("damaged or hostile saved mappings are cleaned or dropped", () => {
   });
   expect(sanitizeColumnMaps("nope")).toEqual({});
   expect(sanitizeColumnMaps([1, 2])).toEqual({});
+});
+
+test("saved mappings restore across header capitalization but skip ambiguous matches", () => {
+  expect(headerSignature(["Supplier Name", "Resin"])).toBe(
+    headerSignature(["supplier name", "RESIN"]),
+  );
+  expect(
+    mappingForHeaders({ vendor: "Supplier Name", material: "Resin" }, ["supplier name", "RESIN"]),
+  ).toEqual({ vendor: "supplier name", material: "RESIN" });
+  expect(mappingForHeaders({ vendor: "Brand" }, ["BRAND", "brand"])).toEqual({});
+  expect(mappingForHeaders({ vendor: "Brand" }, ["Brand", "BRAND"])).toEqual({
+    vendor: "Brand",
+  });
 });

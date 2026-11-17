@@ -136,6 +136,8 @@ export interface ConfigSettings {
   onNote?: (message: string) => void;
   /** Reports each option a layer contributes, for `--show-config`. */
   trace?: (entry: { layer: ConfigLayer; option: string }) => void;
+  /** Lets error reporting honor a file's format even when another value in it is invalid. */
+  onFormat?: (layer: ConfigLayer, format: "text" | "json" | undefined) => void;
 }
 
 export type ConfigLayer = "command line" | "--config file" | "settings file";
@@ -238,6 +240,22 @@ const givenFlags = (args: readonly string[]) =>
     args.filter((arg) => arg.startsWith("--")).map((arg) => canonical(arg.slice(2).split("=")[0]!)),
   );
 
+function reportConfiguredFormat(
+  config: Record<string, unknown>,
+  layer: ConfigLayer,
+  onFormat: ConfigSettings["onFormat"],
+): void {
+  if (!onFormat || (!Object.hasOwn(config, "format") && !Object.hasOwn(config, "json"))) return;
+  const raw = Object.hasOwn(config, "format")
+    ? config["format"]
+    : config["json"] === true
+      ? "json"
+      : config["json"] === false
+        ? "text"
+        : undefined;
+  onFormat(layer, raw === "text" || raw === "json" ? raw : undefined);
+}
+
 /**
  * Expands `--config <file>` and the per-user settings file into the options they describe. The
  * layers, strongest first: the command line, `--config`, the user file. An option given by a
@@ -273,6 +291,7 @@ export function expandConfig(
   const configKeys = new Set<string>();
   if (configFile !== undefined) {
     const config = readConfig(configFile, dependencies);
+    reportConfiguredFormat(config, "--config file", settings.onFormat);
     for (const key of Object.keys(config)) configKeys.add(canonical(key));
     const fromConfig = optionsFromFile(
       configFile,
@@ -291,6 +310,7 @@ export function expandConfig(
   if (user) {
     const config = readUserConfig(user.path, dependencies);
     if (config) {
+      reportConfiguredFormat(config, "settings file", settings.onFormat);
       const given = new Set([...givenFlags(result), ...configKeys]);
       const hasInputs = [...given].some((flag) => INPUT_KEYS.has(flag));
       const expanded = optionsFromFile(

@@ -29,8 +29,8 @@ export function loadSpoolKeepJson(text: string): LoadResult {
   // Real ids win over generated `${id}:new-1` ids, whichever order they appear in.
   const realIds = new Set<string>();
   for (const entry of parsed) {
-    const id = (entry as { id?: unknown } | null)?.id;
-    if (typeof id === "string") realIds.add(id);
+    const result = SpoolKeepRecordSchema.safeParse(entry);
+    if (result.success) realIds.add(result.data.id);
   }
   const emitted = new Set<string>();
   parsed.forEach((entry, position) => {

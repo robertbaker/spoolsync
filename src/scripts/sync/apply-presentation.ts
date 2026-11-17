@@ -1,5 +1,5 @@
 import { FIELD_LABELS, formatValue, type PlannedChange } from "@spoolsync/core/core/compare";
-import type { ApplyLogEntry } from "@spoolsync/core/core/model";
+import { SOURCE_LABELS, type ApplyLogEntry, type SourceId } from "@spoolsync/core/core/model";
 
 import { h, notice } from "../dom";
 import { spoolTitle } from "./presentation";
@@ -47,6 +47,28 @@ export function renderLog(log: ApplyLogEntry[] | undefined): HTMLElement | null 
       "ul",
       { class: "mt-1 max-h-64 list-disc overflow-y-auto pl-5" },
       ...log.map((entry) => h("li", { class: entry.ok ? "" : "font-medium" }, entry.message)),
+    ),
+  );
+}
+
+/** Keeps partial-write details visible after an API source is unloaded for a required refresh. */
+export function renderReloadRequired(source: SourceId, log: ApplyLogEntry[]): HTMLElement {
+  return notice(
+    "warning",
+    `${SOURCE_LABELS[source]} needs to be loaded again`,
+    h(
+      "div",
+      {},
+      h(
+        "p",
+        { class: "mt-1" },
+        "Some changes may have been written. Reload this inventory before applying more changes.",
+      ),
+      h(
+        "ul",
+        { class: "mt-2 max-h-64 list-disc overflow-y-auto pl-5" },
+        ...log.map((entry) => h("li", { class: entry.ok ? "" : "font-medium" }, entry.message)),
+      ),
     ),
   );
 }

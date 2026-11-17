@@ -25,7 +25,7 @@ import { invalidateApiInventory } from "~/lib/browser/storage/invalidate";
 
 import { byId, h, notice, showToast } from "../dom";
 import { ApplyController } from "./apply-controller";
-import { counts, changeList, renderLog } from "./apply-presentation";
+import { counts, changeList, renderLog, renderReloadRequired } from "./apply-presentation";
 import { createApplyServices } from "./apply-services";
 import { buildCliCommand } from "./cli-command";
 import { DownloadController } from "./download-controller";
@@ -350,6 +350,14 @@ export function createApplyView(
           status,
         ),
       );
+    }
+    for (const source of controller.reloadRequired) {
+      if (loaded.has(source)) {
+        controller.reloadRequired.delete(source);
+        continue;
+      }
+      const log = controller.logs.get(source);
+      if (log) sections.push(renderReloadRequired(source, log));
     }
     byId("apply").replaceChildren(...sections);
     if (!history.container.isConnected) {

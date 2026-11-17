@@ -266,11 +266,25 @@ export function mappingForHeaders(
   mapping: ColumnMapping,
   headers: readonly string[],
 ): ColumnMapping {
-  const known = new Set(headers);
+  const normalized = new Map<string, string[]>();
+  for (const header of headers) {
+    const key = header.trim().toLowerCase();
+    const matches = normalized.get(key) ?? [];
+    matches.push(header);
+    normalized.set(key, matches);
+  }
   const result: ColumnMapping = {};
   for (const field of MAP_FIELDS) {
     const header = mapping[field];
-    if (header !== undefined && known.has(header)) result[field] = header;
+    if (header === undefined) continue;
+    if (headers.includes(header)) {
+      result[field] = header;
+      continue;
+    }
+    const matches = normalized.get(header.trim().toLowerCase());
+    // A layout can change only a header's capitalization between exports. Restore that mapping
+    // when the renamed header is unambiguous; do not guess between columns differing only by case.
+    if (matches?.length === 1) result[field] = matches[0]!;
   }
   return result;
 }

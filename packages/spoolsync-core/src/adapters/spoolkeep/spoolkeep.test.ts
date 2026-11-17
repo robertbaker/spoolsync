@@ -162,3 +162,15 @@ test("SpoolKeep generated ids never replace a real id that looks the same", () =
     expect(result.warnings.join(" ")).toContain("collides");
   }
 });
+
+test("malformed records do not reserve IDs for generated spools", () => {
+  const result = loadSpoolKeepJson(
+    JSON.stringify([
+      record({ id: "A", newQuantity: 2 }),
+      record({ id: "A:new-1", price: "invalid" }),
+    ]),
+  );
+  expect(result.spools.map((spool) => spool.sourceId)).toEqual(["A:new-1", "A:new-2"]);
+  expect(result.warnings.some((warning) => warning.includes("price"))).toBe(true);
+  expect(result.warnings.some((warning) => warning.includes("collides"))).toBe(false);
+});

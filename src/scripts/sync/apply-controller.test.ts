@@ -125,6 +125,7 @@ test("a failed reload drops the written source's snapshot so the plan cannot be 
   f.apply.mockRejectedValue(new ApplyReloadError("Spoolman", f.log, new Error("offline")));
   await controller.run("spoolman", [], f.status);
   expect(f.loaded.has("spoolman")).toBe(false);
+  expect(controller.reloadRequired.has("spoolman")).toBe(true);
   expect(invalidate).toHaveBeenCalledWith("spoolman");
   await controller.run("spoolman", [], f.status);
   expect(f.apply).toHaveBeenCalledTimes(1);

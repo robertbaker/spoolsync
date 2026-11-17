@@ -73,6 +73,49 @@ test("runs once, then again for each change to a watched file only", async () =>
   expect(h.closed).toEqual([abs("/data")]);
 });
 
+test.skipIf(process.platform !== "win32")(
+  "matches changed names case-insensitively on Windows",
+  async () => {
+    const h = harness();
+    let runs = 0;
+    const done = runWatch({
+      files: ["/d/inventory.json"],
+      run: async () => void runs++,
+      output: h.output,
+      signal: h.stop.signal,
+      dependencies: h.dependencies,
+    });
+    await wait(20);
+    h.handlers.get(abs("/d"))!("INVENTORY.JSON");
+    await wait(30);
+    expect(runs).toBe(2);
+    h.stop.abort();
+    await done;
+  },
+);
+
+test("closes already opened directories if a later watcher cannot be created", async () => {
+  const h = harness();
+  const dependencies: WatchDependencies = {
+    ...h.dependencies,
+    watchDirectory(directory, onEvent) {
+      if (directory === abs("/b")) throw new Error("directory unavailable");
+      h.handlers.set(directory, onEvent);
+      return { close: () => h.closed.push(directory) };
+    },
+  };
+  const done = runWatch({
+    files: ["/a/one.json", "/b/two.json"],
+    run: async () => {},
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies,
+  });
+
+  expect(done).rejects.toThrow("directory unavailable");
+  expect(h.closed).toEqual([abs("/a")]);
+});
+
 test("a change during a run causes exactly one more run, and a failure keeps the exit code", async () => {
   const h = harness();
   let runs = 0;

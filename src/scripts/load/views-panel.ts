@@ -161,6 +161,12 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     status.dataset["keep"] = "1";
   }
 
+  function clearRangeError(): void {
+    rangeError.textContent = "";
+    min.removeAttribute("aria-invalid");
+    max.removeAttribute("aria-invalid");
+  }
+
   function applyRangeInputs(): void {
     const low = parseGrams(min.value);
     const high = parseGrams(max.value);
@@ -197,6 +203,7 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
 
   select.addEventListener("change", () => {
     selectedId = select.value;
+    clearRangeError();
     const view = selected();
     if (!view) {
       nameInput.value = "";
@@ -247,9 +254,7 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
   });
   clear.addEventListener("click", () => {
     table.applyViewSettings(EMPTY_VIEW);
-    rangeError.textContent = "";
-    min.removeAttribute("aria-invalid");
-    max.removeAttribute("aria-invalid");
+    clearRangeError();
     announce("Filters cleared.");
     syncControls();
   });
@@ -280,6 +285,7 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     if (!sharedView || !hasData()) return;
     const settings = sharedView;
     sharedView = null;
+    clearRangeError();
     selectedId = "";
     nameInput.value = "";
     renderSelect();

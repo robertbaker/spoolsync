@@ -1367,6 +1367,17 @@ test("the settings and --config files can choose the format", async () => {
   expect((await run("--config", config)).stderr).toContain('Unknown format "yaml"');
 });
 
+test("a configured JSON format is kept for errors in another config value", async () => {
+  const config = path.join(directory, "invalid-json-settings.json");
+  await writeFile(config, JSON.stringify({ format: "json", summary: "yes" }));
+
+  const result = await run("--config", config);
+
+  expect(result.code).toBe(1);
+  expect(result.stderr).toBe("");
+  expect(JSON.parse(result.stdout).error.message).toContain('"summary" must be true or false');
+});
+
 test("completion scripts offer --format and list exactly the known options", async () => {
   const { KNOWN_OPTIONS } = await import("./parse-args");
   for (const shell of ["bash", "zsh", "fish"]) {

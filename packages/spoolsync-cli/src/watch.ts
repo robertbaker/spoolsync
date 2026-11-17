@@ -107,11 +107,13 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
     dependencies = defaultWatchDependencies,
   } = request;
   const targets = new Map<string, Map<string, string>>();
+  const normalizeName = (name: string) =>
+    process.platform === "win32" ? name.toLowerCase() : name;
   for (const file of files) {
     const absolute = path.resolve(file);
     const directory = path.dirname(absolute);
     const names = targets.get(directory) ?? new Map<string, string>();
-    names.set(path.basename(absolute), file);
+    names.set(normalizeName(path.basename(absolute)), file);
     targets.set(directory, names);
   }
 
@@ -255,15 +257,31 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
     ),
   );
 
-  const watchers = [...targets].map(([directory, names]) =>
-    dependencies.watchDirectory(directory, (filename) => {
-      const matched =
-        filename === null ? [...names.values()] : [names.get(filename)].filter(Boolean);
-      if (!matched.length) return;
-      for (const file of matched) changed.add(file as string);
-      schedule();
-    }),
-  );
+  const watchers: FileWatcher[] = [];
+  try {
+    for (const [directory, names] of targets) {
+      watchers.push(
+        dependencies.watchDirectory(directory, (filename) => {
+          const matched =
+            filename === null
+              ? [...names.values()]
+              : [names.get(normalizeName(filename))].filter(Boolean);
+          if (!matched.length) return;
+          for (const file of matched) changed.add(file as string);
+          schedule();
+        }),
+      );
+    }
+  } catch (error) {
+    for (const watcher of watchers) {
+      try {
+        watcher.close();
+      } catch {
+        // Preserve the watcher-creation error and continue releasing the rest.
+      }
+    }
+    throw error;
+  }
 
   if (!signal.aborted) await once(signal, "abort");
   clearTimeout(timer);

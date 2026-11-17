@@ -80,6 +80,8 @@ export interface ApplyContext {
 
 export class ApplyController {
   readonly logs = new Map<SourceId, ApplyLogEntry[]>();
+  /** API targets whose writes may have landed but whose follow-up inventory refresh failed. */
+  readonly reloadRequired = new Set<SourceId>();
   private applying = false;
   private readonly services: Partial<Record<SourceId, ApplyService>>;
   private readonly context: ApplyContext;
@@ -146,6 +148,7 @@ export class ApplyController {
       status.replaceChildren(notice("error", service.changedMessage));
       return;
     }
+    this.reloadRequired.delete(source);
     const updates = changes.filter((change) => change.kind === "update").length;
     const confirmed = await this.confirmWrite(
       `Write ${changes.length} change${changes.length === 1 ? "" : "s"} to ${target.description}?`,
@@ -203,6 +206,7 @@ export class ApplyController {
           // creates. Unload it (page map and stored copy) so the service must be reloaded before
           // another Apply. A file snapshot never reaches here and is kept.
           this.context.loaded.delete(source);
+          this.reloadRequired.add(source);
           this.context.invalidate?.(source);
         }
       }

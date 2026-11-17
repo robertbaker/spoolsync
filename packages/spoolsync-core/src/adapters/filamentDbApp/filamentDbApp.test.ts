@@ -553,6 +553,32 @@ test("spools of one filament that agree write the shared fields once", async () 
   expect(sent.filter((entry) => (entry as unknown[])[0] === "spool")).toHaveLength(2);
 });
 
+test("a later create sees filament fields saved by an earlier update", async () => {
+  const update = await planFor("s1", [["material", "PLA", "PETG"]]);
+  const backend = structuredClone(snapshot);
+  const created: Array<[string, object]> = [];
+  const client = {
+    snapshot: async () => structuredClone(backend),
+    locationIds: async () => new Map<string, string>(),
+    updateFilament: async (id: string, patch: Record<string, unknown>) => {
+      const filament = backend.collections.filaments.find((entry) => entry._id === id)!;
+      Object.assign(filament, patch);
+    },
+    updateSpool: async () => {},
+    createSpool: async (id: string, body: object) => {
+      created.push([id, body]);
+    },
+  };
+
+  const log = await applyToFilamentDbApp(client, [
+    update,
+    createChange({ material: "PETG", location: null }),
+  ]);
+  expect(log.map((entry) => entry.ok)).toEqual([true, true]);
+  expect(created).toHaveLength(1);
+  expect(created[0]![0]).toBe("f2");
+});
+
 test("a spool deleted since the inventory loaded is reported and not written", async () => {
   const change = await planFor("s1", [["remainingWeight", 500, 400]]);
   const gone = structuredClone(snapshot);

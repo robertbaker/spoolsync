@@ -190,7 +190,22 @@ try {
     } else {
       // Config files can select JSON too. Resolve that before argument validation so an invalid
       // combination is still reported in the requested format.
-      jsonMode = requestsJson(expandConfig(args, undefined, { userConfig: { path: configFile } }));
+      let formatPriority = args.some(
+        (arg) => arg === "--json" || arg === "--format" || arg.startsWith("--format="),
+      )
+        ? 3
+        : 0;
+      jsonMode = requestsJson(args);
+      const expandedArgs = expandConfig(args, undefined, {
+        userConfig: { path: configFile },
+        onFormat: (layer, format) => {
+          const priority = layer === "--config file" ? 2 : 1;
+          if (priority <= formatPriority) return;
+          formatPriority = priority;
+          jsonMode = format === "json";
+        },
+      });
+      jsonMode = requestsJson(expandedArgs);
       const options = parseArgs(args, {
         userConfig: { path: configFile },
         // Notes go to stderr so machine-readable output on stdout stays clean.

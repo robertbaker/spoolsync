@@ -5,7 +5,7 @@ import { applyEachChange, changedFieldNames } from "../shared/apply-loop";
 import type { FilamentDbAppClient } from "./client";
 import { parseFilamentDbApp } from "./load";
 import { idOf } from "./map";
-import { changePatches, remainingToWrite } from "./records";
+import { changePatches, patchSnapshotFilament, remainingToWrite } from "./records";
 import { findSpoolTarget, newSpoolFields } from "./target";
 
 /** Operations required by the write workflow, without HTTP client internals. */
@@ -107,7 +107,7 @@ export async function applyToFilamentDbApp(
       : change.changes.some((c) => c.field === "location"),
   );
   const locations = needsLocations ? await client.locationIds() : new Map<string, string>();
-  const filaments = parseFilamentDbApp(await client.snapshot()).filaments;
+  const filaments = parseFilamentDbApp(structuredClone(await client.snapshot())).filaments;
   const fail = (message: string) => {
     throw new Error(message);
   };
@@ -211,6 +211,8 @@ export async function applyToFilamentDbApp(
         if (Object.keys(filamentPatch).length) {
           await client.updateFilament(filamentId, filamentPatch);
           filamentWritten = true;
+          const currentFilament = filaments.find((entry) => idOf(entry["_id"]) === filamentId);
+          if (currentFilament) patchSnapshotFilament(currentFilament, filamentPatch);
           if (!legacyRoll) {
             for (const [key, value] of Object.entries(filamentPatch))
               done.set(key, JSON.stringify(value));
