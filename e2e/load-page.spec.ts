@@ -543,6 +543,8 @@ test("a shared sample link opens the walkthrough but never replaces real data", 
   await page.getByRole("button", { name: "Clear sample data" }).click();
   await expect(page).toHaveURL(/\/load$/);
   await expect(page.locator("#load-bar")).toBeHidden();
+  // Wait for Load's async module to restore the empty status after the full-page navigation.
+  await expect(page.locator("#spoolio-status")).toHaveText("Not loaded");
 
   // A real inventory is never replaced by a shared link.
   await page.locator("#spoolio-file").setInputFiles({

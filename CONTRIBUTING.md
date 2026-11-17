@@ -93,8 +93,8 @@ new" dialog reads that same file from GitHub.
 
 `bun run format` formats `src`, `tests`, `tools`, and `packages`. For individual documentation
 files, use `bunx oxfmt --write README.md CONTRIBUTING.md docs` with the paths you changed.
-The optional Git hooks in `lefthook.yml` format and lint staged files and stage their fixes;
-install them with `bunx lefthook install`. Review any automatic changes before committing.
+`bun install` installs the Git hooks through `bun-git-hooks`. The pre-commit hook formats and
+lint-fixes staged files, then stages those fixes. Review automatic changes before committing.
 
 ## Pull requests
 

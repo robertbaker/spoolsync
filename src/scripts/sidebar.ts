@@ -247,6 +247,10 @@ export function wireSidebar(): void {
     const grams = readDisplaySettings().weightUnit === "g";
     const value = units.querySelector("[data-sb-units-value]");
     if (value) value.textContent = grams ? "g" : "oz";
+    units.setAttribute(
+      "aria-label",
+      `Units: ${grams ? "grams" : "ounces"}. Switch to ${grams ? "ounces" : "grams"}`,
+    );
   };
   units?.addEventListener(
     "click",
