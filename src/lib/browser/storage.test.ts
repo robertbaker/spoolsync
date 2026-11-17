@@ -1,9 +1,11 @@
 import { beforeEach, expect, test } from "bun:test";
 
 import { pairKey } from "@spoolsync/core/core/match";
+import { makeSpool } from "@spoolsync/core/core/testing";
 
 import {
   clearTigertagSession,
+  hasLoadResult,
   loadResolutions,
   loadTigertagSession,
   readLoadResult,
@@ -52,6 +54,50 @@ test("a failed replacement save clears the stale inventory without unloading oth
   } finally {
     Object.defineProperty(globalThis, "sessionStorage", descriptor);
   }
+});
+
+test("damaged stored inventories are ignored and cleared", () => {
+  for (const value of [
+    { source: "spoolio", spools: [null], warnings: [], loadedAt: "now" },
+    { source: "spoolman", spools: [{ source: "spoolio" }], warnings: [], loadedAt: "now" },
+    { source: "spoolman", spools: [], warnings: [1], loadedAt: "now" },
+  ]) {
+    sessionStorage.setItem("spoolsync:load:spoolman", JSON.stringify(value));
+    expect(hasLoadResult("spoolman")).toBe(false);
+    expect(readLoadResult("spoolman")).toBeNull();
+    expect(sessionStorage.getItem("spoolsync:load:spoolman")).toBeNull();
+  }
+});
+
+test("stored inventories retain valid spool records", () => {
+  saveLoadResult({
+    source: "spoolio",
+    spools: [makeSpool("spoolio", "A1")],
+    warnings: [],
+    loadedAt: "now",
+  });
+  expect(readLoadResult("spoolio")?.spools[0]?.sourceId).toBe("A1");
+});
+
+test("stored inventories from before finish and TD were added stay available", () => {
+  const legacySpool = { ...makeSpool("spoolio", "A1") } as Record<string, unknown>;
+  delete legacySpool.finish;
+  delete legacySpool.td;
+  sessionStorage.setItem(
+    "spoolsync:load:spoolio",
+    JSON.stringify({
+      source: "spoolio",
+      spools: [legacySpool],
+      warnings: [],
+      loadedAt: "old",
+    }),
+  );
+
+  expect(readLoadResult("spoolio")?.spools[0]).toMatchObject({
+    sourceId: "A1",
+    finish: null,
+    td: null,
+  });
 });
 
 test("switching servers clears API data and pending choices, but retains file data", () => {

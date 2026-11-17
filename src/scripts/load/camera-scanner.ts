@@ -144,10 +144,12 @@ export function wireCameraScanner(button: HTMLButtonElement, hooks: CameraHooks)
     try {
       if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
         const detected = await detector.detect(video);
+        if (token !== run || !dialog?.open || !stream) return;
         const code = detected.find((entry) => entry.rawValue)?.rawValue;
         if (code && handleCode(code)) return;
       }
     } catch {
+      if (token !== run || !dialog?.open || !stream) return;
       status.textContent = "Could not read this camera frame. Adjust the label and try again.";
     }
     if (token === run && dialog?.open) window.setTimeout(() => void scan(detector, token), 140);
@@ -177,6 +179,7 @@ export function wireCameraScanner(button: HTMLButtonElement, hooks: CameraHooks)
       const supported = DetectorApi.getSupportedFormats
         ? await DetectorApi.getSupportedFormats()
         : FORMATS;
+      if (request !== run || !dialog.open) return;
       const formats = FORMATS.filter((format) => supported.includes(format));
       if (!formats.length) {
         status.textContent =
@@ -202,6 +205,7 @@ export function wireCameraScanner(button: HTMLButtonElement, hooks: CameraHooks)
       status.textContent = "Camera ready. Hold a label steady in view.";
       void scan(detector, request);
     } catch (error) {
+      if (request !== run || !dialog.open) return;
       stop();
       const reason = error instanceof DOMException ? error.name : "";
       status.textContent =
