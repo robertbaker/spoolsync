@@ -28,7 +28,11 @@ export interface ApplyCredentialStore {
   loadFilamentDb(): FilamentDbConnection | null;
   loadBambuddy(): BambuddyConnection | null;
   loadTigertag(): (TigertagSession & { remember: boolean }) | null;
-  saveTigertag(session: TigertagSession, remember: boolean): void;
+  saveTigertag(
+    session: TigertagSession,
+    remember: boolean,
+    expected: Pick<TigertagSession, "uid" | "idToken" | "refreshToken">,
+  ): void;
   loadWrites(): Promise<ApplyModule>;
 }
 
@@ -104,7 +108,7 @@ export function createApplyServices(store: ApplyCredentialStore = browserCredent
         (await store.loadWrites()).applyAndReloadTigertag(
           session,
           changes,
-          (fresh) => store.saveTigertag(fresh, session.remember),
+          (fresh) => store.saveTigertag(fresh, session.remember, session),
           progress,
         ),
     }),

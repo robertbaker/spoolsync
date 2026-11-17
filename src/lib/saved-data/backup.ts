@@ -141,6 +141,7 @@ export interface RestoreResult extends BackupInspection {
  */
 export function restoreBackup(text: string, mode: "merge" | "replace" = "merge"): RestoreResult {
   const { accepted, inspection } = classify(parseBackup(text));
+  if (!accepted.size) throw new Error("Nothing in this backup can be restored.");
   const storage = store("local");
   if (!storage)
     throw new Error("Browser storage is unavailable, so the backup cannot be restored.");

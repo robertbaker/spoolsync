@@ -2,7 +2,9 @@ import { expect, test } from "bun:test";
 
 import { makeSpool } from "@spoolsync/core/core/testing";
 
-import { nextSort, sortSpools } from "./inventory-table";
+import { readPreferences } from "~/lib/preferences";
+
+import { createInventoryTable, nextSort, sortSpools } from "./inventory-table";
 
 test("clicking a column cycles ascending, descending, then back to the loaded order", () => {
   const first = nextSort(null, "vendor");
@@ -46,4 +48,46 @@ test("sorting is a copy, numeric for weights, natural for text, and keeps blanks
     "4",
   ]);
   expect(ids(spools)).toEqual(["1", "2", "3", "4"]);
+});
+
+test("turning off an unavailable low-stock filter also clears the saved preference", () => {
+  localStorage.clear();
+  localStorage.setItem("spoolsync:prefs", JSON.stringify({ lowOnly: true }));
+  document.body.replaceChildren();
+  for (const id of ["loaded-table", "loaded-summary"]) {
+    const element = document.createElement("div");
+    element.id = id;
+    document.body.append(element);
+  }
+  const lowButton = document.createElement("button");
+  lowButton.id = "low-only";
+  document.body.append(lowButton);
+  const loaded = new Map([
+    [
+      "spoolman" as const,
+      {
+        source: "spoolman" as const,
+        spools: [makeSpool("spoolman", "normal", { initialWeight: 1000, remainingWeight: 500 })],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+
+  const table = createInventoryTable(loaded);
+  table();
+  expect(readPreferences().lowOnly).toBeUndefined();
+  expect(document.querySelectorAll("[data-spool-row]")).toHaveLength(1);
+
+  loaded.set("spoolman", {
+    source: "spoolman",
+    spools: [
+      makeSpool("spoolman", "normal", { initialWeight: 1000, remainingWeight: 500 }),
+      makeSpool("spoolman", "low", { initialWeight: 1000, remainingWeight: 50 }),
+    ],
+    warnings: [],
+    loadedAt: "later",
+  });
+  table();
+  expect(document.querySelectorAll("[data-spool-row]")).toHaveLength(2);
 });

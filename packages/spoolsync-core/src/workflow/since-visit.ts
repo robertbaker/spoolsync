@@ -99,7 +99,7 @@ function cleanNamed(raw: unknown): Named[] {
   return result;
 }
 
-function cleanChanges(raw: unknown): WeightChange[] {
+function cleanChanges(raw: unknown): WeightChange[] | undefined {
   if (!Array.isArray(raw)) return [];
   const result: WeightChange[] = [];
   for (const item of raw) {
@@ -114,6 +114,7 @@ function cleanChanges(raw: unknown): WeightChange[] {
       !isGrams(entry.delta)
     )
       continue;
+    if (entry.delta !== Math.round((entry.after - entry.before) * 10) / 10) return undefined;
     result.push({
       id: entry.id,
       name: typeof entry.name === "string" ? entry.name.slice(0, MAX_NAME_LENGTH) : null,
@@ -149,6 +150,7 @@ export function sanitizeVisits(raw: unknown): Partial<Record<SourceId, VisitSumm
     const gains = cleanChanges(entry.gains);
     const added = cleanNamed(entry.added);
     const removed = cleanNamed(entry.removed);
+    if (!drops || !gains) continue;
     const usedGrams = entry.usedGrams ?? Math.round(-sum(drops));
     const refilledGrams = entry.refilledGrams ?? Math.round(sum(gains));
     if (

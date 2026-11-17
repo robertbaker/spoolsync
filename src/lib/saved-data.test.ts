@@ -174,6 +174,17 @@ test("files that are not a settings export are refused with a clear reason", () 
   expect(() => importSettings('{"format":"spoolsync-settings","version":1}')).toThrow("no entries");
 });
 
+test("settings imports refuse entry counts beyond the backup limit without changing storage", () => {
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  const entries = Object.fromEntries(
+    Array.from({ length: BACKUP_LIMITS.entries + 1 }, (_, index) => [`unknown-${index}`, "x"]),
+  );
+  const text = JSON.stringify({ format: "spoolsync-settings", version: 1, entries });
+
+  expect(() => importSettings(text)).toThrow("more than SpoolSync ever writes");
+  expect(localStorage.getItem("spoolsync:chart-view")).toBe("brand");
+});
+
 test("a settings export from the CLI imports here, using the shared low-stock setting", () => {
   const result = importSettings(
     JSON.stringify({
@@ -326,6 +337,14 @@ test("merge keeps other settings while replace makes storage match the backup", 
   expect(result.removed).toEqual(["spoolsync:chart-view"]);
   expect(localStorage.getItem("spoolsync:chart-view")).toBeNull();
   expect(localStorage.getItem("spoolsync:low-stock-percent")).toBe("40");
+});
+
+test("replace refuses a backup with no usable entries without deleting current settings", () => {
+  localStorage.setItem("spoolsync:chart-view", "brand");
+  const empty = JSON.stringify({ format: BACKUP_FORMAT, version: 1, entries: {} });
+
+  expect(() => restoreBackup(empty, "replace")).toThrow("Nothing in this backup can be restored");
+  expect(localStorage.getItem("spoolsync:chart-view")).toBe("brand");
 });
 
 test("a failed replace restore leaves existing portable settings intact", () => {

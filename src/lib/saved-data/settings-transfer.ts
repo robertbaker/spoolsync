@@ -46,13 +46,19 @@ export function importSettings(text: string): ImportResult {
     );
   if (!document.entries || typeof document.entries !== "object" || Array.isArray(document.entries))
     throw new Error("This settings export has no entries.");
+  const entries = document.entries as Record<string, unknown>;
+  const entryCount = Object.keys(entries).length;
+  if (entryCount > BACKUP_LIMITS.entries)
+    throw new Error(
+      `This settings export lists ${entryCount} entries, more than SpoolSync ever writes.`,
+    );
   const storage = store("local");
   if (!storage) throw new Error("Browser storage is unavailable, so settings cannot be imported.");
   const allowed = new Set(portableKeys());
   const result: ImportResult = { imported: [], skipped: [] };
   const accepted = new Map<string, string>();
   let total = 0;
-  for (const [key, value] of Object.entries(document.entries as Record<string, unknown>)) {
+  for (const [key, value] of Object.entries(entries)) {
     if (
       allowed.has(key) &&
       typeof value === "string" &&

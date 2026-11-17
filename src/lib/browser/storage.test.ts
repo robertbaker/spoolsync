@@ -168,16 +168,41 @@ test("a late token refresh cannot undo a sign-out or replace another account", (
     expiresAt: 1,
   };
   saveTigertagSession(session, false);
-  saveRefreshedTigertagSession({ ...session, idToken: "refreshed" }, false);
+  saveRefreshedTigertagSession({ ...session, idToken: "refreshed" }, false, session);
   expect(loadTigertagSession()?.idToken).toBe("refreshed");
 
   saveTigertagSession({ ...session, uid: "two", idToken: "other" }, false);
-  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false);
+  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false, session);
   expect(loadTigertagSession()).toMatchObject({ uid: "two", idToken: "other" });
 
   clearTigertagSession();
-  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false);
+  saveRefreshedTigertagSession({ ...session, idToken: "late" }, false, session);
   expect(loadTigertagSession()).toBeNull();
+});
+
+test("a late token refresh cannot replace a newer sign-in to the same account", () => {
+  const original = {
+    uid: "one",
+    email: "test@example.com",
+    idToken: "first-login",
+    refreshToken: "first-refresh",
+    expiresAt: 1,
+  };
+  const newLogin = { ...original, idToken: "second-login", refreshToken: "second-refresh" };
+  saveTigertagSession(original, false);
+  saveTigertagSession(newLogin, false);
+
+  saveRefreshedTigertagSession(
+    { ...original, idToken: "stale-refresh", refreshToken: "stale-rotated-refresh" },
+    false,
+    original,
+  );
+
+  expect(loadTigertagSession()).toMatchObject({
+    uid: "one",
+    idToken: "second-login",
+    refreshToken: "second-refresh",
+  });
 });
 
 test("changing API credentials invalidates matching state and API snapshots but retains file data", () => {

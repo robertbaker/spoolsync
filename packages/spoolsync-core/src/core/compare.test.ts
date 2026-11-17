@@ -165,6 +165,23 @@ describe("buildPlan", () => {
       tigertagUid: "b",
     });
   });
+  test("a cross-ID contested by records in other groups is not propagated", () => {
+    const spoolman = makeSpool("spoolman", "51", {
+      crossIds: { spoolmanId: 51, spoolstockShortId: "s1" },
+    });
+    const linkedSpoolio = makeSpool("spoolio", "p1", { crossIds: { spoolmanId: 51 } });
+    const otherSpoolio = makeSpool("spoolio", "p2", {
+      crossIds: { spoolstockShortId: "s1" },
+    });
+    const spoolstock = makeSpool("spoolstock", "s1");
+    const groups = matchSpools([spoolman, linkedSpoolio, otherSpoolio, spoolstock]).groups;
+    const linked = groups.find((group) => group.members.spoolman)!;
+
+    const plan = buildPlan(groups, new Map([[linked.id, { values: {}, createIn: [] }]]));
+
+    expect(groups).toHaveLength(3);
+    expect(plan.get("spoolio")).toBeUndefined();
+  });
   test("does not write changes back to read-only Spoolstock", () => {
     const group = linkedGroup();
     const plan = buildPlan(

@@ -1,5 +1,6 @@
 import { normalizeBarcode, normalizeHex } from "../cleanup/numbers";
 import { contentId } from "./content-id";
+import { isProviderId } from "./providers";
 import {
   BED_RANGE,
   DENSITY_RANGE,
@@ -179,7 +180,7 @@ export function sanitizeReferenceCacheMeta(raw: unknown): Record<string, Referen
   const out: Record<string, ReferenceCacheMeta> = {};
   if (!isObject(raw)) return out;
   for (const [providerId, value] of Object.entries(raw)) {
-    if (!isObject(value)) continue;
+    if (!isProviderId(providerId) || !isObject(value)) continue;
     const key = str(value["key"], 40);
     const fetchedAt = num(value["fetchedAt"]);
     const ttl = num(value["ttlMs"]);

@@ -588,4 +588,13 @@ describe("cache", () => {
     expect(sanitizeFilaments("nope")).toBeNull();
     expect(sanitizeFilament({ id: "x", providerId: "p" })).toBeNull();
   });
+
+  test("cache metadata ignores unknown keys that could alter its object prototype", () => {
+    const meta = sanitizeReferenceCacheMeta(
+      JSON.parse('{"__proto__":{"key":"abc","fetchedAt":5,"ttlMs":10,"count":1,"polluted":true}}'),
+    );
+    expect(meta).toEqual({});
+    expect(Object.getPrototypeOf(meta)).toBe(Object.prototype);
+    expect((meta as Record<string, unknown>)["polluted"]).toBeUndefined();
+  });
 });

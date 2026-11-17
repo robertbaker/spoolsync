@@ -253,7 +253,10 @@ export function createInventoryTable(
     const rule = loadLowStockPolicy();
     const isLow = (spool: CommonSpool) => isRunningLow(spool, rule);
     const lowCount = all.filter(isLow).length;
-    if (lowCount === 0) lowOnly = false;
+    if (lowCount === 0 && lowOnly) {
+      lowOnly = false;
+      updatePreferences({ lowOnly: undefined });
+    }
     const reorderButton = document.getElementById("copy-reorder");
     if (reorderButton) reorderButton.hidden = lowCount === 0;
     if (lowButton) {

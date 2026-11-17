@@ -229,7 +229,7 @@ function wireTigertag(context: LoadContext): void {
             await import("@spoolsync/core/adapters/tigertag/cloud");
           return loadTigertagCloud(
             new TigertagCloud(session, (fresh) =>
-              saveRefreshedTigertagSession(fresh, session.remember),
+              saveRefreshedTigertagSession(fresh, session.remember, session),
             ),
           );
         },

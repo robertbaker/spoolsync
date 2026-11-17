@@ -43,7 +43,38 @@ function cleanedValues(
   return cleaned;
 }
 
-function groupLinks(group: SpoolGroup): CrossIds {
+const sourceByCrossId = new Map<keyof CrossIds, SourceId>(
+  Object.entries(NATIVE_CROSS_ID).map(([source, key]) => [key, source as SourceId]),
+);
+
+const crossIdKey = (source: SourceId, value: string | number) => `${source}:${value}`;
+
+/** IDs claimed by records in more than one group are ambiguous and must not be propagated. */
+function ambiguousCrossIds(groups: readonly SpoolGroup[]): ReadonlySet<string> {
+  const claimGroups = new Map<string, Set<string>>();
+  const claim = (identity: string, groupId: string) => {
+    const ids = claimGroups.get(identity);
+    if (ids) ids.add(groupId);
+    else claimGroups.set(identity, new Set([groupId]));
+  };
+  for (const group of groups) {
+    for (const [source, member] of Object.entries(group.members) as Array<
+      [SourceId, CommonSpool]
+    >) {
+      claim(crossIdKey(source, member.sourceId), group.id);
+      for (const [rawKey, value] of Object.entries(member.crossIds) as Array<
+        [keyof CrossIds, string | number | undefined]
+      >) {
+        const target = sourceByCrossId.get(rawKey);
+        if (!target || value === undefined || (typeof value !== "number" && !value)) continue;
+        claim(crossIdKey(target, value), group.id);
+      }
+    }
+  }
+  return new Set([...claimGroups].flatMap(([identity, ids]) => (ids.size > 1 ? [identity] : [])));
+}
+
+function groupLinks(group: SpoolGroup, ambiguous: ReadonlySet<string>): CrossIds {
   const links: CrossIds = {};
   const claims = new Map<keyof CrossIds, Set<string | number>>();
   for (const member of Object.values(group.members)) {
@@ -52,6 +83,8 @@ function groupLinks(group: SpoolGroup): CrossIds {
       [keyof CrossIds, string | number | undefined]
     >) {
       if (value === undefined) continue;
+      const target = sourceByCrossId.get(key);
+      if (target && ambiguous.has(crossIdKey(target, value))) continue;
       const values = claims.get(key) ?? new Set<string | number>();
       values.add(value);
       claims.set(key, values);
@@ -73,6 +106,7 @@ function groupLinks(group: SpoolGroup): CrossIds {
     const id =
       source === "spoolman" || source === "bambuddy" ? Number(member.sourceId) : member.sourceId;
     if (typeof id === "number" && !Number.isFinite(id)) continue;
+    if (ambiguous.has(crossIdKey(source, id))) continue;
     (links as Record<string, unknown>)[NATIVE_CROSS_ID[source]] = id;
   }
   return links;
@@ -135,13 +169,15 @@ export function buildPlan(
     else plan.set(change.source, [change]);
   };
 
+  const ambiguous = ambiguousCrossIds(groups);
+
   for (const group of groups) {
     const stored = resolutions.get(group.id) ?? defaultResolution(group);
     const resolution = {
       ...stored,
       values: cleanedValues(group, stored.values, recordEdits),
     };
-    const links = groupLinks(group);
+    const links = groupLinks(group, ambiguous);
     const edit = edits.get(group.id);
     for (const source of WRITABLE_SOURCE_IDS) {
       const member = group.members[source];

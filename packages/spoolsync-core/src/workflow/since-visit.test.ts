@@ -140,6 +140,12 @@ test("sanitizing drops summaries whose counts contradict their listed changes", 
   ).toEqual({});
 });
 
+test("sanitizing drops weight changes whose delta disagrees with before and after", () => {
+  const summary = visit();
+  summary.drops[0]!.delta = -200;
+  expect(sanitizeVisits({ spoolman: summary })).toEqual({});
+});
+
 test("stored summaries show only while their inventory is still the one loaded", () => {
   const stored = { spoolman: visit() };
   const loaded = new Map([["spoolman" as const, "2026-11-03T10:00:00.000Z"]]);

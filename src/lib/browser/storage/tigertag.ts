@@ -38,8 +38,18 @@ export function saveTigertagSession(value: TigertagSession, remember: boolean): 
  * Saves tokens a refresh returned, unless the person signed out or changed account while it ran. A
  * late refresh must not bring back a session that has ended or replace the current account's.
  */
-export function saveRefreshedTigertagSession(value: TigertagSession, remember: boolean): void {
-  if (loadTigertagSession()?.uid === value.uid) saveTigertagSession(value, remember);
+export function saveRefreshedTigertagSession(
+  value: TigertagSession,
+  remember: boolean,
+  expected: Pick<TigertagSession, "uid" | "idToken" | "refreshToken">,
+): void {
+  const current = loadTigertagSession();
+  if (
+    current?.uid === expected.uid &&
+    current.idToken === expected.idToken &&
+    current.refreshToken === expected.refreshToken
+  )
+    saveTigertagSession(value, remember);
 }
 
 export function clearTigertagSession(): void {
