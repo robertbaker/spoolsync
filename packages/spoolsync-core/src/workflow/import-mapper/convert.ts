@@ -143,12 +143,13 @@ function parseJsonTable(text: string): SourceTable {
     throw new Error(`The file has more than ${MAX_MAPPER_ROWS.toLocaleString("en")} records.`);
   const headers: string[] = [];
   const seen = new Set<string>();
-  const rows = records.map((record, index) => {
+  const rows = records.map((record) => {
     const row = newRow();
     flatten(record, "", 0, row);
     for (const header of Object.keys(row)) {
-      // Headers come from the first records, which is enough to describe a list of similar records.
-      if (index < 500 && !seen.has(header) && headers.length < MAX_COLUMNS) {
+      if (!seen.has(header)) {
+        if (headers.length >= MAX_COLUMNS)
+          throw new Error(`The JSON has more than ${MAX_COLUMNS} columns.`);
         seen.add(header);
         headers.push(header);
       }

@@ -1,3 +1,4 @@
+import { stripBom } from "../shared/text";
 import { readSpoolZip } from "./files";
 import { mapSpool } from "./map";
 import type { FilamentDbSpool, FilamentDbLoadResult } from "./types";
@@ -37,7 +38,7 @@ export function loadFilamentDbFile(text: string): FilamentDbLoadResult {
     );
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripBom(text));
   } catch {
     throw new Error("This file is not valid JSON. Export spools from FilamentDB and try again.");
   }

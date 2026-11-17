@@ -1083,6 +1083,20 @@ test("output cannot overwrite an input inventory", async () => {
   expect(await readFile(path.join(directory, "spoolman-spools.json"), "utf8")).toBe("[]");
 });
 
+test("output cannot overwrite the config file", async () => {
+  const output = path.join(directory, "exports");
+  await mkdir(output);
+  const config = path.join(output, "spoolio.json");
+  const original = '{"format":"json"}';
+  await writeFile(config, original);
+
+  const result = await run("--config", config, "--output-dir", output);
+
+  expect(result.code).toBe(1);
+  expect(JSON.parse(result.stdout).error.message).toContain("would overwrite an input inventory");
+  expect(await readFile(config, "utf8")).toBe(original);
+});
+
 test("unknown match records fail before exporting", async () => {
   const result = await run("--confirm", "spoolman:missing,spoolio:missing");
   expect(result.code).toBe(1);

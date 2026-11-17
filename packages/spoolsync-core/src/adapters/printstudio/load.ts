@@ -1,10 +1,11 @@
+import { stripBom } from "../shared/text";
 import { inventoryFromLots, lotsFrom } from "./map";
 import type { PrintStudioLoadResult } from "./types";
 
 export function loadPrintStudioFile(text: string): PrintStudioLoadResult {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(stripBom(text));
   } catch {
     throw new Error("This is not valid PrintStudio JSON.");
   }

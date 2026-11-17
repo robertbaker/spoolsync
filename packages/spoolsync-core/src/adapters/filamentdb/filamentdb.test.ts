@@ -73,8 +73,10 @@ test("reads FilamentDB's ZIP export and keeps JSON support", async () => {
 
   const json = JSON.stringify([red, blue]);
   const fromText = await loadInventoryFile("filamentdb", json);
+  const fromBom = await loadInventoryFile("filamentdb", `\uFEFF${json}`);
   const fromBytes = await loadInventoryFile("filamentdb", new TextEncoder().encode(json));
   expect(fromText.spools.map((s) => s.sourceId)).toEqual(["A1B2", "C3D4"]);
+  expect(fromBom.spools).toEqual(fromText.spools);
   expect(fromBytes.spools).toEqual(fromText.spools);
 });
 

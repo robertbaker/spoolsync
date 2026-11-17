@@ -178,6 +178,22 @@ test("JSON lists and wrapped lists are flattened to dotted columns", () => {
   expect(odd.rows[0]!["constructor"]).toBe("c");
 });
 
+test("JSON headers include late optional fields and reject files beyond the column limit", () => {
+  const records: Array<{ name: string; brand?: string }> = Array.from({ length: 501 }, () => ({
+    name: "PLA",
+  }));
+  records[500] = { name: "PLA", brand: "Prusament" };
+  const table = parseSourceTable(JSON.stringify({ records }));
+  expect(table.headers).toContain("brand");
+  expect(table.rows[499]!["brand"]).toBe("");
+  expect(table.rows[500]!["brand"]).toBe("Prusament");
+
+  const wide = Object.fromEntries(
+    Array.from({ length: 201 }, (_, index) => [`field${index}`, index]),
+  );
+  expect(() => parseSourceTable(JSON.stringify([wide]))).toThrow("more than 200 columns");
+});
+
 test("conversion makes a file the Spoolman importer loads, with every value accounted for", () => {
   const table = parseSourceTable(SHEET);
   const conversion = convertToSpoolmanCsv(table, MAPPING, { weightUnit: "g" });

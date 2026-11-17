@@ -41,6 +41,7 @@ export async function prepareExports(
   const pendingFiles: Array<{ filename: string; text: string; bytes?: Uint8Array }> = [];
   const exportWarnings: Array<{ source: SourceId; message: string }> = [];
   const protectedInputs = [
+    ...(dependencies.protectedPaths ?? []),
     ...options.inputs.values(),
     ...(options.reference ? [options.reference] : []),
     ...(options.referenceReport ? [options.referenceReport] : []),

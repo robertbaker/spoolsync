@@ -109,6 +109,7 @@ test("only Spoolman-sourced spoolman-<id> lots carry a Spoolman id", () => {
 
 test("PrintStudio files accept a wrapper and reject invalid or duplicate records", () => {
   expect(loadPrintStudioFile(JSON.stringify({ materials: lots() })).spools).toHaveLength(3);
+  expect(loadPrintStudioFile(`\uFEFF${JSON.stringify(lots())}`).spools).toHaveLength(3);
   expect(() => loadPrintStudioFile("nope")).toThrow("not valid PrintStudio JSON");
   expect(() => loadPrintStudioFile("{}")).toThrow("did not contain a material lot list");
   expect(() => loadPrintStudioFile('[{"family":"filament"}]')).toThrow("invalid record");

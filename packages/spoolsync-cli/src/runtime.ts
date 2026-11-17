@@ -32,6 +32,8 @@ export interface CliDependencies {
   exportInventory: typeof exportInventory;
   validateOutputPaths: typeof validateOutputPaths;
   stageOutputFiles: typeof stageOutputFiles;
+  /** Config files in use by this invocation; exports must not replace them. */
+  protectedPaths?: readonly string[];
   remoteServices(options: Options): Iterable<RemoteService>;
   /** Saves a rollback file before a write and returns where it went. */
   saveRollback(document: RollbackDocument, options: Options): Promise<string>;

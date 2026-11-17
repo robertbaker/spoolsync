@@ -109,7 +109,7 @@ export async function validateOutputPaths(
     const id = await identity(filename);
     if (inputPaths.has(canonical) || (id && inputIds.has(id)))
       throw new Error(
-        `Output would overwrite an input inventory: ${filename}. Choose another output location.`,
+        `Output would overwrite an input inventory, reference, or config file: ${filename}. Choose another output location.`,
       );
     if (outputPaths.has(canonical) || (id && outputIds.has(id)))
       throw new Error(

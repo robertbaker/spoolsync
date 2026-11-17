@@ -26,6 +26,7 @@ const filadex = JSON.stringify([
 
 test("Filadex loads kilograms and percentages as grams", () => {
   const [spool] = loadFiladexFile(filadex).spools;
+  expect(loadFiladexFile(`\uFEFF${filadex}`).spools).toEqual(loadFiladexFile(filadex).spools);
   expect(spool).toMatchObject({
     sourceId: "7",
     vendor: "Prusament",
@@ -94,7 +95,9 @@ test("FilamentDB loads spools and exports changes", () => {
     temperatureBedMax: 60,
     lastUpdated: 1,
   };
-  const loaded = loadFilamentDbFile(JSON.stringify([spool]));
+  const text = JSON.stringify([spool]);
+  const loaded = loadFilamentDbFile(text);
+  expect(loadFilamentDbFile(`\uFEFF${text}`).spools).toEqual(loaded.spools);
   expect(loaded.spools[0]).toMatchObject({
     sourceId: "abc-123",
     colors: ["00AAAA"],

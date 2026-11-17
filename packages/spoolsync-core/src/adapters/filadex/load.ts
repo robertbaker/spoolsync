@@ -1,4 +1,5 @@
 import { field, parseTable } from "../shared/tabular";
+import { stripBom } from "../shared/text";
 import { mapRecord } from "./map";
 import { CSV_COLUMNS, type FiladexRecord, type FiladexLoadResult } from "./types";
 
@@ -33,16 +34,17 @@ export function loadFiladexRecords(parsed: unknown): FiladexLoadResult {
 }
 
 export function loadFiladexFile(text: string): FiladexLoadResult {
-  if (/^\s*[[{]/.test(text)) {
+  const input = stripBom(text);
+  if (/^\s*[[{]/.test(input)) {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(input);
     } catch {
       throw new Error("This is not valid Filadex JSON. Export again from Filadex and retry.");
     }
     return loadFiladexRecords(parsed);
   }
-  const { rows, headers } = parseTable(text);
+  const { rows, headers } = parseTable(input);
   if (!headers.includes("colorname") || !headers.includes("material"))
     throw new Error("This CSV does not include Filadex's material and colorName columns.");
   const records = rows.map((row, index) => {

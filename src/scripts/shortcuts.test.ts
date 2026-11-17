@@ -18,6 +18,13 @@ test("typing targets are text fields, not buttons or checkboxes", () => {
   expect(isTypingTarget(null)).toBe(false);
 });
 
+test("typing targets include every editable control a global shortcut must leave alone", () => {
+  const contentEditable = document.createElement("div");
+  contentEditable.contentEditable = "true";
+  expect(isTypingTarget(document.createElement("select"))).toBe(true);
+  expect(isTypingTarget(contentEditable)).toBe(true);
+});
+
 test("slash focuses the field unless typing, using a modifier, or disabled", () => {
   document.body.replaceChildren();
   const input = document.createElement("input");

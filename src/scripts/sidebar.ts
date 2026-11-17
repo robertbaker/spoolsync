@@ -13,6 +13,7 @@ import {
 import { DISPLAY_CHANGED, readDisplaySettings, updateDisplaySettings } from "~/lib/units";
 
 import { INVENTORIES_CHANGED_EVENT } from "./load/state";
+import { isTypingTarget } from "./shortcuts";
 import { countLoaded, workflowProgress } from "./workflow-steps";
 
 /** Same key the changelog dialog writes when it is opened (see `changelog-dialog.ts`). */
@@ -56,10 +57,6 @@ function syncBrand(_mode: SidebarMode): void {
 /** The mode the inline script in the layout head set before first paint, or the stored one. */
 function currentMode(): SidebarMode {
   return parseSidebarMode(document.documentElement.dataset["sidebar"] ?? read(local, SIDEBAR_KEY));
-}
-
-function isTextEditing(element: Element | null): boolean {
-  return element instanceof HTMLElement && element.isContentEditable;
 }
 
 /**
@@ -169,7 +166,7 @@ export function wireSidebar(): void {
     (event) => {
       if (event.key.toLowerCase() === "b" && (event.ctrlKey || event.metaKey)) {
         if (event.altKey || event.shiftKey || event.defaultPrevented) return;
-        if (isTextEditing(document.activeElement)) return;
+        if (isTypingTarget(document.activeElement)) return;
         event.preventDefault();
         toggle();
         return;

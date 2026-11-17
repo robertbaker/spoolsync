@@ -197,6 +197,19 @@ try {
         onNote: (message) => output.error(message),
       });
       jsonMode = options.json;
+      const configIndex = args.findIndex(
+        (arg) => arg === "--config" || arg.startsWith("--config="),
+      );
+      const explicitConfig =
+        configIndex < 0
+          ? undefined
+          : args[configIndex] === "--config"
+            ? args[configIndex + 1]
+            : args[configIndex]!.slice("--config=".length);
+      const workflowDependencies = {
+        ...defaultDependencies,
+        protectedPaths: [configFile, ...(explicitConfig ? [explicitConfig] : [])],
+      };
       if (options.saveConfig) {
         const settings = savableSettings(options);
         await saveUserConfig(configFile, settings);
@@ -229,7 +242,7 @@ try {
             quiet: options.quiet,
             run: async (runOutput, previous) => {
               try {
-                return await runWorkflow(options, defaultDependencies, runOutput, previous);
+                return await runWorkflow(options, workflowDependencies, runOutput, previous);
               } catch (error) {
                 reportError(error, options.json, runOutput);
                 return undefined;
@@ -242,7 +255,7 @@ try {
         }
         // A run that never finished may hold sockets or timers open; its exit code is already set.
         if (abandoned) process.exit();
-      } else await runWorkflow(options, defaultDependencies, output);
+      } else await runWorkflow(options, workflowDependencies, output);
     }
   }
 } catch (error) {
