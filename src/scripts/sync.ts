@@ -7,7 +7,6 @@ import {
   loadMatchDecisions,
   loadResolutions,
   readLoadResult,
-  saveLoadResult,
   saveMatchDecisions,
   saveResolutions,
 } from "~/lib/browser/storage";
@@ -20,6 +19,7 @@ import {
   clearSampleData,
   isSampleInventory,
   sampleLink,
+  saveSampleInventories,
 } from "~/lib/sample-data";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
@@ -176,7 +176,7 @@ if (loaded.size < 2) {
     sample.addEventListener("click", async () => {
       const { sampleInventories } = await import("~/lib/sample-data");
       const results = await sampleInventories();
-      if (!results.every((result) => saveLoadResult(result))) {
+      if (!saveSampleInventories(results)) {
         showToast("Browser storage is unavailable, so sample data cannot be kept.", "error");
         return;
       }

@@ -120,6 +120,19 @@ export async function sampleInventories(): Promise<LoadResult[]> {
   ];
 }
 
+/** Saves every sample inventory, clearing any earlier samples if a later save fails. */
+export function saveSampleInventories(results: readonly LoadResult[]): boolean {
+  const saved: LoadResult["source"][] = [];
+  for (const result of results) {
+    if (!saveLoadResult(result)) {
+      for (const source of saved) clearLoadResult(source);
+      return false;
+    }
+    saved.push(result.source);
+  }
+  return true;
+}
+
 /** Whether every loaded spool came from the sample data, so the page can say so. */
 export function isSampleInventory(results: Iterable<LoadResult>): boolean {
   const spools = allSpools(results);
@@ -145,7 +158,7 @@ export async function applySampleParam(
   history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
   if (sources.some((source) => hasLoadResult(source))) return false;
   const results = await sampleInventories();
-  return results.every((result) => saveLoadResult(result));
+  return saveSampleInventories(results);
 }
 
 /** Removes the sample inventories and any match answers given about them; real data is untouched. */

@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 
 import { findMatches } from "@spoolsync/core/planner";
 
+import { readLoadResult } from "./browser/storage";
 import { loadBulkEdits, saveBulkEdits } from "./browser/storage/bulk-edits";
 import { loadAcceptedCleanups, saveAcceptedCleanups } from "./browser/storage/cleanup";
 import {
@@ -12,7 +13,7 @@ import {
   saveReferenceChoices,
   saveReferenceRuledOut,
 } from "./browser/storage/reference";
-import { clearSampleData, sampleInventories } from "./sample-data";
+import { clearSampleData, sampleInventories, saveSampleInventories } from "./sample-data";
 
 test("sample inventories load cleanly and exercise matching", async () => {
   const results = await sampleInventories();
@@ -29,6 +30,39 @@ test("sample inventories load cleanly and exercise matching", async () => {
   // Three look-alike pairs are suggested, and nothing is linked without an answer.
   expect(match.suggestions.length).toBe(3);
   expect(match.groups.filter((group) => group.status === "linked")).toHaveLength(0);
+});
+
+test("a partial sample save is rolled back when session storage fails", async () => {
+  localStorage.clear();
+  sessionStorage.clear();
+  const storage = sessionStorage;
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage")!;
+  let failed = false;
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: {
+      getItem: storage.getItem.bind(storage),
+      removeItem: storage.removeItem.bind(storage),
+      setItem(key: string, value: string) {
+        if (key === "spoolsync:load:filameter") {
+          failed = true;
+          throw new DOMException("Storage is full", "QuotaExceededError");
+        }
+        storage.setItem(key, value);
+      },
+    },
+  });
+  try {
+    const results = await sampleInventories();
+    expect(saveSampleInventories(results)).toBe(false);
+    expect(failed).toBe(true);
+    expect(readLoadResult("spoolio")).toBeNull();
+    expect(readLoadResult("filameter")).toBeNull();
+  } finally {
+    Object.defineProperty(globalThis, "sessionStorage", descriptor);
+    localStorage.clear();
+    sessionStorage.clear();
+  }
 });
 
 test("clearSampleData removes sample entries across all workspace state maps and sets", () => {
