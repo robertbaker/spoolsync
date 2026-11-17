@@ -23,7 +23,8 @@ export function applyCleanupToResults(
   }));
 }
 
-const groupSignature = (group: DuplicateGroup) => group.spools.map(spoolKey).sort().join("|");
+const groupSignature = (group: DuplicateGroup) =>
+  JSON.stringify(group.spools.map(spoolKey).toSorted());
 
 /**
  * Duplicate groups that only appear once the accepted cleanups are applied: spools that differ in

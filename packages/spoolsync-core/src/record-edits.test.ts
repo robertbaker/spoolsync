@@ -154,4 +154,28 @@ describe("duplicates after cleanup", () => {
     expect(cleaned[0]!.spools[1]!.location).toBe("Shelf");
     expect(loaded[0]!.spools[1]!.location).toBeNull();
   });
+
+  test("does not confuse duplicate groups when spool IDs contain the signature separator", () => {
+    const delimiterTwin = makeSpool("spoolman", "b|spoolman:c", {
+      name: "Before",
+      purchasedOn: null,
+      lotNr: null,
+    });
+    const loaded = [
+      result([
+        makeSpool("spoolman", "a", { name: "Before" }),
+        delimiterTwin,
+        makeSpool("spoolman", "b", { name: "Second" }),
+        makeSpool("spoolman", "c", { name: "Third" }),
+      ]),
+    ];
+    const groups = duplicatesAfterCleanup(loaded, [
+      { spoolKey: "spoolman:a", field: "name", after: "After" },
+      { spoolKey: "spoolman:b", field: "name", after: "After" },
+      { spoolKey: "spoolman:c", field: "name", after: "After" },
+    ]);
+    expect(groups.map((group) => group.spools.map((spool) => spool.sourceId))).toEqual([
+      ["a", "b", "c"],
+    ]);
+  });
 });

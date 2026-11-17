@@ -119,6 +119,23 @@ test("switching servers clears API data and pending choices, but retains file da
   expect(readLoadResult("spoolman")?.origin).toBe("file");
 });
 
+test("damaged sync choices are filtered before they reach the planner", () => {
+  sessionStorage.setItem(
+    "spoolsync:resolutions",
+    JSON.stringify([
+      ["invalid-create-target", { values: {}, createIn: "tigertag" }],
+      ["invalid-values", { values: null, createIn: [] }],
+      ["invalid-field-value", { values: { remainingWeight: "heavy" }, createIn: [] }],
+      ["valid", { values: { material: "PLA" }, createIn: ["tigertag", "spoolstock", "tigertag"] }],
+    ]),
+  );
+
+  expect([...loadResolutions()]).toEqual([
+    ["invalid-field-value", { values: {}, createIn: [] }],
+    ["valid", { values: { material: "PLA" }, createIn: ["tigertag"] }],
+  ]);
+});
+
 test("token refresh keeps a snapshot while changing TigerTag accounts clears it", () => {
   const session = {
     uid: "one",

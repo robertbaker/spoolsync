@@ -87,6 +87,30 @@ test("lists are capped but the counts stay true", () => {
   expect(visitText([summary], grams)).toContain("...and 10 more added");
 });
 
+test("totals include changed spools beyond the displayed list cap", () => {
+  const before = [
+    ...Array.from({ length: MAX_LISTED + 10 }, (_, index) => [`drop${index}`, 500, null] as const),
+    ...Array.from({ length: MAX_LISTED + 10 }, (_, index) => [`gain${index}`, 300, null] as const),
+  ];
+  const after = [
+    ...Array.from({ length: MAX_LISTED + 10 }, (_, index) => [`drop${index}`, 300, null] as const),
+    ...Array.from({ length: MAX_LISTED + 10 }, (_, index) => [`gain${index}`, 500, null] as const),
+  ];
+  const summary = summarizeVisit({
+    source: "spoolman",
+    loadedAt: "now",
+    since: "before",
+    changes: diffFingerprints(before, after),
+  })!;
+  expect(summary.drops).toHaveLength(MAX_LISTED);
+  expect(summary.gains).toHaveLength(MAX_LISTED);
+  expect(visitTotals([summary])).toEqual({
+    usedGrams: (MAX_LISTED + 10) * 200,
+    refilledGrams: (MAX_LISTED + 10) * 200,
+    spoolsChanged: (MAX_LISTED + 10) * 2,
+  });
+});
+
 test("sanitizing trims names and ignores junk lists", () => {
   const raw = {
     spoolman: {
@@ -102,6 +126,18 @@ test("sanitizing trims names and ignores junk lists", () => {
   expect(clean.added).toHaveLength(1);
   expect(clean.added[0]!.name).toHaveLength(80);
   expect(clean.drops).toHaveLength(1);
+});
+
+test("sanitizing drops summaries whose counts contradict their listed changes", () => {
+  const summary = visit();
+  expect(
+    sanitizeVisits({
+      spoolman: {
+        ...summary,
+        counts: { ...summary.counts, drops: 0 },
+      },
+    }),
+  ).toEqual({});
 });
 
 test("stored summaries show only while their inventory is still the one loaded", () => {

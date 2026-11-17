@@ -36,7 +36,8 @@ export interface InventoryChanges {
 
 const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true });
 
-const byId = (a: { id: string }, b: { id: string }) => NUMERIC_COLLATOR.compare(a.id, b.id);
+const byId = (a: { id: string }, b: { id: string }) =>
+  NUMERIC_COLLATOR.compare(a.id, b.id) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /**
  * What happened between two loads of the same service, by spool id. Weights within half a gram

@@ -32,7 +32,9 @@ const colorSignature = (spool: CommonSpool): string =>
 
 const NUMERIC_COLLATOR = new Intl.Collator(undefined, { numeric: true });
 
-const byId = (a: CommonSpool, b: CommonSpool) => NUMERIC_COLLATOR.compare(a.sourceId, b.sourceId);
+const byId = (a: CommonSpool, b: CommonSpool) =>
+  NUMERIC_COLLATOR.compare(a.sourceId, b.sourceId) ||
+  (a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0);
 
 /**
  * Why two spools in the same service look like one spool entered twice, or `null` when they do not.

@@ -31,6 +31,10 @@ export interface VisitSummary {
   /** Full counts, which can exceed the listed spools. */
   counts: { added: number; removed: number; drops: number; gains: number };
   unchanged: number;
+  /** Total filament used across every changed spool, including entries beyond the display cap. */
+  usedGrams: number;
+  /** Total filament added back across every changed spool, including entries beyond the display cap. */
+  refilledGrams: number;
   /** Net change in grams over every spool that changed weight (negative means filament used). */
   netGrams: number;
 }
@@ -48,6 +52,8 @@ export function summarizeVisit(entry: {
 }): VisitSummary | null {
   const { changes, since } = entry;
   if (!changes || !since) return null;
+  const usedGrams = Math.round(-sum(changes.drops));
+  const refilledGrams = Math.round(sum(changes.gains));
   return {
     source: entry.source,
     since,
@@ -63,6 +69,8 @@ export function summarizeVisit(entry: {
       gains: changes.gains.length,
     },
     unchanged: changes.unchanged,
+    usedGrams,
+    refilledGrams,
     netGrams: Math.round(sum(changes.drops) + sum(changes.gains)),
   };
 }
@@ -137,14 +145,31 @@ export function sanitizeVisits(raw: unknown): Partial<Record<SourceId, VisitSumm
       !isGrams(entry.netGrams)
     )
       continue;
+    const drops = cleanChanges(entry.drops);
+    const gains = cleanChanges(entry.gains);
+    const added = cleanNamed(entry.added);
+    const removed = cleanNamed(entry.removed);
+    const usedGrams = entry.usedGrams ?? Math.round(-sum(drops));
+    const refilledGrams = entry.refilledGrams ?? Math.round(sum(gains));
+    if (
+      counts.added < added.length ||
+      counts.removed < removed.length ||
+      counts.drops < drops.length ||
+      counts.gains < gains.length ||
+      !isGrams(usedGrams) ||
+      usedGrams < 0 ||
+      !isGrams(refilledGrams) ||
+      refilledGrams < 0
+    )
+      continue;
     result[source] = {
       source,
       since: entry.since,
       loadedAt: entry.loadedAt,
-      added: cleanNamed(entry.added),
-      removed: cleanNamed(entry.removed),
-      drops: cleanChanges(entry.drops),
-      gains: cleanChanges(entry.gains),
+      added,
+      removed,
+      drops,
+      gains,
       counts: {
         added: counts.added,
         removed: counts.removed,
@@ -152,6 +177,8 @@ export function sanitizeVisits(raw: unknown): Partial<Record<SourceId, VisitSumm
         gains: counts.gains,
       },
       unchanged: entry.unchanged,
+      usedGrams,
+      refilledGrams,
       netGrams: entry.netGrams,
     };
   }
@@ -189,8 +216,8 @@ export function visitTotals(visits: readonly VisitSummary[]): {
   let refilled = 0;
   let changed = 0;
   for (const visit of visits) {
-    used += -sum(visit.drops);
-    refilled += sum(visit.gains);
+    used += visit.usedGrams;
+    refilled += visit.refilledGrams;
     changed += visit.counts.drops + visit.counts.gains;
   }
   return {

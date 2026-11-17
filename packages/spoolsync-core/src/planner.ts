@@ -36,7 +36,8 @@ type HeldValues = NonNullable<GroupResolution["seen"]>[ComparableField];
 function heldValues(group: SpoolGroup, field: ComparableField): HeldValues {
   const held: NonNullable<HeldValues> = {};
   for (const [source, member] of Object.entries(group.members) as Array<[SourceId, CommonSpool]>)
-    if (SOURCE_FIELDS[source].has(field)) held[source] = structuredClone(member[field]);
+    if (SOURCE_FIELDS[source].has(field) && !member.unavailable?.includes(field))
+      held[source] = structuredClone(member[field]);
   return held;
 }
 
@@ -82,6 +83,7 @@ function withoutStaleValues(group: SpoolGroup, resolution: GroupResolution): Gro
         const member = group.members[source];
         return (
           member !== undefined &&
+          !member.unavailable?.includes(field) &&
           !valuesEqual(field, member[field], before, source) &&
           !valuesEqual(field, member[field], chosen, source)
         );

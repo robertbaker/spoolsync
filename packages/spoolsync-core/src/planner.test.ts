@@ -68,6 +68,26 @@ describe("saved choices against newer data", () => {
     expect(reconcile(group(400, 500), previous).values).not.toHaveProperty("remainingWeight");
   });
 
+  test("a value becoming unavailable does not invalidate a saved choice", () => {
+    const before = matchSpools([
+      makeSpool("spoolman", "1", { diameter: 1.75 }),
+      makeSpool("filamentDbApp", "a", { diameter: 1.8, crossIds: { spoolmanId: 1 } }),
+    ]).groups[0]!;
+    const picked = withResolutionBasis(before, {
+      values: { diameter: 1.75 },
+      createIn: [],
+    });
+    const after = matchSpools([
+      makeSpool("spoolman", "1", { diameter: 1.75 }),
+      {
+        ...makeSpool("filamentDbApp", "a", { diameter: null, crossIds: { spoolmanId: 1 } }),
+        unavailable: ["diameter"],
+      },
+    ]).groups[0]!;
+
+    expect(reconcile(after, new Map([[before.id, picked]])).values.diameter).toBe(1.75);
+  });
+
   test("a choice saved before this check existed is kept once and checked from then on", () => {
     const current = group(450, 500);
     const legacy = new Map<string, GroupResolution>([

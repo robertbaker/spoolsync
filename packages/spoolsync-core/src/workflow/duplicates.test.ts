@@ -30,6 +30,23 @@ test("groups near-identical spools in one service with reasons, ordered by id", 
   expect([...duplicateKeys(groups)]).toEqual(["spoolman:2", "spoolman:10"]);
 });
 
+test("numeric-equivalent duplicate IDs use a stable lexical tie-breaker", () => {
+  const first = findDuplicateSpools([
+    result("spoolman", [
+      makeSpool("spoolman", "spool1", dup),
+      makeSpool("spoolman", "spool01", dup),
+    ]),
+  ]);
+  const reversed = findDuplicateSpools([
+    result("spoolman", [
+      makeSpool("spoolman", "spool01", dup),
+      makeSpool("spoolman", "spool1", dup),
+    ]),
+  ]);
+  expect(first[0]!.spools.map((spool) => spool.sourceId)).toEqual(["spool01", "spool1"]);
+  expect(reversed).toEqual(first);
+});
+
 test("never compares across services and never changes the input", () => {
   const spools = [makeSpool("spoolman", "1", dup)];
   const other = [makeSpool("spoolio", "a", dup)];

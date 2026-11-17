@@ -196,6 +196,25 @@ describe("matchSpools", () => {
 });
 
 describe("similarity", () => {
+  test("reflects edits to a spool after its normalized values were cached", () => {
+    const a = makeSpool("spoolman", "1");
+    const b = makeSpool("spoolstock", "x");
+    similarity(a, b);
+
+    b.vendor = "Elegoo";
+    b.material = "PETG";
+    b.name = "Matte Red";
+    b.colors[0] = "FF0000";
+
+    const freshB = makeSpool("spoolstock", "x", {
+      vendor: b.vendor,
+      material: b.material,
+      name: b.name,
+      colors: [...b.colors],
+    });
+    expect(similarity(a, b)).toEqual(similarity(a, freshB));
+  });
+
   test("penalises different materials and colors", () => {
     const a = makeSpool("spoolman", "1");
     expect(similarity(a, makeSpool("spoolstock", "x", { material: "PETG" })).score).toBeLessThan(

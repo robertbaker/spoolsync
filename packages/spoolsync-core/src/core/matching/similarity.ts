@@ -15,6 +15,11 @@ const normalize = (value: string | null): string =>
     .replace(/[^a-z0-9]+/g, "");
 
 interface NormalizedSpool {
+  sourceUpc: string | null;
+  sourceVendor: string | null;
+  sourceMaterial: string | null;
+  sourceName: string | null;
+  sourceColor: string | undefined;
   upc: string;
   vendor: string;
   material: string;
@@ -27,8 +32,21 @@ const normalizedCache = new WeakMap<CommonSpool, NormalizedSpool>();
 
 function getNormalized(spool: CommonSpool): NormalizedSpool {
   let norm = normalizedCache.get(spool);
-  if (!norm) {
+  const color = spool.colors[0];
+  if (
+    !norm ||
+    norm.sourceUpc !== spool.upc ||
+    norm.sourceVendor !== spool.vendor ||
+    norm.sourceMaterial !== spool.material ||
+    norm.sourceName !== spool.name ||
+    norm.sourceColor !== color
+  ) {
     norm = {
+      sourceUpc: spool.upc,
+      sourceVendor: spool.vendor,
+      sourceMaterial: spool.material,
+      sourceName: spool.name,
+      sourceColor: color,
       upc: normalize(spool.upc),
       vendor: normalize(spool.vendor),
       material: normalize(spool.material),

@@ -14,6 +14,8 @@ const summary = {
   gains: [],
   counts: { added: 0, removed: 0, drops: 0, gains: 0 },
   unchanged: 0,
+  usedGrams: 0,
+  refilledGrams: 0,
   netGrams: 0,
 };
 

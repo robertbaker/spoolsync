@@ -45,3 +45,22 @@ test("reports added, removed, drops and gains in a deterministic order", () => {
   expect(hasChanges(changes)).toBe(true);
   expect(hasChanges(diffFingerprints([["1", 1, null]], [["1", 1, null]]))).toBe(false);
 });
+
+test("numeric-equivalent IDs still have deterministic ordering", () => {
+  const first = diffFingerprints(
+    [],
+    [
+      ["spool1", null, null],
+      ["spool01", null, null],
+    ],
+  );
+  const reversed = diffFingerprints(
+    [],
+    [
+      ["spool01", null, null],
+      ["spool1", null, null],
+    ],
+  );
+  expect(first.added.map(({ id }) => id)).toEqual(["spool01", "spool1"]);
+  expect(reversed.added).toEqual(first.added);
+});
