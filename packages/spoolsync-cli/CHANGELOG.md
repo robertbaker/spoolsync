@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.11.0...spoolsync-cli-v0.11.1) (2026-11-17)
+
+### Bug Fixes
+
+* **shared:** handle non-error rejections in change application ([455f1b0](https://github.com/robertbaker/spoolsync/commit/455f1b0423b9c84df2afae05c7f6d8e5c59a430c))
+* **stock:** prevent inherited properties from overriding stock levels ([9907882](https://github.com/robertbaker/spoolsync/commit/990788285442c2c1cbe4fdc65adb78fcc65122b2))
+
 ## [0.11.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.10.0...spoolsync-cli-v0.11.0) (2026-11-17)
 
 ### Features
