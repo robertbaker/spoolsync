@@ -161,34 +161,7 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
 
   function flush(header: string): void {
     if (!quiet) return;
-    const comparableEntries = entries
-      .filter(
-        (entry) =>
-          !(
-            entry.channel === "log" &&
-            typeof entry.values[0] === "string" &&
-            entry.values[0].startsWith("Changes since the last run:")
-          ),
-      )
-      .map((entry) => {
-        if (
-          entry.channel === "log" &&
-          entry.values.length === 1 &&
-          typeof entry.values[0] === "string" &&
-          entry.values[0].startsWith("{") &&
-          entry.values[0].includes('"changesSinceLastRun"')
-        ) {
-          try {
-            const parsed = JSON.parse(entry.values[0]) as Record<string, unknown>;
-            delete parsed["changesSinceLastRun"];
-            return { ...entry, values: [JSON.stringify(parsed, null, 2)] };
-          } catch {
-            return entry;
-          }
-        }
-        return entry;
-      });
-    const signature = JSON.stringify(comparableEntries);
+    const signature = JSON.stringify(entries);
     if (signature !== lastSignature) {
       if (header) output.error(header);
       for (const entry of entries) output[entry.channel](...entry.values);

@@ -338,7 +338,7 @@ test("quiet mode prints a run only when its output differs from the previous run
   await done;
 });
 
-test("quiet mode ignores changes-since-last-run details when comparing output", async () => {
+test("quiet mode prints changes-since-last-run details when they change", async () => {
   const h = harness();
   const logged: string[] = [];
   h.output.log = (...values) => logged.push(values.join(" "));
@@ -366,7 +366,7 @@ test("quiet mode ignores changes-since-last-run details when comparing output", 
   await wait(30);
 
   expect(runCount).toBe(3);
-  expect(logged).toHaveLength(1);
+  expect(logged).toHaveLength(3);
 
   h.stop.abort();
   await done;
