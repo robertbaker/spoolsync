@@ -1,6 +1,6 @@
 import type { PlannedChange } from "../../core/compare";
 import { csvText } from "../shared/tabular";
-import { sanitizeCsvCell } from "./csv";
+import { sanitizeCsvCell, unsanitizeCsvCell } from "./csv";
 import { changePatches, withinTextLimit } from "./records";
 import { newSpoolDrops } from "./target";
 import type { FilamentDbAppLoadResult } from "./types";
@@ -22,6 +22,8 @@ const COLUMNS = [
   "spoolId",
   "instanceId",
 ] as const;
+
+const safeCell = (value: string): string => sanitizeCsvCell(unsanitizeCsvCell(value));
 
 type Row = Record<string, unknown>;
 
@@ -101,8 +103,13 @@ export function exportFilamentDbAppCsv(loaded: FilamentDbAppLoadResult, changes:
     });
     if (Object.keys(filament).length) filamentFields++;
     const row: Row = {};
-    for (const column of COLUMNS) row[column] = source[column.toLowerCase()] ?? "";
-    row["vendor"] = importVendor(source);
+    for (const column of COLUMNS) {
+      const key = column.toLowerCase();
+      const value =
+        source[column] ?? source[key] ?? (column === "spoolId" ? source["_id"] : undefined);
+      row[column] = typeof value === "string" ? safeCell(value) : (value ?? "");
+    }
+    row["vendor"] = safeCell(String(importVendor(source) ?? ""));
     let wroteSpoolField = false;
     if (spool.remainingWeight !== undefined) {
       row["totalWeight"] =

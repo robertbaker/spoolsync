@@ -689,9 +689,20 @@ test("settings can be exported to a file, imported back, and shared with the bro
     return { stdout, stderr, code };
   };
   const settingsFile = path.join(directory, ".settings", "config.json");
+  const selfExportBeforeSave = await run("--export-settings", settingsFile);
+  expect(selfExportBeforeSave.code).not.toBe(0);
+  expect(selfExportBeforeSave.stderr).toContain("cannot overwrite the settings file");
+  expect(readFile(settingsFile, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+
   // Defaults can be saved without any inventory at all.
   const saved = await run("--output-dir", "out", "--low-threshold", "30", "--save-config");
   expect(saved).toMatchObject({ code: 0, stderr: "" });
+
+  const configBeforeSelfExport = await readFile(settingsFile, "utf8");
+  const selfExportAfterSave = await run("--export-settings", settingsFile);
+  expect(selfExportAfterSave.code).not.toBe(0);
+  expect(selfExportAfterSave.stderr).toContain("cannot overwrite the settings file");
+  expect(await readFile(settingsFile, "utf8")).toBe(configBeforeSelfExport);
 
   const exported = await run("--export-settings", "mine.json");
   expect(exported).toMatchObject({ code: 0, stderr: "" });
@@ -1330,6 +1341,11 @@ test("the settings and --config files can choose the format", async () => {
   const config = path.join(directory, "format.json");
   await writeFile(config, JSON.stringify({ format: "json" }));
   expect(JSON.parse((await run("--config", config)).stdout).schemaVersion).toBe(1);
+  const invalidJsonOptions = await run("--config", config, "--low-threshold", "30");
+  expect(invalidJsonOptions.code).toBe(1);
+  expect(JSON.parse(invalidJsonOptions.stdout).error.message).toContain(
+    "--low-threshold applies to --summary and --reorder",
+  );
   expect((await run("--config", config, "--format", "text")).stdout).toContain("Match suggestion:");
   await writeFile(config, JSON.stringify({ json: true }));
   expect((await run("--config", config, "--format", "text")).stdout).toContain("Match suggestion:");

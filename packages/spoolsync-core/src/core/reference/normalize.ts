@@ -429,7 +429,8 @@ export function normalizeReferenceRecords(
 ): NormalizedBatch {
   const filaments: ReferenceFilament[] = [];
   const warnings: string[] = [];
-  const seen = new Map<string, number>();
+  const usedIds = new Set<string>();
+  const nextSuffix = new Map<string, number>();
   let skipped = 0;
   records.forEach((record, index) => {
     const result = normalizeReferenceRecord(record, mapping, context);
@@ -441,14 +442,19 @@ export function normalizeReferenceRecords(
       return;
     }
     const baseId = result.filament.id;
-    let count = (seen.get(baseId) ?? 0) + 1;
-    let candidate = count === 1 ? baseId : `${baseId}#${count}`;
-    while (count > 1 && seen.has(candidate)) {
-      count += 1;
-      candidate = `${baseId}#${count}`;
+    let candidate = baseId;
+    if (usedIds.has(candidate)) {
+      let suffix = nextSuffix.get(baseId) ?? 2;
+      candidate = `${baseId}#${suffix}`;
+      while (usedIds.has(candidate)) {
+        suffix += 1;
+        candidate = `${baseId}#${suffix}`;
+      }
+      nextSuffix.set(baseId, suffix + 1);
+    } else {
+      nextSuffix.set(baseId, 2);
     }
-    seen.set(baseId, count);
-    seen.set(candidate, 1);
+    usedIds.add(candidate);
     filaments.push(candidate === baseId ? result.filament : { ...result.filament, id: candidate });
   });
   return { filaments, warnings, skipped };

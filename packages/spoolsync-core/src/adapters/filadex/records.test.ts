@@ -65,3 +65,18 @@ test("a total under five grams is not lost", () => {
   );
   expect(mapRecord(record, 0).initialWeight).toBe(4);
 });
+
+test("clearing both weights removes the old total and remaining percentage", () => {
+  const record: FiladexRecord = { totalWeight: "1", remainingPercentage: "50" };
+  updateRecord(
+    record,
+    change([
+      ["initialWeight", 1000, null],
+      ["remainingWeight", 500, null],
+    ]),
+    () => {},
+  );
+  expect(record).not.toHaveProperty("totalWeight");
+  expect(record).not.toHaveProperty("remainingPercentage");
+  expect(mapRecord(record, 0)).toMatchObject({ initialWeight: null, remainingWeight: null });
+});

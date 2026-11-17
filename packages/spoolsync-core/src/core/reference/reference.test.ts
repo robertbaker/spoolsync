@@ -218,6 +218,18 @@ describe("reading a reference file", () => {
     expect(first.filaments[1]!.id).toBe(`${first.filaments[0]!.id}#2`);
   });
 
+  test("avoids collisions between duplicate ids and ids that already contain a suffix", () => {
+    const records = [
+      { id: "a", brand: "A", material: "PLA", color_name: "Red" },
+      { id: "a", brand: "A", material: "PLA", color_name: "Green" },
+      { id: "a#2", brand: "A", material: "PLA", color_name: "Blue" },
+    ];
+    const parsed = parseReferenceFile("ids.json", JSON.stringify(records));
+    const ids = parsed.filaments.map((filament) => filament.id);
+    expect(ids).toEqual(["a", "a#2", "a#2#2"]);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   test("explains files it cannot read", () => {
     expect(() => parseReferenceFile("x.json", "{oops")).toThrow("not valid JSON");
     expect(() => parseReferenceFile("x.json", '{"a": 1}')).toThrow(

@@ -26,6 +26,7 @@ export interface RemoteSourceOptions {
 export const FETCH_TIMEOUT_MS = 45_000;
 
 const TIMED_OUT = Symbol("timed out");
+const STALE = Symbol("stale request");
 
 /**
  * Shared request lifecycle; source bindings supply credentials, adapter loading and messages.
@@ -117,14 +118,25 @@ export function wireRemoteSource(
       );
     };
 
+    let cancelStale!: () => void;
+    const stale = new Promise<typeof STALE>((resolve) => {
+      cancelStale = () => resolve(STALE);
+    });
+    const unsubscribe = state.onRevisionChange(source, () => {
+      if (state.isCurrent(source, current, "api")) return;
+      abort.abort();
+      cancelStale();
+    });
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
       timer = setTimeout(() => resolve(TIMED_OUT), options.timeoutMs ?? FETCH_TIMEOUT_MS);
     });
     try {
-      const result = await Promise.race([request.load(abort.signal), timeout]);
+      const result = await Promise.race([request.load(abort.signal), timeout, stale]);
       if (!state.isCurrent(source, current, "api")) return dropStale();
       if (result === TIMED_OUT) {
+        unsubscribe();
         state.nextRevision(source);
         abort.abort();
         const retry = h("button", { type: "button", class: buttonClass({ size: "xs" }) }, "Retry");
@@ -144,6 +156,7 @@ export function wireRemoteSource(
         finishRequest();
         return;
       }
+      if (result === STALE) return dropStale();
       message.replaceChildren(...request.success(result));
       store(result);
     } catch (error) {
@@ -158,6 +171,7 @@ export function wireRemoteSource(
             ),
       );
     } finally {
+      unsubscribe();
       clearTimeout(timer);
       finishRequest();
     }

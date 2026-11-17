@@ -11,6 +11,7 @@ const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 function fixture() {
   let resolve!: (value: LoadResult) => void;
   let reject!: (error: Error) => void;
+  let signal: AbortSignal | undefined;
   const pending = new Promise<LoadResult>((yes, no) => {
     resolve = yes;
     reject = no;
@@ -36,11 +37,18 @@ function fixture() {
       source: "spoolman",
       button,
       message,
-      prepare: () => ({ loading: document.createElement("span"), load: () => pending, success }),
+      prepare: () => ({
+        loading: document.createElement("span"),
+        load: (requestSignal) => {
+          signal = requestSignal;
+          return pending;
+        },
+        success,
+      }),
     },
   );
   button.click();
-  return { state, store, button, message, success, resolve, reject };
+  return { state, store, button, message, success, resolve, reject, signal: () => signal };
 }
 
 test("remote loads publish successful results and restore the fetch button", async () => {
@@ -56,6 +64,9 @@ test("remote loads publish successful results and restore the fetch button", asy
 test("an older API response cannot replace a newer file inventory or its message", async () => {
   const f = fixture();
   f.state.nextRevision("spoolman");
+  await flush();
+  expect(f.signal()?.aborted).toBe(true);
+  expect(f.button.disabled).toBe(false);
   const newer = { ...inventory, loadedAt: "newer" };
   f.state.store(newer);
   f.message.textContent = "New file loaded";
@@ -94,6 +105,10 @@ test("a response dropped as stale replaces the loading notice", async () => {
   const f = fixture();
   expect(f.message.textContent).toContain("Cancel");
   f.state.invalidateApi("spoolman");
+  await flush();
+  expect(f.signal()?.aborted).toBe(true);
+  expect(f.button.disabled).toBe(false);
+  expect(f.message.textContent).toContain("Nothing was loaded");
   f.resolve(inventory);
   await flush();
   expect(f.store).not.toHaveBeenCalled();

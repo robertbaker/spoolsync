@@ -13,6 +13,8 @@ export interface InventoryStorage {
   clearLoadResult(source: SourceId): void;
 }
 
+type RevisionListener = (revision: number) => void;
+
 /** Coordinates competing file/API requests and page-local inventories. */
 export class LoadState {
   readonly results = new Map<SourceId, LoadResult>();
@@ -24,6 +26,7 @@ export class LoadState {
   private readonly foreignRevisions = new Map<SourceId, number>();
   private readonly fileReads = new Map<SourceId, number>();
   private readonly storedFileReads = new Map<SourceId, number>();
+  private readonly revisionListeners = new Map<SourceId, Set<RevisionListener>>();
   private readonly storage: InventoryStorage;
 
   constructor(storage: InventoryStorage) {
@@ -47,7 +50,23 @@ export class LoadState {
     const revision = (this.revisions.get(source) ?? 0) + 1;
     this.revisions.set(source, revision);
     if (!byFile) this.foreignRevisions.set(source, (this.foreignRevisions.get(source) ?? 0) + 1);
+    this.notifyRevision(source, revision);
     return revision;
+  }
+
+  /** Notifies work tied to an older revision so it can stop promptly. */
+  onRevisionChange(source: SourceId, listener: RevisionListener): () => void {
+    const listeners = this.revisionListeners.get(source) ?? new Set<RevisionListener>();
+    listeners.add(listener);
+    this.revisionListeners.set(source, listeners);
+    return () => {
+      listeners.delete(listener);
+      if (!listeners.size) this.revisionListeners.delete(source);
+    };
+  }
+
+  private notifyRevision(source: SourceId, revision: number): void {
+    for (const listener of this.revisionListeners.get(source) ?? []) listener(revision);
   }
 
   /** Changes whenever something other than a stored file took the source (server load, unload). */
@@ -95,6 +114,7 @@ export class LoadState {
   /** Rejects in-flight server requests for a source (its connection changed); file loads continue. */
   invalidateApi(source: SourceId): void {
     this.apiFloors.set(source, this.currentRevision(source));
+    this.notifyRevision(source, this.currentRevision(source));
   }
 
   store(result: LoadResult): boolean {

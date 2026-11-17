@@ -294,6 +294,9 @@ export async function fetchReferenceCatalog(
           "no-records",
           `The response has no list of records${config.mapping.records && config.mapping.records !== "auto" ? ` at "${config.mapping.records}"` : ""}. Check the records path in the mapping.`,
         );
+      warnings.push(
+        `Stopped at page ${pages}: the response no longer had a list of records; the catalog may be incomplete.`,
+      );
       break;
     }
     received += records.length;

@@ -7,6 +7,7 @@ import { parseArgs } from "./args";
 import { checkConfig, expandConfig } from "./config";
 import { help } from "./help";
 import { requestsJson } from "./json-report";
+import { validateOutputPaths } from "./output";
 import { createPalette } from "./presentation";
 import { reportError } from "./report";
 import { defaultDependencies, type CliOutput } from "./runtime";
@@ -119,6 +120,18 @@ try {
       const flag = exporting ? "--export-settings" : "--import-settings";
       const target = flagTarget(flag);
       if (exporting) {
+        try {
+          await validateOutputPaths([configFile], [target]);
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.message.startsWith("Output would overwrite an input inventory:")
+          )
+            throw new Error(
+              `--export-settings cannot overwrite the settings file "${configFile}".`,
+            );
+          throw error;
+        }
         let saved: Record<string, unknown> | null = null;
         try {
           const text = await readFile(configFile, "utf8");
@@ -175,6 +188,9 @@ try {
           : palette.dim(`No saved settings at ${configFile}`),
       );
     } else {
+      // Config files can select JSON too. Resolve that before argument validation so an invalid
+      // combination is still reported in the requested format.
+      jsonMode = requestsJson(expandConfig(args, undefined, { userConfig: { path: configFile } }));
       const options = parseArgs(args, {
         userConfig: { path: configFile },
         // Notes go to stderr so machine-readable output on stdout stays clean.

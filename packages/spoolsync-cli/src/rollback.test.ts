@@ -1,4 +1,7 @@
 import { expect, test } from "bun:test";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import type { PlannedUpdate } from "@spoolsync/core/core/compare";
 import type { LoadResult } from "@spoolsync/core/core/model";
@@ -7,7 +10,7 @@ import { buildRollback, serializeRollback } from "@spoolsync/core/workflow";
 
 import { parseArgs } from "./args";
 import { ExecutionError } from "./execution";
-import { runRestore } from "./rollback";
+import { runRestore, writeRollbackFile } from "./rollback";
 import { defaultDependencies, type CliDependencies, type CliOutput } from "./runtime";
 
 const update: PlannedUpdate = {
@@ -67,4 +70,31 @@ test("any restore failure names the rollback file that was saved before writing"
     rollbackFiles: ["saved-rollback.json"],
     applied: [],
   });
+});
+
+test("rollback files with the same source and timestamp do not overwrite each other", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "spoolsync-rollbacks-"));
+  try {
+    const first = buildRollback("spoolman", [update], {
+      target: "Spoolman",
+      now: new Date("2026-11-04T10:00:00.000Z"),
+    });
+    const secondChange: PlannedUpdate = {
+      ...update,
+      changes: [{ field: "name", from: "Old", to: "Different" }],
+    };
+    const second = buildRollback("spoolman", [secondChange], {
+      target: "Spoolman",
+      now: new Date("2026-11-04T10:00:00.000Z"),
+    });
+    const firstFile = await writeRollbackFile(first, { rollbackDir: directory });
+    const secondFile = await writeRollbackFile(second, { rollbackDir: directory });
+
+    expect(firstFile).not.toBe(secondFile);
+    expect(await readdir(directory)).toHaveLength(2);
+    expect(await readFile(firstFile, "utf8")).toBe(serializeRollback(first));
+    expect(await readFile(secondFile, "utf8")).toBe(serializeRollback(second));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

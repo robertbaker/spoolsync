@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 import { ApplyReloadError } from "@spoolsync/core/apply";
@@ -34,7 +35,7 @@ export const rollbackDirectory = (options: Pick<Options, "rollbackDir">): string
 
 export function rollbackFileName(document: RollbackDocument): string {
   const stamp = document.createdAt.replace(/[:.]/g, "-").replace(/Z$/, "");
-  return `spoolsync-rollback-${document.source}-${stamp}.json`;
+  return `spoolsync-rollback-${document.source}-${stamp}-${randomUUID()}.json`;
 }
 
 /** The default way to save a rollback file: atomically, readable only by the current user. */

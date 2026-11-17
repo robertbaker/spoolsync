@@ -651,6 +651,27 @@ test("an empty new spool is skipped with a warning instead of aborting the expor
   expect(csv.warnings.join(" ")).toContain("Skipped a new spool");
 });
 
+test("CSV updates guard unchanged snapshot text cells against spreadsheet formulas", async () => {
+  const source = structuredClone(snapshot);
+  const sourceSpool = source.collections.filaments[1]!.spools![0]! as Record<string, unknown>;
+  sourceSpool["label"] = "=1+1";
+  sourceSpool["lotNumber"] = "@SUM(A1:A2)";
+  const loaded = await loadInventoryFile("filamentDbApp", JSON.stringify(source));
+  const spool = loaded.spools.find((item) => item.sourceId === "s1")!;
+  const change = {
+    kind: "update",
+    source: "filamentDbApp",
+    groupId: "formula-csv",
+    spool,
+    links: {},
+    changes: [{ field: "location", from: "Drybox A", to: "Shelf B" }],
+  } as unknown as PlannedChange;
+  const result = exportFilamentDbAppCsv(loaded as never, [change]);
+  expect(result.csv).toContain("'=1+1");
+  expect(result.csv).toContain("'@SUM(A1:A2)");
+  expect(result.csv).toContain(",s1,abc123\r\n");
+});
+
 test("clearing a variant's nozzle temperature warns that the template's value stays in effect", async () => {
   const { loaded, change } = await planUpdate([["nozzleTempMin", 205, null]]);
   const result = exportFilamentDbApp(loaded as never, [change]);

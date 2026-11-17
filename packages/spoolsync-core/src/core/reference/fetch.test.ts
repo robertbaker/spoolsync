@@ -145,6 +145,22 @@ describe("fetching a catalog", () => {
     expect(urls[1]).toBe("https://data.example.org/api/filaments?page=2");
   });
 
+  test("warns when a later page no longer contains a record list", async () => {
+    const { io } = fakeIO([
+      response({ items: [record(1)], next: "/api/filaments?page=2" }),
+      response({ message: "The endpoint changed" }),
+    ]);
+    const result = await fetchReferenceCatalog(
+      provider,
+      config({ pagination: { kind: "next-link", path: "next" } }),
+      io,
+    );
+    expect(result.filaments).toHaveLength(1);
+    expect(result.warnings).toContain(
+      "Stopped at page 2: the response no longer had a list of records; the catalog may be incomplete.",
+    );
+  });
+
   test("refuses a next link to another host and a link loop", async () => {
     const other = fakeIO([response({ items: [record(1)], next: "https://evil.example.net/x" })]);
     expect(

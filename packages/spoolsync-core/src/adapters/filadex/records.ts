@@ -107,7 +107,14 @@ export function updateRecord(
         break;
     }
   }
-  if (weights) setWeights(record, weights.initial, weights.remaining, label, warn);
+  if (weights) {
+    if (weights.initial === null && weights.remaining === null) {
+      // Nulls mean unknown. Keep the 1 kg placeholder for a new record, but an existing record
+      // must lose its old values when the user clears both weights.
+      delete record["totalWeight"];
+      delete record["remainingPercentage"];
+    } else setWeights(record, weights.initial, weights.remaining, label, warn);
+  }
 }
 
 /** Builds the Filadex record for a planned creation. `names` holds the names already taken. */
