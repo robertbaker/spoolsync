@@ -24,7 +24,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
     tempF: 176,
     hours: 12,
     moisture: "high",
-    description: "Extremely hygroscopic. Absorbs air moisture within hours, leading to severe foaming and steam bubbles.",
+    description: "Very hygroscopic; absorbs moisture within hours, causing foaming and steam bubbles.",
     symptoms: "Audible popping at the nozzle, heavy stringing, brittle prints.",
   },
   {
@@ -34,7 +34,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
     tempF: 113,
     hours: 6,
     moisture: "high",
-    description: "Water-soluble support materials. High ambient humidity degrades solubility and causes nozzle jams.",
+    description: "Water-soluble support material. Ambient humidity softens it and can jam the extruder.",
     symptoms: "Soft, sticky filament, extruder gear slipping, nozzle clogs.",
   },
   {
@@ -44,7 +44,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
     tempF: 131,
     hours: 6,
     moisture: "medium",
-    description: "Flexible polyurethane absorbs water rapidly, creating excessive stringing and rough surface textures.",
+    description: "Flexible polyurethane absorbs moisture quickly, causing heavy stringing and rough surfaces.",
     symptoms: "Extreme wispy stringing, porous layer lines, reduced elasticity.",
   },
   {
@@ -54,7 +54,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
     tempF: 149,
     hours: 6,
     moisture: "medium",
-    description: "Moderate moisture uptake. Wet PETG causes oozing, surface blobbing, and weakened layer bonding.",
+    description: "Moderate moisture uptake. Wet PETG oozes, blobs on perimeters, and loses layer strength.",
     symptoms: "Hairy stringing, blobbing on perimeters, cloudy transparency.",
   },
   {
@@ -64,7 +64,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
     tempF: 176,
     hours: 8,
     moisture: "medium",
-    description: "High-temperature engineering material that requires thorough drying to prevent delamination.",
+    description: "High-temperature filament that needs thorough drying to prevent layer splitting.",
     symptoms: "Layer splitting, micro-voids, reduced impact resistance.",
   },
   {
@@ -102,7 +102,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
           Filament drying & moisture guide
         </h2>
         <p class="mt-2 text-sm text-muted-foreground sm:text-base max-w-xl leading-relaxed">
-          SpoolSync flags hygroscopic spools that need drying right in your loaded inventory. Select a material below to inspect optimal drying settings and signs of wet filament.
+          SpoolSync flags hygroscopic spools that need drying in your loaded inventory. Select a material below to check typical drying settings and signs of wet filament.
         </p>
       </div>
 

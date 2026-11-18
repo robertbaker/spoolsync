@@ -36,7 +36,7 @@ const polymers: readonly PolymerDensity[] = [
           Print estimate
         </div>
         <h2 class="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-          Estimate print cost and length, <br class="hidden sm:inline" />
+          Estimate print cost and length <br class="hidden sm:inline" />
           <span class="bg-gradient-to-r from-primary via-amber-500 to-orange-400 bg-clip-text text-transparent">
             from sample values
           </span>
@@ -48,7 +48,7 @@ const polymers: readonly PolymerDensity[] = [
         <!-- Polymer Selection -->
         <div class="mt-6">
           <span id="label-polymer" class="block text-xs font-bold uppercase tracking-wider text-foreground mb-2">
-            1. Select Material & Density
+            1. Select material & density
           </span>
           <div class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="label-polymer" id="estimator-polymers">
             {polymers.map((poly, index) => (
@@ -79,7 +79,7 @@ const polymers: readonly PolymerDensity[] = [
         <div class="mt-6 space-y-4">
           <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
             <div class="flex items-center justify-between text-xs font-semibold">
-              <label for="input-print-weight" class="text-foreground">Print Slicer Estimate</label>
+              <label for="input-print-weight" class="text-foreground">Slicer weight estimate</label>
               <span class="font-mono text-base font-bold text-foreground">
                 <span id="val-print-weight">95</span> g
               </span>

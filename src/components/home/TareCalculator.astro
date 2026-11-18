@@ -31,7 +31,7 @@ import { KNOWN_TARES } from "~/lib/weigh-in";
         <!-- Brand Tare Selection Buttons -->
         <div class="mt-6">
           <span id="label-spool-brand" class="block text-xs font-bold uppercase tracking-wider text-foreground mb-2">
-            1. Select Spool Brand (Tare Weight)
+            1. Select spool brand (tare weight)
           </span>
           <div class="flex flex-wrap gap-2" id="tare-brands" role="radiogroup" aria-labelledby="label-spool-brand">
             {KNOWN_TARES.slice(0, 6).map((tare, index) => (
@@ -61,7 +61,7 @@ import { KNOWN_TARES } from "~/lib/weigh-in";
           <div class="flex items-center justify-between text-xs font-bold">
             <label for="scale-weight-range" class="text-foreground flex items-center gap-1.5">
               <Icon name="material-symbols:monitor-weight-outline" class="size-4 text-primary-text" />
-              2. Scale Reading (Gross Weight)
+              2. Scale reading (gross weight)
             </label>
             <span class="font-mono text-base font-extrabold text-foreground" id="gross-display">740 g</span>
           </div>

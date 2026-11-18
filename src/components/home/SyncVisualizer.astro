@@ -229,7 +229,7 @@ import ServiceMark from "~/components/ServiceMark.astro";
           <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-semibold text-primary-text">
             <Icon name="material-symbols:balance-rounded" class="size-3.5" /> Step 3: Resolve differences
           </span>
-          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">You Choose Which Value Wins</h3>
+          <h3 class="mt-1 text-xl font-extrabold text-foreground sm:text-2xl">Choose which value wins</h3>
           <p class="text-sm text-muted-foreground">Compare values side by side and choose which one to keep for each field.</p>
         </div>
         <div class="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
@@ -335,10 +335,10 @@ import ServiceMark from "~/components/ServiceMark.astro";
         <div class="rounded-2xl border border-emerald-500/30 bg-card/80 p-4">
           <div class="flex items-center gap-2 font-bold text-sm text-foreground">
             <Icon name="material-symbols:cloud-sync-outline" class="size-4 text-emerald-800 dark:text-emerald-300" />
-            <span>Direct API Writes</span>
+            <span>Direct API writes</span>
           </div>
           <p class="mt-2 text-xs text-muted-foreground">
-            Confirmed changes are sent to the connected service. The apply log reports successful and failed operations.
+            Confirmed changes are sent to the connected service. The apply log reports what succeeded and what failed.
           </p>
           <div class="mt-3 font-mono text-[0.7rem] bg-muted/60 p-2 rounded-lg text-foreground">
             PATCH /api/v1/spool/42 {"{remaining_weight: 740}"}
@@ -348,7 +348,7 @@ import ServiceMark from "~/components/ServiceMark.astro";
         <div class="rounded-2xl border border-primary/30 bg-card/80 p-4">
           <div class="flex items-center gap-2 font-bold text-sm text-foreground">
             <Icon name="material-symbols:download-rounded" class="size-4 text-primary-text" />
-            <span>Updated File Exports</span>
+            <span>Updated file exports</span>
           </div>
           <p class="mt-2 text-xs text-muted-foreground">
             Download updated files in formats supported by each service. Warnings explain when a format cannot carry a field.
