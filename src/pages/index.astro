@@ -75,26 +75,29 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
         <HeroShowcase />
       </div>
 
-      <div class="glass-surface mt-12 grid gap-4 rounded-2xl border border-primary/15 p-4 shadow-xs sm:grid-cols-3 sm:p-5">
-        <div class="flex items-center gap-3">
+      <ul class="glass-surface mt-12 grid gap-4 rounded-2xl border border-primary/15 p-4 shadow-xs sm:grid-cols-3 sm:divide-x sm:divide-border/60 sm:p-5">
+        <li class="flex items-start gap-3 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <Icon name="material-symbols:lock-outline" class="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden="true" />
           <div>
             <p class="text-sm font-bold text-foreground">Your files stay in the browser</p>
             <p class="mt-0.5 text-xs text-muted-foreground">They are read and compared locally.</p>
           </div>
-        </div>
-        <div class="flex items-center gap-3">
+        </li>
+        <li class="flex items-start gap-3 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <Icon name="material-symbols:compare-arrows" class="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden="true" />
           <div>
             <p class="text-sm font-bold text-foreground">You decide what matches</p>
             <p class="mt-0.5 text-xs text-muted-foreground">Suggestions wait for your review.</p>
           </div>
-        </div>
-        <div class="flex items-center gap-3">
+        </li>
+        <li class="flex items-start gap-3 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <Icon name="material-symbols:sync-alt" class="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden="true" />
           <div>
             <p class="text-sm font-bold text-foreground">Choose how to update</p>
             <p class="mt-0.5 text-xs text-muted-foreground">Apply supported changes or export a file.</p>
           </div>
-        </div>
-      </div>
+        </li>
+      </ul>
 
       <section class="mt-20 scroll-mt-20">
         <SectionHeader align="left" eyebrow="The workflow" title="Review before anything changes" subtitle="Step through loading, matching, resolving differences, and applying or exporting." />
