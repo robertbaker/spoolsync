@@ -840,9 +840,9 @@ test("table columns sort, announce their order, and keep keyboard focus", async 
   await page.getByRole("button", { name: /^Brand/ }).click();
   expect(await brands()).toEqual(["Zeta", "Beta", "Alpha"]);
   await page.getByRole("button", { name: /^Brand/ }).click();
-  await expect(page.getByRole("columnheader", { name: /Brand/ })).toHaveAttribute(
+  await expect(page.getByRole("columnheader", { name: /Brand/ })).not.toHaveAttribute(
     "aria-sort",
-    "none",
+    /.*/,
   );
 
   await page.getByRole("button", { name: /^Remaining/ }).click();
