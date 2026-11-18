@@ -89,8 +89,13 @@ const demoSpools = [
 
   <!-- Reconciled spools list -->
   <div class="mt-4 space-y-2.5">
-    {demoSpools.map((spool) => (
-      <div class="group relative rounded-xl border border-border/60 bg-card/90 p-3 transition-colors hover:border-primary/40 hover:bg-card">
+    {demoSpools.map((spool, index) => (
+      <div
+        class:list={[
+          "group relative rounded-xl border border-border/60 bg-card/90 p-3 transition-colors hover:border-primary/40 hover:bg-card",
+          index === demoSpools.length - 1 && "hidden sm:block",
+        ]}
+      >
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-2.5 min-w-0">
             <!-- Filament Color Swatch with 3D Ring Effect -->
