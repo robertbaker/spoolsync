@@ -97,22 +97,53 @@ export function wireSidebar(): void {
   const syncOpeners = () => {
     for (const opener of openers) opener.setAttribute("aria-expanded", String(isOpen()));
   };
+  const setDrawerModality = (open: boolean) => {
+    if (open) {
+      root.setAttribute("role", "dialog");
+      root.setAttribute("aria-modal", "true");
+    } else {
+      root.removeAttribute("role");
+      root.removeAttribute("aria-modal");
+    }
+    for (const selector of ["#main-content", "[data-app-bottom-nav]", "footer"]) {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (el) el.inert = open;
+    }
+  };
   const openDrawer = () => {
     if (isOpen()) return;
-    if (supportsPopover) root.showPopover();
-    else root.setAttribute("data-open", "");
-    syncOpeners();
-    root.querySelector<HTMLElement>("[data-sb-close]")?.focus({ preventScroll: true });
+    if (supportsPopover) {
+      root.showPopover();
+    } else {
+      root.setAttribute("data-open", "");
+      setDrawerModality(true);
+      syncOpeners();
+      root.querySelector<HTMLElement>("[data-sb-close]")?.focus({ preventScroll: true });
+    }
   };
   const closeDrawer = (restoreFocus = true) => {
     if (!isOpen()) return;
-    if (supportsPopover) root.hidePopover();
-    else root.removeAttribute("data-open");
-    syncOpeners();
+    if (supportsPopover) {
+      root.hidePopover();
+    } else {
+      root.removeAttribute("data-open");
+      setDrawerModality(false);
+      syncOpeners();
+    }
     if (restoreFocus) openers[0]?.focus();
   };
   if (supportsPopover) {
-    root.addEventListener("toggle", syncOpeners, options);
+    root.addEventListener(
+      "toggle",
+      (event) => {
+        const open = (event as ToggleEvent).newState === "open";
+        setDrawerModality(open);
+        syncOpeners();
+        if (open)
+          root.querySelector<HTMLElement>("[data-sb-close]")?.focus({ preventScroll: true });
+      },
+      options,
+    );
   } else {
     // Without the Popover API the buttons toggle a class instead.
     for (const opener of openers)

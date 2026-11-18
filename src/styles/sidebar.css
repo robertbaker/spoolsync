@@ -604,7 +604,8 @@ body.has-sidebar {
 @media (max-width: 767.98px) {
   .app-sidebar {
     display: none;
-    inline-size: min(20rem, 86vw);
+    inline-size: min(20rem, 86dvw);
+    block-size: 100svh;
     padding-block-end: max(0.75rem, env(safe-area-inset-bottom));
     padding-inline-start: max(0.75rem, env(safe-area-inset-left));
     border-inline-end: 1px solid var(--border);
@@ -623,6 +624,9 @@ body.has-sidebar {
 
   .app-sidebar::backdrop {
     background: var(--backdrop, rgb(0 0 0 / 0.4));
+    backdrop-filter: blur(3px);
+    overflow: hidden;
+    overscroll-behavior: contain;
   }
 
   .sb-collapse {
@@ -635,21 +639,21 @@ body.has-sidebar {
 
   @media (prefers-reduced-motion: no-preference) {
     .app-sidebar {
-      transform: translateX(-100%);
+      translate: -100% 0;
       transition:
-        transform 200ms var(--ease-out, ease-out),
+        translate 200ms var(--ease-out, ease-out),
         display 200ms allow-discrete,
         overlay 200ms allow-discrete;
     }
 
     .app-sidebar:popover-open,
     .app-sidebar[data-open] {
-      transform: none;
+      translate: 0 0;
     }
 
     @starting-style {
       .app-sidebar:popover-open {
-        transform: translateX(-100%);
+        translate: -100% 0;
       }
     }
 
