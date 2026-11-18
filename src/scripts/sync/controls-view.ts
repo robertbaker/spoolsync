@@ -42,13 +42,18 @@ export function createControlsView(
         const element = button(
           label,
           () => {
+            const wasFocused = document.activeElement === element;
             state.filter = value;
             updatePreferences({ syncFilter: value === "all" ? undefined : value });
             renderFilters();
             renderGroups();
+            if (wasFocused) {
+              byId("filters").querySelector<HTMLElement>(`[data-sync-filter="${value}"]`)?.focus();
+            }
           },
           "outline",
           {
+            "data-sync-filter": value,
             class: `inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium border transition-all ${
               active
                 ? "border-primary/60 bg-primary/10 text-primary-text font-semibold shadow-xs"

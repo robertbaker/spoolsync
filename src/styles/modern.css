@@ -43,7 +43,8 @@ dialog::backdrop {
   #shortcuts-dialog,
   #palette-dialog,
   #inventory-report-dialog,
-  #weigh-in-dialog
+  #weigh-in-dialog,
+  #spoolsync-tour-dialog
 ) {
   border: 1px solid var(--border);
   border-radius: var(--dialog-radius);
@@ -71,7 +72,8 @@ dialog::backdrop {
     #shortcuts-dialog,
     #palette-dialog,
     #inventory-report-dialog,
-    #weigh-in-dialog
+    #weigh-in-dialog,
+    #spoolsync-tour-dialog
   ) {
     opacity: 0;
     translate: 0 0.5rem;
@@ -89,7 +91,8 @@ dialog::backdrop {
     #shortcuts-dialog,
     #palette-dialog,
     #inventory-report-dialog,
-    #weigh-in-dialog
+    #weigh-in-dialog,
+    #spoolsync-tour-dialog
   )[open] {
     opacity: 1;
     translate: 0 0;
@@ -102,7 +105,8 @@ dialog::backdrop {
       #shortcuts-dialog,
       #palette-dialog,
       #inventory-report-dialog,
-      #weigh-in-dialog
+      #weigh-in-dialog,
+      #spoolsync-tour-dialog
     )[open] {
       opacity: 0;
       translate: 0 0.5rem;
@@ -165,7 +169,13 @@ dialog::backdrop {
 
 /* Phones: the small dialogs rise from the bottom edge like the changelog sheet. */
 @media (max-width: 40rem) {
-  :is(#saved-data-dialog, #shortcuts-dialog, #inventory-report-dialog, #weigh-in-dialog) {
+  :is(
+    #saved-data-dialog,
+    #shortcuts-dialog,
+    #inventory-report-dialog,
+    #weigh-in-dialog,
+    #spoolsync-tour-dialog
+  ) {
     margin-block-end: max(0.5rem, env(safe-area-inset-bottom, 0px));
     max-block-size: calc(100dvh - 1.5rem - env(safe-area-inset-bottom, 0px));
   }
