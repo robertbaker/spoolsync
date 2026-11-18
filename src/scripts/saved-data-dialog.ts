@@ -11,7 +11,7 @@ import {
 import { backupSection } from "./backup-section";
 import { announceConnectionChange } from "./connections/events";
 import { displaySettingsSection } from "./display-settings";
-import { h } from "./dom";
+import { enableBackdropDismiss, h } from "./dom";
 import { download } from "./sync/presentation";
 
 let dialog: HTMLDialogElement | undefined;
@@ -222,9 +222,7 @@ function ensureDialog(): HTMLDialogElement {
     },
     body,
   );
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog?.close();
-  });
+  enableBackdropDismiss(dialog);
   // Pages hold what they loaded in memory, so reload once something was forgotten.
   dialog.addEventListener("close", () => {
     if (changed) location.reload();

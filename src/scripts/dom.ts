@@ -167,3 +167,15 @@ export function setChildren(parent: ParentNode, ...children: Child[]): void {
     ...children.filter((child): child is Node | string => !!child || child === ""),
   );
 }
+
+/**
+ * Enables click-outside dismissal on a modal `<dialog>` using `closedby="any"` with a fallback
+ * listener only for browsers that lack `closedBy` (such as Safari).
+ */
+export function enableBackdropDismiss(dialog: HTMLDialogElement): void {
+  dialog.setAttribute("closedby", "any");
+  if ("closedBy" in HTMLDialogElement.prototype) return;
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+}

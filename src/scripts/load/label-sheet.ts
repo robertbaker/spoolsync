@@ -19,7 +19,7 @@ import {
 import { qrSvgPath, smallestVersion } from "~/lib/labels/qr";
 import { loadLowStockPolicy } from "~/lib/low-stock";
 
-import { h } from "../dom";
+import { enableBackdropDismiss, h } from "../dom";
 import { plural } from "./presentation";
 
 const OPTIONS_KEY = "spoolsync:label-options";
@@ -294,9 +294,7 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
         h("div", { class: "mt-5 flex flex-wrap justify-end gap-3" }, close, printButton),
       ),
     );
-    element.addEventListener("click", (event) => {
-      if (event.target === element) element.close();
-    });
+    enableBackdropDismiss(element);
     document.body.append(element);
     return element;
   }

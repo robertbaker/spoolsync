@@ -12,7 +12,7 @@ import { LOCALE_CHANGED, t } from "~/lib/i18n";
 import { OPEN_SPOOL_EVENT } from "~/lib/spool-detail";
 import { DISPLAY_CHANGED } from "~/lib/units";
 
-import { h, showToast } from "../dom";
+import { enableBackdropDismiss, h, showToast } from "../dom";
 import type { LoadInsights } from "./insights";
 import { BUTTON, actions, candidateList, type DrawerHooks } from "./spool-drawer-controls";
 import { changesByKey, fieldTable, historyList, idsList, section } from "./spool-drawer-sections";
@@ -141,9 +141,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
       },
       body,
     );
-    element.addEventListener("click", (event) => {
-      if (event.target === element) element.close();
-    });
+    enableBackdropDismiss(element);
     element.addEventListener("close", () => {
       const key = currentKey;
       currentKey = null;

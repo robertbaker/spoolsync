@@ -148,8 +148,8 @@ export function formatHistorySummary(history: readonly SyncHistoryEntry[]): stri
   const failed = history.reduce((sum, entry) => sum + entry.failed, 0);
   return [
     `SpoolSync history: ${plural(history.length, "entry", "entries")} (${plural(api.length, "API write")}, ${plural(downloads, "download")}, ${plural(failed, "failure")})`,
-    ...[...history]
-      .reverse()
+    ...history
+      .toReversed()
       .map((entry) => `- ${formatHistoryTime(entry.at)} ${describeHistoryEntry(entry)}`),
   ].join("\n");
 }

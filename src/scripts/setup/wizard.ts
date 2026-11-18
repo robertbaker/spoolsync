@@ -3,7 +3,7 @@ import { SOURCE_IDS, SOURCE_LABELS, type SourceId } from "@spoolsync/core/core/m
 import { t } from "~/lib/i18n";
 import { SOURCE_GUIDES } from "~/lib/source-guides";
 
-import { h, showToast } from "../dom";
+import { enableBackdropDismiss, h, showToast } from "../dom";
 import { SETUP_EVENT } from "./launch";
 import { spoolmanConnectPanel, type SpoolmanConnectDependencies } from "./spoolman-connect";
 import {
@@ -258,9 +258,7 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
       },
       body,
     );
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) dialog?.close();
-    });
+    enableBackdropDismiss(dialog);
     // Closing any way (Esc, backdrop, buttons) counts as having seen it, and focus goes back.
     dialog.addEventListener("close", () => {
       dismissSetup();

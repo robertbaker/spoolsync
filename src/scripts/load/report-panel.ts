@@ -16,7 +16,7 @@ import {
 import { loadLowStockPolicy } from "~/lib/low-stock";
 import { DISPLAY_CHANGED, formatMoney, formatWeight, readDisplaySettings } from "~/lib/units";
 
-import { h, showToast } from "../dom";
+import { enableBackdropDismiss, h, showToast } from "../dom";
 import { download } from "../sync/presentation";
 
 const BUTTON =
@@ -307,9 +307,7 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
       ),
     );
     close.addEventListener("click", () => dialog?.close());
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) dialog?.close();
-    });
+    enableBackdropDismiss(dialog);
     dialog.addEventListener("close", () => {
       const target = opener;
       opener = null;

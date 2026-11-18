@@ -1,4 +1,4 @@
-import { h } from "./dom";
+import { enableBackdropDismiss, h } from "./dom";
 
 const SHORTCUTS: Array<[string, string]> = [
   ["/", "Focus the search or filter on this page"],
@@ -76,10 +76,7 @@ function ensureDialog(): HTMLDialogElement {
     ),
   );
   close.addEventListener("click", () => dialog?.close());
-  // Browsers without `closedby` still close when the backdrop is clicked.
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog?.close();
-  });
+  enableBackdropDismiss(dialog);
   document.body.append(dialog);
   return dialog;
 }

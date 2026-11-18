@@ -17,7 +17,7 @@ import {
 } from "~/lib/changelog";
 
 import { READ_KEY, SEEN_KEY } from "./changelog-announce";
-import { h } from "./dom";
+import { enableBackdropDismiss, h } from "./dom";
 
 const CACHE_KEY = "spoolsync:changelog-cache";
 /** Releases drawn in the dialog; older ones are one link away on GitHub. */
@@ -563,10 +563,7 @@ function ensureDialog(): Elements {
   );
   elements = { dialog, title, sub, badge, search, chips, scroller, nav, content };
   close.addEventListener("click", () => dialog.close());
-  // Browsers without `closedby` still close when the backdrop is clicked.
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
-  });
+  enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {
     requestId += 1;
     observer?.disconnect();

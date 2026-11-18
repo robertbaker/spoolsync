@@ -20,7 +20,7 @@ const BLOG_META = {
   eyebrow: "Guides & release notes",
   heading: "SpoolSync Resources",
   subheading:
-    "Guides, release notes, and notes on keeping your filament inventory in sync.",
+    "Guides, release notes, and comparisons of filament inventory tools.",
 };
 
 const TOPIC_PRIORITY = ["Guides", "Releases", "CLI", "Integrations", "3D Printing"] as const;
@@ -48,8 +48,8 @@ const gridPosts = page.currentPage === 1 ? page.data.slice(3) : page.data;
 const allTags = Array.from(
   new Set(allBlogPosts.flatMap((entry: CollectionEntry<"blog">) => entry.data.tags ?? [])),
 ).filter((tag): tag is string => typeof tag === "string" && tag.length > 0);
-const heroTags = [...allTags]
-  .sort((left: string, right: string) => {
+const heroTags = allTags
+  .toSorted((left: string, right: string) => {
     const leftPriority = TOPIC_PRIORITY.indexOf(left as (typeof TOPIC_PRIORITY)[number]);
     const rightPriority = TOPIC_PRIORITY.indexOf(right as (typeof TOPIC_PRIORITY)[number]);
 

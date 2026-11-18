@@ -20,7 +20,7 @@ import {
   saveColumnMapping,
 } from "~/lib/import-mapper/store";
 
-import { h, showToast } from "../dom";
+import { enableBackdropDismiss, h, showToast } from "../dom";
 import { download } from "../sync/presentation";
 import { renderImportReport } from "./import-report-view";
 import { MAX_INVENTORY_FILE_BYTES } from "./presentation";
@@ -316,9 +316,7 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
     dialog.close();
   });
   cancel.addEventListener("click", () => dialog.close());
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
-  });
+  enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {
     clearTimeout(timer);
     dialog.remove();

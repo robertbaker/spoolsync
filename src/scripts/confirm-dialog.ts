@@ -1,4 +1,4 @@
-import { h } from "./dom";
+import { enableBackdropDismiss, h } from "./dom";
 
 type Content = Node | string;
 
@@ -78,10 +78,7 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
       dialog.close();
     });
     cancel.addEventListener("click", () => dialog.close());
-    // A click on the backdrop lands on the dialog element itself.
-    dialog.addEventListener("click", (event) => {
-      if (event.target === dialog) dialog.close();
-    });
+    enableBackdropDismiss(dialog);
     dialog.addEventListener("close", () => {
       dialog.remove();
       if (opener?.isConnected) opener.focus();

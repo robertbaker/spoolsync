@@ -1,7 +1,7 @@
 import { local, read, write } from "~/lib/browser/storage/access";
 import { t, type MessageKey } from "~/lib/i18n";
 
-import { h } from "../dom";
+import { enableBackdropDismiss, h } from "../dom";
 import { buildItems, buildSpoolItems } from "./commands";
 import type { PaletteItem } from "./items";
 import { pushRecent, resultsFor } from "./rank";
@@ -187,9 +187,7 @@ function ensure(): HTMLDialogElement {
       if (item) choose(item);
     }
   });
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog?.close();
-  });
+  enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {
     // Esc and backdrop clicks end up here; `choose` already restored focus for the other path.
     if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
