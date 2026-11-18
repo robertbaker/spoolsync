@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.11.2](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.11.1...spoolsync-cli-v0.11.2) (2026-11-18)
+
+### Bug Fixes
+
+* **home:** clarify local data handling ([aedc906](https://github.com/robertbaker/spoolsync/commit/aedc90658fc61360d1295f9dce6d7ee3141c25fa))
+* **home:** compact preview on small screens ([b01948a](https://github.com/robertbaker/spoolsync/commit/b01948ab5d0faeba3f70405e4019be60c0bb6278))
+* **home:** prevent source badges clipping on mobile ([a99032e](https://github.com/robertbaker/spoolsync/commit/a99032e1a02770647ad78b6627a083b35ee72d86))
+* **sidebar:** add mobile drawer modality, focus handoff, and backdrop scroll containment ([6116f86](https://github.com/robertbaker/spoolsync/commit/6116f866bffdbcc20a6ae4c2884bb0c5c218f4f4))
+* **test:** align sort e2e with omitted aria-sort and type awaited rejects matchers ([21f5ea7](https://github.com/robertbaker/spoolsync/commit/21f5ea781677a19ea9c33da07264ddaff9a8d598))
+* **ui:** focus invalid connection fields and link range error descriptions ([5d2a89f](https://github.com/robertbaker/spoolsync/commit/5d2a89fa71344c1803337f7304aecd8651bb2487))
+* **ui:** improve form validation aria sync, drawer focus return, and IME search ([5ce1bcf](https://github.com/robertbaker/spoolsync/commit/5ce1bcfac2c8e29aef8ae9acd56f28abe96e121a))
+* **ui:** manage focus when manually dismissing toast notifications ([db165b1](https://github.com/robertbaker/spoolsync/commit/db165b1155efc6fa4354ff3388d6b707ae24d8c4))
+* **ui:** omit aria-sort on unsorted columns and announce table sort changes ([06b1642](https://github.com/robertbaker/spoolsync/commit/06b1642dfaaf74a547622604643fefe5f9372762))
+* **ui:** preserve forced-colors gradient text, tour dialog polish, and sync filter focus ([dcbca9c](https://github.com/robertbaker/spoolsync/commit/dcbca9c746b8dd0b34d3beb0a7e34e842291f678))
+* **ui:** respect reduced motion on shimmer, enlarge touch copy target, and guard palette IME ([1fe747e](https://github.com/robertbaker/spoolsync/commit/1fe747e2011f94a83e47fe2b1a1536202a8d82ea))
+
 ## [0.11.1](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.11.0...spoolsync-cli-v0.11.1) (2026-11-17)
 
 ### Bug Fixes
