@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^8.1.6",
-    "@iconify-json/material-symbols": "^1.2.100",
-    "@iconify-json/simple-icons": "^1.2.102",
+    "@iconify-json/material-symbols": "^1.2.101",
+    "@iconify-json/simple-icons": "^1.2.103",
     "@iconify-json/tabler": "^1.2.46",
     "@spoolsync/core": "workspace:*",
     "astro": "^7.4.12",
@@ -70,7 +70,7 @@
     "tailwindcss-motion": "^1.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.3.8",
-    "wrangler": "^4.163.0"
+    "wrangler": "^4.164.0"
   },
   "browserslist": [
     "last 2 chrome versions",
