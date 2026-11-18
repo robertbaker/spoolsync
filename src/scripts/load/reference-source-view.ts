@@ -270,8 +270,18 @@ function barcodeLookup(ctx: PanelContext): HTMLElement | null {
     );
   };
   search.addEventListener("click", show);
+  let lastCompositionEndAt: number | null = null;
+  input.addEventListener("compositionend", (event) => {
+    lastCompositionEndAt = event.timeStamp;
+  });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      if (
+        event.isComposing ||
+        (lastCompositionEndAt !== null && Math.abs(event.timeStamp - lastCompositionEndAt) < 50)
+      ) {
+        return;
+      }
       event.preventDefault();
       show();
     }

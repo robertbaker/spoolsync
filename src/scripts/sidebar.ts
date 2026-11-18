@@ -109,7 +109,7 @@ export function wireSidebar(): void {
     if (supportsPopover) root.hidePopover();
     else root.removeAttribute("data-open");
     syncOpeners();
-    if (restoreFocus && !supportsPopover) openers[0]?.focus();
+    if (restoreFocus) openers[0]?.focus();
   };
   if (supportsPopover) {
     root.addEventListener("toggle", syncOpeners, options);

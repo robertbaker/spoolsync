@@ -149,17 +149,42 @@ const resolvedRobots = robots ?? (shouldNoindexPath(normalizedPath) ? NOINDEX_RO
   watchLanguageChanges();
   wirePalettePicker();
 
-  // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state
+  // Modern Web Guidance: Sync aria-invalid with CSS :user-invalid state without clobbering
+  // custom aria-invalid="true" values set by page scripts.
+  const flagged = new WeakSet<Element>();
   const syncAria = (el: Element | null) => {
-    if (el && "matches" in el && typeof el.matches === "function") {
-      if (el.matches("input, textarea, select")) {
-        el.setAttribute("aria-invalid", el.matches(":user-invalid") ? "true" : "false");
-      }
+    if (!el || !("matches" in el) || typeof el.matches !== "function") return;
+    if (!el.matches("input, select, textarea")) return;
+    if (el.matches(":user-invalid")) {
+      el.setAttribute("aria-invalid", "true");
+      flagged.add(el);
+    } else if (flagged.has(el) || el.getAttribute("aria-invalid") !== "true") {
+      el.setAttribute("aria-invalid", "false");
+      flagged.delete(el);
     }
   };
-  document.addEventListener("blur", (e) => syncAria(e.target as Element), true);
+  // Prevent Firefox/Safari from exposing empty required/constrained fields as invalid on load.
+  for (const el of document.querySelectorAll(
+    'input[required], input[type="email"], input[type="url"], input[pattern], select[required], textarea[required]',
+  )) {
+    if (!el.hasAttribute("aria-invalid")) syncAria(el);
+  }
+  document.addEventListener("blur", (e) => syncAria(e.target as Element | null), true);
   document.addEventListener("input", (e) => {
-    const target = e.target as Element;
+    const target = e.target as Element | null;
     if (target?.hasAttribute("aria-invalid")) syncAria(target);
   });
+  document.addEventListener("change", (e) => syncAria(e.target as Element | null), true);
+  document.addEventListener("invalid", (e) => syncAria(e.target as Element | null), true);
+  document.addEventListener(
+    "reset",
+    (e) => {
+      const form = e.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      setTimeout(() => {
+        for (const el of form.elements) syncAria(el);
+      });
+    },
+    true,
+  );
 </script>
