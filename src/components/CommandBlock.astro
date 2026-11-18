@@ -37,7 +37,7 @@ const lines = code.split("\n").map((text, index, all) => ({
   <button
     type="button"
     data-copy-code={code}
-    class="absolute right-2 flex size-9 items-center justify-center rounded-lg border border-neutral-foreground/15 bg-neutral/90 text-neutral-foreground/80 opacity-0 backdrop-blur transition hover:bg-neutral-foreground/10 hover:text-neutral-foreground focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
+    class="absolute right-2 flex size-9 [@media(pointer:coarse)]:size-11 items-center justify-center rounded-lg border border-neutral-foreground/15 bg-neutral/90 text-neutral-foreground/80 opacity-0 backdrop-blur transition hover:bg-neutral-foreground/10 hover:text-neutral-foreground focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
     class:list={[title ? "top-12" : "top-2"]}
     aria-label="Copy command to clipboard"
   >
@@ -48,6 +48,7 @@ const lines = code.split("\n").map((text, index, all) => ({
 
 <script>
   const FEEDBACK_MS = 1600;
+  const resetTimers = new WeakMap<HTMLButtonElement, number>();
   let live: HTMLElement | null = null;
 
   const announce = (message: string) => {
@@ -87,11 +88,17 @@ const lines = code.split("\n").map((text, index, all) => ({
     button.querySelector(".copy-idle")?.classList.toggle("hidden", ok);
     button.querySelector(".copy-done")?.classList.toggle("hidden", !ok);
     announce(ok ? "Copied to clipboard" : "Could not copy");
-    window.setTimeout(() => {
-      delete button.dataset["copied"];
-      button.setAttribute("aria-label", "Copy command to clipboard");
-      button.querySelector(".copy-idle")?.classList.remove("hidden");
-      button.querySelector(".copy-done")?.classList.add("hidden");
-    }, FEEDBACK_MS);
+    const prevTimer = resetTimers.get(button);
+    if (prevTimer !== undefined) window.clearTimeout(prevTimer);
+    resetTimers.set(
+      button,
+      window.setTimeout(() => {
+        resetTimers.delete(button);
+        delete button.dataset["copied"];
+        button.setAttribute("aria-label", "Copy command to clipboard");
+        button.querySelector(".copy-idle")?.classList.remove("hidden");
+        button.querySelector(".copy-done")?.classList.add("hidden");
+      }, FEEDBACK_MS),
+    );
   });
 </script>

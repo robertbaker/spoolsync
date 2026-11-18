@@ -167,8 +167,17 @@ function ensure(): HTMLDialogElement {
     ),
   );
   input.addEventListener("input", renderList);
+  let lastCompositionEndAt: number | null = null;
+  input.addEventListener("compositionend", (event) => {
+    lastCompositionEndAt = event.timeStamp;
+  });
   input.addEventListener("keydown", (event) => {
-    if (event.isComposing) return;
+    if (
+      event.isComposing ||
+      (lastCompositionEndAt !== null && Math.abs(event.timeStamp - lastCompositionEndAt) < 50)
+    ) {
+      return;
+    }
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActive(active + 1);

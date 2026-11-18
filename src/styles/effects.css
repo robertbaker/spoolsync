@@ -2,7 +2,6 @@
 .modern-card {
   corner-shape: squircle;
   transition:
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.2s ease;
 }
@@ -21,11 +20,11 @@
 /* Hero ambient filament glow */
 .hero-glow-backdrop {
   position: absolute;
-  top: -8rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(100vw, 84rem);
-  height: 36rem;
+  inset-block-start: -8rem;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: min(100vw, 84rem);
+  block-size: 36rem;
   background: radial-gradient(
     ellipse 60% 50% at 50% 15%,
     color-mix(in oklch, var(--primary) 18%, transparent),
@@ -100,7 +99,6 @@
     transparent 100%
   );
   transform: translateX(-150%);
-  animation: shimmer-sweep 4s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -119,6 +117,17 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .animate-shimmer::after {
+    animation: shimmer-sweep 4s ease-in-out infinite;
+  }
+
+  .modern-card {
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.2s ease;
+  }
+
   .modern-card:hover {
     transform: translateY(-2px);
     box-shadow:
