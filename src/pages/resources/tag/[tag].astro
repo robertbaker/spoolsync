@@ -35,7 +35,7 @@ const tagArchiveDescription = `${articleCountLabel} tagged ${tag} on SpoolSync.`
 ---
 
 <BaseLayout
-  title={`Topic: ${tag} — Blog`}
+  title={`Topic: ${tag} — Resources`}
   description={tagArchiveDescription}
   {...(posts[0] ? { image: posts[0].data.coverImage, imageAlt: posts[0].data.coverAlt } : {})}
 >
@@ -48,7 +48,7 @@ const tagArchiveDescription = `${articleCountLabel} tagged ${tag} on SpoolSync.`
               href="/resources"
               class="font-medium transition-colors hover:text-primary-text focus-visible:outline-2 focus-visible:outline-primary/70 focus-visible:outline-offset-2"
             >
-              Blog
+              Resources
             </a>
           </li>
           <li aria-hidden="true" class="text-muted-foreground">/</li>
@@ -61,10 +61,10 @@ const tagArchiveDescription = `${articleCountLabel} tagged ${tag} on SpoolSync.`
         <div class="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div class="max-w-3xl">
             <h1 class="text-4xl font-black text-foreground md:text-5xl">
-              Articles tagged {tag}
+              {tag}
             </h1>
             <p class="mt-4 text-base text-muted-foreground md:text-lg">
-              Showing {articleCountLabel} tagged {tag}.
+              {articleCountLabel} in this topic.
             </p>
           </div>
           <div class="flex flex-wrap gap-3">
