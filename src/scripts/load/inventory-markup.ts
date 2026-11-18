@@ -138,7 +138,7 @@ export function headerRow(
           "th",
           {
             scope: "col",
-            "aria-sort": active === "asc" ? "ascending" : active === "desc" ? "descending" : "none",
+            ...(active ? { "aria-sort": active === "asc" ? "ascending" : "descending" } : {}),
           },
           button,
         );

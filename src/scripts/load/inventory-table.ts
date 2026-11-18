@@ -335,6 +335,9 @@ export function createInventoryTable(
     const head = headerRow(headers, sort, (key, label) => {
       sort = nextSort(sort, key);
       updatePreferences({ tableSort: sort ?? undefined });
+      windowStatus.textContent = sort
+        ? `Sorted by ${label}, ${sort.direction === "asc" ? "ascending" : "descending"}, ${filtered.length} spools`
+        : `Sorted in loaded order, ${filtered.length} spools`;
       renderTable();
       // The table is redrawn, so hand keyboard focus to the same column's button.
       const next = [...container.querySelectorAll("th button")].find((candidate) =>
