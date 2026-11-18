@@ -109,7 +109,11 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     role: "status",
     "aria-live": "polite",
   });
-  const rangeError = h("p", { class: "mt-1 text-xs text-error-text", role: "alert" });
+  const rangeError = h("p", {
+    id: "view-range-error",
+    class: "mt-1 text-xs text-error-text",
+    role: "alert",
+  });
 
   const selected = (): SavedView | undefined => views.find((view) => view.id === selectedId);
   const say = (message: string) => {
@@ -165,6 +169,8 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     rangeError.textContent = "";
     min.removeAttribute("aria-invalid");
     max.removeAttribute("aria-invalid");
+    min.removeAttribute("aria-describedby");
+    max.removeAttribute("aria-describedby");
   }
 
   function applyRangeInputs(): void {
@@ -173,6 +179,10 @@ export function wireViewsPanel(root: HTMLElement, table: ViewTable, hasData: () 
     const invalid = low === "invalid" || high === "invalid";
     min.setAttribute("aria-invalid", String(low === "invalid"));
     max.setAttribute("aria-invalid", String(high === "invalid"));
+    if (low === "invalid") min.setAttribute("aria-describedby", "view-range-error");
+    else min.removeAttribute("aria-describedby");
+    if (high === "invalid") max.setAttribute("aria-describedby", "view-range-error");
+    else max.removeAttribute("aria-describedby");
     rangeError.textContent = invalid
       ? "Enter weights as plain numbers of grams, from 0 up (or leave a box empty)."
       : "";

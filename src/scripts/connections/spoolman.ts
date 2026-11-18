@@ -63,6 +63,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       result.replaceChildren(
         notice("error", "Check the address", h("p", {}, (error as Error).message)),
       );
+      urlInput.setAttribute("aria-invalid", "true");
       urlInput.focus();
       return;
     }

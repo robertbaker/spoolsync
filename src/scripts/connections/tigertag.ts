@@ -34,10 +34,14 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
 
   tigertagForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = byId<HTMLInputElement>("tigertag-email-input").value.trim();
+    const emailInput = byId<HTMLInputElement>("tigertag-email-input");
+    const email = emailInput.value.trim();
     const passwordInput = byId<HTMLInputElement>("tigertag-password");
     if (!email || !passwordInput.value) {
       tigertagResult.replaceChildren(notice("error", "Enter your TigerTag email and password"));
+      if (!email) emailInput.setAttribute("aria-invalid", "true");
+      if (!passwordInput.value) passwordInput.setAttribute("aria-invalid", "true");
+      (!email ? emailInput : passwordInput).focus();
       return;
     }
     tigertagButton.disabled = true;
