@@ -31,7 +31,7 @@ const {
   ctaHeading,
   ctaDescription,
   ctaButtonText,
-  ctaArchiveText = "Prefer to browse by topic? Every post is tagged so related notes stay easy to find.",
+  ctaArchiveText,
   ctaButtonHref = "/load",
   ctaSecondaryText = "Browse related topics",
   ctaSecondaryHref = "/resources#articles",
@@ -126,7 +126,7 @@ const ctaTopics = postTopics.slice(0, 5);
             {ctaSecondaryText}
           </Button>
         </div>
-        <p class="mt-4 text-sm text-muted-foreground">{ctaArchiveText}</p>
+        {ctaArchiveText && <p class="mt-4 text-sm text-muted-foreground">{ctaArchiveText}</p>}
       </div>
     </section>
 
