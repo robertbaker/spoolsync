@@ -65,7 +65,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
           </div>
 
           <div class="mt-7 flex flex-wrap items-center gap-3 border-t pt-4 text-sm text-muted-foreground">
-            <span class="font-semibold text-foreground">Private by design. No inventory account.</span>
+            <span class="font-semibold text-foreground">No account. Everything stays in your browser.</span>
             <a href="#supported-tools" class="inline-flex min-h-11 items-center font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               See supported tools and formats <Icon name="material-symbols:arrow-forward-rounded" class="ml-1 size-4" />
             </a>
@@ -97,7 +97,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
       </div>
 
       <section class="mt-20 scroll-mt-20">
-        <SectionHeader align="left" eyebrow="The workflow" title="Review before anything changes" subtitle="Follow a sample inventory through matching, conflict resolution, and a deliberate apply or export." />
+        <SectionHeader align="left" eyebrow="The workflow" title="Review before anything changes" subtitle="Step through loading, matching, resolving differences, and applying or exporting." />
         <SyncVisualizer />
       </section>
 
@@ -105,7 +105,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
         <div class="max-w-xl">
           <h2 class="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">See the review flow with sample data</h2>
           <p class="mt-2 text-sm sm:text-base text-muted-foreground">
-            Load two sample inventories and explore matching and review in your browser. Nothing is sent to a service.
+            Try matching and conflict resolution with two sample inventories. Nothing leaves your browser.
           </p>
         </div>
         <div class="mt-6 flex shrink-0 flex-wrap justify-center gap-3 sm:mt-0 sm:justify-start">
@@ -129,8 +129,37 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
           align="left"
           eyebrow="For the workshop"
           title="Useful tools for everyday printing"
-          subtitle="Explore filament details, estimate what is left on a spool, plan material use, and check drying guidance."
+          subtitle="Check filament specs, estimate remaining weight, calculate print cost, and look up drying times."
         />
+        <nav
+          class="mt-5 flex flex-wrap gap-x-5 gap-y-1 border-t border-border/60 pt-3 text-sm"
+          aria-label="Workshop tools"
+        >
+          <a
+            class="inline-flex min-h-11 items-center font-semibold text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href="#filament-palette-section"
+          >
+            Filament details
+          </a>
+          <a
+            class="inline-flex min-h-11 items-center font-semibold text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href="#tare-calculator-section"
+          >
+            Spool tare
+          </a>
+          <a
+            class="inline-flex min-h-11 items-center font-semibold text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href="#print-estimator-section"
+          >
+            Print estimate
+          </a>
+          <a
+            class="inline-flex min-h-11 items-center font-semibold text-primary-text underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            href="#drying-guide-section"
+          >
+            Drying guide
+          </a>
+        </nav>
         <FilamentPalette />
         <TareCalculator />
         <PrintEstimator />
