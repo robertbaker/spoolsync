@@ -3,7 +3,6 @@ import { Icon } from "astro-icon/components";
 import Button from "~/components/starwind/controls/Button/Button.astro";
 import Container from "~/components/starwind/controls/Container/Container.astro";
 import SectionHeader from "~/components/starwind/controls/SectionHeader/SectionHeader.astro";
-import StepTimeline from "~/components/StepTimeline.astro";
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import ServiceMatrix from "~/components/home/ServiceMatrix.astro";
 import HeroShowcase from "~/components/home/HeroShowcase.astro";
@@ -15,8 +14,6 @@ import DryingGuide from "~/components/home/DryingGuide.astro";
 import FaqSection from "~/components/home/FaqSection.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "~/config";
 import { SERVICE_COUNT_WORD } from "~/lib/services";
-
-import { steps, highlights } from "~/components/home/data";
 
 ---
 
@@ -31,7 +28,7 @@ import { steps, highlights } from "~/components/home/data";
             Bring your spool lists together.
           </h1>
           <p class="mt-4 max-w-2xl text-lg sm:text-xl text-muted-foreground leading-relaxed">
-            Compare filament inventories across {SERVICE_COUNT_WORD} tools, decide what to keep, then apply or download your changes.
+            Compare filament inventories across {SERVICE_COUNT_WORD} tools, review every difference, then update a service or download a file.
           </p>
 
           <div class="mt-8 flex flex-wrap items-center gap-3">
@@ -53,7 +50,7 @@ import { steps, highlights } from "~/components/home/data";
               iconPosition="left"
               class="border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all hover:-translate-y-0.5"
             >
-              Explore sample inventory
+              Explore sample inventories
             </Button>
             <Button
               href="/cli"
@@ -68,10 +65,7 @@ import { steps, highlights } from "~/components/home/data";
           </div>
 
           <div class="mt-7 flex flex-wrap items-center gap-3 border-t pt-4 text-sm text-muted-foreground">
-            <span class="font-semibold text-foreground flex items-center gap-1.5">
-              <Icon name="material-symbols:grid-view-rounded" class="size-3.5 text-primary-text" />
-              Works with {SERVICE_COUNT_WORD} tools
-            </span>
+            <span class="font-semibold text-foreground">Private by design. No inventory account.</span>
             <a href="#supported-tools" class="inline-flex min-h-11 items-center font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               See supported tools and formats <Icon name="material-symbols:arrow-forward-rounded" class="ml-1 size-4" />
             </a>
@@ -81,93 +75,40 @@ import { steps, highlights } from "~/components/home/data";
         <HeroShowcase />
       </div>
 
-      <!-- Feature trust ribbon -->
-      <div class="glass-surface mt-12 grid grid-cols-2 gap-4 rounded-2xl p-4 sm:grid-cols-4 sm:p-5 border border-primary/15 shadow-xs">
+      <div class="glass-surface mt-12 grid gap-4 rounded-2xl border border-primary/15 p-4 shadow-xs sm:grid-cols-3 sm:p-5">
         <div class="flex items-center gap-3">
-          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
-            <Icon name="material-symbols:lock-outline" class="size-5" />
-          </div>
           <div>
-            <p class="text-xs font-bold text-foreground">Runs in your browser</p>
-            <p class="text-[0.7rem] text-muted-foreground">No SpoolSync account or inventory server</p>
+            <p class="text-sm font-bold text-foreground">Your data stays local</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">Files are read and compared in your browser.</p>
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
-            <Icon name="material-symbols:bolt-rounded" class="size-5" />
-          </div>
           <div>
-            <p class="text-xs font-bold text-foreground">Review each match</p>
-            <p class="text-[0.7rem] text-muted-foreground">Shared IDs link; close matches need your choice</p>
+            <p class="text-sm font-bold text-foreground">You decide what matches</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">Suggestions wait for your review.</p>
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
-            <Icon name="material-symbols:wifi-off-rounded" class="size-5" />
-          </div>
           <div>
-            <p class="text-xs font-bold text-foreground">Work with loaded data offline</p>
-            <p class="text-[0.7rem] text-muted-foreground">API connections still need a network</p>
-          </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
-            <Icon name="material-symbols:sync-alt" class="size-5" />
-          </div>
-          <div>
-            <p class="text-xs font-bold text-foreground">{SERVICE_COUNT_WORD.charAt(0).toUpperCase() + SERVICE_COUNT_WORD.slice(1)} supported tools</p>
-            <p class="text-[0.7rem] text-muted-foreground">See supported formats and write options below</p>
+            <p class="text-sm font-bold text-foreground">Choose how to update</p>
+            <p class="mt-0.5 text-xs text-muted-foreground">Apply supported changes or export a file.</p>
           </div>
         </div>
       </div>
 
-      <h2 class="sr-only">Why SpoolSync</h2>
-      <ul class="mt-14 grid gap-5 sm:grid-cols-3">
-        {
-          highlights.map((item) => (
-            <li class="modern-card group relative overflow-hidden rounded-2xl border bg-card/90 p-6 shadow-xs backdrop-blur-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1">
-              <div class="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-primary/5 blur-xl transition-all group-hover:bg-primary/15" aria-hidden="true" />
-              <div class="flex items-start gap-4">
-                <div class="rounded-xl border border-primary/20 bg-primary/10 p-2.5 text-primary-text transition-colors group-hover:border-primary/40 group-hover:bg-primary/20 shrink-0">
-                  <Icon name={item.icon} class="size-6" />
-                </div>
-                <div>
-                  <h3 class="font-bold text-base text-foreground leading-snug">{item.title}</h3>
-                  <p class="mt-1.5 text-sm text-muted-foreground leading-relaxed">{item.body}</p>
-                </div>
-              </div>
-            </li>
-          ))
-        }
-      </ul>
-
       <section class="mt-20 scroll-mt-20">
-        <SectionHeader align="left" eyebrow="Four steps" title="How a sync works" subtitle="From loading your inventories to writing updates, you choose every change." />
-        <StepTimeline steps={steps} class="mt-8" />
+        <SectionHeader align="left" eyebrow="The workflow" title="Review before anything changes" subtitle="Follow a sample inventory through matching, conflict resolution, and a deliberate apply or export." />
         <SyncVisualizer />
       </section>
 
-      <FilamentPalette />
-
-      <TareCalculator />
-
-      <PrintEstimator />
-
-      <DryingGuide />
-
-      <!-- Interactive Callout -->
-      <div class="glass-surface mt-16 relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-10 shadow-layered text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-8">
+      <div class="glass-surface mt-12 relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 shadow-layered sm:flex sm:items-center sm:justify-between sm:gap-8 sm:p-10">
         <div class="max-w-xl">
-          <div class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-0.5 text-xs font-semibold text-primary-text mb-3">
-            <Icon name="material-symbols:play-circle-outline-rounded" class="size-3.5" />
-            Try sample data
-          </div>
-          <h2 class="text-2xl font-extrabold tracking-tight sm:text-3xl text-foreground">Try the review workflow</h2>
+          <h2 class="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">See the review flow with sample data</h2>
           <p class="mt-2 text-sm sm:text-base text-muted-foreground">
-            Load two sample inventories to see how matching and review work. The samples stay in your browser.
+            Load two sample inventories and explore matching and review in your browser. Nothing is sent to a service.
           </p>
         </div>
-        <div class="mt-6 sm:mt-0 shrink-0 flex flex-wrap gap-3 justify-center sm:justify-start">
+        <div class="mt-6 flex shrink-0 flex-wrap justify-center gap-3 sm:mt-0 sm:justify-start">
           <Button
             href="/load?sample=1"
             color="primary"
@@ -176,12 +117,25 @@ import { steps, highlights } from "~/components/home/data";
             iconPosition="right"
             class="shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 hover:-translate-y-0.5 transition-all"
           >
-            Load sample inventories
+            Explore sample inventories
           </Button>
         </div>
       </div>
 
       <ServiceMatrix />
+
+      <section class="mt-20 scroll-mt-20" aria-label="For the workshop">
+        <SectionHeader
+          align="left"
+          eyebrow="For the workshop"
+          title="Useful tools for everyday printing"
+          subtitle="Explore filament details, estimate what is left on a spool, plan material use, and check drying guidance."
+        />
+        <FilamentPalette />
+        <TareCalculator />
+        <PrintEstimator />
+        <DryingGuide />
+      </section>
 
       <FaqSection />
     </Container>
