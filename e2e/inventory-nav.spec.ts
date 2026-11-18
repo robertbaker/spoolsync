@@ -90,19 +90,21 @@ test.describe("Sidebar navigation", () => {
       const bar = page.getByRole("navigation", { name: "Quick links" });
       await expect(bar).toBeVisible();
       await expect(bar.getByRole("link", { name: "CLI" })).toHaveAttribute("aria-current", "page");
-      const drawer = page.getByRole("navigation", { name: "Main" });
-      await expect(drawer).toBeHidden();
+      const nav = page.locator("#app-sidebar");
+      await expect(nav).toBeHidden();
 
       await bar.getByRole("button", { name: "More" }).click();
+      const drawer = page.getByRole("dialog", { name: "Main" });
       await expect(drawer).toBeVisible();
       await expect(drawer.getByRole("button", { name: "Keyboard shortcuts" })).toBeVisible();
       await page.keyboard.press("Escape");
-      await expect(drawer).toBeHidden();
+      await expect(nav).toBeHidden();
 
       await bar.getByRole("button", { name: "More" }).click();
+      await expect(drawer).toBeVisible();
       await drawer.getByRole("button", { name: "Keyboard shortcuts" }).click();
       await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
-      await expect(drawer).toBeHidden();
+      await expect(nav).toBeHidden();
     });
 
     test("the page does not scroll sideways", async ({ page }) => {
