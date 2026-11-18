@@ -25,6 +25,7 @@ import { listServices } from "@spoolsync/core/core/services";
 
 import type { Options } from "./args";
 import { createCliPlan } from "./planning";
+import { describeSpool } from "./presentation";
 import type { ReferenceOutcome } from "./reference";
 
 export interface PromptChoice<T extends string> {
@@ -76,17 +77,6 @@ export interface InteractiveResult {
   cancelled: boolean;
 }
 
-function describeSpool(spool: CommonSpool | undefined, fallbackKey: string): string {
-  if (!spool) return fallbackKey;
-  const parts = [spool.vendor, spool.material, spool.name].filter(Boolean);
-  const weight =
-    spool.remainingWeight !== undefined && spool.remainingWeight !== null
-      ? `${spool.remainingWeight}g`
-      : undefined;
-  const summary = [...parts, ...(weight ? [weight] : [])].join(" ");
-  return summary ? `${summary} [${fallbackKey}]` : fallbackKey;
-}
-
 export async function runInteractiveChoices(
   initialOptions: Options,
   loaded: ReadonlyMap<SourceId, LoadResult>,
@@ -135,7 +125,8 @@ export async function runInteractiveChoices(
       const pair = suggestion.pair.join(",");
       const left = describeSpool(spoolsByKey.get(suggestion.pair[0]), suggestion.pair[0]);
       const right = describeSpool(spoolsByKey.get(suggestion.pair[1]), suggestion.pair[1]);
-      const choice = await prompts.select<"confirm" | "reject" | "skip">({
+      const remaining = planning.matches.suggestions.length - i;
+      const choice = await prompts.select<"confirm" | "reject" | "skip" | "skip-all">({
         message: `Match (${i + 1}/${planning.matches.suggestions.length}): ${left} ↔ ${right} (score ${suggestion.score})`,
         options: [
           {
@@ -153,12 +144,22 @@ export async function runInteractiveChoices(
             label: "Skip for now",
             hint: "Leave undecided",
           },
+          ...(remaining > 1
+            ? [
+                {
+                  value: "skip-all" as const,
+                  label: "Skip remaining suggestions",
+                  hint: `Leave all ${remaining} remaining pairs undecided`,
+                },
+              ]
+            : []),
         ],
       });
       if (prompts.isCancel(choice)) {
         prompts.cancel("Cancelled — no changes were written.");
         return { options, planning, cancelled: true };
       }
+      if (choice === "skip-all") break;
       if (choice === "confirm") {
         options.confirm.push(pair);
         dirty = true;
@@ -198,8 +199,11 @@ export async function runInteractiveChoices(
       }
     }
 
-    for (const [field, sourceValues] of byField) {
+    const fieldEntries = [...byField.entries()];
+    for (let i = 0; i < fieldEntries.length; i++) {
+      const [field, sourceValues] = fieldEntries[i]!;
       const count = groupCounts.get(field) ?? 1;
+      const remainingFields = fieldEntries.length - i;
       const choice = await prompts.select<string>({
         message: `Resolve conflicting "${field}" (${count} group${count === 1 ? "" : "s"})`,
         options: [
@@ -212,12 +216,22 @@ export async function runInteractiveChoices(
             value: "__skip__",
             label: "Skip (leave as-is)",
           },
+          ...(remainingFields > 1
+            ? [
+                {
+                  value: "__skip_all__",
+                  label: "Skip remaining conflicts",
+                  hint: `Leave all ${remainingFields} remaining fields as-is`,
+                },
+              ]
+            : []),
         ],
       });
       if (prompts.isCancel(choice)) {
         prompts.cancel("Cancelled — no changes were written.");
         return { options, planning, cancelled: true };
       }
+      if (choice === "__skip_all__") break;
       if (choice !== "__skip__") {
         options.resolves.push([field, choice as SourceId]);
         dirty = true;
@@ -239,14 +253,20 @@ export async function runInteractiveChoices(
       writableLoaded.some((source) => !(source in group.members)),
     );
   if (!options.createIn.length && hasUnmatchedForWritable) {
+    const missingCount = (source: WritableSourceId) =>
+      planning.matches.groups.filter((group) => !(source in group.members)).length;
     const selected = await prompts.multiselect<WritableSourceId>({
       message:
         "Create missing spools in any loaded writable sources? (Space to select, Enter to continue)",
-      options: writableLoaded.map((source) => ({
-        value: source,
-        label: label(source),
-        hint: `${loaded.get(source)!.spools.length.toLocaleString("en-US")} spools loaded`,
-      })),
+      options: writableLoaded.map((source) => {
+        const missing = missingCount(source);
+        const loadedCount = loaded.get(source)!.spools.length;
+        return {
+          value: source,
+          label: label(source),
+          hint: `${missing.toLocaleString("en-US")} missing ${missing === 1 ? "spool" : "spools"} · ${loadedCount.toLocaleString("en-US")} loaded`,
+        };
+      }),
       required: false,
     });
     if (prompts.isCancel(selected)) {
@@ -320,5 +340,6 @@ export async function runInteractiveChoices(
     options.apply = Boolean(shouldApply);
   }
 
+  prompts.outro("Interactive setup complete.");
   return { options, planning, cancelled: false };
 }

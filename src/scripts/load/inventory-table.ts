@@ -22,6 +22,7 @@ import { readColumns, saveColumns, type TableColumn } from "~/lib/table-columns"
 import { WINDOW_STEP, nextLimit, windowSections } from "~/lib/table-window";
 
 import { byId, h, setChildren } from "../dom";
+import { wireEscapeClear } from "../shortcuts";
 import type { InsightFilter, LoadInsights } from "./insights";
 import {
   emptyState,
@@ -139,6 +140,7 @@ export function createInventoryTable(
   const searchInput = document.getElementById("spool-search-input") as HTMLInputElement | null;
 
   if (searchInput) {
+    wireEscapeClear(searchInput);
     let frameId: number | null = null;
     searchInput.addEventListener("input", () => {
       searchQuery = searchInput.value.trim().toLowerCase();
@@ -290,6 +292,20 @@ export function createInventoryTable(
           searchQuery,
           rangeActive,
           insightLabel: insightFilter ? filterLabel(insightFilter) : null,
+          onClear: () => {
+            searchQuery = "";
+            if (searchInput) searchInput.value = "";
+            lowOnly = false;
+            insights?.setFilter(null);
+            extra = {
+              ...extra,
+              material: EMPTY_VIEW.material,
+              minGrams: EMPTY_VIEW.minGrams,
+              maxGrams: EMPTY_VIEW.maxGrams,
+            };
+            updatePreferences({ lowOnly: undefined });
+            renderTable();
+          },
         }),
       );
       return;

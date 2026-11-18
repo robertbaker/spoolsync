@@ -201,3 +201,130 @@ test("interactive mode refuses non-TTY terminals and incompatible flags", async 
     "--interactive requires an interactive terminal",
   );
 });
+
+test("interactive mode can skip all remaining match suggestions", async () => {
+  const options = parseArgs(["--spoolman", "a.json", "--spoolio", "b.json", "-i"]);
+  const loaded = new Map<SourceId, LoadResult>([
+    [
+      "spoolman",
+      {
+        source: "spoolman",
+        spools: [
+          makeSpool("spoolman", "1", {
+            vendor: "Prusa",
+            material: "PLA",
+            name: "Black",
+            colors: ["#111111"],
+          }),
+          makeSpool("spoolman", "2", {
+            vendor: "Prusa",
+            material: "PETG",
+            name: "Orange",
+            colors: ["#ff6600"],
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+    [
+      "spoolio",
+      {
+        source: "spoolio",
+        spools: [
+          makeSpool("spoolio", "10", {
+            vendor: "Prusa",
+            material: "PLA",
+            name: "Black",
+            colors: ["#111111"],
+          }),
+          makeSpool("spoolio", "20", {
+            vendor: "Prusa",
+            material: "PETG",
+            name: "Orange",
+            colors: ["#ff6600"],
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+
+  const initialPlan = createCliPlan(options, loaded);
+  expect(initialPlan.matches.suggestions).toHaveLength(2);
+
+  let selectCalls = 0;
+  const prompts = fakePrompts({ multiselects: [[]] });
+  prompts.select = (async () => {
+    selectCalls++;
+    return "skip-all";
+  }) as InteractivePrompts["select"];
+
+  const result = await runInteractiveChoices(options, loaded, initialPlan, undefined, prompts);
+  expect(result.cancelled).toBe(false);
+  expect(selectCalls).toBe(1);
+  expect(result.options.confirm).toEqual([]);
+  expect(result.options.reject).toEqual([]);
+});
+
+test("interactive mode can skip all remaining conflicting fields", async () => {
+  const options = parseArgs([
+    "--spoolman",
+    "a.json",
+    "--spoolio",
+    "b.json",
+    "--confirm",
+    "spoolman:1,spoolio:2",
+    "-i",
+  ]);
+  const loaded = new Map<SourceId, LoadResult>([
+    [
+      "spoolman",
+      {
+        source: "spoolman",
+        spools: [
+          makeSpool("spoolman", "1", {
+            vendor: "Prusa",
+            material: "PLA",
+            name: "Black",
+            remainingWeight: 800,
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+    [
+      "spoolio",
+      {
+        source: "spoolio",
+        spools: [
+          makeSpool("spoolio", "2", {
+            vendor: "Prusament",
+            material: "PETG",
+            name: "Jet Black",
+            remainingWeight: 600,
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+
+  const initialPlan = createCliPlan(options, loaded);
+  expect(initialPlan.summary.unresolved.length).toBeGreaterThan(1);
+
+  let selectCalls = 0;
+  const prompts = fakePrompts({ multiselects: [[]] });
+  prompts.select = (async () => {
+    selectCalls++;
+    return "__skip_all__";
+  }) as InteractivePrompts["select"];
+
+  const result = await runInteractiveChoices(options, loaded, initialPlan, undefined, prompts);
+  expect(result.cancelled).toBe(false);
+  expect(selectCalls).toBe(1);
+  expect(result.options.resolves).toEqual([]);
+});

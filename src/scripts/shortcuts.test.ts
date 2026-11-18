@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { isTypingTarget, wireSlashFocus } from "./shortcuts";
+import { isTypingTarget, wireEscapeClear, wireSlashFocus } from "./shortcuts";
 
 function press(key: string, init: KeyboardEventInit = {}): KeyboardEvent {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
@@ -48,4 +48,32 @@ test("slash focuses the field unless typing, using a modifier, or disabled", () 
 
 test("a missing field is ignored", () => {
   expect(() => wireSlashFocus(null)).not.toThrow();
+  expect(() => wireEscapeClear(null)).not.toThrow();
+});
+
+test("escape clears a non-empty search input and notifies listeners", () => {
+  document.body.replaceChildren();
+  const input = document.createElement("input");
+  input.type = "search";
+  input.value = "pla";
+  document.body.append(input);
+  let inputs = 0;
+  input.addEventListener("input", () => {
+    inputs++;
+  });
+  wireEscapeClear(input);
+
+  const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  input.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(true);
+  expect(input.value).toBe("");
+  expect(inputs).toBe(1);
+
+  const emptyEvent = new KeyboardEvent("keydown", {
+    key: "Escape",
+    bubbles: true,
+    cancelable: true,
+  });
+  input.dispatchEvent(emptyEvent);
+  expect(emptyEvent.defaultPrevented).toBe(false);
 });

@@ -1,9 +1,11 @@
 import { ApplyReloadError } from "@spoolsync/core/apply";
 import { compareGroup, formatValue } from "@spoolsync/core/core/compare";
+import { recordKey } from "@spoolsync/core/core/match";
 import {
   SOURCE_IDS,
   isWritableSource,
   type ApplyLogEntry,
+  type CommonSpool,
   type LoadResult,
   type SourceId,
 } from "@spoolsync/core/core/model";
@@ -28,7 +30,7 @@ import {
   type PendingMatch,
 } from "./json-report";
 import type { createCliPlan } from "./planning";
-import { applyResults, createPalette, textTable } from "./presentation";
+import { applyResults, createPalette, spoolSummary, textTable } from "./presentation";
 import { referenceLines, referenceSection, type ReferenceOutcome } from "./reference";
 import type { CliOutput } from "./runtime";
 
@@ -143,6 +145,14 @@ export function reportWorkflow(
     );
     if (!Object.values(summary.changes).some((counts) => counts.updates || counts.creates))
       output.log(palette.dim("  No updates or creations planned."));
+    const spoolsByKey = new Map<string, CommonSpool>();
+    if (summary.unresolved.length || matches.suggestions.length) {
+      for (const result of loaded.values()) {
+        for (const spool of result.spools) {
+          spoolsByKey.set(recordKey(spool), spool);
+        }
+      }
+    }
     if (summary.unresolved.length) {
       output.log(heading("Unresolved fields"));
       output.log(
@@ -152,9 +162,14 @@ export function reportWorkflow(
         summary.unresolved.map(({ group, field }) => JSON.stringify([group, field])),
       );
       for (const group of matches.groups) {
+        const groupLabel = spoolSummary(
+          SOURCE_IDS.map((source) => group.members[source]).find(Boolean),
+        );
         for (const comparison of compareGroup(group)) {
           if (!unresolved.has(JSON.stringify([group.id, comparison.field]))) continue;
-          output.log(`  ${palette.bold(group.id)}: ${palette.yellow(comparison.field)}`);
+          output.log(
+            `  ${palette.bold(group.id)}: ${palette.yellow(comparison.field)}${groupLabel ? ` ${palette.dim(`(${groupLabel})`)}` : ""}`,
+          );
           for (const option of comparison.options)
             output.log(
               `    ${option.sources.join(", ")}: ${JSON.stringify(formatValue(comparison.field, option.value))}`,
@@ -177,18 +192,30 @@ export function reportWorkflow(
       output.log(text.lines.join("\n"));
       for (const warning of text.warnings) output.warn(palette.yellow(warning));
     }
-    if (matches.suggestions.length)
+    if (matches.suggestions.length) {
       output.log(heading("Possible matches (not linked automatically)"));
-    for (const suggestion of matches.suggestions)
-      output.log(
-        `Match suggestion: ${palette.cyan(suggestion.pair.join(","))} ${palette.dim(`(score ${suggestion.score}; ${suggestion.reasons.join("; ")})`)}`,
-      );
-    if (matches.suggestions.length)
+      for (const suggestion of matches.suggestions) {
+        const left = spoolSummary(spoolsByKey.get(suggestion.pair[0])) || suggestion.pair[0];
+        const right = spoolSummary(spoolsByKey.get(suggestion.pair[1])) || suggestion.pair[1];
+        const details = [
+          left !== suggestion.pair[0] || right !== suggestion.pair[1]
+            ? `${left} ↔ ${right}`
+            : undefined,
+          `score ${suggestion.score}`,
+          ...suggestion.reasons,
+        ]
+          .filter(Boolean)
+          .join("; ");
+        output.log(
+          `Match suggestion: ${palette.cyan(suggestion.pair.join(","))} ${palette.dim(`(${details})`)}`,
+        );
+      }
       output.log(
         palette.dim(
           "Use --confirm <pair> to link a suggested pair or --reject <pair> to keep it separate (or run with --interactive).",
         ),
       );
+    }
     for (const [source, result] of loaded)
       for (const warning of result.warnings)
         output.warn(palette.yellow(`Warning (${source}): ${warning}`));
@@ -222,10 +249,12 @@ export function reportWorkflow(
       output.log(heading("Next steps"));
       if (!options.outputDir && fileTargets.length)
         output.log(
-          `  Add --output-dir <dir> to write inventory files for: ${fileTargets.join(", ")}.`,
+          `  Add ${palette.cyan("--output-dir <dir>")} to write inventory files for: ${fileTargets.join(", ")}.`,
         );
       if (!options.apply && apiTargets.length)
-        output.log(`  Add --apply to write planned changes to: ${apiTargets.join(", ")}.`);
+        output.log(
+          `  Add ${palette.cyan("--apply")} to write planned changes to: ${apiTargets.join(", ")}.`,
+        );
     }
     if (rollbackFiles.length)
       output.log(

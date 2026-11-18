@@ -3,7 +3,7 @@ import { SOURCE_IDS, type SourceId } from "@spoolsync/core/core/model";
 import { local, read, write } from "~/lib/browser/storage/access";
 import { readPreferences, updatePreferences } from "~/lib/preferences";
 
-import { wireSlashFocus } from "../shortcuts";
+import { wireEscapeClear, wireSlashFocus } from "../shortcuts";
 import type { LoadState } from "./state";
 
 const OPEN_KEY = "spoolsync:open-panels";
@@ -191,6 +191,14 @@ export function wireSourcePanels(state: LoadState): {
 
   search?.addEventListener("input", refresh);
   wireSlashFocus(search);
+  wireEscapeClear(search);
+  document.getElementById("source-empty-clear")?.addEventListener("click", () => {
+    if (search) search.value = "";
+    filter = "all";
+    updatePreferences({ sourceFilter: undefined });
+    refresh();
+    search?.focus();
+  });
   for (const chip of chips)
     chip.addEventListener("click", () => {
       filter = (chip.dataset["sourceFilter"] as Filter | undefined) ?? "all";

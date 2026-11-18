@@ -2,7 +2,7 @@ import type { SpoolGroup } from "@spoolsync/core/core/match";
 import { SOURCE_IDS } from "@spoolsync/core/core/model";
 
 import { byId, h } from "../dom";
-import { wireSlashFocus } from "../shortcuts";
+import { wireEscapeClear, wireSlashFocus } from "../shortcuts";
 import { createGroupCards } from "./group-card";
 import { button } from "./presentation";
 import type { SyncSession } from "./session";
@@ -77,15 +77,39 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
       ? cards
       : [
           h(
-            "p",
-            { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
+            "div",
+            {
+              class:
+                "flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center text-muted-foreground",
+            },
+            h(
+              "p",
+              {},
+              needle
+                ? `No spools matching "${query.trim()}".`
+                : state.filter === "all"
+                  ? "Everything matches. Nothing to do."
+                  : "Nothing here.",
+            ),
             needle
-              ? `No spools matching "${query.trim()}".`
-              : state.filter === "all"
-                ? "Everything matches. Nothing to do."
-                : "Nothing here.",
+              ? button("Clear search", () => {
+                  query = "";
+                  shown = PAGE_SIZE;
+                  if (groupSearch) {
+                    groupSearch.value = "";
+                    groupSearch.focus();
+                  }
+                  renderGroups();
+                })
+              : null,
           ),
         ];
+    if (groupSearchClear) groupSearchClear.hidden = !needle;
+    if (groupSearchCount) {
+      groupSearchCount.textContent = needle
+        ? `${candidates} matching ${candidates === 1 ? "spool" : "spools"}`
+        : "";
+    }
     if (hidden > 0) {
       const more = button(`Show ${Math.min(PAGE_SIZE, hidden)} more`, () => {
         shown += PAGE_SIZE;
@@ -131,7 +155,19 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
   }
 
   const groupSearch = document.getElementById("group-search") as HTMLInputElement | null;
+  const groupSearchClear = document.getElementById("group-search-clear");
+  const groupSearchCount = document.getElementById("group-search-count");
   wireSlashFocus(groupSearch);
+  wireEscapeClear(groupSearch);
+  groupSearchClear?.addEventListener("click", () => {
+    query = "";
+    shown = PAGE_SIZE;
+    if (groupSearch) {
+      groupSearch.value = "";
+      groupSearch.focus();
+    }
+    renderGroups();
+  });
   let groupSearchFrame: number | null = null;
   groupSearch?.addEventListener("input", (event) => {
     query = (event.target as HTMLInputElement).value;

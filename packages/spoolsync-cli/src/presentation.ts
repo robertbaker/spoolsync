@@ -1,4 +1,4 @@
-import type { ApplyLogEntry } from "@spoolsync/core/core/model";
+import type { ApplyLogEntry, CommonSpool } from "@spoolsync/core/core/model";
 import pc from "picocolors";
 
 export type Palette = ReturnType<typeof pc.createColors>;
@@ -123,4 +123,21 @@ export function applyResults(entries: readonly ApplyLogEntry[], color = false): 
       return `  ${badge}  ${palette.dim(entry.groupId)}: ${entry.message}`;
     }),
   ].join("\n");
+}
+
+/** Concise human-readable label for a spool (vendor, material, name, remaining weight). */
+export function spoolSummary(spool: CommonSpool | undefined): string {
+  if (!spool) return "";
+  const parts = [spool.vendor, spool.material, spool.name].filter(Boolean);
+  const weight =
+    spool.remainingWeight !== undefined && spool.remainingWeight !== null
+      ? `${spool.remainingWeight}g`
+      : undefined;
+  return [...parts, ...(weight ? [weight] : [])].join(" ");
+}
+
+/** Human-readable spool description with its record key for prompts and reports. */
+export function describeSpool(spool: CommonSpool | undefined, fallbackKey: string): string {
+  const summary = spoolSummary(spool);
+  return summary ? `${summary} [${fallbackKey}]` : fallbackKey;
 }

@@ -131,3 +131,53 @@ test("partial failures print every result and recovery path without object inspe
   expect(captured.stdout).toEqual([]);
   expect(captured.code()).toBe(1);
 });
+
+test("match suggestions and unresolved conflicts include human-readable spool summaries", () => {
+  const options = parseArgs(["--spoolman", "one.json", "--spoolio", "two.json"]);
+  const loaded = new Map<SourceId, LoadResult>([
+    [
+      "spoolman",
+      {
+        source: "spoolman",
+        spools: [
+          makeSpool("spoolman", "1", {
+            vendor: "Polymaker",
+            material: "PLA",
+            name: "Charcoal",
+            colors: ["#222222"],
+            remainingWeight: 750,
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+    [
+      "spoolio",
+      {
+        source: "spoolio",
+        spools: [
+          makeSpool("spoolio", "2", {
+            vendor: "Polymaker",
+            material: "PLA",
+            name: "Charcoal",
+            colors: ["#222222"],
+            remainingWeight: 700,
+          }),
+        ],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+  const planning = createCliPlan(options, loaded);
+  const text = capture();
+  reportWorkflow(
+    options,
+    { loaded, planning, applied: undefined, written: [], exportWarnings: [] },
+    text.output,
+  );
+  const rendered = text.stdout.flat().join("\n");
+  expect(rendered).toContain("Match suggestion: spoolman:1,spoolio:2");
+  expect(rendered).toContain("Polymaker PLA Charcoal 750g ↔ Polymaker PLA Charcoal 700g");
+});

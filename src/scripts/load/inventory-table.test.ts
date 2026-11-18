@@ -91,3 +91,42 @@ test("turning off an unavailable low-stock filter also clears the saved preferen
   table();
   expect(document.querySelectorAll("[data-spool-row]")).toHaveLength(2);
 });
+
+test("empty search state offers a Clear filters button that restores the table", () => {
+  localStorage.clear();
+  document.body.replaceChildren();
+  for (const id of ["loaded-table", "loaded-summary"]) {
+    const element = document.createElement("div");
+    element.id = id;
+    document.body.append(element);
+  }
+  const search = document.createElement("input");
+  search.id = "spool-search-input";
+  search.value = "no-such-spool";
+  document.body.append(search);
+
+  const loaded = new Map([
+    [
+      "spoolman" as const,
+      {
+        source: "spoolman" as const,
+        spools: [makeSpool("spoolman", "1", { vendor: "Prusa", material: "PLA", name: "Black" })],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+
+  const table = createInventoryTable(loaded);
+  search.dispatchEvent(new Event("input"));
+  table();
+
+  const clearButton = [...document.querySelectorAll("button")].find(
+    (btn) => btn.textContent === "Clear filters",
+  );
+  expect(clearButton).toBeDefined();
+  clearButton!.click();
+
+  expect(search.value).toBe("");
+  expect(document.querySelectorAll("[data-spool-row]")).toHaveLength(1);
+});

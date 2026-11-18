@@ -31,3 +31,15 @@ export function wireSlashFocus(
     input.select();
   });
 }
+
+/** Clears a search input on Escape when it has text, dispatching an input event so listeners update. */
+export function wireEscapeClear(input: HTMLInputElement | null): void {
+  if (!input) return;
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !input.value) return;
+    event.preventDefault();
+    event.stopPropagation();
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}

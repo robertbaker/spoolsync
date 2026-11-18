@@ -42,18 +42,35 @@ export function noMatchMessage(filters: {
   rangeActive: boolean;
   /** The label of the active insight chip, if one is on. */
   insightLabel: string | null;
+  onClear?: () => void;
 }): HTMLElement {
-  const { searchQuery, rangeActive, insightLabel } = filters;
+  const { searchQuery, rangeActive, insightLabel, onClear } = filters;
+  const text = searchQuery
+    ? `No spools matching "${searchQuery}".`
+    : rangeActive
+      ? "No spools match the material and weight filters."
+      : insightLabel
+        ? `No spools match "${insightLabel}".`
+        : "No spools are running low.";
+  const clearButton = onClear
+    ? h(
+        "button",
+        {
+          type: "button",
+          class: buttonClass({ size: "sm" }),
+        },
+        "Clear filters",
+      )
+    : null;
+  if (clearButton && onClear) clearButton.addEventListener("click", onClear);
   return h(
-    "p",
-    { class: "rounded-lg border border-dashed p-8 text-center text-muted-foreground" },
-    searchQuery
-      ? `No spools matching "${searchQuery}".`
-      : rangeActive
-        ? "No spools match the material and weight filters."
-        : insightLabel
-          ? `No spools match "${insightLabel}".`
-          : "No spools are running low.",
+    "div",
+    {
+      class:
+        "flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center text-muted-foreground",
+    },
+    h("p", {}, text),
+    clearButton,
   );
 }
 

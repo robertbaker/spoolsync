@@ -40,6 +40,7 @@ export function createActionBar(state: LoadState): { update(): void } {
         : `${sources} ${sources === 1 ? "service" : "services"} loaded · ${spools} ${spools === 1 ? "spool" : "spools"}${ready ? "" : ". Load one more to compare."}${pending ? ` · ${pending} possible ${pending === 1 ? "match" : "matches"} to review` : ""}`;
     link.setAttribute("aria-disabled", String(!ready));
     link.classList.toggle("opacity-50", !ready);
+    link.title = ready ? "" : "Load at least 2 services to continue";
     // Stay focusable while blocked so keyboard and screen-reader users can find the link and hear
     // why (via aria-describedby on the summary); the click handler above stops the navigation.
   }

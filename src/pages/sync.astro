@@ -96,13 +96,24 @@ import { SITE_TITLE } from "~/config";
             <p class="mt-1 text-sm text-muted-foreground">Choose which service value to keep for each field that differs.</p>
           </div>
         </div>
-        <input
-          id="group-search"
-          type="search"
-          placeholder="Filter spools by brand, material, name or ID... (/)"
-          aria-label="Filter spools"
-          class="field-input mt-4 w-full py-1.5 text-sm sm:max-w-sm"
-        />
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            id="group-search"
+            type="search"
+            placeholder="Filter spools by brand, material, name or ID... (/)"
+            aria-label="Filter spools"
+            class="field-input mt-0 w-full py-1.5 text-sm sm:max-w-sm"
+          />
+          <button
+            type="button"
+            id="group-search-clear"
+            hidden
+            class="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            Clear search
+          </button>
+          <span id="group-search-count" class="text-xs text-muted-foreground" aria-live="polite"></span>
+        </div>
         <div id="bulk" class="mt-4 flex flex-wrap gap-2"></div>
         <div id="groups" class="mt-4 grid gap-4"></div>
       </section>
