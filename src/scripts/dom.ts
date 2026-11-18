@@ -108,23 +108,32 @@ export function showToast(
     ),
   );
 
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const dismiss = () => {
+  const dismiss = (restoreFocus = false) => {
     clearTimeout(timer);
+    if (restoreFocus && toast.contains(document.activeElement)) {
+      const sibling = toast.nextElementSibling ?? toast.previousElementSibling;
+      const nextButton = sibling?.querySelector<HTMLElement>("button");
+      if (nextButton) nextButton.focus();
+      else if (opener?.isConnected) opener.focus();
+    }
     toast.classList.add("opacity-0", "translate-y-2");
     setTimeout(() => toast.remove(), 200);
   };
   const arm = () => {
     clearTimeout(timer);
-    if (durationMs > 0) timer = setTimeout(dismiss, durationMs);
+    if (durationMs > 0) timer = setTimeout(() => dismiss(false), durationMs);
   };
   // Hovering or focusing a toast pauses its timer, so it can be read at any pace.
   toast.addEventListener("pointerenter", () => clearTimeout(timer));
   toast.addEventListener("pointerleave", arm);
   toast.addEventListener("focusin", () => clearTimeout(timer));
-  toast.addEventListener("focusout", arm);
+  toast.addEventListener("focusout", (event) => {
+    if (!toast.contains(event.relatedTarget as Node | null)) arm();
+  });
 
-  toast.querySelector("button")?.addEventListener("click", dismiss);
+  toast.querySelector("button")?.addEventListener("click", () => dismiss(true));
   container.append(toast);
   requestAnimationFrame(() => {
     toast.classList.remove("opacity-0", "translate-y-2");
