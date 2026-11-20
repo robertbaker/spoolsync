@@ -531,7 +531,7 @@ test("styles watch re-run headers and failure messages when stderr is a TTY", as
   await done;
   expect(
     h.lines.some((line) =>
-      line.includes("\x1b[36m[09:08:07] /data/a.json changed; running again\x1b[39m"),
+      line.includes("\x1b[38;5;208m[09:08:07] /data/a.json changed; running again\x1b[39m"),
     ),
   ).toBe(true);
   expect(h.lines.some((line) => line.includes("\x1b[31mWatch run failed: boom\x1b[39m"))).toBe(
@@ -597,7 +597,7 @@ test("styles watch re-run headers and failure messages when stderr is a TTY", as
   await done;
   expect(
     h.lines.some((line) =>
-      line.includes("\x1b[36m[09:08:07] /data/a.json changed; running again\x1b[39m"),
+      line.includes("\x1b[38;5;208m[09:08:07] /data/a.json changed; running again\x1b[39m"),
     ),
   ).toBe(true);
   expect(h.lines.some((line) => line.includes("\x1b[31mWatch run failed: boom\x1b[39m"))).toBe(

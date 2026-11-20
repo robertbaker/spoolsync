@@ -15,7 +15,7 @@ import { installTabs, sampleOutput } from "./data";
                 aria-selected={index === 0 ? "true" : "false"}
                 tabindex={index === 0 ? 0 : -1}
                 data-install-tab={tab.id}
-                class="flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
+                class="min-h-11 sm:min-h-0 flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm"
               >
                 {tab.label}
               </button>

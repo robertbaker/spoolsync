@@ -64,6 +64,10 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     type: "text",
     inputmode: "decimal",
     autocomplete: "off",
+    autocorrect: "off",
+    autocapitalize: "none",
+    spellcheck: "false",
+    enterkeyhint: "next",
     class: "field-input mt-1 w-32 tabular-nums",
     "aria-describedby": "weigh-in-result",
   });
@@ -72,6 +76,10 @@ export function createWeighInSection(detail: SpoolDetail, memory: WeighInMemory)
     type: "text",
     inputmode: "decimal",
     autocomplete: "off",
+    autocorrect: "off",
+    autocapitalize: "none",
+    spellcheck: "false",
+    enterkeyhint: "done",
     class: "field-input mt-1 w-32 tabular-nums",
     "aria-describedby": "weigh-in-tare-note",
   });

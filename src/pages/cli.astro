@@ -63,7 +63,7 @@ import { NPM_URL, REPO_URL, sections, safety, quickSteps } from "~/components/cl
         <Install />
       </div>
 
-      <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <ul role="list" class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {
           safety.map((item) => (
             <li class="modern-card rounded-2xl border bg-card/90 p-5 shadow-xs backdrop-blur-xs transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 flex gap-3.5">
@@ -82,7 +82,7 @@ import { NPM_URL, REPO_URL, sections, safety, quickSteps } from "~/components/cl
         sections.map((section) => (
           <a
             href={section.href}
-            class="rounded-full border bg-card px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary/60 hover:text-primary"
+            class="inline-flex min-h-11 items-center rounded-full border bg-card px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary/60 hover:text-primary-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             {section.label}
           </a>

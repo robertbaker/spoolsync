@@ -96,12 +96,17 @@ import { SITE_TITLE } from "~/config";
             <p class="mt-1 text-sm text-muted-foreground">Choose which service value to keep for each field that differs.</p>
           </div>
         </div>
-        <div class="mt-4 flex flex-wrap items-center gap-2">
+        <search class="mt-4 flex flex-wrap items-center gap-2" aria-label="Differences search">
           <input
             id="group-search"
             type="search"
             placeholder="Filter spools by brand, material, name or ID... (/)"
             aria-label="Filter spools"
+            aria-keyshortcuts="/"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="search"
             class="field-input mt-0 w-full py-1.5 text-sm sm:max-w-sm"
           />
           <button
@@ -113,7 +118,7 @@ import { SITE_TITLE } from "~/config";
             Clear search
           </button>
           <span id="group-search-count" class="text-xs text-muted-foreground" aria-live="polite"></span>
-        </div>
+        </search>
         <div id="bulk" class="mt-4 flex flex-wrap gap-2"></div>
         <div id="groups" class="mt-4 grid gap-4"></div>
       </section>

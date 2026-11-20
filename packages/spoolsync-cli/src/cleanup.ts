@@ -158,7 +158,7 @@ export function cleanupLines(
   const heading = options.cleanup
     ? `Cleanup: ${plural(summary.total, "proposal")}; ${applied.size} safe ${applied.size === 1 ? "change" : "changes"} added to the plan, ${summary.review} to review, ${summary.total - summary.applicable} not applicable to their service.`
     : `Cleanup: ${plural(summary.total, "proposal")} (${summary.safe} safe, ${summary.review} to review, ${summary.total - summary.applicable} not applicable to their service). Nothing is changed.`;
-  lines.push(palette.bold(palette.cyan(heading)));
+  lines.push(palette.bold(palette.brand(heading)));
   const listed = options.cleanupReport
     ? result.proposals
     : result.proposals.filter((proposal) => applied.has(proposal.id));

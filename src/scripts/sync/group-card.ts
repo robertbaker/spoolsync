@@ -113,6 +113,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
             },
             select,
             "Select for bulk edit",
+            h("span", { class: "sr-only" }, ` (${spoolTitle(first)})`),
           ),
           h("h3", { class: "text-lg" }, spoolTitle(first), " ", swatches(first.colors)),
           bulkEdit
@@ -140,6 +141,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
           h(
             "table",
             { class: "sync-comparison-table w-full text-sm" },
+            h("caption", { class: "sr-only" }, `Field comparison for ${spoolTitle(first)}`),
             h(
               "thead",
               { class: "bg-muted/50 text-muted-foreground" },
@@ -209,7 +211,7 @@ export function createGroupCards(state: SyncSession, onChanged: () => void) {
               {
                 for: id,
                 class:
-                  "flex cursor-pointer items-center gap-2 select-none rounded-lg border border-transparent px-2.5 py-1 text-sm transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-primary/10 has-[:checked]:text-primary hover:bg-muted/60",
+                  "flex cursor-pointer items-center gap-2 select-none rounded-lg border border-transparent px-2.5 py-1 text-sm transition-colors has-[:checked]:border-primary/40 has-[:checked]:bg-primary/10 has-[:checked]:text-primary-text has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 hover:bg-muted/60",
               },
               input,
               `Add to ${SOURCE_LABELS[source]}`,

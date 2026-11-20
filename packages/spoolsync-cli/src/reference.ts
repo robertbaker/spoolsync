@@ -291,7 +291,7 @@ export function referenceLines(
   const matches = `${summary.matched} of ${plural(summary.spools, "spool")} matched, ${summary.ambiguous} ambiguous, ${summary.suggested} only suggested, ${summary.unmatched} unmatched`;
   lines.push(
     palette.bold(
-      palette.cyan(
+      palette.brand(
         options.reference
           ? `${where}: ${matches}; ${plural(applied.size, "safe fill")} added to the plan, ${proposals.length - applied.size} to review or not applicable.`
           : `${where}: ${matches}; ${plural(proposals.length, "proposal")} (${summary.safe} safe, ${summary.review} to review). Nothing is changed.`,

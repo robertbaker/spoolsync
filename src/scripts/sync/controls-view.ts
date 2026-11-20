@@ -149,14 +149,22 @@ export function createControlsView(
       state.undoLabel() ? `Undo ${state.undoLabel()}` : "Undo",
       () => undoOrRedo("undo"),
       "outline",
-      { id: "undo-choice", title: "Undo the last change (Ctrl+Z)" },
+      {
+        id: "undo-choice",
+        title: "Undo the last change (Ctrl+Z)",
+        "aria-keyshortcuts": "Control+Z Meta+Z",
+      },
     );
     undo.disabled = state.undoLabel() === null;
     const redo = button(
       state.redoLabel() ? `Redo ${state.redoLabel()}` : "Redo",
       () => undoOrRedo("redo"),
       "outline",
-      { id: "redo-choice", title: "Redo (Ctrl+Shift+Z)" },
+      {
+        id: "redo-choice",
+        title: "Redo (Ctrl+Shift+Z)",
+        "aria-keyshortcuts": "Control+Shift+Z Meta+Shift+Z",
+      },
     );
     redo.disabled = state.redoLabel() === null;
     byId("bulk").replaceChildren(undo, redo, ...controls);

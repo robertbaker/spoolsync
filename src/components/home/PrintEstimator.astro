@@ -32,7 +32,7 @@ const polymers: readonly PolymerDensity[] = [
     <div class="relative z-10 grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center">
       <div>
         <div class="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-0.5 text-xs font-semibold text-primary-text mb-3">
-          <Icon name="material-symbols:calculate-outline" class="size-4" />
+          <Icon name="material-symbols:calculate-outline" class="size-4" aria-hidden="true" />
           Print estimate
         </div>
         <h2 class="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -92,7 +92,6 @@ const polymers: readonly PolymerDensity[] = [
               step="5"
               value="95"
               class="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
-              aria-label="Print weight estimate in grams"
             />
             <div class="flex justify-between text-[0.68rem] text-muted-foreground mt-1 font-mono">
               <span>5 g (sample / clip)</span>
@@ -103,7 +102,7 @@ const polymers: readonly PolymerDensity[] = [
 
           <div class="rounded-2xl border border-border/80 bg-background/80 p-4 shadow-xs">
             <div class="flex items-center justify-between text-xs font-semibold">
-              <label for="input-spool-remaining" class="text-foreground">Spool Remaining on Rack</label>
+              <label for="input-spool-remaining" class="text-foreground">Spool remaining on rack</label>
               <span class="font-mono text-base font-bold text-foreground">
                 <span id="val-spool-remaining">240</span> g
               </span>
@@ -116,7 +115,6 @@ const polymers: readonly PolymerDensity[] = [
               step="10"
               value="240"
               class="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
-              aria-label="Remaining filament on spool in grams"
             />
             <div class="flex justify-between text-[0.68rem] text-muted-foreground mt-1 font-mono">
               <span>10 g</span>
@@ -131,17 +129,17 @@ const polymers: readonly PolymerDensity[] = [
       <div class="rounded-3xl border border-border/80 bg-background/90 p-6 sm:p-7 shadow-layered">
         <div class="flex items-center justify-between border-b border-border/60 pb-4">
           <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Print Job Telemetry</span>
-            <h3 class="text-xl font-black text-foreground">Job Cost & Safety</h3>
+            <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Print job estimate</span>
+            <h3 class="text-xl font-black text-foreground">Job cost &amp; safety</h3>
           </div>
-          <span class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary-text">
-            <Icon name="material-symbols:payments-outline" class="size-6" />
+          <span class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary-text" aria-hidden="true">
+            <Icon name="material-symbols:payments-outline" class="size-6" aria-hidden="true" />
           </span>
         </div>
 
         <!-- Big Cost Display -->
         <div class="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center">
-          <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estimated Material Cost</span>
+          <span class="text-xs font-bold uppercase tracking-wider text-muted-foreground">Estimated material cost</span>
           <p class="mt-1 font-mono text-4xl font-black text-foreground tracking-tight">
             $<span id="out-print-cost">1.90</span>
           </p>
@@ -153,13 +151,13 @@ const polymers: readonly PolymerDensity[] = [
         <!-- Stat Grid: Length & Benchy Equiv -->
         <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
           <div class="rounded-xl border border-border/60 bg-muted/30 p-3">
-            <span class="text-[0.68rem] text-muted-foreground font-medium block">Filament Length (1.75mm)</span>
+            <span class="text-[0.68rem] text-muted-foreground font-medium block">Filament length (1.75mm)</span>
             <span class="text-base font-extrabold text-foreground font-mono mt-0.5 block">
               <span id="out-length-meters">31.8</span> m
             </span>
           </div>
           <div class="rounded-xl border border-border/60 bg-muted/30 p-3">
-            <span class="text-[0.68rem] text-muted-foreground font-medium block">Benchy Benchmark</span>
+            <span class="text-[0.68rem] text-muted-foreground font-medium block">Benchy benchmark</span>
             <span class="text-base font-extrabold text-foreground font-mono mt-0.5 block">
               ~<span id="out-benchy-count">7.0</span> prints
             </span>
@@ -169,8 +167,8 @@ const polymers: readonly PolymerDensity[] = [
         <!-- Estimated spool margin -->
         <div class="mt-4 rounded-xl border p-3.5 transition-all" id="out-safety-box">
           <div class="flex items-start gap-2.5">
-            <Icon name="material-symbols:check-circle-outline-rounded" class="size-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" id="safety-icon-ok" />
-            <Icon name="material-symbols:warning-outline-rounded" class="size-5 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400 hidden" id="safety-icon-warn" />
+            <Icon name="material-symbols:check-circle-outline-rounded" class="size-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" id="safety-icon-ok" aria-hidden="true" />
+            <Icon name="material-symbols:warning-outline-rounded" class="size-5 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400 hidden" id="safety-icon-warn" aria-hidden="true" />
             <div>
               <p class="text-xs font-bold leading-tight" id="safety-title">Estimated buffer</p>
               <p class="text-[0.72rem] text-muted-foreground mt-0.5 leading-snug" id="safety-desc">
@@ -183,7 +181,7 @@ const polymers: readonly PolymerDensity[] = [
         <!-- Post-Print Spool Progress Bar -->
         <div class="mt-4">
           <div class="flex justify-between text-xs text-muted-foreground mb-1.5">
-            <span>Spool Capacity Remaining After Job</span>
+            <span>Spool capacity remaining after job</span>
             <span class="font-mono font-bold text-foreground" id="out-remaining-percent">14.5%</span>
           </div>
           <div class="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -204,7 +202,7 @@ const polymers: readonly PolymerDensity[] = [
             iconPosition="right"
             class="w-full justify-center shadow-xs"
           >
-            Manage Your Spool Inventory
+            Manage your spool inventory
           </Button>
         </div>
       </div>
@@ -300,8 +298,8 @@ const polymers: readonly PolymerDensity[] = [
         if (safetyBox) safetyBox.className = "mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 transition-all text-amber-800 dark:text-amber-300";
         safetyIconOk?.classList.remove("hidden");
         safetyIconWarn?.classList.add("hidden");
-        if (safetyTitle) safetyTitle.textContent = "Tight Margin";
-        if (safetyDesc) safetyDesc.textContent = `Only ${remainingAfter}g remaining. Monitor print progress or prepare a backup spool.`;
+        if (safetyTitle) safetyTitle.textContent = "Tight margin";
+        if (safetyDesc) safetyDesc.textContent = `Only ${remainingAfter} g remaining. Monitor print progress or prepare a backup spool.`;
       } else {
         // Runout risk!
         const shortage = Math.abs(remainingAfter);
@@ -313,20 +311,40 @@ const polymers: readonly PolymerDensity[] = [
       }
     }
 
-    polyButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        polyButtons.forEach((b) => {
-          b.setAttribute("aria-checked", "false");
-          b.className = "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-border bg-background text-foreground hover:border-primary/40";
-        });
+    const polyList = Array.from(polyButtons);
+    function selectPolymer(btn: HTMLButtonElement, moveFocus = false) {
+      polyList.forEach((b) => {
+        const selected = b === btn;
+        b.setAttribute("aria-checked", String(selected));
+        b.tabIndex = selected ? 0 : -1;
+        b.className = selected
+          ? "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-primary bg-primary/15 text-primary-text ring-1 ring-primary/40 shadow-xs"
+          : "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-border bg-background text-foreground hover:border-primary/40";
+      });
+      if (moveFocus) btn.focus();
+      currentDensity = Number(btn.dataset.density) || 1.24;
+      currentPricePerKg = Number(btn.dataset.price) || 19.99;
+      currentBenchyGrams = Number(btn.dataset.benchy) || 13.5;
+      calculate();
+    }
 
-        btn.setAttribute("aria-checked", "true");
-        btn.className = "estimator-poly-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 border-primary bg-primary/15 text-primary-text ring-1 ring-primary/40 shadow-xs";
-
-        currentDensity = Number(btn.dataset.density) || 1.24;
-        currentPricePerKg = Number(btn.dataset.price) || 19.99;
-        currentBenchyGrams = Number(btn.dataset.benchy) || 13.5;
-        calculate();
+    polyList.forEach((btn, index) => {
+      btn.addEventListener("click", () => selectPolymer(btn));
+      btn.addEventListener("keydown", (event) => {
+        let nextIndex: number | null = null;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+          nextIndex = (index + 1) % polyList.length;
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+          nextIndex = (index - 1 + polyList.length) % polyList.length;
+        } else if (event.key === "Home") {
+          nextIndex = 0;
+        } else if (event.key === "End") {
+          nextIndex = polyList.length - 1;
+        }
+        if (nextIndex === null) return;
+        event.preventDefault();
+        const target = polyList[nextIndex];
+        if (target) selectPolymer(target, true);
       });
     });
 

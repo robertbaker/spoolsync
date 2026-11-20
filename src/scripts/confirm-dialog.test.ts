@@ -53,7 +53,26 @@ test("cancel and a backdrop click resolve false and return focus to the opener",
   expect(document.activeElement).toBe(first.opener);
 
   const second = open();
-  second.dialog.click();
+  second.dialog.getBoundingClientRect = () =>
+    ({
+      left: 100,
+      top: 100,
+      right: 400,
+      bottom: 300,
+      width: 300,
+      height: 200,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  // Dragging from inside the dialog to the backdrop must not dismiss.
+  second.dialog.dispatchEvent(new PointerEvent("pointerdown", { clientX: 150, clientY: 150 }));
+  second.dialog.dispatchEvent(new PointerEvent("pointerup", { clientX: 10, clientY: 10 }));
+  expect(second.dialog.hasAttribute("open")).toBe(true);
+
+  // Pressing and releasing outside the dialog dismisses it.
+  second.dialog.dispatchEvent(new PointerEvent("pointerdown", { clientX: 10, clientY: 10 }));
+  second.dialog.dispatchEvent(new PointerEvent("pointerup", { clientX: 10, clientY: 10 }));
   expect(await second.answer).toBe(false);
 });
 

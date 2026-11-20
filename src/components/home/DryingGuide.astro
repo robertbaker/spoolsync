@@ -97,12 +97,12 @@ const dryingData: readonly MaterialDryingInfo[] = [
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between border-b border-border/70 pb-6">
       <div>
-        <p class="text-xs font-bold tracking-wider text-primary-text">Filament drying guide</p>
+        <p class="text-xs font-bold uppercase tracking-wider text-primary-text">Moisture &amp; drying</p>
         <h2 class="mt-1 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-          Filament drying & moisture guide
+          Filament drying &amp; moisture guide
         </h2>
         <p class="mt-2 text-sm text-muted-foreground sm:text-base max-w-xl leading-relaxed">
-          SpoolSync flags hygroscopic spools that need drying in your loaded inventory. Select a material below to check typical drying settings and signs of wet filament.
+          SpoolSync flags hygroscopic spools that need drying in your loaded inventory. Filter by moisture risk to check typical drying settings and signs of wet filament.
         </p>
       </div>
 
@@ -112,7 +112,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
           type="button"
           data-moisture-filter="all"
           aria-pressed="true"
-          class="moisture-filter-btn rounded-full border border-primary bg-primary/15 px-3 py-1 text-xs font-semibold text-primary-text transition-all"
+          class="moisture-filter-btn min-h-11 rounded-full border border-primary bg-primary/15 px-3.5 py-1 text-xs font-semibold text-primary-text transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           All
         </button>
@@ -120,15 +120,15 @@ const dryingData: readonly MaterialDryingInfo[] = [
           type="button"
           data-moisture-filter="high"
           aria-pressed="false"
-          class="moisture-filter-btn rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40"
+          class="moisture-filter-btn min-h-11 rounded-full border border-border bg-background px-3.5 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          High Risk
+          High risk
         </button>
         <button
           type="button"
           data-moisture-filter="medium"
           aria-pressed="false"
-          class="moisture-filter-btn rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40"
+          class="moisture-filter-btn min-h-11 rounded-full border border-border bg-background px-3.5 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Medium
         </button>
@@ -136,12 +136,13 @@ const dryingData: readonly MaterialDryingInfo[] = [
           type="button"
           data-moisture-filter="low"
           aria-pressed="false"
-          class="moisture-filter-btn rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40"
+          class="moisture-filter-btn min-h-11 rounded-full border border-border bg-background px-3.5 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           Low
         </button>
       </div>
     </div>
+    <p id="drying-filter-status" class="sr-only" role="status" aria-live="polite">Showing all {dryingData.length} materials.</p>
 
     <!-- Interactive Grid of Materials -->
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="drying-cards-container">
@@ -157,17 +158,17 @@ const dryingData: readonly MaterialDryingInfo[] = [
               </h3>
               {item.moisture === "high" && (
                 <span class="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[0.68rem] font-bold text-rose-800 dark:text-rose-300">
-                  <Icon name="material-symbols:water-drop" class="size-3" /> High Risk
+                  <Icon name="material-symbols:water-drop" class="size-3" aria-hidden="true" /> High risk
                 </span>
               )}
               {item.moisture === "medium" && (
                 <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[0.68rem] font-bold text-amber-800 dark:text-amber-300">
-                  <Icon name="material-symbols:humidity-mid" class="size-3" /> Medium
+                  <Icon name="material-symbols:humidity-mid" class="size-3" aria-hidden="true" /> Medium
                 </span>
               )}
               {item.moisture === "low" && (
                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[0.68rem] font-bold text-emerald-800 dark:text-emerald-300">
-                  <Icon name="material-symbols:humidity-low" class="size-3" /> Low
+                  <Icon name="material-symbols:humidity-low" class="size-3" aria-hidden="true" /> Low
                 </span>
               )}
             </div>
@@ -175,7 +176,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
             <!-- Dryer Temp & Duration Specs -->
             <div class="mt-4 grid grid-cols-2 gap-2 text-xs">
               <div class="rounded-xl border border-border/60 bg-muted/40 p-2.5">
-                <span class="text-[0.68rem] text-muted-foreground block font-medium">Dryer Temp</span>
+                <span class="text-[0.68rem] text-muted-foreground block font-medium">Dryer temp</span>
                 <span class="font-extrabold text-foreground text-sm mt-0.5 block font-mono">
                   {item.tempC} °C <span class="text-[0.7rem] font-normal text-muted-foreground">({item.tempF} °F)</span>
                 </span>
@@ -204,11 +205,11 @@ const dryingData: readonly MaterialDryingInfo[] = [
     <!-- Bottom integration callout -->
     <div class="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-primary/25 bg-primary/10 p-4 text-xs">
       <div class="flex items-center gap-3">
-        <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary-text">
-          <Icon name="material-symbols:dry-cleaning" class="size-5" />
+        <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary-text" aria-hidden="true">
+          <Icon name="material-symbols:dry-cleaning" class="size-5" aria-hidden="true" />
         </div>
         <div>
-          <p class="font-bold text-foreground">Integrated into the Load & Sync drawer</p>
+          <p class="font-bold text-foreground">Integrated into the Load &amp; Sync drawer</p>
           <p class="text-muted-foreground text-[0.72rem]">When you load spools, SpoolSync groups spools that need drying and remembers your last drying dates.</p>
         </div>
       </div>
@@ -220,7 +221,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
         iconPosition="right"
         class="shrink-0 shadow-xs"
       >
-        Open Drying Assistant
+        Open drying assistant
       </Button>
     </div>
   </div>
@@ -233,6 +234,7 @@ const dryingData: readonly MaterialDryingInfo[] = [
 
     const filterButtons = root.querySelectorAll<HTMLButtonElement>(".moisture-filter-btn");
     const cards = root.querySelectorAll<HTMLElement>(".drying-card");
+    const status = root.querySelector<HTMLElement>("#drying-filter-status");
 
     filterButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -241,20 +243,28 @@ const dryingData: readonly MaterialDryingInfo[] = [
 
         filterButtons.forEach((b) => {
           b.setAttribute("aria-pressed", "false");
-          b.className = "moisture-filter-btn rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40";
+          b.className = "moisture-filter-btn min-h-11 rounded-full border border-border bg-background px-3.5 py-1 text-xs font-semibold text-muted-foreground transition-all hover:text-foreground hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
         });
 
         btn.setAttribute("aria-pressed", "true");
-        btn.className = "moisture-filter-btn rounded-full border border-primary bg-primary/15 px-3 py-1 text-xs font-semibold text-primary-text transition-all";
+        btn.className = "moisture-filter-btn min-h-11 rounded-full border border-primary bg-primary/15 px-3.5 py-1 text-xs font-semibold text-primary-text transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
+        let visibleCount = 0;
         cards.forEach((card) => {
           const moisture = card.dataset.moisture;
           if (filter === "all" || moisture === filter) {
             card.classList.remove("hidden");
+            visibleCount++;
           } else {
             card.classList.add("hidden");
           }
         });
+        if (status) {
+          status.textContent =
+            filter === "all"
+              ? `Showing all ${visibleCount} materials.`
+              : `Showing ${visibleCount} of ${cards.length} materials.`;
+        }
       });
     });
   }

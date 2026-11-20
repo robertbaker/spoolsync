@@ -177,6 +177,12 @@ export function tableShell(
       role: "region",
       "aria-label": "Loaded spools table (scrollable)",
     },
-    h("table", {}, head, h("tbody", {}, ...bodyRows)),
+    h(
+      "table",
+      {},
+      h("caption", { class: "sr-only" }, "Loaded spools"),
+      head,
+      h("tbody", {}, ...bodyRows),
+    ),
   );
 }

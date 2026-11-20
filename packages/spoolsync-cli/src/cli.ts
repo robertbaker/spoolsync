@@ -172,10 +172,10 @@ try {
         trace: ({ layer, option }) => (lines[layer] ??= []).push(option),
       });
       output.log(
-        `${palette.bold("Settings file:")} ${palette.cyan(configFile)}${args.includes("--no-user-config") ? palette.dim(" (ignored by --no-user-config)") : ""}`,
+        `${palette.bold("Settings file:")} ${palette.brand(configFile)}${args.includes("--no-user-config") ? palette.dim(" (ignored by --no-user-config)") : ""}`,
       );
       for (const layer of ["settings file", "--config file", "command line"] as const) {
-        output.log(`\n${palette.bold(palette.cyan(`${layer}:`))}`);
+        output.log(`\n${palette.bold(palette.brand(`${layer}:`))}`);
         for (const option of lines[layer] ?? []) output.log(`  ${option}`);
         if (!lines[layer]?.length) output.log(`  ${palette.dim("(nothing)")}`);
       }

@@ -11,19 +11,19 @@ export function badge(text: string, tone: "success" | "neutral" | "warning"): HT
 }
 
 // Password visibility toggles
-export const wirePasswordToggle = (btnId: string, inputId: string) => {
+export const wirePasswordToggle = (btnId: string, inputId: string, fieldLabel = "value") => {
   const btn = document.getElementById(btnId);
   const input = document.getElementById(inputId) as HTMLInputElement | null;
   if (!btn || !input) return;
   btn.setAttribute("aria-pressed", "false");
-  btn.setAttribute("aria-label", "Show value");
+  btn.setAttribute("aria-label", `Show ${fieldLabel}`);
   btn.addEventListener("click", () => {
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
     const label = isPassword ? "Hide" : "Show";
     if (btn.firstElementChild) btn.firstElementChild.textContent = label;
     else btn.textContent = label;
-    btn.setAttribute("aria-label", isPassword ? "Hide value" : "Show value");
+    btn.setAttribute("aria-label", isPassword ? `Hide ${fieldLabel}` : `Show ${fieldLabel}`);
     btn.setAttribute("aria-pressed", String(isPassword));
   });
 };

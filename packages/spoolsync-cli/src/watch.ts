@@ -146,7 +146,7 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
       const names = [...changed];
       changed.clear();
       const header = names.length
-        ? palette.cyan(`[${stamp()}] ${names.join(", ")} changed; running again`)
+        ? palette.brand(`[${stamp()}] ${names.join(", ")} changed; running again`)
         : "";
       if (!quiet && header) output.error(header);
       exitCode = 0;
@@ -256,7 +256,7 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
   }
 
   output.error(
-    palette.cyan(
+    palette.brand(
       `Watching ${files.length} file${files.length === 1 ? "" : "s"} for changes. Press Ctrl+C (or type q and press Enter) to stop.`,
     ),
   );

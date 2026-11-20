@@ -37,9 +37,9 @@ const lines = code.split("\n").map((text, index, all) => ({
   <button
     type="button"
     data-copy-code={code}
-    class="absolute right-2 flex size-9 [@media(pointer:coarse)]:size-11 items-center justify-center rounded-lg border border-neutral-foreground/15 bg-neutral/90 text-neutral-foreground/80 opacity-0 backdrop-blur transition hover:bg-neutral-foreground/10 hover:text-neutral-foreground focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
+    class="absolute right-2 flex size-9 [@media(pointer:coarse)]:size-11 items-center justify-center rounded-lg border border-neutral-foreground/15 bg-neutral/90 text-neutral-foreground/80 opacity-0 backdrop-blur transition hover:bg-neutral-foreground/10 hover:text-neutral-foreground focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary group-hover:opacity-100 group-focus-within:opacity-100 data-[copied=true]:opacity-100 data-[copied=true]:text-success [@media(hover:none)]:opacity-100"
     class:list={[title ? "top-12" : "top-2"]}
-    aria-label="Copy command to clipboard"
+    aria-label={title ? `Copy ${title.toLowerCase()} command` : "Copy command to clipboard"}
   >
     <Icon name="material-symbols:content-copy-outline-rounded" class="size-[18px] copy-idle" aria-hidden="true" />
     <Icon name="material-symbols:check-rounded" class="hidden size-[18px] copy-done" aria-hidden="true" />
@@ -82,6 +82,11 @@ const lines = code.split("\n").map((text, index, all) => ({
   document.addEventListener("click", async (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>("[data-copy-code]");
     if (!button) return;
+    const originalLabel =
+      button.dataset["copyOriginalLabel"] ??
+      button.getAttribute("aria-label") ??
+      "Copy command to clipboard";
+    button.dataset["copyOriginalLabel"] = originalLabel;
     const ok = await copyText(button.dataset["copyCode"] ?? "");
     button.dataset["copied"] = String(ok);
     button.setAttribute("aria-label", ok ? "Copied" : "Copy failed");
@@ -95,7 +100,7 @@ const lines = code.split("\n").map((text, index, all) => ({
       window.setTimeout(() => {
         resetTimers.delete(button);
         delete button.dataset["copied"];
-        button.setAttribute("aria-label", "Copy command to clipboard");
+        button.setAttribute("aria-label", originalLabel);
         button.querySelector(".copy-idle")?.classList.remove("hidden");
         button.querySelector(".copy-done")?.classList.add("hidden");
       }, FEEDBACK_MS),

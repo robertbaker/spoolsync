@@ -101,7 +101,7 @@ export function showToast(
       {
         type: "button",
         class:
-          "ml-2 shrink-0 rounded p-1 text-xs opacity-70 hover:opacity-100 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "ml-2 inline-flex size-7 shrink-0 items-center justify-center rounded text-xs opacity-70 hover:opacity-100 transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         "aria-label": "Dismiss notification",
       },
       h("span", { "aria-hidden": "true" }, "✕"),
@@ -179,13 +179,29 @@ export function setChildren(parent: ParentNode, ...children: Child[]): void {
 
 /**
  * Enables click-outside dismissal on a modal `<dialog>` using `closedby="any"` with a fallback
- * listener only for browsers that lack `closedBy` (such as Safari).
+ * listener only for browsers that lack `closedBy` (such as Safari). Tests pointer coordinates on
+ * both press and release so clicking dialog padding or dragging a text selection onto the backdrop
+ * does not dismiss the dialog.
  */
 export function enableBackdropDismiss(dialog: HTMLDialogElement): void {
   dialog.setAttribute("closedby", "any");
   if ("closedBy" in HTMLDialogElement.prototype) return;
-  dialog.addEventListener("click", (event) => {
-    if (event.target === dialog) dialog.close();
+  const outside = (event: PointerEvent) => {
+    const rect = dialog.getBoundingClientRect();
+    return (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    );
+  };
+  let pressedOutside = false;
+  dialog.addEventListener("pointerdown", (event) => {
+    pressedOutside = outside(event);
+  });
+  dialog.addEventListener("pointerup", (event) => {
+    if (pressedOutside && outside(event)) dialog.close();
+    pressedOutside = false;
   });
 }
 

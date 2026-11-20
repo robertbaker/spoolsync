@@ -10,8 +10,10 @@ type Service = "spoolman" | "tigertag";
  */
 export function wireConnectionPanels(): void {
   const wired = new Set<Service>();
-  wirePasswordToggle("toggle-spoolman-token", "spoolman-token");
-  wirePasswordToggle("toggle-tigertag-password", "tigertag-password");
+  wirePasswordToggle("toggle-spoolman-token", "spoolman-token", "API token");
+  wirePasswordToggle("toggle-tigertag-password", "tigertag-password", "password");
+  wirePasswordToggle("toggle-bambuddy-key", "bambuddy-key", "API key");
+  wirePasswordToggle("toggle-filamentdb-token", "filamentdb-token", "session token");
 
   async function wire(service: Service): Promise<void> {
     if (wired.has(service)) return;

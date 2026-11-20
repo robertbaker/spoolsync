@@ -7,18 +7,31 @@ import { optionGroups } from "./data";
     <section class="mt-20 scroll-mt-24" id="options">
       <div class="flex flex-wrap items-baseline justify-between gap-4">
         <SectionHeader align="left" eyebrow="Reference" title="Options" subtitle="Every flag the CLI accepts." />
-        <div class="w-full sm:w-auto">
+        <search class="w-full sm:w-auto" aria-label="CLI options search">
           <input
             id="options-search"
             type="search"
             placeholder="Search flags... (/)"
+            aria-keyshortcuts="/"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
+            enterkeyhint="search"
             class="field-input mt-0 py-1.5 text-xs w-full sm:w-60"
             aria-label="Filter CLI options"
           />
-        </div>
+          <p id="options-search-status" class="sr-only" role="status" aria-live="polite"></p>
+        </search>
       </div>
-      <div id="no-options-match" class="mt-6 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground" hidden>
-        No options match your search.
+      <div id="no-options-match" class="mt-6 flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground" hidden>
+        <p>No options match your search.</p>
+        <button
+          type="button"
+          id="options-search-clear"
+          class="min-h-11 rounded-md border px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          Clear search
+        </button>
       </div>
       <div class="mt-8 space-y-8" id="option-groups-container">
         {

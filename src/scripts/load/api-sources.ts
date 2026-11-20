@@ -103,6 +103,7 @@ function wireBambuddy(context: LoadContext): void {
     url.value = "";
     key.value = "";
     updateEnabled();
+    url.focus();
     message.replaceChildren(
       notice("info", "Connection cleared", h("p", {}, "The address and API key were forgotten.")),
     );
@@ -158,6 +159,7 @@ function wireFilamentDb(context: LoadContext): void {
     url.value = "";
     token.value = "";
     updateEnabled();
+    url.focus();
     byId("filamentdb-message").replaceChildren(
       notice("info", "Connection cleared", h("p", {}, "The address and token were forgotten.")),
     );

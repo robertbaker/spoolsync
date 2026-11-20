@@ -41,7 +41,9 @@ beforeEach(() => {
       <li data-matrix-row="spoolman"></li>
       <li data-matrix-row="spoolstock"></li>
     </ul>
-    <p id="matrix-empty" hidden></p>`;
+    <div id="matrix-empty" hidden>
+      <button type="button" id="matrix-empty-clear">Clear search &amp; filters</button>
+    </div>`;
 });
 
 test("wiring hides rows, marks the pressed filter, and shows the empty message", () => {
@@ -61,6 +63,15 @@ test("wiring hides rows, marks the pressed filter, and shows the empty message",
   expect(rows.every((row) => row.hidden)).toBe(true);
   expect(document.getElementById("matrix-empty")!.hidden).toBe(false);
   expect(document.getElementById("matrix-status")!.textContent).toBe("No tools match.");
+
+  document.getElementById("matrix-empty-clear")!.click();
+  expect(search.value).toBe("");
+  expect(rows.every((row) => !row.hidden)).toBe(true);
+  expect(document.getElementById("matrix-empty")!.hidden).toBe(true);
+  expect(document.querySelector('[data-matrix-filter="all"]')!.getAttribute("aria-pressed")).toBe(
+    "true",
+  );
+  expect(document.activeElement).toBe(search);
 });
 
 test("wiring does nothing when the section is absent", () => {

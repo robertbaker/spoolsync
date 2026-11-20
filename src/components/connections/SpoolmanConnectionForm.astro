@@ -10,7 +10,7 @@ const { badge = false } = Astro.props;
 ---
 
 {badge && <div class="mb-3 flex justify-end"><span id="spoolman-status-badge" class="text-xs"></span></div>}
-<form id="spoolman-form" class="mt-5 grid gap-5" novalidate>
+<form id="spoolman-form" aria-label="Spoolman connection settings" class="mt-5 grid gap-5" novalidate>
   <div class="field-label">
     <label for="spoolman-url">Spoolman address</label>
     <input
@@ -19,6 +19,10 @@ const { badge = false } = Astro.props;
       type="url"
       inputmode="url"
       autocomplete="url"
+      autocorrect="off"
+      autocapitalize="none"
+      spellcheck="false"
+      enterkeyhint="next"
       required
       aria-describedby="spoolman-url-hint"
       placeholder="http://192.168.1.20:7912"
@@ -38,15 +42,18 @@ const { badge = false } = Astro.props;
         name="token"
         type="password"
         autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
         spellcheck="false"
+        enterkeyhint="done"
         aria-describedby="spoolman-token-hint"
-        class={`${inputClass} mt-0 pr-10`}
+        class={`${inputClass} mt-0 pr-14`}
       />
       <button
         type="button"
         id="toggle-spoolman-token"
-        class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-        aria-label="Show value" aria-pressed="false"
+        class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center px-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
+        aria-label="Show API token" aria-pressed="false"
       >
         <span class="text-xs font-mono font-medium" id="toggle-spoolman-token-text">Show</span>
       </button>

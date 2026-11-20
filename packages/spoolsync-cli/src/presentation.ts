@@ -1,10 +1,15 @@
 import type { ApplyLogEntry, CommonSpool } from "@spoolsync/core/core/model";
 import pc from "picocolors";
 
-export type Palette = ReturnType<typeof pc.createColors>;
+export type Palette = ReturnType<typeof pc.createColors> & {
+  /** SpoolSync's molten-filament orange, matching the web app's primary color. */
+  brand: (text: string | number) => string;
+};
 
 export function createPalette(enabled = pc.isColorSupported): Palette {
-  return pc.createColors(enabled);
+  // 256-color orange (208) is the closest widely supported match to the web brand color.
+  const brand = (text: string | number) => (enabled ? `[38;5;208m${text}[39m` : String(text));
+  return { ...pc.createColors(enabled), brand };
 }
 
 /** Wrap prose without splitting flags, paths, or other copyable tokens. */
@@ -24,16 +29,16 @@ function wrapWords(text: string, indent: string, width: number): string {
 
 function colorizeHelpLine(line: string, palette: Palette): string {
   const trimmed = line.trimStart();
-  if (trimmed === "SpoolSync CLI") return palette.bold(palette.cyan(line));
+  if (trimmed === "SpoolSync CLI") return palette.bold(palette.brand(line));
   if (trimmed.startsWith("spoolsync ")) {
     const indent = line.slice(0, line.length - trimmed.length);
     return `${indent}${palette.green(trimmed)}`;
   }
-  if (/^[A-Z][^:]*:\s*$/.test(trimmed)) return palette.bold(palette.cyan(line));
+  if (/^[A-Z][^:]*:\s*$/.test(trimmed)) return palette.bold(palette.brand(line));
   const flagLine = /^(\s{2})((?:-[A-Za-z0-9], )?--\S+)(\s+<[^>]+>)?$/.exec(line);
   if (flagLine) {
     const [, indent, flag, arg] = flagLine;
-    return `${indent}${palette.cyan(flag!)}${arg ? palette.dim(arg) : ""}`;
+    return `${indent}${palette.brand(flag!)}${arg ? palette.dim(arg) : ""}`;
   }
   return line;
 }
@@ -96,7 +101,7 @@ export function textTable(
       .trimEnd()}`;
   const headerLine = formatRow(
     headers,
-    color ? (cell) => palette.bold(palette.cyan(cell)) : undefined,
+    color ? (cell) => palette.bold(palette.brand(cell)) : undefined,
   );
   const divider = `  ${palette.dim(widths.map((width) => "─".repeat(width)).join("  "))}`;
   const bodyLines = rows.map((row, rowIndex) => {

@@ -37,6 +37,7 @@ export function wireServiceMatrix(root: ParentNode = document): void {
   const rows = [...root.querySelectorAll<HTMLElement>("[data-matrix-row]")];
   const status = root.querySelector<HTMLElement>("#matrix-status");
   const empty = root.querySelector<HTMLElement>("#matrix-empty");
+  const clearEmpty = root.querySelector<HTMLButtonElement>("#matrix-empty-clear");
   if (!search || buttons.length === 0 || rows.length === 0) return;
 
   let filter: MatrixFilter = "all";
@@ -59,5 +60,11 @@ export function wireServiceMatrix(root: ParentNode = document): void {
       apply();
     });
   }
+  clearEmpty?.addEventListener("click", () => {
+    search.value = "";
+    filter = "all";
+    apply();
+    search.focus();
+  });
   apply();
 }

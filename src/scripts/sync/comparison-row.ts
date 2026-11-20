@@ -35,7 +35,19 @@ export function comparisonRow(
       return h(
         "td",
         { class: "px-3 py-2 text-muted-foreground" },
-        blank ? "—" : h("span", { title: `${SOURCE_LABELS[source]} does not store this` }, "n/a"),
+        blank
+          ? h(
+              "span",
+              {},
+              h("span", { "aria-hidden": "true" }, "—"),
+              h("span", { class: "sr-only" }, "Blank"),
+            )
+          : h(
+              "span",
+              { title: `${SOURCE_LABELS[source]} does not store this` },
+              "n/a",
+              h("span", { class: "sr-only" }, ` (${SOURCE_LABELS[source]} does not store this)`),
+            ),
       );
     }
     const id = `${name}::${source}`;
@@ -47,7 +59,7 @@ export function comparisonRow(
       {
         for: id,
         class:
-          "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:font-semibold has-[:checked]:text-primary hover:bg-muted/60",
+          "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 transition-colors has-[:checked]:bg-primary/10 has-[:checked]:font-semibold has-[:checked]:text-primary-text hover:bg-muted/60",
       },
       input,
     );

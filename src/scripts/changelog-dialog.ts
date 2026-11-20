@@ -69,6 +69,7 @@ interface Elements {
   scroller: HTMLElement;
   nav: HTMLElement;
   content: HTMLElement;
+  live: HTMLElement;
 }
 
 interface ViewState {
@@ -136,7 +137,7 @@ function renderRelease(
     "summary",
     { class: "cl-release-summary" },
     h(
-      "h3",
+      "span",
       { class: "cl-release-title" },
       h("span", { class: "cl-version" }, `v${release.version}`),
       release.date
@@ -184,7 +185,7 @@ function renderSection(section: ChangelogRelease["sections"][number], release: C
       "aria-label": `${section.title}, version ${release.version}`,
     },
     h(
-      "h4",
+      "h3",
       { class: "cl-section-title" },
       icon(KIND_ICONS[kind]),
       h("span", {}, section.title),
@@ -406,6 +407,11 @@ function renderList(): void {
   );
   nav.hidden = shown.length < 2;
   if (shown.length) setActiveNav(0);
+  elements.live.textContent = filtering
+    ? shown.length
+      ? `Showing ${shown.length} ${shown.length === 1 ? "release" : "releases"}.`
+      : "No changes match."
+    : "";
   elements.scroller.scrollTop = 0;
   observeReleases();
   updateBadge();
@@ -516,7 +522,10 @@ function ensureDialog(): Elements {
     class: "cl-search",
     placeholder: "Search changes",
     autocomplete: "off",
+    autocorrect: "off",
+    autocapitalize: "none",
     spellcheck: "false",
+    enterkeyhint: "search",
     "aria-label": "Search the changelog",
   });
   const chips = h("div", {
@@ -526,7 +535,13 @@ function ensureDialog(): Elements {
     hidden: "",
   });
   const nav = h("nav", { class: "cl-nav", "aria-label": "Jump to a release", hidden: "" });
-  const content = h("div", { id: "changelog-content", class: "cl-content", "aria-live": "polite" });
+  const live = h("p", {
+    id: "changelog-live",
+    class: "sr-only",
+    role: "status",
+    "aria-live": "polite",
+  });
+  const content = h("div", { id: "changelog-content", class: "cl-content" });
   const scroller = h(
     "div",
     {
@@ -536,6 +551,7 @@ function ensureDialog(): Elements {
       "aria-label": "Release notes",
     },
     nav,
+    live,
     content,
   );
   const dialog = h(
@@ -561,7 +577,7 @@ function ensureDialog(): Elements {
       scroller,
     ),
   );
-  elements = { dialog, title, sub, badge, search, chips, scroller, nav, content };
+  elements = { dialog, title, sub, badge, search, chips, scroller, nav, content, live };
   close.addEventListener("click", () => dialog.close());
   enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {

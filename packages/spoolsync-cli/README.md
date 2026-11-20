@@ -1,12 +1,12 @@
 # SpoolSync CLI
 
 Compare and sync filament inventories from your terminal. `spoolsync` uses the same matching,
-planning, and export adapters as the [SpoolSync web app](https://spoolsync.com), and works across
+planning, and export adapters as the [SpoolSync web app](https://www.spoolsync.com), and works across
 <!-- services:cli-names-inline:start -->Spoolman, Spoolstock, Spoolio, TigerTag, 3DFilamentProfiles, Bambuddy, FilaMeter, Filadex, FilamentDB, Filament DB, SpoolMaster, Spool Hoarder, Spool, SpoolKeep, and PrintStudio<!-- services:cli-names-inline:end -->.
 
 > <!-- services:readonly-inline:start -->Spoolstock, SpoolMaster, Spool Hoarder, Spool, and SpoolKeep are read-only sources: SpoolSync reads their exports and uses their values to update other services, but they do not accept imports.<!-- services:readonly-inline:end --> For a walkthrough of the browser
 >
-> app's Load, Review, and Apply flow, open [spoolsync.com](https://spoolsync.com) and select **Take a tour**.
+> app's Load, Review, and Apply flow, open [www.spoolsync.com](https://www.spoolsync.com) and select **Take a tour**.
 
 Each service has its own input option:
 

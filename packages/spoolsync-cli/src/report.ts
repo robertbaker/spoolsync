@@ -109,7 +109,7 @@ export function reportWorkflow(
     const palette = createPalette(color);
     const stderrPalette = createPalette(Boolean(output.stderrIsTTY ?? output.isTTY));
     const serviceNames = new Map(listServices(SOURCE_IDS).map(({ id, info }) => [id, info.name]));
-    const heading = (title: string) => `\n${palette.bold(palette.cyan(title))}`;
+    const heading = (title: string) => `\n${palette.bold(palette.brand(title))}`;
     const changeRows = SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => {
       const result = loaded.get(source)!;
       const target = !isWritableSource(source)
@@ -153,7 +153,7 @@ export function reportWorkflow(
         [1, 2, 3],
         color,
         (cell, _rowIndex, colIndex, rawCell) => {
-          if (colIndex === 2 && Number(rawCell) > 0) return palette.cyan(cell);
+          if (colIndex === 2 && Number(rawCell) > 0) return palette.brand(cell);
           if (colIndex === 3 && Number(rawCell) > 0) return palette.green(cell);
           if (colIndex === 4 && (rawCell === "Read only" || rawCell.startsWith("Preview;")))
             return palette.dim(cell);
@@ -224,7 +224,7 @@ export function reportWorkflow(
           .filter(Boolean)
           .join("; ");
         output.log(
-          `Match suggestion: ${palette.cyan(suggestion.pair.join(","))} ${palette.dim(`(${details})`)}`,
+          `Match suggestion: ${palette.brand(suggestion.pair.join(","))} ${palette.dim(`(${details})`)}`,
         );
       }
       output.log(
@@ -267,11 +267,11 @@ export function reportWorkflow(
       output.log(heading("Next steps"));
       if (!options.outputDir && fileTargets.length)
         output.log(
-          `  Add ${palette.cyan("--output-dir <dir>")} to write inventory files for: ${fileTargets.join(", ")}.`,
+          `  Add ${palette.brand("--output-dir <dir>")} to write inventory files for: ${fileTargets.join(", ")}.`,
         );
       if (!options.apply && apiTargets.length)
         output.log(
-          `  Add ${palette.cyan("--apply")} to write planned changes to: ${apiTargets.join(", ")}.`,
+          `  Add ${palette.brand("--apply")} to write planned changes to: ${apiTargets.join(", ")}.`,
         );
     }
     if (rollbackFiles.length)
@@ -343,7 +343,7 @@ export function reportInventoryOnly(
     const plural = (count: number, singular: string, pluralForm = `${singular}s`) =>
       `${count.toLocaleString("en-US")} ${count === 1 ? singular : pluralForm}`;
     output.log(
-      `\n${palette.bold(palette.cyan(`Inventory summary — ${plural(spools, "spool")} across ${plural(summaries.length, "inventory", "inventories")}`))}`,
+      `\n${palette.bold(palette.brand(`Inventory summary — ${plural(spools, "spool")} across ${plural(summaries.length, "inventory", "inventories")}`))}`,
     );
     for (const summary of summaries) {
       output.log(

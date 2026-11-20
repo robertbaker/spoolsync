@@ -33,15 +33,15 @@ test("connection password toggles and unsupported URL validation retain their be
   page,
 }) => {
   await page.goto("/load");
-  const togglePassword = async (toggle: string, input: string) => {
+  const togglePassword = async (toggle: string, input: string, hideLabel: string) => {
     await page.locator(toggle).click();
     await expect(page.locator(input)).toHaveAttribute("type", "text");
-    await expect(page.locator(toggle)).toHaveAttribute("aria-label", "Hide value");
+    await expect(page.locator(toggle)).toHaveAttribute("aria-label", hideLabel);
     await page.locator(toggle).click();
     await expect(page.locator(input)).toHaveAttribute("type", "password");
   };
   // One service shows at a time: Spoolman is open first, then TigerTag.
-  await togglePassword("#toggle-spoolman-token", "#spoolman-token");
+  await togglePassword("#toggle-spoolman-token", "#spoolman-token", "Hide API token");
   await page.locator("#spoolman-url").fill("ftp://spoolman.test");
   await page.locator("#spoolman-test").click();
   await expect(page.locator("#spoolman-result")).toContainText("Check the address");
@@ -49,7 +49,7 @@ test("connection password toggles and unsupported URL validation retain their be
   await expect(page.locator("#spoolman-test")).toBeEnabled();
   await page.locator('[data-tile="tigertag"]').click();
   await page.locator("#tigertag-settings > summary").click();
-  await togglePassword("#toggle-tigertag-password", "#tigertag-password");
+  await togglePassword("#toggle-tigertag-password", "#tigertag-password", "Hide password");
 });
 
 test("the tour walks the Load page through to Sync and the old Connections link redirects", async ({

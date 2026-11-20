@@ -24,13 +24,14 @@ const importResult = h("p", {
 
 function rebuild(body: HTMLElement): void {
   const items = listSavedData();
-  const rows = items.map(({ group, bytes, keys }) => {
+  const rows = items.map(({ group, bytes, keys }, index) => {
     const forget = h(
       "button",
       {
         type: "button",
         class:
-          "shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
+          "shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        "data-forget-group": group.id,
         "aria-label": `Forget ${group.label}`,
       },
       "Forget",
@@ -40,6 +41,10 @@ function rebuild(body: HTMLElement): void {
       if (group.id === "connections" || group.id === "inventories") announceConnectionChange();
       changed = true;
       rebuild(body);
+      const remaining = body.querySelectorAll<HTMLButtonElement>("[data-forget-group]");
+      const next = remaining[Math.min(index, remaining.length - 1)];
+      if (next) next.focus();
+      else body.querySelector<HTMLButtonElement>("[data-saved-close]")?.focus();
     });
     return h(
       "li",
@@ -74,19 +79,21 @@ function rebuild(body: HTMLElement): void {
     announceConnectionChange();
     changed = true;
     rebuild(body);
+    body.querySelector<HTMLButtonElement>("[data-saved-close]")?.focus();
   });
   const close = h(
     "button",
     {
       type: "button",
+      "data-saved-close": "",
       class:
-        "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
+        "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
     },
     "Close",
   );
   close.addEventListener("click", () => dialog?.close());
   const buttonClass =
-    "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary";
+    "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
   const exportButton = h("button", { type: "button", class: buttonClass }, "Export settings");
   exportButton.addEventListener("click", () =>
     download(
@@ -98,13 +105,16 @@ function rebuild(body: HTMLElement): void {
   const fileInput = h("input", {
     type: "file",
     accept: ".json,application/json",
-    class: "sr-only",
+    class: "peer sr-only",
     id: "import-settings-file",
     "aria-label": "Settings file to import",
   });
   const importButton = h(
     "label",
-    { class: `${buttonClass} cursor-pointer`, for: "import-settings-file" },
+    {
+      class: `${buttonClass} cursor-pointer peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary`,
+      for: "import-settings-file",
+    },
     "Import settings",
   );
   const result = importResult;
@@ -130,14 +140,18 @@ function rebuild(body: HTMLElement): void {
   });
   const transfer = h(
     "section",
-    { class: "mt-6 border-t pt-5", "aria-label": "Move to another browser" },
-    h("p", { class: "text-sm font-semibold" }, "Move to another browser"),
+    { class: "mt-6 border-t pt-5", "aria-labelledby": "saved-data-transfer-title" },
+    h(
+      "h3",
+      { id: "saved-data-transfer-title", class: "text-sm font-semibold" },
+      "Move to another browser",
+    ),
     h(
       "p",
       { class: "mt-0.5 text-xs text-muted-foreground" },
       "Export your preferences, file history, and match answers to a file, then import it elsewhere. Connections and tokens are never included.",
     ),
-    h("div", { class: "mt-3 flex flex-wrap gap-2" }, exportButton, importButton, fileInput),
+    h("div", { class: "mt-3 flex flex-wrap gap-2" }, exportButton, fileInput, importButton),
     result,
   );
   const saved = h(

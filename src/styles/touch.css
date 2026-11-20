@@ -30,6 +30,10 @@
   /* Filter chips and toolbar buttons above the table. */
   #insight-chips button,
   [data-source-filter],
+  #source-empty-clear,
+  #spool-search-clear,
+  #scan-spool-camera,
+  #low-stock-rules-toggle,
   #low-only,
   #copy-reorder,
   #print-labels,

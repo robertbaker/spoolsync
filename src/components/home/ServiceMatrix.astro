@@ -35,11 +35,15 @@ const apiLabel = (service: (typeof SERVICE_VIEWS)[number]) =>
         type="search"
         placeholder="Search tools, formats, or platforms"
         autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        spellcheck="false"
+        enterkeyhint="search"
         class="field-input mt-0 min-h-11 w-full pl-9 pr-8 py-1.5 text-sm"
         data-matrix-search
         aria-keyshortcuts="/"
       />
-      <kbd class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border/80 bg-muted px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground">/</kbd>
+      <kbd aria-hidden="true" class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border/80 bg-muted px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground">/</kbd>
     </div>
     <div class="flex flex-wrap gap-1.5" role="group" aria-label="Capability filter">
       {
@@ -69,7 +73,7 @@ const apiLabel = (service: (typeof SERVICE_VIEWS)[number]) =>
       <span>API</span>
       <span></span>
     </div>
-    <ul class="grid gap-3" id="matrix-list">
+    <ul role="list" class="grid gap-3" id="matrix-list">
       {
         SERVICE_VIEWS.map((service) => (
           <li class="service-matrix__row modern-card group" data-matrix-row={service.id}>
@@ -138,13 +142,20 @@ const apiLabel = (service: (typeof SERVICE_VIEWS)[number]) =>
         ))
       }
     </ul>
-    <p
+    <div
       id="matrix-empty"
-      class="mt-4 rounded-lg border border-dashed p-6 text-center text-muted-foreground"
+      class="mt-4 flex flex-col items-center gap-3 rounded-lg border border-dashed p-6 text-center text-muted-foreground"
       hidden
     >
-      No tool matches. Clear the search or choose another filter.
-    </p>
+      <p>No tool matches. Clear the search or choose another filter.</p>
+      <button
+        type="button"
+        id="matrix-empty-clear"
+        class="min-h-11 rounded-md border px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        Clear search &amp; filters
+      </button>
+    </div>
   </div>
 </section>
 

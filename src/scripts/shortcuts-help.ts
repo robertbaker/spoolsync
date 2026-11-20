@@ -27,8 +27,9 @@ function ensureDialog(): HTMLDialogElement {
     "button",
     {
       type: "button",
+      autofocus: "",
       class:
-        "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
+        "min-h-11 sm:min-h-0 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
     },
     "Close",
   );

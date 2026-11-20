@@ -67,7 +67,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
           <div class="mt-7 flex flex-wrap items-center gap-3 border-t pt-4 text-sm text-muted-foreground">
             <span class="font-semibold text-foreground">No SpoolSync account or inventory server.</span>
             <a href="#supported-tools" class="inline-flex min-h-11 items-center font-semibold text-primary-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-              See supported tools and formats <Icon name="material-symbols:arrow-forward-rounded" class="ml-1 size-4" />
+              See supported tools and formats <Icon name="material-symbols:arrow-forward-rounded" class="ml-1 size-4" aria-hidden="true" />
             </a>
           </div>
         </div>
@@ -75,7 +75,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
         <HeroShowcase />
       </div>
 
-      <ul class="glass-surface mt-12 grid gap-4 rounded-2xl border border-primary/15 p-4 shadow-xs sm:grid-cols-3 sm:divide-x sm:divide-border/60 sm:p-5">
+      <ul role="list" class="glass-surface mt-12 grid gap-4 rounded-2xl border border-primary/15 p-4 shadow-xs sm:grid-cols-3 sm:divide-x sm:divide-border/60 sm:p-5">
         <li class="flex items-start gap-3 sm:px-4 sm:first:pl-0 sm:last:pr-0">
           <Icon name="material-symbols:lock-outline" class="mt-0.5 size-5 shrink-0 text-primary-text" aria-hidden="true" />
           <div>
@@ -127,7 +127,7 @@ import { SERVICE_COUNT_WORD } from "~/lib/services";
 
       <ServiceMatrix />
 
-      <section class="mt-20 scroll-mt-20" aria-label="For the workshop">
+      <section class="mt-20 scroll-mt-20">
         <SectionHeader
           align="left"
           eyebrow="For the workshop"

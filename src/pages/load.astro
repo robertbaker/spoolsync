@@ -42,6 +42,7 @@ const spoolman = serviceView("spoolman");
     <Container class="relative z-10 py-10 sm:py-14">
       <FlowSteps current="load" class="mb-6" />
       <PageHeader
+        eyebrow="Step 1 of 3 · Load"
         title="Load inventories"
         description="Bring your filament inventory into SpoolSync from a file export or a connected server."
       />
@@ -77,13 +78,17 @@ const spoolman = serviceView("spoolman");
         <h2 class="text-xl font-bold">Services</h2>
         <p id="source-count" class="text-sm text-muted-foreground" aria-live="polite"></p>
       </div>
-      <search class="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+      <search class="flex w-full flex-wrap items-center gap-3 sm:w-auto" aria-label="Filter services">
         <input
           id="source-search"
           type="search"
           placeholder="Find a service... (/)"
           aria-label="Find a service"
           aria-keyshortcuts="/"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          enterkeyhint="search"
           class="field-input mt-0 w-full py-1.5 text-sm sm:w-56"
         />
         <div class="load-service-filters flex flex-wrap gap-1.5" role="group" aria-label="Filter services">
@@ -233,11 +238,45 @@ const spoolman = serviceView("spoolman");
                 <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                   <div>
                     <label class="field-label" for="bambuddy-url">Bambuddy server address</label>
-                    <input id="bambuddy-url" type="url" placeholder="http://bambuddy.local:8000" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                    <input
+                      id="bambuddy-url"
+                      type="url"
+                      inputmode="url"
+                      placeholder="http://bambuddy.local:8000"
+                      autocomplete="off"
+                      autocorrect="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      enterkeyhint="next"
+                      aria-describedby="bambuddy-hint"
+                      class="field-input mt-1"
+                    />
                   </div>
                   <div>
                     <label class="field-label" for="bambuddy-key">Bambuddy API key</label>
-                    <input id="bambuddy-key" type="password" placeholder="API key" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                    <div class="relative mt-1">
+                      <input
+                        id="bambuddy-key"
+                        type="password"
+                        placeholder="API key"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        enterkeyhint="done"
+                        aria-describedby="bambuddy-hint"
+                        class="field-input mt-0 pr-14"
+                      />
+                      <button
+                        type="button"
+                        id="toggle-bambuddy-key"
+                        class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center px-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
+                        aria-label="Show API key"
+                        aria-pressed="false"
+                      >
+                        <span class="text-xs font-mono font-medium">Show</span>
+                      </button>
+                    </div>
                   </div>
                   <div class="flex gap-2">
                     <Button type="button" color="primary" id="bambuddy-fetch" aria-describedby="bambuddy-hint">Fetch spools</Button>
@@ -254,11 +293,45 @@ const spoolman = serviceView("spoolman");
                 <div class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                   <div>
                     <label class="field-label" for="filamentdb-url">FilamentDB server address</label>
-                    <input id="filamentdb-url" type="url" placeholder="http://filamentdb.local:3000" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                    <input
+                      id="filamentdb-url"
+                      type="url"
+                      inputmode="url"
+                      placeholder="http://filamentdb.local:3000"
+                      autocomplete="off"
+                      autocorrect="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      enterkeyhint="next"
+                      aria-describedby="filamentdb-hint"
+                      class="field-input mt-1"
+                    />
                   </div>
                   <div>
                     <label class="field-label" for="filamentdb-token">FilamentDB session token</label>
-                    <input id="filamentdb-token" type="password" placeholder="Only with user management" autocomplete="off" spellcheck="false" class="field-input mt-1" />
+                    <div class="relative mt-1">
+                      <input
+                        id="filamentdb-token"
+                        type="password"
+                        placeholder="Only with user management"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        enterkeyhint="done"
+                        aria-describedby="filamentdb-hint"
+                        class="field-input mt-0 pr-14"
+                      />
+                      <button
+                        type="button"
+                        id="toggle-filamentdb-token"
+                        class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center px-3 text-muted-foreground transition hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary rounded"
+                        aria-label="Show session token"
+                        aria-pressed="false"
+                      >
+                        <span class="text-xs font-mono font-medium">Show</span>
+                      </button>
+                    </div>
                   </div>
                   <div class="flex gap-2">
                     <Button type="button" color="primary" id="filamentdb-fetch" aria-describedby="filamentdb-hint">Fetch spools</Button>
@@ -292,12 +365,16 @@ const spoolman = serviceView("spoolman");
             <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
             <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground" aria-live="polite"></p>
           </div>
-          <div id="loaded-filter-wrap" class="w-full sm:w-auto" hidden>
+          <search id="loaded-filter-wrap" class="w-full sm:w-auto" aria-label="Loaded spools search" hidden>
             <div class="flex flex-wrap items-center gap-2 sm:flex-nowrap">
               <input
                 id="spool-search-input"
                 type="search"
                 placeholder="Filter loaded spools..."
+                autocorrect="off"
+                autocapitalize="none"
+                spellcheck="false"
+                enterkeyhint="search"
                 class="field-input mt-0 py-1.5 text-xs w-full sm:w-64"
                 aria-label="Filter loaded spools"
               />
@@ -318,7 +395,7 @@ const spoolman = serviceView("spoolman");
                 Scan with camera
               </button>
             </div>
-          </div>
+          </search>
         </div>
         <div class="mt-3 flex flex-wrap items-center gap-2 empty:hidden">
           <label id="low-threshold-wrap" hidden class="flex items-center gap-2 text-xs text-muted-foreground">
@@ -386,7 +463,7 @@ const spoolman = serviceView("spoolman");
       class="glass-surface sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border border-primary/20 bg-card/90 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-layered backdrop-blur-md"
     >
       <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
-        Nothing loaded yet. Drop export files above or open a service below.
+        Nothing loaded yet. Drop export files or pick a service above.
       </p>
       <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" aria-describedby="load-bar-summary" icon="material-symbols:arrow-forward" iconPosition="right">
         Continue to review

@@ -39,6 +39,18 @@
     min-block-size: 5rem;
     max-block-size: 18rem;
   }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
+}
+
+/* Keep form controls at least 1rem on coarse pointers to prevent iOS Safari auto-zoom on focus. */
+@media (pointer: coarse) {
+  .field-input {
+    font-size: max(1rem, 1em);
+  }
 }
 
 /*
