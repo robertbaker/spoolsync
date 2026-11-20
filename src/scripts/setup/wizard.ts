@@ -17,9 +17,9 @@ import {
 } from "./steps";
 
 const BUTTON =
-  "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary";
+  "min-h-11 sm:min-h-0 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50";
 const PRIMARY =
-  "rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+  "min-h-11 sm:min-h-0 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 export interface SetupOptions {
   /** How many services hold an inventory right now. */
@@ -73,7 +73,7 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
         {
           for: `setup-app-${source}`,
           class:
-            "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm hover:bg-muted/50",
+            "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 has-[:checked]:border-primary/50 has-[:checked]:bg-primary/10",
         },
         input,
         h(

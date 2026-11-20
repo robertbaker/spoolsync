@@ -24,12 +24,14 @@ export interface BulkEditDependencies {
 }
 
 function field(id: string, label: string, input: HTMLElement, hint: string): HTMLElement {
+  const hintId = `${id}-hint`;
+  input.setAttribute("aria-describedby", hintId);
   return h(
     "div",
     { class: "grid gap-1" },
     h("label", { for: id, class: "text-sm font-medium" }, label),
     input,
-    h("p", { class: "text-xs text-muted-foreground" }, hint),
+    h("p", { id: hintId, class: "text-xs text-muted-foreground" }, hint),
   );
 }
 
@@ -56,6 +58,7 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
     maxlength: String(BULK_EDIT_LIMITS.location),
     class: "field-input w-full py-1.5 text-sm",
     autocomplete: "off",
+    enterkeyhint: "done",
   });
   const note = h("textarea", {
     id: "bulk-edit-note",
@@ -69,6 +72,10 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
     maxlength: String(BULK_EDIT_LIMITS.tag),
     class: "field-input w-full py-1.5 text-sm",
     autocomplete: "off",
+    autocorrect: "off",
+    autocapitalize: "none",
+    spellcheck: "false",
+    enterkeyhint: "done",
   });
   const checkbox = (id: string, label: string) => {
     const input = h("input", { id, type: "checkbox", class: "size-4" });
@@ -127,11 +134,13 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
       tag: tag.value,
     });
     if ("error" in result) {
+      status.className = "text-sm text-error-text";
       status.textContent = result.error;
       return;
     }
     const ids = selectedIds();
     if (!ids.length) {
+      status.className = "text-sm text-error-text";
       status.textContent = bulkEditResult(0, 0);
       return;
     }
@@ -143,6 +152,7 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
     const unreachable = state.match.groups.filter(
       (group) => state.selected().has(group.id) && !editReachesGroup(group, result.patch),
     ).length;
+    status.className = "text-sm text-muted-foreground";
     status.textContent =
       bulkEditResult(changed, ids.length) +
       (unreachable
@@ -155,10 +165,12 @@ export function createBulkEditView(state: SyncSession, dependencies: BulkEditDep
   function removeFromSelected(): void {
     const ids = selectedIds();
     if (!ids.length) {
+      status.className = "text-sm text-error-text";
       status.textContent = bulkEditResult(0, 0);
       return;
     }
     const cleared = state.clearBulkEdit(ids, undefined, "removing bulk edits");
+    status.className = "text-sm text-muted-foreground";
     status.textContent = cleared
       ? `Removed bulk edits from ${cleared} ${cleared === 1 ? "spool" : "spools"}.`
       : "None of the selected spools had a bulk edit.";

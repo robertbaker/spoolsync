@@ -127,39 +127,44 @@ export function renderLoadedChart(
   );
 
   const table = h(
-    "table",
-    { class: "mt-2 w-full text-left text-xs" },
+    "div",
+    { class: "overflow-x-auto" },
     h(
-      "thead",
-      { class: "text-muted-foreground" },
+      "table",
+      { class: "mt-2 w-full text-left text-xs" },
+      h("caption", { class: "sr-only" }, `Remaining filament by ${VIEW_NOUNS[view]}`),
       h(
-        "tr",
-        {},
-        ...[
-          VIEW_NOUNS[view].replace(/^./, (c) => c.toUpperCase()),
-          "Spools",
-          `Remaining (${readDisplaySettings().weightUnit})`,
-          "Share",
-        ].map((heading) => h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading)),
-      ),
-    ),
-    h(
-      "tbody",
-      {},
-      ...data.map((datum) =>
+        "thead",
+        { class: "text-muted-foreground" },
         h(
           "tr",
-          { class: "border-t" },
-          h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, datum.label),
-          h("td", { class: "py-1 pr-3 tabular-nums" }, datum.spools.toLocaleString()),
+          {},
+          ...[
+            VIEW_NOUNS[view].replace(/^./, (c) => c.toUpperCase()),
+            "Spools",
+            `Remaining (${readDisplaySettings().weightUnit})`,
+            "Share",
+          ].map((heading) => h("th", { scope: "col", class: "py-1 pr-3 font-medium" }, heading)),
+        ),
+      ),
+      h(
+        "tbody",
+        {},
+        ...data.map((datum) =>
           h(
-            "td",
-            { class: "py-1 pr-3 tabular-nums" },
-            gramsToUnit(datum.grams, readDisplaySettings().weightUnit).toLocaleString(undefined, {
-              maximumFractionDigits: readDisplaySettings().weightUnit === "oz" ? 1 : 0,
-            }),
+            "tr",
+            { class: "border-t" },
+            h("th", { scope: "row", class: "py-1 pr-3 font-medium" }, datum.label),
+            h("td", { class: "py-1 pr-3 tabular-nums" }, datum.spools.toLocaleString()),
+            h(
+              "td",
+              { class: "py-1 pr-3 tabular-nums" },
+              gramsToUnit(datum.grams, readDisplaySettings().weightUnit).toLocaleString(undefined, {
+                maximumFractionDigits: readDisplaySettings().weightUnit === "oz" ? 1 : 0,
+              }),
+            ),
+            h("td", { class: "py-1 tabular-nums" }, `${share(datum)}%`),
           ),
-          h("td", { class: "py-1 tabular-nums" }, `${share(datum)}%`),
         ),
       ),
     ),

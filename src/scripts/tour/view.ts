@@ -23,19 +23,25 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
   dialog.append(body);
   document.body.append(dialog);
 
-  // Modern Web Guidance: Fallback for browsers without native closedby support
+  // Modern Web Guidance: Fallback for browsers without native closedby support.
+  // Require both press and release outside so text-selection drags onto the backdrop do not dismiss.
   if (!("closedBy" in HTMLDialogElement.prototype)) {
-    dialog.addEventListener("click", (event) => {
-      if (event.target !== dialog) return;
+    const outside = (event: PointerEvent) => {
       const rect = dialog.getBoundingClientRect();
-      const isInside =
-        rect.top <= event.clientY &&
-        event.clientY <= rect.top + rect.height &&
-        rect.left <= event.clientX &&
-        event.clientX <= rect.left + rect.width;
-      if (!isInside) {
-        actions.clear();
-      }
+      return (
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom
+      );
+    };
+    let pressedOutside = false;
+    dialog.addEventListener("pointerdown", (event) => {
+      pressedOutside = outside(event);
+    });
+    dialog.addEventListener("pointerup", (event) => {
+      if (pressedOutside && outside(event)) actions.clear();
+      pressedOutside = false;
     });
   }
 
@@ -62,7 +68,7 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
 
     const position = h(
       "p",
-      { class: "text-xs font-semibold uppercase tracking-wide text-primary" },
+      { class: "text-xs font-semibold uppercase tracking-wide text-primary-text" },
       `Tour · ${index + 1} of ${steps.length}`,
     );
     const title = h(
@@ -89,7 +95,7 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
       {
         type: "button",
         class:
-          "rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "min-h-11 sm:min-h-0 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
       },
       "Skip tour",
     );
@@ -99,7 +105,7 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
       {
         type: "button",
         class:
-          "rounded-md border px-3 py-2 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "min-h-11 sm:min-h-0 rounded-md border px-3 py-2 text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50",
         ...(index === 0 ? { disabled: "" } : {}),
       },
       "Back",
@@ -110,7 +116,7 @@ export function createTourView(steps: readonly TourStep[], actions: TourActions)
       {
         type: "button",
         class:
-          "rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          "min-h-11 sm:min-h-0 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
       },
       index === steps.length - 1 ? "Finish" : "Next",
     );
