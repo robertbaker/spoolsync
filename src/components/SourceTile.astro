@@ -1,5 +1,7 @@
 ---
 /** A service in the Load page's picker. Selecting it opens that service's panel in the stage below. */
+import type { SourceId } from "@spoolsync/core/core/model";
+import ServiceMark from "~/components/ServiceMark.astro";
 import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
 
 interface Props {
@@ -32,7 +34,9 @@ const { id, label, kind, icon, image, api = false, readonly = false, compact = f
   {
     image ? (
       <IconAvatar color="primary" size="sm" containerSize="sm">
-        <img slot="icon" src={image} alt="" class="size-5 object-contain" />
+        <span slot="icon" class="contents">
+          <ServiceMark id={id as SourceId} class="size-5" />
+        </span>
       </IconAvatar>
     ) : (
       <IconAvatar icon={icon} color="primary" size="sm" containerSize="sm" />

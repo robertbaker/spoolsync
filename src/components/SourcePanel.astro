@@ -1,6 +1,8 @@
 ---
 /** A collapsible service on the Load page. Native <details>, so it works without scripting. */
 import { Icon } from "astro-icon/components";
+import type { SourceId } from "@spoolsync/core/core/model";
+import ServiceMark from "~/components/ServiceMark.astro";
 import IconAvatar from "~/components/starwind/controls/IconAvatar/IconAvatar.astro";
 
 interface Props {
@@ -34,7 +36,9 @@ const search = `${label} ${kind} ${api ? "api connect" : ""} ${readonly ? "read-
     {
       image ? (
         <IconAvatar color="primary">
-          <img slot="icon" id={`${id}-logo`} src={image} alt="" class="size-7 object-contain" />
+          <span slot="icon" id={`${id}-logo`} class="contents">
+            <ServiceMark id={id as SourceId} class="size-7" />
+          </span>
         </IconAvatar>
       ) : (
         <IconAvatar icon={icon} color="primary" />
