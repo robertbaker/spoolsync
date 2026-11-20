@@ -55,6 +55,9 @@ minute, written to the git-ignored `public/reference/`); set `SKIP_REFERENCE_SNA
 when offline.
 It includes axe-core accessibility checks of the home, Load, and Sync pages in light and dark themes;
 fix any reported violation rather than excluding rules.
+Playwright writes its HTML report and traces to the git-ignored `.artifacts/` folder
+(`.artifacts/playwright-report/`, `.artifacts/test-results/`); open the report with
+`bunx playwright show-report .artifacts/playwright-report`.
 With the current Bun runtime, `expect(promise).rejects` matchers wait internally and return
 `void`; omit an extra `await` on those assertions. Continue awaiting asynchronous operations
 and Playwright assertions normally.

@@ -9,9 +9,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : 1,
+  // Keep Playwright output out of the repo root, under the gitignored .artifacts/ folder.
+  outputDir: ".artifacts/test-results",
   reporter: process.env.CI
-    ? [["html", { open: "never" }], ["dot"]]
-    : [["line"], ["html", { open: "never" }]],
+    ? [["html", { open: "never", outputFolder: ".artifacts/playwright-report" }], ["dot"]]
+    : [["line"], ["html", { open: "never", outputFolder: ".artifacts/playwright-report" }]],
   timeout: 60000,
   // Fail a hung suite fast instead of waiting on the job timeout (healthy CI run: ~2 min).
   globalTimeout: process.env.CI ? 5 * 60_000 : undefined,

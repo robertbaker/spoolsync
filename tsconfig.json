@@ -31,7 +31,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "types": ["bun-types", "@types/node"],
     "incremental": true,
-    "tsBuildInfoFile": "./.tsbuildinfo"
+    "tsBuildInfoFile": "./node_modules/.cache/spoolsync-web.tsbuildinfo"
   },
   "include": [".astro/types.d.ts", "src", "tests", "e2e", "packages/*/src", "worker"],
   "exclude": [
