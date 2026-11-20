@@ -1,13 +1,19 @@
 import type { SpoolGroup } from "@spoolsync/core/core/match";
 import { SOURCE_IDS } from "@spoolsync/core/core/model";
 
-import { byId, h } from "../dom";
+import { updatePreferences } from "~/lib/preferences";
+
+import { byId, focusRevealedItem, h } from "../dom";
 import { wireEscapeClear, wireSlashFocus } from "../shortcuts";
 import { createGroupCards } from "./group-card";
 import { button } from "./presentation";
 import type { SyncSession } from "./session";
 
-export function createGroupsView(state: SyncSession, onChanged: () => void) {
+export function createGroupsView(
+  state: SyncSession,
+  onChanged: () => void,
+  onFilterReset?: () => void,
+) {
   const { groupCard, hasContent } = createGroupCards(state, onChanged);
 
   const PAGE_SIZE = 25;
@@ -16,6 +22,7 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
   let shown = PAGE_SIZE;
   let lastFilter = state.filter;
   let query = "";
+  let pendingFocusIndex: number | null = null;
 
   const searchCache = new WeakMap<SpoolGroup, string>();
   function searchText(group: SpoolGroup): string {
@@ -73,6 +80,32 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     cards.push(...buildCards(limit));
     const pending = chunked && next < eligible.length;
     const hidden = pending ? 0 : candidates - cards.length;
+    const emptyMessage = needle
+      ? `No spools matching "${query.trim()}".`
+      : state.filter === "open"
+        ? "No spools have open conflicts."
+        : state.filter === "missing"
+          ? "No spools are missing from any service."
+          : "Everything matches. Nothing to do.";
+    const emptyAction = needle
+      ? button("Clear search", () => {
+          query = "";
+          shown = PAGE_SIZE;
+          if (groupSearch) {
+            groupSearch.value = "";
+            groupSearch.focus();
+          }
+          renderGroups();
+        })
+      : state.filter !== "all"
+        ? button("Show all spools", () => {
+            state.filter = "all";
+            updatePreferences({ syncFilter: undefined });
+            onFilterReset?.();
+            renderGroups();
+            document.querySelector<HTMLElement>('[data-sync-filter="all"]')?.focus();
+          })
+        : null;
     const children: HTMLElement[] = cards.length
       ? cards
       : [
@@ -82,26 +115,8 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
               class:
                 "flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center text-muted-foreground",
             },
-            h(
-              "p",
-              {},
-              needle
-                ? `No spools matching "${query.trim()}".`
-                : state.filter === "all"
-                  ? "Everything matches. Nothing to do."
-                  : "Nothing here.",
-            ),
-            needle
-              ? button("Clear search", () => {
-                  query = "";
-                  shown = PAGE_SIZE;
-                  if (groupSearch) {
-                    groupSearch.value = "";
-                    groupSearch.focus();
-                  }
-                  renderGroups();
-                })
-              : null,
+            h("p", {}, emptyMessage),
+            emptyAction,
           ),
         ];
     if (groupSearchClear) groupSearchClear.hidden = !needle;
@@ -111,11 +126,14 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
         : "";
     }
     if (hidden > 0) {
+      const renderedCount = cards.length;
       const more = button(`Show ${Math.min(PAGE_SIZE, hidden)} more`, () => {
+        pendingFocusIndex = renderedCount;
         shown += PAGE_SIZE;
         renderGroups();
       });
       const all = button(`Show all ${candidates}`, () => {
+        pendingFocusIndex = renderedCount;
         shown = Number.POSITIVE_INFINITY;
         renderGroups();
       });
@@ -135,7 +153,16 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     }
     const container = byId("groups");
     container.replaceChildren(...children);
-    if (!pending) return;
+    if (
+      pendingFocusIndex !== null &&
+      focusRevealedItem(container, "[data-group]", pendingFocusIndex)
+    ) {
+      pendingFocusIndex = null;
+    }
+    if (!pending) {
+      pendingFocusIndex = null;
+      return;
+    }
     // Append the remaining cards a batch per frame; any newer render supersedes this one.
     const status = h("p", { class: "text-sm text-muted-foreground", "aria-live": "polite" });
     const updateStatus = () => {
@@ -146,10 +173,19 @@ export function createGroupsView(state: SyncSession, onChanged: () => void) {
     const appendBatch = () => {
       if (token !== renderToken) return;
       status.before(...buildCards(SHOW_ALL_BATCH));
+      if (
+        pendingFocusIndex !== null &&
+        focusRevealedItem(container, "[data-group]", pendingFocusIndex)
+      ) {
+        pendingFocusIndex = null;
+      }
       if (next < eligible.length) {
         updateStatus();
         requestAnimationFrame(appendBatch);
-      } else status.remove();
+      } else {
+        pendingFocusIndex = null;
+        status.remove();
+      }
     };
     requestAnimationFrame(appendBatch);
   }

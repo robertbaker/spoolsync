@@ -53,6 +53,7 @@ export interface InteractivePrompts {
   text(options: {
     message: string;
     placeholder?: string;
+    defaultValue?: string;
     validate?: (value: string | undefined) => string | Error | undefined;
   }): Promise<string | symbol>;
   isCancel(value: unknown): value is symbol;
@@ -304,6 +305,7 @@ export async function runInteractiveChoices(
       const dir = await prompts.text({
         message: "Output directory:",
         placeholder: "./updated",
+        defaultValue: "./updated",
         validate: (value) => (value?.trim() ? undefined : "Enter a directory path."),
       });
       if (prompts.isCancel(dir)) {
@@ -340,6 +342,5 @@ export async function runInteractiveChoices(
     options.apply = Boolean(shouldApply);
   }
 
-  prompts.outro("Interactive setup complete.");
   return { options, planning, cancelled: false };
 }

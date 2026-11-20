@@ -138,13 +138,16 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
   let running: Promise<void> | undefined;
   let again = false;
 
+  const palette = createPalette(Boolean(output.stderrIsTTY));
   const stamp = () => dependencies.now().toTimeString().slice(0, 8);
   async function execute(): Promise<void> {
     do {
       again = false;
       const names = [...changed];
       changed.clear();
-      const header = names.length ? `[${stamp()}] ${names.join(", ")} changed; running again` : "";
+      const header = names.length
+        ? palette.cyan(`[${stamp()}] ${names.join(", ")} changed; running again`)
+        : "";
       if (!quiet && header) output.error(header);
       exitCode = 0;
       entries = [];
@@ -182,7 +185,9 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
           .catch((error: unknown) => {
             failureCode = 1;
             output.error(
-              `Watch run failed: ${error instanceof Error ? error.message : String(error)}`,
+              palette.red(
+                `Watch run failed: ${error instanceof Error ? error.message : String(error)}`,
+              ),
             );
           })
           .finally(() => {
@@ -214,7 +219,6 @@ export async function runWatch(request: WatchRequest): Promise<WatchResult> {
     clearTimeout(graceTimer);
     return interrupted;
   }
-  const palette = createPalette(Boolean(output.stderrIsTTY));
   function abandon(): WatchResult {
     output.error(
       palette.yellow(

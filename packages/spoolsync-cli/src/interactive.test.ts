@@ -93,23 +93,30 @@ test("interactive mode confirms match suggestions and resolves field conflicts",
   expect(initialPlan.matches.suggestions).toHaveLength(1);
 
   const messages: string[] = [];
-  const result = await runInteractiveChoices(
-    options,
-    loaded,
-    initialPlan,
-    undefined,
-    fakePrompts(
-      {
-        selects: ["confirm", "spoolman"],
-        multiselects: [[]],
-        confirms: [true],
-        texts: ["./updated"],
-      },
-      messages,
-    ),
+  let outroCount = 0;
+  let textDefaultValue: string | undefined;
+  const prompts = fakePrompts(
+    {
+      selects: ["confirm", "spoolman"],
+      multiselects: [[]],
+      confirms: [true],
+      texts: ["./updated"],
+    },
+    messages,
   );
+  prompts.outro = () => {
+    outroCount++;
+  };
+  const origText = prompts.text;
+  prompts.text = async (opts) => {
+    textDefaultValue = opts.defaultValue;
+    return origText(opts);
+  };
+  const result = await runInteractiveChoices(options, loaded, initialPlan, undefined, prompts);
 
   expect(result.cancelled).toBe(false);
+  expect(outroCount).toBe(0);
+  expect(textDefaultValue).toBe("./updated");
   expect(result.options.confirm).toEqual(["spoolman:1,spoolio:2"]);
   expect(result.options.resolves).toEqual([["remainingWeight", "spoolman"]]);
   expect(result.options.outputDir).toBe("./updated");

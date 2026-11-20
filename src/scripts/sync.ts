@@ -90,12 +90,16 @@ const renderApply = createApplyView(loaded, renderAll, {
     renderBulk();
   },
 });
-const groupsView = createGroupsView(state, () => {
-  renderSummary();
-  renderApply(state.match, state.resolutions);
-  // A pick is an undoable change, so the Undo and Redo buttons must reflect it.
-  renderBulk();
-});
+const groupsView = createGroupsView(
+  state,
+  () => {
+    renderSummary();
+    renderApply(state.match, state.resolutions);
+    // A pick is an undoable change, so the Undo and Redo buttons must reflect it.
+    renderBulk();
+  },
+  () => renderFilters(),
+);
 const renderGroups = groupsView.render;
 const { renderFilters, renderBulk, undoOrRedo } = createControlsView(
   state,

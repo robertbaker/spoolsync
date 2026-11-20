@@ -12,6 +12,7 @@ export interface CleanupState {
 export interface CleanupContext {
   readonly controller: CleanupController;
   readonly results: ReadonlyMap<SourceId, LoadResult>;
+  readonly content: HTMLElement;
   readonly state: CleanupState;
   draw(): void;
   /** Refreshes the one-line summary on the panel header. */

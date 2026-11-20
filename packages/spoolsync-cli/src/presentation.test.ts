@@ -1,27 +1,33 @@
 import { expect, test } from "bun:test";
 
-import { applyResults, formatProgress, textTable } from "./presentation";
+import { createPalette, applyResults, formatProgress, textTable } from "./presentation";
 
 const stripAnsi = (text: string) => Bun.stripANSI(text);
 
 test("textTable preserves column alignment when color is enabled", () => {
   const plain = textTable(
-    ["Source", "Spools", "Updates"],
+    ["Source", "Spools", "Updates", "Target"],
     [
-      ["spoolman", "12", "3"],
-      ["Total", "12", "3"],
+      ["spoolman", "12", "3", "Read only"],
+      ["Total", "12", "3", ""],
     ],
     [1, 2],
     false,
   );
+  const palette = createPalette(true);
   const colored = textTable(
-    ["Source", "Spools", "Updates"],
+    ["Source", "Spools", "Updates", "Target"],
     [
-      ["spoolman", "12", "3"],
-      ["Total", "12", "3"],
+      ["spoolman", "12", "3", "Read only"],
+      ["Total", "12", "3", ""],
     ],
     [1, 2],
     true,
+    (cell, _rowIndex, colIndex, rawCell) => {
+      if (colIndex === 2 && Number(rawCell) > 0) return palette.cyan(cell);
+      if (colIndex === 3 && rawCell === "Read only") return palette.dim(cell);
+      return cell;
+    },
   );
   expect(colored).not.toBe(plain);
   expect(stripAnsi(colored)).toBe(plain);

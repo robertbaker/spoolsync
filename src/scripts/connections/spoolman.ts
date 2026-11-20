@@ -52,6 +52,8 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
     updateSpoolmanBadge(false);
   }
 
+  urlInput.addEventListener("input", () => urlInput.removeAttribute("aria-invalid"));
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     result.replaceChildren();
@@ -67,6 +69,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
       urlInput.focus();
       return;
     }
+    urlInput.removeAttribute("aria-invalid");
     urlInput.value = baseUrl;
     const connection = {
       baseUrl,
@@ -128,6 +131,7 @@ export function wireSpoolmanConnection(dependencies: SpoolmanConnectionDependenc
     generation++;
     dependencies.clearSpoolmanConnection();
     form.reset();
+    urlInput.removeAttribute("aria-invalid");
     urlInput.focus();
     updateSpoolmanBadge(false);
     showToast("Spoolman connection cleared", "info");

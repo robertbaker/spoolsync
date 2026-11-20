@@ -983,12 +983,14 @@ test("table sort, the low-only filter, and the service filter are remembered", a
 test("the Sync filter is remembered", async ({ page }) => {
   await page.goto("/sync?sample=1");
   await page.getByRole("button", { name: /^Open conflicts/ }).click();
-  await expect(page.locator("#groups")).toContainText("Nothing here.");
+  await expect(page.locator("#groups")).toContainText("No spools have open conflicts.");
   await expect
     .poll(() => page.evaluate(() => localStorage.getItem("spoolsync:prefs")))
     .toContain('"syncFilter":"open"');
   await page.reload();
-  await expect(page.locator("#groups")).toContainText("Nothing here.");
+  await expect(page.locator("#groups")).toContainText("No spools have open conflicts.");
+  await page.locator("#groups").getByRole("button", { name: "Show all spools" }).click();
+  await expect(page.locator("#groups [data-group]").first()).toBeVisible();
 });
 
 test("the last file used for a service is remembered, without its contents", async ({ page }) => {

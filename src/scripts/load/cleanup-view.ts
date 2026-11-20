@@ -34,7 +34,11 @@ function select(
   value: string,
   onChange: (value: string) => void,
 ): HTMLElement {
-  const control = h("select", { id, class: "field-input mt-0 w-auto py-1 text-xs" });
+  const control = h("select", {
+    id,
+    "data-key": id,
+    class: "field-input mt-0 w-auto py-1 text-xs",
+  });
   for (const [optionValue, text] of options) {
     const option = h("option", { value: optionValue }, text);
     option.selected = optionValue === value;
@@ -94,6 +98,7 @@ export function wireCleanupPanel(
   const ctx: CleanupContext = {
     controller,
     results,
+    content,
     state,
     draw,
     refreshSummary() {
@@ -200,6 +205,7 @@ export function wireCleanupPanel(
             controller.setFilter({ rule: value as typeof controller.filter.rule });
             state.limit = PAGE;
             draw();
+            ctx.focusKey("cleanup-filter-rule");
           },
         ),
         select(
@@ -215,6 +221,7 @@ export function wireCleanupPanel(
             controller.setFilter({ confidence: value as typeof controller.filter.confidence });
             state.limit = PAGE;
             draw();
+            ctx.focusKey("cleanup-filter-confidence");
           },
         ),
       ),

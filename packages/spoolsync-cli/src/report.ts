@@ -62,6 +62,16 @@ const changeLines = (changes: InventoryChanges | undefined, output: CliOutput) =
   if (changes && hasChanges(changes)) output.log(formatChanges(changes).join("\n"));
 };
 
+function buildSpoolsByKey(loaded: ReadonlyMap<SourceId, LoadResult>): Map<string, CommonSpool> {
+  const spoolsByKey = new Map<string, CommonSpool>();
+  for (const result of loaded.values()) {
+    for (const spool of result.spools) {
+      spoolsByKey.set(recordKey(spool), spool);
+    }
+  }
+  return spoolsByKey;
+}
+
 export function reportWorkflow(
   options: Options,
   {
@@ -97,6 +107,7 @@ export function reportWorkflow(
   } else {
     const color = Boolean(output.isTTY);
     const palette = createPalette(color);
+    const stderrPalette = createPalette(Boolean(output.stderrIsTTY ?? output.isTTY));
     const serviceNames = new Map(listServices(SOURCE_IDS).map(({ id, info }) => [id, info.name]));
     const heading = (title: string) => `\n${palette.bold(palette.cyan(title))}`;
     const changeRows = SOURCE_IDS.filter((source) => loaded.has(source)).map((source) => {
@@ -141,18 +152,24 @@ export function reportWorkflow(
         ],
         [1, 2, 3],
         color,
+        (cell, _rowIndex, colIndex, rawCell) => {
+          if (colIndex === 2 && Number(rawCell) > 0) return palette.cyan(cell);
+          if (colIndex === 3 && Number(rawCell) > 0) return palette.green(cell);
+          if (colIndex === 4 && (rawCell === "Read only" || rawCell.startsWith("Preview;")))
+            return palette.dim(cell);
+          return cell;
+        },
       ),
     );
     if (!Object.values(summary.changes).some((counts) => counts.updates || counts.creates))
       output.log(palette.dim("  No updates or creations planned."));
-    const spoolsByKey = new Map<string, CommonSpool>();
-    if (summary.unresolved.length || matches.suggestions.length) {
-      for (const result of loaded.values()) {
-        for (const spool of result.spools) {
-          spoolsByKey.set(recordKey(spool), spool);
-        }
-      }
-    }
+    const spoolsByKey =
+      summary.unresolved.length ||
+      matches.suggestions.length ||
+      planning.cleanup ||
+      planning.reference
+        ? buildSpoolsByKey(loaded)
+        : new Map<string, CommonSpool>();
     if (summary.unresolved.length) {
       output.log(heading("Unresolved fields"));
       output.log(
@@ -183,14 +200,14 @@ export function reportWorkflow(
       );
     }
     if (planning.cleanup) {
-      const text = cleanupLines(planning.cleanup, options, color);
+      const text = cleanupLines(planning.cleanup, options, color, spoolsByKey);
       output.log(text.lines.join("\n"));
-      for (const warning of text.warnings) output.warn(palette.yellow(warning));
+      for (const warning of text.warnings) output.warn(stderrPalette.yellow(warning));
     }
     if (planning.reference) {
-      const text = referenceLines(planning.reference, options, color);
+      const text = referenceLines(planning.reference, options, color, spoolsByKey);
       output.log(text.lines.join("\n"));
-      for (const warning of text.warnings) output.warn(palette.yellow(warning));
+      for (const warning of text.warnings) output.warn(stderrPalette.yellow(warning));
     }
     if (matches.suggestions.length) {
       output.log(heading("Possible matches (not linked automatically)"));
@@ -218,10 +235,11 @@ export function reportWorkflow(
     }
     for (const [source, result] of loaded)
       for (const warning of result.warnings)
-        output.warn(palette.yellow(`Warning (${source}): ${warning}`));
-    for (const problem of matches.problems) output.warn(palette.yellow(`Warning: ${problem}`));
+        output.warn(stderrPalette.yellow(`Warning (${source}): ${warning}`));
+    for (const problem of matches.problems)
+      output.warn(stderrPalette.yellow(`Warning: ${problem}`));
     for (const warning of exportWarnings)
-      output.warn(palette.yellow(`Export warning (${warning.source}): ${warning.message}`));
+      output.warn(stderrPalette.yellow(`Export warning (${warning.source}): ${warning.message}`));
     output.log(heading("Results"));
     if (inventoryFiles.length)
       output.log(
@@ -315,9 +333,11 @@ export function reportInventoryOnly(
   }
   const color = Boolean(output.isTTY);
   const palette = createPalette(color);
+  const stderrPalette = createPalette(Boolean(output.stderrIsTTY ?? output.isTTY));
+  const spoolsByKey = cleanup || reference ? buildSpoolsByKey(loaded) : undefined;
   for (const [source, result] of loaded)
     for (const warning of result.warnings)
-      output.warn(palette.yellow(`Warning (${source}): ${warning}`));
+      output.warn(stderrPalette.yellow(`Warning (${source}): ${warning}`));
   if (options.summary) {
     const serviceNames = new Map(listServices(SOURCE_IDS).map(({ id, info }) => [id, info.name]));
     const plural = (count: number, singular: string, pluralForm = `${singular}s`) =>
@@ -343,14 +363,14 @@ export function reportInventoryOnly(
   }
   if (options.reorder) output.log(formatReorderList(reorder));
   if (cleanup) {
-    const text = cleanupLines(cleanup, options, color);
+    const text = cleanupLines(cleanup, options, color, spoolsByKey);
     output.log(text.lines.join("\n"));
-    for (const warning of text.warnings) output.warn(palette.yellow(warning));
+    for (const warning of text.warnings) output.warn(stderrPalette.yellow(warning));
   }
   if (reference) {
-    const text = referenceLines(reference, options, color);
+    const text = referenceLines(reference, options, color, spoolsByKey);
     output.log(text.lines.join("\n"));
-    for (const warning of text.warnings) output.warn(palette.yellow(warning));
+    for (const warning of text.warnings) output.warn(stderrPalette.yellow(warning));
   }
   if (options.exportCsv && written.includes(options.exportCsv))
     output.log(`Exported ${spools} spool${spools === 1 ? "" : "s"} to ${options.exportCsv}`);

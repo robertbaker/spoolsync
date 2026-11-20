@@ -3,7 +3,7 @@ import { correctionReport, referenceCsv } from "@spoolsync/core/core/reference";
 
 import { t, type MessageKey } from "~/lib/i18n";
 
-import { h, showToast } from "../dom";
+import { focusRevealedItem, h, showToast } from "../dom";
 import { download } from "../sync/presentation";
 import { plural } from "./presentation";
 import { card } from "./reference-card";
@@ -172,8 +172,10 @@ export function resultsSection(ctx: PanelContext): HTMLElement {
     }),
   );
   more.addEventListener("click", () => {
+    const renderedCount = shown.length;
     ctx.state.limit += PAGE;
     ctx.draw();
+    focusRevealedItem(ctx.content, "[data-spool]", renderedCount);
   });
 
   return h(
@@ -237,15 +239,31 @@ export function resultsSection(ctx: PanelContext): HTMLElement {
       : null,
     items.length
       ? h("ul", { class: "mt-3 grid gap-3" }, ...shown.map((item) => card(ctx, item, spools)))
-      : h(
-          "p",
-          { class: "mt-3 text-sm text-muted-foreground" },
-          counts.spools
-            ? ctx.controller.filter === "all"
-              ? t("reference.empty.clean")
-              : t("reference.empty.filter")
-            : t("reference.empty.load"),
-        ),
+      : counts.spools && ctx.controller.filter !== "all"
+        ? h(
+            "div",
+            { class: "mt-3 flex flex-wrap items-center gap-3" },
+            h("p", { class: "text-sm text-muted-foreground" }, t("reference.empty.filter")),
+            (() => {
+              const showAll = h(
+                "button",
+                { type: "button", class: BUTTON, "data-key": "show-all-filter" },
+                "Show all",
+              );
+              showAll.addEventListener("click", () => {
+                ctx.controller.setFilter("all");
+                ctx.state.limit = PAGE;
+                ctx.draw();
+                ctx.focusKey("filter-all");
+              });
+              return showAll;
+            })(),
+          )
+        : h(
+            "p",
+            { class: "mt-3 text-sm text-muted-foreground" },
+            counts.spools ? t("reference.empty.clean") : t("reference.empty.load"),
+          ),
     items.length > ctx.state.limit ? h("div", {}, more) : null,
     counts.accepted
       ? h(

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { recordKey } from "@spoolsync/core/core/match";
+import type { CommonSpool, LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { makeSpool } from "@spoolsync/core/core/testing";
 
 import { parseArgs } from "./args";
@@ -162,5 +163,22 @@ describe("cleanup in the plan", () => {
     const text = cleanupLines(outcome, options).lines;
     expect(text[0]).toContain("Nothing is changed");
     expect(text.join("\n")).toContain("spoolio:B material");
+  });
+
+  test("cleanupLines includes spool context and semantic colors when provided", () => {
+    const options = parseArgs([...files, "--cleanup-report"]);
+    const outcome = runCleanup(options, loaded);
+    const spoolsByKey = new Map<string, CommonSpool>();
+    for (const r of loaded.values()) {
+      for (const spool of r.spools) spoolsByKey.set(recordKey(spool), spool);
+    }
+    const plain = cleanupLines(outcome, options, false, spoolsByKey).lines.join("\n");
+    const colored = cleanupLines(outcome, options, true, spoolsByKey).lines.join("\n");
+    expect(plain).toContain("spoolio:A (esun pla plus  galaxy  black  640g)");
+    expect(plain).toContain("spoolio:B (Prusament Nylon Natural 640g)");
+    expect(colored).not.toBe(plain);
+    expect(Bun.stripANSI(colored)).toBe(plain);
+    expect(colored).toContain("\x1b[32m[safe,");
+    expect(colored).toContain("\x1b[33m[review,");
   });
 });

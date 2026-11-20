@@ -243,25 +243,33 @@ export function createApplyView(
     }
     if (downloadable.length > 1) {
       const allStatus = h("div", { class: "mt-3", "aria-live": "polite" });
+      const defaultLabel = `Download all ${downloadable.length} updated files`;
       const downloadAll = button(
-        `Download all ${downloadable.length} updated files`,
+        defaultLabel,
         () => {
           void (async () => {
             downloadAll.disabled = true;
+            downloadAll.setAttribute("aria-busy", "true");
+            downloadAll.textContent = "Downloading…";
             allStatus.replaceChildren();
-            for (const source of downloadable) {
-              const result = h("div", { class: "mt-2" });
-              await downloads.run(
-                source,
-                () => loaded.get(source)!,
-                plan.get(source) ?? [],
-                result,
-              );
-              allStatus.append(result);
-              // Browsers may ask before allowing several downloads; pace them so each is registered.
-              await new Promise((resolve) => setTimeout(resolve, 250));
+            try {
+              for (const source of downloadable) {
+                const result = h("div", { class: "mt-2" });
+                await downloads.run(
+                  source,
+                  () => loaded.get(source)!,
+                  plan.get(source) ?? [],
+                  result,
+                );
+                allStatus.append(result);
+                // Browsers may ask before allowing several downloads; pace them so each is registered.
+                await new Promise((resolve) => setTimeout(resolve, 250));
+              }
+            } finally {
+              downloadAll.disabled = false;
+              downloadAll.removeAttribute("aria-busy");
+              downloadAll.textContent = defaultLabel;
             }
-            downloadAll.disabled = false;
           })();
         },
         "primary",

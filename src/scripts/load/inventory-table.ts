@@ -138,6 +138,16 @@ export function createInventoryTable(
   const renderListeners = new Set<() => void>();
   const searchWrap = document.getElementById("loaded-filter-wrap");
   const searchInput = document.getElementById("spool-search-input") as HTMLInputElement | null;
+  const searchClear = document.getElementById("spool-search-clear");
+
+  searchClear?.addEventListener("click", () => {
+    searchQuery = "";
+    if (searchInput) {
+      searchInput.value = "";
+      searchInput.focus();
+    }
+    renderTable();
+  });
 
   if (searchInput) {
     wireEscapeClear(searchInput);
@@ -244,6 +254,9 @@ export function createInventoryTable(
 
     if (searchWrap) {
       searchWrap.hidden = all.length === 0;
+    }
+    if (searchClear) {
+      searchClear.hidden = !searchQuery;
     }
 
     if (!all.length) {

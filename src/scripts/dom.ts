@@ -188,3 +188,21 @@ export function enableBackdropDismiss(dialog: HTMLDialogElement): void {
     if (event.target === dialog) dialog.close();
   });
 }
+
+/** Moves keyboard focus to the first newly revealed item (or its primary control) after "Show more". */
+export function focusRevealedItem(
+  container: HTMLElement,
+  selector: string,
+  index: number,
+): boolean {
+  const item = container.querySelectorAll<HTMLElement>(selector)[index];
+  if (!item) return false;
+  const control = item.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)");
+  if (control) {
+    control.focus();
+  } else {
+    item.tabIndex = -1;
+    item.focus();
+  }
+  return true;
+}

@@ -8,11 +8,16 @@ import {
   type CleanupSummary,
 } from "@spoolsync/core/core/cleanup";
 import { formatValue, type RecordEdits } from "@spoolsync/core/core/compare";
-import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import {
+  allSpools,
+  type CommonSpool,
+  type LoadResult,
+  type SourceId,
+} from "@spoolsync/core/core/model";
 import { duplicatesAfterCleanup } from "@spoolsync/core/workflow";
 
 import type { Options } from "./options";
-import { createPalette } from "./presentation";
+import { createPalette, spoolContext, type Palette } from "./presentation";
 
 /** What a cleanup run decided: nothing here has been written anywhere. */
 export interface CleanupOutcome {
@@ -124,10 +129,16 @@ export function cleanupSection(outcome: CleanupOutcome, options: Options): Clean
 const show = (proposal: CleanupProposal, value: CleanupProposal["before"]) =>
   value === null || value === "" ? "(empty)" : JSON.stringify(formatValue(proposal.field, value));
 
-function line(proposal: CleanupProposal): string {
+function line(
+  proposal: CleanupProposal,
+  palette: Palette,
+  spoolsByKey?: ReadonlyMap<string, CommonSpool>,
+): string {
+  const tag = `[${proposal.confidence}, ${proposal.rule}]`;
+  const styledTag = proposal.confidence === "safe" ? palette.green(tag) : palette.yellow(tag);
   return (
-    `  ${proposal.spoolKey} ${proposal.field}: ${show(proposal, proposal.before)} -> ` +
-    `${show(proposal, proposal.after)} [${proposal.confidence}, ${proposal.rule}] ${proposal.reason}`
+    `  ${proposal.spoolKey}${spoolContext(spoolsByKey, proposal.spoolKey, palette)} ${proposal.field}: ` +
+    `${show(proposal, proposal.before)} -> ${show(proposal, proposal.after)} ${styledTag} ${proposal.reason}`
   );
 }
 
@@ -138,6 +149,7 @@ export function cleanupLines(
   outcome: CleanupOutcome,
   options: Options,
   color = false,
+  spoolsByKey?: ReadonlyMap<string, CommonSpool>,
 ): { lines: string[]; warnings: string[] } {
   const palette = createPalette(color);
   const { summary, result } = outcome;
@@ -150,7 +162,7 @@ export function cleanupLines(
   const listed = options.cleanupReport
     ? result.proposals
     : result.proposals.filter((proposal) => applied.has(proposal.id));
-  for (const proposal of listed) lines.push(line(proposal));
+  for (const proposal of listed) lines.push(line(proposal, palette, spoolsByKey));
   if (options.cleanup && !options.cleanupReport && summary.total > applied.size)
     lines.push(
       palette.dim(

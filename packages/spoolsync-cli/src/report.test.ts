@@ -6,10 +6,10 @@ import { makeSpool } from "@spoolsync/core/core/testing";
 import { parseArgs } from "./args";
 import { ExecutionError } from "./execution";
 import { createCliPlan } from "./planning";
-import { reportError, reportWorkflow } from "./report";
+import { reportError, reportInventoryOnly, reportWorkflow } from "./report";
 import type { CliOutput } from "./runtime";
 
-function capture() {
+function capture(tty?: { isTTY?: boolean; stderrIsTTY?: boolean }) {
   const stdout: unknown[][] = [],
     stderr: unknown[][] = [];
   let code = 0;
@@ -26,6 +26,7 @@ function capture() {
     setExitCode: (value) => {
       code = value;
     },
+    ...tty,
   };
   return { output, stdout, stderr, code: () => code };
 }
@@ -180,4 +181,60 @@ test("match suggestions and unresolved conflicts include human-readable spool su
   const rendered = text.stdout.flat().join("\n");
   expect(rendered).toContain("Match suggestion: spoolman:1,spoolio:2");
   expect(rendered).toContain("Polymaker PLA Charcoal 750g ↔ Polymaker PLA Charcoal 700g");
+});
+
+test("stdout and stderr TTY flags independently gate ANSI colors and style table cells", () => {
+  const options = parseArgs([
+    "--spoolman",
+    "one.json",
+    "--spoolio",
+    "two.json",
+    "--confirm",
+    "spoolman:1,spoolio:2",
+  ]);
+  const loaded = new Map<SourceId, LoadResult>([
+    [
+      "spoolman",
+      {
+        source: "spoolman",
+        spools: [makeSpool("spoolman", "1", { material: "PLA", remainingWeight: 700 })],
+        warnings: ["check spoolman"],
+        loadedAt: "now",
+      },
+    ],
+    [
+      "spoolio",
+      {
+        source: "spoolio",
+        spools: [makeSpool("spoolio", "2", { material: "PLA" })],
+        warnings: [],
+        loadedAt: "now",
+      },
+    ],
+  ]);
+  const planning = createCliPlan(options, loaded);
+  const report = { loaded, planning, applied: undefined, written: [], exportWarnings: [] };
+
+  const plain = capture({ isTTY: false, stderrIsTTY: false });
+  reportWorkflow(options, report, plain.output);
+  const plainStdout = plain.stdout.flat().join("\n");
+
+  const stdoutOnly = capture({ isTTY: true, stderrIsTTY: false });
+  reportWorkflow(options, report, stdoutOnly.output);
+  const stdoutColored = stdoutOnly.stdout.flat().join("\n");
+  const stderrPlain = stdoutOnly.stderr.flat().join("\n");
+  expect(stdoutColored).toContain("\x1b[");
+  expect(Bun.stripANSI(stdoutColored)).toBe(plainStdout);
+  expect(stdoutColored).toContain("\x1b[2mPreview; add --output-dir\x1b[22m");
+  expect(stderrPlain).not.toContain("\x1b[");
+
+  const stderrOnly = capture({ isTTY: false, stderrIsTTY: true });
+  reportWorkflow(options, report, stderrOnly.output);
+  expect(stderrOnly.stdout.flat().join("\n")).toBe(plainStdout);
+  expect(stderrOnly.stderr.flat().join("\n")).toContain("\x1b[33mWarning (spoolman):");
+
+  const inv = capture({ isTTY: false, stderrIsTTY: true });
+  reportInventoryOnly(parseArgs(["--spoolman", "one.json", "--summary"]), loaded, [], inv.output);
+  expect(inv.stdout.flat().join("\n")).not.toContain("\x1b[");
+  expect(inv.stderr.flat().join("\n")).toContain("\x1b[33mWarning (spoolman):");
 });

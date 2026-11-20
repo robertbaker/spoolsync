@@ -2,7 +2,7 @@ import { ruleById, type CleanupProposal } from "@spoolsync/core/core/cleanup";
 import { FIELD_LABELS } from "@spoolsync/core/core/compare";
 import { SOURCE_LABELS, type CommonSpool } from "@spoolsync/core/core/model";
 
-import { h } from "../dom";
+import { focusRevealedItem, h } from "../dom";
 import type { CleanupContext } from "./cleanup-context";
 import { displayValue } from "./cleanup-values";
 import { BUTTON, PRESSED, indexSpools, spoolLabel } from "./panel-ui";
@@ -137,20 +137,40 @@ export function list(ctx: CleanupContext): HTMLElement {
   const spools = indexSpools(ctx.results);
   const groups = ctx.controller.grouped();
   const total = groups.reduce((sum, group) => sum + group.proposals.length, 0);
-  if (!total)
-    return h(
-      "p",
-      { class: "mt-3 text-sm text-muted-foreground" },
-      ctx.controller.counts().total
-        ? "No suggestions match these filters."
-        : "Nothing to clean up with the rules that are on.",
+  if (!total) {
+    if (!ctx.controller.counts().total) {
+      return h(
+        "p",
+        { class: "mt-3 text-sm text-muted-foreground" },
+        "Nothing to clean up with the rules that are on.",
+      );
+    }
+    const reset = h(
+      "button",
+      { type: "button", class: BUTTON, "data-key": "reset-filters" },
+      "Reset filters",
     );
+    reset.addEventListener("click", () => {
+      ctx.controller.setFilter({ rule: "all", confidence: "all" });
+      ctx.state.limit = PAGE;
+      ctx.draw();
+      ctx.focusKey("cleanup-filter-rule");
+    });
+    return h(
+      "div",
+      { class: "mt-3 flex flex-wrap items-center gap-3" },
+      h("p", { class: "text-sm text-muted-foreground" }, "No suggestions match these filters."),
+      reset,
+    );
+  }
   let remaining = ctx.state.limit;
+  let renderedCount = 0;
   const sections: HTMLElement[] = [];
   for (const group of groups) {
     if (remaining <= 0) break;
     const shown = group.proposals.slice(0, remaining);
     remaining -= shown.length;
+    renderedCount += shown.length;
     sections.push(
       h(
         "section",
@@ -177,6 +197,7 @@ export function list(ctx: CleanupContext): HTMLElement {
     more.addEventListener("click", () => {
       ctx.state.limit += PAGE;
       ctx.draw();
+      focusRevealedItem(ctx.content, "[data-proposal]", renderedCount);
     });
     sections.push(h("div", {}, more));
   }

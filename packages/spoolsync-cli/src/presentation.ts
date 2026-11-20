@@ -60,24 +60,37 @@ export function formatHelp(text: string, columns: number, color = false): string
     .join("\n");
 }
 
+export type CellStyler = (
+  cell: string,
+  rowIndex: number,
+  colIndex: number,
+  rawCell: string,
+) => string;
+
 /** Plain text stays readable in terminals, redirected logs, and watch comparisons. */
 export function textTable(
   headers: string[],
   rows: string[][],
   rightAligned: readonly number[] = [],
   color = false,
+  styleCell?: CellStyler,
 ): string {
   const widths = headers.map((header, index) =>
     Math.max(header.length, ...rows.map((row) => row[index]!.length)),
   );
   const palette = createPalette(color);
-  const padCell = (cell: string, index: number) =>
-    rightAligned.includes(index) ? cell.padStart(widths[index]!) : cell.padEnd(widths[index]!);
-  const formatRow = (row: string[], style?: (cell: string, index: number) => string) =>
+  const padCell = (cell: string, index: number, isLast: boolean) => {
+    if (rightAligned.includes(index)) return cell.padStart(widths[index]!);
+    return isLast ? cell : cell.padEnd(widths[index]!);
+  };
+  const formatRow = (
+    row: string[],
+    style?: (cell: string, index: number, rawCell: string) => string,
+  ) =>
     `  ${row
       .map((cell, index) => {
-        const padded = padCell(cell, index);
-        return style ? style(padded, index) : padded;
+        const padded = padCell(cell, index, index === row.length - 1);
+        return style && padded !== "" ? style(padded, index, cell) : padded;
       })
       .join("  ")
       .trimEnd()}`;
@@ -88,7 +101,15 @@ export function textTable(
   const divider = `  ${palette.dim(widths.map((width) => "─".repeat(width)).join("  "))}`;
   const bodyLines = rows.map((row, rowIndex) => {
     const isTotal = rowIndex === rows.length - 1 && row[0] === "Total";
-    return formatRow(row, color ? (cell) => (isTotal ? palette.bold(cell) : cell) : undefined);
+    return formatRow(
+      row,
+      color
+        ? (cell, colIndex, rawCell) => {
+            const styled = styleCell ? styleCell(cell, rowIndex, colIndex, rawCell) : cell;
+            return isTotal ? palette.bold(styled) : styled;
+          }
+        : undefined,
+    );
   });
   return [headerLine, divider, ...bodyLines].join("\n");
 }
@@ -140,4 +161,14 @@ export function spoolSummary(spool: CommonSpool | undefined): string {
 export function describeSpool(spool: CommonSpool | undefined, fallbackKey: string): string {
   const summary = spoolSummary(spool);
   return summary ? `${summary} [${fallbackKey}]` : fallbackKey;
+}
+
+/** Parenthesized dimmed spool summary for report lines, or empty string when unavailable. */
+export function spoolContext(
+  spoolsByKey: ReadonlyMap<string, CommonSpool> | undefined,
+  key: string,
+  palette: Palette,
+): string {
+  const summary = spoolSummary(spoolsByKey?.get(key));
+  return summary ? palette.dim(` (${summary})`) : "";
 }

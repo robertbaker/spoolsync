@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import path from "node:path";
 
-import type { LoadResult, SourceId } from "@spoolsync/core/core/model";
+import { recordKey } from "@spoolsync/core/core/match";
+import type { CommonSpool, LoadResult, SourceId } from "@spoolsync/core/core/model";
 import { makeSpool } from "@spoolsync/core/core/testing";
 
 import { parseArgs } from "./args";
@@ -355,5 +356,45 @@ describe("reference in the plan", () => {
       `Reference check failed: ${found.values} differing`,
     );
     expect(referenceSection(drift, options).counts.mismatches).toBe(found.total);
+  });
+
+  test("referenceLines includes spool context and semantic colors when provided", async () => {
+    const mixed = new Map<SourceId, LoadResult>([
+      [
+        "spoolman",
+        result("spoolman", [
+          makeSpool("spoolman", "1", {
+            vendor: "Polymaker",
+            material: "PETG",
+            name: "Red",
+            colors: ["0000FF"],
+            diameter: 2.85,
+          }),
+          makeSpool("spoolman", "2", {
+            vendor: "Prusament",
+            material: "PLA",
+            name: "Galaxy Black",
+            colors: ["1A1A1A"],
+            density: null,
+          }),
+        ]),
+      ],
+    ]);
+    const options = parseArgs(["--spoolman", "spools.json", "--reference-report", "ref.json"]);
+    const file = await loadReferenceFile(options, { readText });
+    const outcome = runReference(file!, mixed, options);
+    const spoolsByKey = new Map<string, CommonSpool>();
+    for (const r of mixed.values()) {
+      for (const spool of r.spools) spoolsByKey.set(recordKey(spool), spool);
+    }
+    const plain = referenceLines(outcome, options, false, spoolsByKey).lines.join("\n");
+    const colored = referenceLines(outcome, options, true, spoolsByKey).lines.join("\n");
+    expect(plain).toContain("spoolman:1 (Polymaker PETG Red 640g)");
+    expect(plain).toContain("spoolman:2 (Prusament PLA Galaxy Black 640g)");
+    expect(colored).not.toBe(plain);
+    expect(Bun.stripANSI(colored)).toBe(plain);
+    expect(colored).toContain("\x1b[32m[fill, safe]\x1b[39m");
+    expect(colored).toContain("\x1b[33m[overwrite, review]\x1b[39m");
+    expect(colored).toContain("\x1b[31mmismatch\x1b[39m");
   });
 });

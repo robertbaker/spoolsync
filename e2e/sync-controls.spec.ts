@@ -53,7 +53,7 @@ test("sync filters, bulk choices, leave-as-is and reset retain their behavior", 
   await expect(card.locator("[data-status-for]")).toHaveText("1 to resolve");
   await page.getByRole("button", { name: /^Open conflicts/ }).click();
   await page.getByRole("button", { name: "Take lowest remaining weight", exact: true }).click();
-  await expect(page.locator("#groups")).toHaveText("Nothing here.");
+  await expect(page.locator("#groups")).toContainText("No spools have open conflicts.");
   await page.getByRole("button", { name: /^All / }).click();
   await expect(card.locator("[data-status-for]")).toHaveText("Ready");
   const remaining = card.getByRole("row").filter({ hasText: "Remaining (g)" });

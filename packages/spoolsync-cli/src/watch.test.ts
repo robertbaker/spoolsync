@@ -510,6 +510,35 @@ test("a run that throws after a change is reported without an unhandled rejectio
   expect(h.exitCode()).toBe(1);
 });
 
+test("styles watch re-run headers and failure messages when stderr is a TTY", async () => {
+  const h = harness();
+  h.output.stderrIsTTY = true;
+  let runs = 0;
+  const done = runWatch({
+    files: ["/data/a.json"],
+    run: async () => {
+      runs++;
+      if (runs === 2) throw new Error("boom");
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get(abs("/data"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await done;
+  expect(
+    h.lines.some((line) =>
+      line.includes("\x1b[36m[09:08:07] /data/a.json changed; running again\x1b[39m"),
+    ),
+  ).toBe(true);
+  expect(h.lines.some((line) => line.includes("\x1b[31mWatch run failed: boom\x1b[39m"))).toBe(
+    true,
+  );
+});
+
 test("a throwing run still flushes held quiet output and re-runs pending changes", async () => {
   const h = harness();
   const logged: string[] = [];
@@ -545,4 +574,33 @@ test("a throwing run still flushes held quiet output and re-runs pending changes
   h.stop.abort();
   await done;
   expect(h.exitCode()).toBe(1);
+});
+
+test("styles watch re-run headers and failure messages when stderr is a TTY", async () => {
+  const h = harness();
+  h.output.stderrIsTTY = true;
+  let runs = 0;
+  const done = runWatch({
+    files: ["/data/a.json"],
+    run: async () => {
+      runs++;
+      if (runs === 2) throw new Error("boom");
+    },
+    output: h.output,
+    signal: h.stop.signal,
+    dependencies: h.dependencies,
+  });
+  await wait(20);
+  h.handlers.get(abs("/data"))!("a.json");
+  await wait(30);
+  h.stop.abort();
+  await done;
+  expect(
+    h.lines.some((line) =>
+      line.includes("\x1b[36m[09:08:07] /data/a.json changed; running again\x1b[39m"),
+    ),
+  ).toBe(true);
+  expect(h.lines.some((line) => line.includes("\x1b[31mWatch run failed: boom\x1b[39m"))).toBe(
+    true,
+  );
 });

@@ -119,4 +119,69 @@ describe("cleanup panel", () => {
     expect(state.settings.enabled).not.toContain("casing");
     root.remove();
   });
+
+  test("filter selects retain focus on change and filtered empty state resets filters", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    try {
+      const { store } = memory();
+      const panel = wireCleanupPanel(root, loaded(), store, () => "2026-06-01");
+      panel.open();
+      panel.update();
+
+      const ruleSelect = root.querySelector<HTMLSelectElement>("#cleanup-filter-rule")!;
+      ruleSelect.focus();
+      ruleSelect.value = "whitespace";
+      ruleSelect.dispatchEvent(new Event("change"));
+      expect(document.activeElement?.id).toBe("cleanup-filter-rule");
+
+      const resetBtn = button(root, "reset-filters");
+      expect(resetBtn?.textContent).toBe("Reset filters");
+      resetBtn!.click();
+      expect(root.querySelector<HTMLSelectElement>("#cleanup-filter-rule")!.value).toBe("all");
+      expect(document.activeElement?.id).toBe("cleanup-filter-rule");
+
+      const confSelect = root.querySelector<HTMLSelectElement>("#cleanup-filter-confidence")!;
+      confSelect.focus();
+      confSelect.value = "review";
+      confSelect.dispatchEvent(new Event("change"));
+      expect(document.activeElement?.id).toBe("cleanup-filter-confidence");
+    } finally {
+      root.remove();
+    }
+  });
+
+  test("Show more focuses the first newly revealed suggestion", () => {
+    const root = document.createElement("div");
+    document.body.append(root);
+    try {
+      const manySpools = new Map<SourceId, LoadResult>([
+        [
+          "spoolman",
+          {
+            source: "spoolman",
+            spools: Array.from({ length: 65 }, (_, index) =>
+              makeSpool("spoolman", String(index + 1), { vendor: "esun" }),
+            ),
+            warnings: [],
+            loadedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      ]);
+      const { store } = memory();
+      const panel = wireCleanupPanel(root, manySpools, store, () => "2026-06-01");
+      panel.open();
+      panel.update();
+
+      expect(root.querySelectorAll("[data-proposal]")).toHaveLength(60);
+      const showMore = button(root, "show-more")!;
+      showMore.click();
+
+      const items = root.querySelectorAll<HTMLElement>("[data-proposal]");
+      expect(items).toHaveLength(65);
+      expect(items[60]!.contains(document.activeElement)).toBe(true);
+    } finally {
+      root.remove();
+    }
+  });
 });

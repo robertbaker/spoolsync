@@ -1,5 +1,10 @@
 import { formatValue, type RecordEdits } from "@spoolsync/core/core/compare";
-import { allSpools, type LoadResult, type SourceId } from "@spoolsync/core/core/model";
+import {
+  allSpools,
+  type CommonSpool,
+  type LoadResult,
+  type SourceId,
+} from "@spoolsync/core/core/model";
 import {
   REFERENCE_FIELDS,
   ReferenceCatalog,
@@ -18,7 +23,7 @@ import {
 } from "@spoolsync/core/core/reference";
 
 import type { Options } from "./options";
-import { createPalette } from "./presentation";
+import { createPalette, spoolContext, type Palette } from "./presentation";
 import type { CliDependencies } from "./runtime";
 
 /** What a reference run decided: nothing here has been written anywhere. */
@@ -253,10 +258,19 @@ export function referenceSection(outcome: ReferenceOutcome, options: Options): R
 const show = (proposal: ReferenceProposal, value: ReferenceProposal["before"]) =>
   value === null || value === "" ? "(empty)" : JSON.stringify(formatValue(proposal.field, value));
 
-function line(proposal: ReferenceProposal): string {
+function line(
+  proposal: ReferenceProposal,
+  palette: Palette,
+  spoolsByKey?: ReadonlyMap<string, CommonSpool>,
+): string {
+  const tag = `[${proposal.kind}, ${proposal.confidence}]`;
+  const styledTag =
+    proposal.kind === "fill" && proposal.confidence === "safe"
+      ? palette.green(tag)
+      : palette.yellow(tag);
   return (
-    `  ${proposal.spoolKey} ${proposal.field}: ${show(proposal, proposal.before)} -> ` +
-    `${show(proposal, proposal.after)} [${proposal.kind}, ${proposal.confidence}] ${proposal.reason}`
+    `  ${proposal.spoolKey}${spoolContext(spoolsByKey, proposal.spoolKey, palette)} ${proposal.field}: ` +
+    `${show(proposal, proposal.before)} -> ${show(proposal, proposal.after)} ${styledTag} ${proposal.reason}`
   );
 }
 
@@ -267,6 +281,7 @@ export function referenceLines(
   outcome: ReferenceOutcome,
   options: Options,
   color = false,
+  spoolsByKey?: ReadonlyMap<string, CommonSpool>,
 ): { lines: string[]; warnings: string[] } {
   const palette = createPalette(color);
   const { summary, items, proposals } = outcome.analysis;
@@ -294,24 +309,29 @@ export function referenceLines(
     );
   }
   const listed = options.referenceReport ? proposals : proposals.filter((p) => applied.has(p.id));
-  for (const proposal of listed) lines.push(line(proposal));
+  for (const proposal of listed) lines.push(line(proposal, palette, spoolsByKey));
   if (options.referenceReport) {
     for (const item of items.filter(needsChoice))
       lines.push(
-        `  ${item.spoolKey} ${item.match.status === "ambiguous" ? "fits several records" : "has only a partial match"}: ` +
+        `  ${item.spoolKey}${spoolContext(spoolsByKey, item.spoolKey, palette)} ${item.match.status === "ambiguous" ? "fits several records" : "has only a partial match"}: ` +
           `${item.match.candidates
             .slice(0, 4)
             .map((candidate) => `${label(candidate.reference)} (${candidate.score})`)
             .join("; ")}. Choose in the browser under Reference data on the Load page.`,
       );
     for (const item of items)
-      if (item.color && item.color.verdict !== "match")
+      if (item.color && item.color.verdict !== "match") {
+        const verdictText =
+          item.color.verdict === "mismatch"
+            ? palette.red(item.color.verdict)
+            : palette.yellow(item.color.verdict);
         lines.push(
-          `  ${item.spoolKey} color: #${item.color.spoolHex} against reference #${item.color.referenceHex}, ` +
+          `  ${item.spoolKey}${spoolContext(spoolsByKey, item.spoolKey, palette)} color: #${item.color.spoolHex} against reference #${item.color.referenceHex}, ` +
             (item.color.countDiffers
               ? "a different number of colors"
-              : `difference ${item.color.deltaE.toFixed(1)} (${item.color.verdict})`),
+              : `difference ${item.color.deltaE.toFixed(1)} (${verdictText})`),
         );
+      }
   } else if (options.reference && proposals.length > applied.size) {
     lines.push(palette.dim("Run with --reference-report to list what was not applied."));
   }

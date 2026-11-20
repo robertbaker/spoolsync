@@ -155,12 +155,14 @@ try {
         output.log(
           palette.green(`Imported ${Object.keys(settings).length} settings into ${configFile}`),
         );
-        if (skipped.length)
+        if (skipped.length) {
+          const stderrPalette = createPalette(Boolean(output.stderrIsTTY ?? output.isTTY));
           output.error(
-            palette.yellow(
+            stderrPalette.yellow(
               `Skipped ${skipped.length} settings the CLI does not use: ${skipped.join(", ")}`,
             ),
           );
+        }
       }
     } else if (args.includes("--show-config")) {
       const palette = createPalette(Boolean(output.isTTY));

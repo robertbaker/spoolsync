@@ -20,6 +20,12 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
   const tigertagSignedIn = byId("tigertag-signed-in");
   const tigertagResult = byId("tigertag-result");
   const tigertagButton = byId<HTMLButtonElement>("tigertag-sign-in");
+  const emailInput = byId<HTMLInputElement>("tigertag-email-input");
+  const passwordInput = byId<HTMLInputElement>("tigertag-password");
+
+  for (const input of [emailInput, passwordInput]) {
+    input.addEventListener("input", () => input.removeAttribute("aria-invalid"));
+  }
 
   function showTigertag(): void {
     const current = dependencies.loadTigertagSession();
@@ -34,9 +40,7 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
 
   tigertagForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const emailInput = byId<HTMLInputElement>("tigertag-email-input");
     const email = emailInput.value.trim();
-    const passwordInput = byId<HTMLInputElement>("tigertag-password");
     if (!email || !passwordInput.value) {
       tigertagResult.replaceChildren(notice("error", "Enter your TigerTag email and password"));
       if (!email) emailInput.setAttribute("aria-invalid", "true");
@@ -44,6 +48,8 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
       (!email ? emailInput : passwordInput).focus();
       return;
     }
+    emailInput.removeAttribute("aria-invalid");
+    passwordInput.removeAttribute("aria-invalid");
     tigertagButton.disabled = true;
     tigertagButton.setAttribute("aria-busy", "true");
     tigertagResult.replaceChildren(notice("info", "Signing in…"));
@@ -84,5 +90,6 @@ export function wireTigertagConnection(dependencies: TigertagConnectionDependenc
       ),
     );
     showTigertag();
+    emailInput.focus();
   });
 }

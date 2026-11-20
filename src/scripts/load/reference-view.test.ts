@@ -472,4 +472,59 @@ describe("reference panel language", () => {
     panel.update();
     expect(button(root, "fill-missing")!.textContent).toBe("Fill all missing");
   });
+
+  test("filtered empty state offers Show all and restores focus to filter-all", () => {
+    const { root, panel } = open();
+    panel.controller.loadFile("ref.json", referenceFile);
+    panel.update();
+
+    button(root, "filter-unmatched")!.click();
+    const showAll = button(root, "show-all-filter");
+    expect(showAll?.textContent).toBe("Show all");
+    showAll!.click();
+
+    expect(panel.controller.filter).toBe("all");
+    expect(document.activeElement?.getAttribute("data-key")).toBe("filter-all");
+  });
+
+  test("Show more focuses the first newly revealed spool card", () => {
+    const manyLoaded = new Map<SourceId, LoadResult>([
+      [
+        "spoolman",
+        {
+          source: "spoolman",
+          spools: Array.from({ length: 45 }, (_, index) =>
+            makeSpool("spoolman", String(index + 1), {
+              vendor: "Prusament",
+              material: "PLA",
+              name: "Black",
+              density: null,
+            }),
+          ),
+          warnings: [],
+          loadedAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    ]);
+    const root = document.createElement("div");
+    document.body.append(root);
+    try {
+      const { store } = memory();
+      const panel = wireReferencePanel(root, manyLoaded, store, io, null);
+      panel.open();
+      panel.update();
+      panel.controller.loadFile("ref.json", referenceFile);
+      panel.update();
+
+      const beforeCount = root.querySelectorAll("[data-spool]").length;
+      expect(beforeCount).toBe(25);
+      button(root, "show-more")!.click();
+
+      const items = root.querySelectorAll<HTMLElement>("[data-spool]");
+      expect(items).toHaveLength(45);
+      expect(items[beforeCount]!.contains(document.activeElement)).toBe(true);
+    } finally {
+      root.remove();
+    }
+  });
 });
