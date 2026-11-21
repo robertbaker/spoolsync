@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.12.0](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.11.2...spoolsync-cli-v0.12.0) (2026-11-21)
+
+### Features
+
+* **ui:** improve web UI/UX, accessibility, dialogs, and copy ([78bb01b](https://github.com/robertbaker/spoolsync/commit/78bb01bdde8b81c041865fd22e82a2fb78e020a0))
+* unify CLI brand color, fix changelog heading order, polish a11y ([7eac272](https://github.com/robertbaker/spoolsync/commit/7eac272e68903b90c709e144affd3318e1570b2c))
+
+### Bug Fixes
+
+* **cli:** restore LF line endings in README ([edac563](https://github.com/robertbaker/spoolsync/commit/edac563cc4c4761f32a8c1676957c8e87806d4dd))
+
+### Performance Improvements
+
+* **web:** serve optimized AVIF service logos and reserve sync skeleton height ([93ac8d2](https://github.com/robertbaker/spoolsync/commit/93ac8d2786b244424f94d8cd2608ffc6f5c4abb9))
+
 ## [0.11.2](https://github.com/robertbaker/spoolsync/compare/spoolsync-cli-v0.11.1...spoolsync-cli-v0.11.2) (2026-11-18)
 
 ### Bug Fixes
