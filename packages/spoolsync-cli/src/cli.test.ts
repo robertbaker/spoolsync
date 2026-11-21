@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -1004,7 +1013,7 @@ test("version rejects accidentally combined workflow arguments", () => {
 });
 
 beforeEach(async () => {
-  directory = await mkdtemp(path.join(tmpdir(), "spoolsync-cli-"));
+  directory = await realpath(await mkdtemp(path.join(tmpdir(), "spoolsync-cli-")));
   // Spawned CLIs inherit this, so no test can read or write a real person's settings file.
   process.env["SPOOLSYNC_CONFIG_DIR"] = path.join(directory, ".settings");
   await writeFile(path.join(directory, "spoolman-spools.json"), "[]");

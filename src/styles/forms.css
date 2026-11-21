@@ -41,7 +41,9 @@
   }
 
   input[type="checkbox"],
-  input[type="radio"] {
+  input[type="radio"],
+  input[type="range"],
+  progress {
     accent-color: var(--primary);
   }
 }

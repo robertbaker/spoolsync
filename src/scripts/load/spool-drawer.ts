@@ -90,15 +90,17 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
             spool.archived ? " Archived." : "",
           ),
         ),
-        (() => {
-          const close = h(
-            "button",
-            { type: "button", class: BUTTON, "aria-label": "Close spool details" },
-            "Close",
-          );
-          close.addEventListener("click", () => dialog?.close());
-          return close;
-        })(),
+        h(
+          "button",
+          {
+            type: "button",
+            commandfor: "spool-drawer",
+            command: "close",
+            class: BUTTON,
+            "aria-label": "Close spool details",
+          },
+          "Close",
+        ),
       ),
       actions(detail, hooks),
       section(

@@ -262,7 +262,16 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
       return button;
     };
     buttons = [];
-    const close = h("button", { type: "button", class: BUTTON }, "Close");
+    const close = h(
+      "button",
+      {
+        type: "button",
+        commandfor: "inventory-report-dialog",
+        command: "close",
+        class: BUTTON,
+      },
+      "Close",
+    );
     dialog = h(
       "dialog",
       {
@@ -306,7 +315,6 @@ export function wireInventoryReport(results: ReadonlyMap<SourceId, LoadResult>):
         h("div", { class: "mt-4 flex justify-end" }, close),
       ),
     );
-    close.addEventListener("click", () => dialog?.close());
     enableBackdropDismiss(dialog);
     dialog.addEventListener("close", () => {
       const target = opener;

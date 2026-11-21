@@ -9,7 +9,9 @@ const select = (id: string, focus = false) => {
     if (on && focus) tab.focus();
   }
   for (const panel of document.querySelectorAll<HTMLElement>("[data-install-panel]")) {
-    panel.hidden = panel.dataset["installPanel"] !== id;
+    const isCurrent = panel.dataset["installPanel"] === id;
+    panel.hidden = !isCurrent;
+    panel.tabIndex = isCurrent ? 0 : -1;
   }
 };
 for (const [index, tab] of tabs.entries()) {

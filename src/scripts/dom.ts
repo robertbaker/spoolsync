@@ -205,6 +205,31 @@ export function enableBackdropDismiss(dialog: HTMLDialogElement): void {
   });
 }
 
+/**
+ * Global fallback listener for declarative invoker commands (`commandfor` and `command="close" /
+ * "show-modal"`) on browsers and test environments lacking native Invoker Commands API support.
+ */
+if (
+  typeof window !== "undefined" &&
+  typeof HTMLButtonElement !== "undefined" &&
+  !("commandForElement" in HTMLButtonElement.prototype)
+) {
+  document.addEventListener("click", (event) => {
+    const button = (event.target as Element | null)?.closest?.("button[commandfor]");
+    if (!button) return;
+    const targetId = button.getAttribute("commandfor");
+    const command = button.getAttribute("command");
+    if (!targetId || !command) return;
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    if (command === "close" && target instanceof HTMLDialogElement) {
+      target.close();
+    } else if (command === "show-modal" && target instanceof HTMLDialogElement) {
+      target.showModal();
+    }
+  });
+}
+
 /** Moves keyboard focus to the first newly revealed item (or its primary control) after "Show more". */
 export function focusRevealedItem(
   container: HTMLElement,

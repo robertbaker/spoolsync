@@ -513,7 +513,13 @@ function ensureDialog(): Elements {
   const badge = h("span", { class: "cl-badge", role: "status" });
   const close = h(
     "button",
-    { type: "button", class: "cl-close", "aria-label": "Close changelog" },
+    {
+      type: "button",
+      commandfor: "changelog-dialog",
+      command: "close",
+      class: "cl-close",
+      "aria-label": "Close changelog",
+    },
     icon(CLOSE_ICON),
   );
   const search = h("input", {
@@ -578,7 +584,6 @@ function ensureDialog(): Elements {
     ),
   );
   elements = { dialog, title, sub, badge, search, chips, scroller, nav, content, live };
-  close.addEventListener("click", () => dialog.close());
   enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {
     requestId += 1;

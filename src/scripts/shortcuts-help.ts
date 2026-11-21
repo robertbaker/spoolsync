@@ -27,6 +27,8 @@ function ensureDialog(): HTMLDialogElement {
     "button",
     {
       type: "button",
+      commandfor: "shortcuts-dialog",
+      command: "close",
       autofocus: "",
       class:
         "min-h-11 sm:min-h-0 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
@@ -76,7 +78,6 @@ function ensureDialog(): HTMLDialogElement {
       h("div", { class: "mt-6 flex justify-end" }, close),
     ),
   );
-  close.addEventListener("click", () => dialog?.close());
   enableBackdropDismiss(dialog);
   document.body.append(dialog);
   return dialog;

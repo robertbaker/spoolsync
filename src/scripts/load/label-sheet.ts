@@ -252,12 +252,13 @@ export function wireLabelPrinting({ results, visibleSpools }: Inputs): { update(
       "button",
       {
         type: "button",
+        commandfor: "labels-dialog",
+        command: "close",
         class:
           "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
       },
       "Close",
     );
-    close.addEventListener("click", () => dialog?.close());
     const element = h(
       "dialog",
       {

@@ -30,6 +30,8 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
     "button",
     {
       type: "button",
+      commandfor: id,
+      command: "close",
       class:
         "rounded-md border px-3.5 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
       "data-confirm-cancel": "",
@@ -53,6 +55,7 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   const dialog = h(
     "dialog",
     {
+      id,
       class:
         "m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border bg-background p-0 text-foreground shadow-layered backdrop:bg-black/40",
       "aria-labelledby": `${id}-title`,
@@ -77,7 +80,6 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
       accepted = true;
       dialog.close();
     });
-    cancel.addEventListener("click", () => dialog.close());
     enableBackdropDismiss(dialog);
     dialog.addEventListener("close", () => {
       dialog.remove();

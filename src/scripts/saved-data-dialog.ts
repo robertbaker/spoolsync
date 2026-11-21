@@ -85,13 +85,14 @@ function rebuild(body: HTMLElement): void {
     "button",
     {
       type: "button",
+      commandfor: "saved-data-dialog",
+      command: "close",
       "data-saved-close": "",
       class:
         "rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
     },
     "Close",
   );
-  close.addEventListener("click", () => dialog?.close());
   const buttonClass =
     "rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
   const exportButton = h("button", { type: "button", class: buttonClass }, "Export settings");

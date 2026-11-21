@@ -24,7 +24,14 @@ import { installTabs, sampleOutput } from "./data";
         </div>
         {
           installTabs.map((tab, index) => (
-            <div role="tabpanel" id={`install-panel-${tab.id}`} aria-labelledby={`install-tab-${tab.id}`} data-install-panel={tab.id} hidden={index !== 0}>
+            <div
+              role="tabpanel"
+              id={`install-panel-${tab.id}`}
+              aria-labelledby={`install-tab-${tab.id}`}
+              data-install-panel={tab.id}
+              tabindex={index === 0 ? 0 : -1}
+              hidden={index !== 0}
+            >
               <CommandBlock code={tab.code} title="Install" />
             </div>
           ))

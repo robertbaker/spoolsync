@@ -110,7 +110,11 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
     { type: "button", class: PRIMARY, id: "mapper-download" },
     t("map.download"),
   );
-  const cancel = h("button", { type: "button", class: BUTTON }, t("map.cancel"));
+  const cancel = h(
+    "button",
+    { type: "button", commandfor: "mapper-dialog", command: "close", class: BUTTON },
+    t("map.cancel"),
+  );
   const remember = h("input", { type: "checkbox", id: "mapper-remember", class: "size-4" });
   remember.checked = true;
 
@@ -315,7 +319,6 @@ export async function openColumnMapper(file: File, opener: HTMLElement | null): 
     showToast(t("map.downloaded"), "success", 5000);
     dialog.close();
   });
-  cancel.addEventListener("click", () => dialog.close());
   enableBackdropDismiss(dialog);
   dialog.addEventListener("close", () => {
     clearTimeout(timer);

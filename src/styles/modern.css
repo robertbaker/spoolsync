@@ -33,7 +33,13 @@
 
 /* ---- Dialogs ------------------------------------------------------------------------------ */
 
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
 dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
   background: var(--backdrop);
   backdrop-filter: blur(3px);
 }
@@ -44,7 +50,9 @@ dialog::backdrop {
   #palette-dialog,
   #inventory-report-dialog,
   #weigh-in-dialog,
-  #spoolsync-tour-dialog
+  #spoolsync-tour-dialog,
+  #labels-dialog,
+  #mapper-dialog
 ) {
   border: 1px solid var(--border);
   border-radius: var(--dialog-radius);
@@ -73,7 +81,9 @@ dialog::backdrop {
     #palette-dialog,
     #inventory-report-dialog,
     #weigh-in-dialog,
-    #spoolsync-tour-dialog
+    #spoolsync-tour-dialog,
+    #labels-dialog,
+    #mapper-dialog
   ) {
     opacity: 0;
     translate: 0 0.5rem;
@@ -92,7 +102,9 @@ dialog::backdrop {
     #palette-dialog,
     #inventory-report-dialog,
     #weigh-in-dialog,
-    #spoolsync-tour-dialog
+    #spoolsync-tour-dialog,
+    #labels-dialog,
+    #mapper-dialog
   )[open] {
     opacity: 1;
     translate: 0 0;
@@ -106,7 +118,9 @@ dialog::backdrop {
       #palette-dialog,
       #inventory-report-dialog,
       #weigh-in-dialog,
-      #spoolsync-tour-dialog
+      #spoolsync-tour-dialog,
+      #labels-dialog,
+      #mapper-dialog
     )[open] {
       opacity: 0;
       translate: 0 0.5rem;
@@ -155,6 +169,8 @@ dialog::backdrop {
   }
 
   details::details-content {
+    interpolate-size: allow-keywords;
+    contain: layout;
     block-size: 0;
     overflow: clip;
     transition:
@@ -174,7 +190,9 @@ dialog::backdrop {
     #shortcuts-dialog,
     #inventory-report-dialog,
     #weigh-in-dialog,
-    #spoolsync-tour-dialog
+    #spoolsync-tour-dialog,
+    #labels-dialog,
+    #mapper-dialog
   ) {
     margin-block-end: max(0.5rem, env(safe-area-inset-bottom, 0px));
     max-block-size: calc(100dvh - 1.5rem - env(safe-area-inset-bottom, 0px));
@@ -242,12 +260,18 @@ button:disabled {
   text-wrap: pretty;
 }
 
-:where(.dropzone, .empty-state, button, th) {
+:where(h1, h2, h3, .dropzone, .empty-state, button, th) {
   text-wrap: balance;
 }
 
 :where(table, time, kbd, #loaded-summary, #load-bar-summary, #source-count, .tabular) {
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 48rem) {
+  :root {
+    scroll-padding-block-end: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ---- Toasts ------------------------------------------------------------------------------- */
