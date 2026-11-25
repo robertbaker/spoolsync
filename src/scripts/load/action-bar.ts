@@ -20,6 +20,7 @@ export function createActionBar(state: LoadState): { update(): void } {
   const bar = document.getElementById("load-bar");
   const summary = document.getElementById("load-bar-summary");
   const link = document.getElementById("continue-sync");
+  const headerContinue = document.getElementById("loaded-continue");
   link?.addEventListener("click", (event) => {
     if (link.getAttribute("aria-disabled") === "true") event.preventDefault();
   });
@@ -34,6 +35,7 @@ export function createActionBar(state: LoadState): { update(): void } {
     const ready = sources >= 2;
     const pending = pendingMatches(state);
     bar.hidden = sources === 0;
+    if (headerContinue) headerContinue.hidden = !ready;
     summary.textContent =
       sources === 0
         ? "Nothing loaded yet. Drop export files above or open a service below."

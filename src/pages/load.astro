@@ -362,7 +362,12 @@ const spoolman = serviceView("spoolman");
       <div class="border-b pb-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
+            <div class="flex flex-wrap items-center gap-3">
+              <h2 id="loaded-heading" class="text-xl font-bold">Loaded spools</h2>
+              <Button href="/sync" color="primary" size="sm" id="loaded-continue" hidden icon="material-symbols:arrow-forward" iconPosition="right">
+                Continue to review
+              </Button>
+            </div>
             <p id="loaded-summary" class="mt-1 text-sm text-muted-foreground" aria-live="polite"></p>
           </div>
           <search id="loaded-filter-wrap" class="w-full sm:w-auto" aria-label="Loaded spools search" hidden>
