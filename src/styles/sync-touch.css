@@ -48,16 +48,16 @@
   }
 
   /* Stack comparison tables on narrow viewports so long source columns never clip horizontally. */
-  .sync-comparison-table,
-  .sync-comparison-table tbody,
-  .sync-comparison-table tr,
-  .sync-comparison-table th,
-  .sync-comparison-table td {
+  :is(.sync-comparison-table, .pair-table),
+  :is(.sync-comparison-table, .pair-table) tbody,
+  :is(.sync-comparison-table, .pair-table) tr,
+  :is(.sync-comparison-table, .pair-table) th,
+  :is(.sync-comparison-table, .pair-table) td {
     display: block;
     inline-size: 100%;
   }
 
-  .sync-comparison-table thead {
+  :is(.sync-comparison-table, .pair-table) thead {
     position: absolute;
     inline-size: 1px;
     block-size: 1px;
@@ -66,20 +66,20 @@
     white-space: nowrap;
   }
 
-  .sync-comparison-table tr {
+  :is(.sync-comparison-table, .pair-table) tr {
     padding-block: 0.5rem;
   }
 
-  .sync-comparison-table th[scope="row"] {
+  :is(.sync-comparison-table, .pair-table) th[scope="row"] {
     padding-block: 0.375rem 0.25rem;
     font-weight: 600;
   }
 
-  .sync-comparison-table td {
+  :is(.sync-comparison-table, .pair-table) td {
     padding-block: 0.125rem;
   }
 
-  .sync-comparison-table td[data-source-label]::before {
+  :is(.sync-comparison-table, .pair-table) td[data-source-label]::before {
     content: attr(data-source-label);
     display: block;
     margin-block-end: 0.125rem;
@@ -89,6 +89,10 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--muted-foreground);
+  }
+
+  .pair-table td[data-source-label]::before {
+    padding-inline-start: 0;
   }
 }
 

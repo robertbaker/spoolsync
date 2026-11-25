@@ -43,7 +43,10 @@ export function pairTable(a: CommonSpool, b: CommonSpool): HTMLElement {
   const cell = (spool: CommonSpool, field: string, text: string) =>
     h(
       "td",
-      { class: "px-3 py-1.5 align-top" },
+      {
+        class: "px-3 py-1.5 align-top",
+        "data-source-label": `${SOURCE_LABELS[spool.source]} ${spool.sourceId}`,
+      },
       field === "colors" && spool.colors.length ? swatches(spool.colors) : null,
       field === "colors" && spool.colors.length ? " " : null,
       text,
@@ -95,7 +98,7 @@ export function pairTable(a: CommonSpool, b: CommonSpool): HTMLElement {
             cell(b, row.field, row.right),
             h(
               "td",
-              { class: "px-3 py-1.5 align-top whitespace-nowrap" },
+              { class: "px-3 py-1.5 align-top whitespace-nowrap", "data-source-label": "Result" },
               row.status === "differs" ? "≠ " : row.status === "same" ? "= " : "– ",
               STATUS_TEXT[row.status],
             ),
