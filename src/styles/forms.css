@@ -137,13 +137,14 @@ select.field-input {
 /* Sidebar accent-color picker. */
 .sb-palettebtn {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
-  border: 1px solid var(--border);
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
   border-radius: 9999px;
-  background: transparent;
+  background: color-mix(in oklab, var(--foreground) 4%, var(--background));
   cursor: pointer;
 }
 .sb-palettebtn:hover {

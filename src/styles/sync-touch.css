@@ -46,6 +46,50 @@
     display: inline-flex;
     align-items: center;
   }
+
+  /* Stack comparison tables on narrow viewports so long source columns never clip horizontally. */
+  .sync-comparison-table,
+  .sync-comparison-table tbody,
+  .sync-comparison-table tr,
+  .sync-comparison-table th,
+  .sync-comparison-table td {
+    display: block;
+    inline-size: 100%;
+  }
+
+  .sync-comparison-table thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sync-comparison-table tr {
+    padding-block: 0.5rem;
+  }
+
+  .sync-comparison-table th[scope="row"] {
+    padding-block: 0.375rem 0.25rem;
+    font-weight: 600;
+  }
+
+  .sync-comparison-table td {
+    padding-block: 0.125rem;
+  }
+
+  .sync-comparison-table td[data-source-label]::before {
+    content: attr(data-source-label);
+    display: block;
+    margin-block-end: 0.125rem;
+    padding-inline-start: 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
 }
 
 /* Swipe-to-answer cards in the one-at-a-time match review. */

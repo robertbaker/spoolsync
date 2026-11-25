@@ -48,7 +48,11 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
   function heading(text: string): HTMLElement {
     const title = h(
       "h2",
-      { id: "setup-title", class: "text-xl font-bold tracking-tight", tabindex: "-1" },
+      {
+        id: "setup-title",
+        class: "text-xl font-bold tracking-tight outline-none",
+        tabindex: "-1",
+      },
       text,
     );
     return title;
@@ -91,7 +95,11 @@ function createWizard(spoolman: SetupOptions["spoolman"]): () => void {
         "fieldset",
         { class: "mt-4" },
         h("legend", { class: "sr-only" }, t("wizard.choose.legend")),
-        h("div", { class: "grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2" }, ...boxes),
+        h(
+          "div",
+          { class: "grid max-h-[min(26rem,52dvh)] gap-2 overflow-y-auto pr-1 pb-1 sm:grid-cols-2" },
+          ...boxes,
+        ),
       ),
     ];
   }

@@ -144,6 +144,18 @@ function ensure(): HTMLDialogElement {
     class: "mt-2 max-h-[min(60vh,24rem)] overflow-y-auto overscroll-contain",
   });
   status = h("p", { class: "sr-only", role: "status" });
+  const closeButton = h(
+    "button",
+    {
+      type: "button",
+      class:
+        "inline-flex size-11 shrink-0 items-center justify-center rounded-lg border text-lg leading-none text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+      "aria-label": "Close",
+      title: "Close",
+    },
+    "×",
+  );
+  closeButton.addEventListener("click", () => dialog?.close());
   dialog = h(
     "dialog",
     {
@@ -156,12 +168,15 @@ function ensure(): HTMLDialogElement {
     h(
       "div",
       { class: "p-3" },
-      input,
+      h("div", { class: "flex items-center gap-2" }, input, closeButton),
       list,
       status,
       h(
         "p",
-        { class: "mt-2 flex gap-3 px-1 text-xs text-muted-foreground" },
+        {
+          class: "mt-2 flex gap-3 px-1 text-xs text-muted-foreground",
+          "data-palette-hints": "",
+        },
         h("span", { "data-palette-hint": "palette.hintMove" }, t("palette.hintMove")),
         h("span", { "data-palette-hint": "palette.hintChoose" }, t("palette.hintChoose")),
         h("span", { "data-palette-hint": "palette.hintClose" }, t("palette.hintClose")),

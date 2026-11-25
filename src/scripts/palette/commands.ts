@@ -363,7 +363,7 @@ function actionItems(): PaletteItem[] {
 
 /** Everything the palette can do right now. Actions depend on what the current page offers. */
 export function buildItems(): PaletteItem[] {
-  return [...pageItems(), ...panelItems(), ...actionItems()];
+  return [...pageItems(), ...actionItems(), ...panelItems()];
 }
 
 /** Loaded spools from every service, read from session storage as Sync and Load do. */

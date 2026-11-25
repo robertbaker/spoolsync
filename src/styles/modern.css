@@ -423,4 +423,19 @@ button:disabled {
     --bar-bottom: 1rem;
     --bar-end-pad: 9rem;
   }
+
+  body.has-sidebar > footer {
+    padding-block-end: 4.5rem;
+  }
+
+  #toast-container {
+    top: 1.25rem;
+    bottom: auto;
+  }
+}
+
+@media (pointer: coarse) {
+  [data-palette-hints] {
+    display: none;
+  }
 }

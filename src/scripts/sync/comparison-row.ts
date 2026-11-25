@@ -34,7 +34,7 @@ export function comparisonRow(
       const blank = comparison.blank.includes(source);
       return h(
         "td",
-        { class: "px-3 py-2 text-muted-foreground" },
+        { class: "px-3 py-2 text-muted-foreground", "data-source-label": SOURCE_LABELS[source] },
         blank
           ? h(
               "span",
@@ -65,7 +65,7 @@ export function comparisonRow(
     );
     if (comparison.field === "colors") label.append(swatches(option.value as string[]), " ");
     label.append(formatValue(comparison.field, option.value));
-    return h("td", { class: "px-3 py-2" }, label);
+    return h("td", { class: "px-3 py-2", "data-source-label": SOURCE_LABELS[source] }, label);
   });
 
   const keepId = `${name}::keep`;

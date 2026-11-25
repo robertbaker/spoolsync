@@ -24,7 +24,9 @@ export function createSummaryView(state: SyncSession) {
         title: "Resolve differences",
         detail: unresolved
           ? `${unresolved} spool${unresolved === 1 ? "" : "s"} to review`
-          : "Ready",
+          : suggested > 0
+            ? "No field conflicts"
+            : "Ready",
         complete: unresolved === 0,
         current: suggested === 0 && unresolved > 0,
       },
