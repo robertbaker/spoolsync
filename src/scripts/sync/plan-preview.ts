@@ -188,7 +188,8 @@ function clearButton(spool: PreviewSpool, clear: (groupId: string) => void): HTM
     "button",
     {
       type: "button",
-      class: "touch-target rounded border px-2 py-0.5 text-xs hover:bg-muted",
+      class:
+        "touch-target rounded border px-2.5 py-1 text-xs font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
       "aria-label": `Clear the bulk edit for ${spool.title}`,
     },
     "Clear",

@@ -75,7 +75,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
             "h2",
             {
               id: "spool-drawer-title",
-              class: "break-words text-xl font-bold tracking-tight",
+              class: "break-words text-xl font-bold tracking-tight outline-none",
               tabindex: "-1",
               "data-drawer-title": "",
             },
