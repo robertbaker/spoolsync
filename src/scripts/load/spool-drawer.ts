@@ -139,7 +139,7 @@ export function wireSpoolDrawer({ results, insights, onChange }: Inputs): {
         closedby: "any",
         "aria-labelledby": "spool-drawer-title",
         class:
-          "my-0 ml-auto mr-0 h-dvh max-h-none w-full max-w-3xl overflow-y-auto rounded-none border-l bg-background p-0 text-foreground shadow-layered backdrop:bg-black/25 backdrop:backdrop-blur-xs",
+          "my-0 ml-auto mr-0 h-dvh max-h-none w-full max-w-full sm:max-w-3xl overflow-y-auto rounded-none border-l bg-background p-0 text-foreground shadow-layered backdrop:bg-black/25 backdrop:backdrop-blur-xs",
       },
       body,
     );

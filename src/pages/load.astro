@@ -465,9 +465,9 @@ const spoolman = serviceView("spoolman");
     <div
       id="load-bar"
       hidden
-      class="glass-surface sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border border-primary/20 bg-card/90 p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-layered backdrop-blur-md"
+      class="sticky bottom-[var(--bar-bottom)] z-10 md:pr-[var(--bar-end-pad)] mt-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:flex-nowrap rounded-2xl border border-primary/25 bg-card p-2.5 pl-4 sm:p-3 sm:pl-5 shadow-layered"
     >
-      <p id="load-bar-summary" class="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
+      <p id="load-bar-summary" class="min-w-0 basis-full flex-1 text-xs text-muted-foreground sm:basis-auto sm:text-sm" aria-live="polite">
         Nothing loaded yet. Drop export files or pick a service above.
       </p>
       <Button href="/sync" color="primary" id="continue-sync" size="sm" class="shrink-0" aria-disabled="true" aria-describedby="load-bar-summary" icon="material-symbols:arrow-forward" iconPosition="right">

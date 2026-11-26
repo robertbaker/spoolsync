@@ -230,6 +230,10 @@
   margin: 0;
 }
 
+.service-matrix__cells > div {
+  min-inline-size: 0;
+}
+
 .service-matrix__cells dt {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -239,7 +243,14 @@
 }
 
 .service-matrix__cells dd {
+  min-inline-size: 0;
   margin: 0.25rem 0 0;
+}
+
+.service-matrix__cells dd > * {
+  max-inline-size: 100%;
+  white-space: normal;
+  text-align: start;
 }
 
 @container matrix (min-width: 60rem) {

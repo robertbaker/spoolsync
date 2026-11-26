@@ -94,10 +94,13 @@ export function fieldTable(detail: SpoolDetail): HTMLElement {
         {},
         h(
           "tr",
-          {},
-          h("th", { scope: "col", class: "text-left" }, "Field"),
+          {
+            class:
+              "border-b bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+          },
+          h("th", { scope: "col", class: "px-3 py-2 text-left" }, "Field"),
           ...detail.columns.map((column) =>
-            h("th", { scope: "col", class: "text-left" }, SOURCE_LABELS[column.source]),
+            h("th", { scope: "col", class: "px-3 py-2 text-left" }, SOURCE_LABELS[column.source]),
           ),
         ),
       ),
@@ -107,17 +110,17 @@ export function fieldTable(detail: SpoolDetail): HTMLElement {
         ...rows.map((row) =>
           h(
             "tr",
-            { class: row.differs ? "bg-warning/10" : "" },
+            { class: `border-t ${row.differs ? "bg-warning/10" : ""}` },
             h(
               "th",
-              { scope: "row", class: "whitespace-nowrap text-left font-medium" },
+              { scope: "row", class: "px-3 py-2 whitespace-nowrap text-left font-medium" },
               row.label,
               row.differs
                 ? h("span", { class: "ml-2 text-xs text-warning-text" }, "differs")
                 : null,
             ),
             ...row.values.map((value) =>
-              h("td", { class: "align-top break-words" }, cellContent(row, value)),
+              h("td", { class: "px-3 py-2 align-top break-words" }, cellContent(row, value)),
             ),
           ),
         ),
