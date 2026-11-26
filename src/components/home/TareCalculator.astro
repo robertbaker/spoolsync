@@ -43,7 +43,7 @@ import { KNOWN_TARES } from "~/lib/weigh-in";
                 data-brand={tare.brand}
                 data-tare={tare.grams}
                 class:list={[
-                  "tare-brand-btn rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
+                  "tare-brand-btn min-h-11 sm:min-h-9 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                   index === 0
                     ? "border-primary bg-primary/15 text-primary-text ring-1 ring-primary/40 shadow-xs"
                     : "border-border bg-background text-foreground hover:border-primary/40",
